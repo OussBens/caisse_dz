@@ -103,7 +103,7 @@ Future<void> SousCategorieDetail(
                     l10n.modifiedAt,
                     sousCategorie.dateModif?.toString().split(" ").first,
                   ),
-                  detailinfo(l10n.cancelledBy, sousCategorie.annulPar),
+                  detailinfo(l10n.cancelledBy, sousCategorie.annulParCode),
                   detailinfo(l10n.cancellationReason, sousCategorie.motifAnnul),
                 ]),
               ),

@@ -246,7 +246,7 @@ Future<void> StockDetail(BuildContext context, Produit produit) async {
                   detailinfo(l10n.modifiedBy, produit.modifParCode),
                   detailinfo(l10n.modifiedAt,
                       produit.dateModif?.toString().split(" ").first),
-                  detailinfo(l10n.cancelledBy, produit.annulerPar),
+                  detailinfo(l10n.cancelledBy, produit.annulerParCode),
                   detailinfo(l10n.cancellationReason, produit.motifAnnul),
                 ]),
               ),

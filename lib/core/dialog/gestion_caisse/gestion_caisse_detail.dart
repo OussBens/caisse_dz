@@ -110,7 +110,7 @@ Future<void> CaisseGestionDetail(
                   l10n.modifiedAt,
                   caisse.dateModif?.toString().split(" ").first,
                 ),
-                detailinfo(l10n.cancelledBy, caisse.annulPar),
+                detailinfo(l10n.cancelledBy, caisse.annulParCode),
                 detailinfo(l10n.cancellationReason, caisse.motifAnnul),
               ]),
             ],

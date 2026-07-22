@@ -66,7 +66,7 @@ class _TableauTransfertCaisseAdvancedState
       'dateCree': {'visible': false, 'label': 'createdAt', 'field': 'dateCree'},
       'creeParCode': {'visible': false, 'label': 'createdBy', 'field': 'creeParCode'},
       'dateAnnul': {'visible': false, 'label': 'cancelledAt', 'field': 'dateAnnul'},
-      'annulPar': {'visible': false, 'label': 'cancelledBy', 'field': 'annulPar'},
+      'annulParCode': {'visible': false, 'label': 'cancelledBy', 'field': 'annulParCode'},
       'motifAnnul': {'visible': false, 'label': 'cancellationReason', 'field': 'motifAnnul'},
     };
 

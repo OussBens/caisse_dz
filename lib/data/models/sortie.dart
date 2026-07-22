@@ -21,7 +21,7 @@ class Sortie{
   DateTime? dateModif;
   DateTime? dateAnnul;
   String?   modifParCode;
-  String?   annulPar;
+  String?   annulParCode;
   String?   motifAnnul;
 
   Sortie({
@@ -45,7 +45,7 @@ class Sortie{
     this.dateModif,
     this.modifParCode,
     this.dateAnnul,
-    this.annulPar,
+    this.annulParCode,
     this.motifAnnul,
   });
 
@@ -69,7 +69,7 @@ class Sortie{
       motifAnnul    : map['motif_annul'],
       categorie     : map['categorie'],
       modifParCode      : map['modif_par_code'],
-      annulPar      : map['annul_par'],
+      annulParCode      : map['annul_par_code'],
       dateAnnul     : map['date_annul'] != null
           ? DateTime.parse(map['date_annul'])
           : null,
@@ -97,7 +97,7 @@ class Sortie{
       'date_modif'    : dateModif?.toIso8601String(),
       'categorie'     : categorie,
       'modif_par_code'     : modifParCode,
-      'annul_par'     : annulPar,
+      'annul_par_code'     : annulParCode,
       'date_annul'    : dateAnnul?.toIso8601String(),
       'motif_annul'   : motifAnnul,
     };

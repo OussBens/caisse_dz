@@ -141,7 +141,7 @@ Future<ApiResponse<int>> _saveCategorie({
           etat: produit.etat,
           dateModif: DateTime.now(),
           modifParCode: userName,
-          annulerPar: produit.annulerPar,
+          annulerParCode: produit.annulerParCode,
           annulerLe: produit.annulerLe,
           motifAnnul: produit.motifAnnul,
           service: produit.service,

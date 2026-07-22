@@ -22,7 +22,7 @@ class Utilisateur {
   DateTime? dateModif;
   String?   modifParCode;
   DateTime? dateAnnul;
-  String?   annulPar;
+  String?   annulParCode;
   String?   motifAnnul;
 
   Utilisateur({
@@ -43,7 +43,7 @@ class Utilisateur {
     this.dateModif,
     this.modifParCode,
     this.dateAnnul,
-    this.annulPar,
+    this.annulParCode,
     this.motifAnnul,
     
   });
@@ -66,7 +66,7 @@ class Utilisateur {
       observation   : map['observation'],
       motifAnnul    : map['motif_annul'],
       modifParCode      : map['modif_par_code'],
-      annulPar      : map['annul_par'],
+      annulParCode      : map['annul_par_code'],
       dateModif     : map['date_modif'] != null
           ? DateTime.parse(map['date_modif'])
           : null,
@@ -98,7 +98,7 @@ class Utilisateur {
       'date_modif'    : dateModif?.toIso8601String(),
       'date_annul'    : dateAnnul?.toIso8601String(),
       'modif_par_code'     : modifParCode,
-      'annul_par'     : annulPar,
+      'annul_par_code'     : annulParCode,
     }
     ;
   }  String get searchableText {

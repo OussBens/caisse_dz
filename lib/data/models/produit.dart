@@ -58,7 +58,7 @@ class Produit {
 
   DateTime? dateModif;
   String?   modifParCode;
-  String?   annulerPar;
+  String?   annulerParCode;
   DateTime? annulerLe;
   String?   motifAnnul;
 
@@ -107,7 +107,7 @@ class Produit {
     this.emballage2,
     this.emballageP1,
     this.emballageP2,
-    this.annulerPar,
+    this.annulerParCode,
     this.motifAnnul,
     this.dateModif,
     this.codeBarre,
@@ -182,7 +182,7 @@ class Produit {
           ? DateTime.parse(map['date_modif'])
           : null,
       modifParCode              : map['modif_par_code'],
-      annulerPar            : map['annuler_par'],
+      annulerParCode            : map['annuler_par_code'],
       annulerLe             : map['annuler_le'] != null
           ? DateTime.parse(map['annuler_le'])
           : null,
@@ -256,7 +256,7 @@ class Produit {
 
      'date_modif'           : dateModif?.toIso8601String(),
      'modif_par_code'            : modifParCode,
-     'annuler_par'          : annulerPar,
+     'annuler_par_code'          : annulerParCode,
      'annuler_le'           : annulerLe?.toIso8601String(),
      'motif_annul'          : motifAnnul,
 

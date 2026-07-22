@@ -113,7 +113,7 @@ Future<void> CategorieDetail(
                     l10n.modifiedAt,
                     categorie.dateModif?.toString().split(" ").first,
                   ),
-                  detailinfo(l10n.cancelledBy, categorie.annulPar),
+                  detailinfo(l10n.cancelledBy, categorie.annulParCode),
                   detailinfo(l10n.cancellationReason, categorie.motifAnnul),
                 ]),
               ),

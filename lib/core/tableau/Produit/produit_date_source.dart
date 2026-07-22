@@ -116,8 +116,8 @@ class ProduitDataSource extends BaseTableDataSource<Produit> {
         return produit.creeParcode;
       case 'modifParCode':
         return produit.modifParCode ?? '';
-      case 'annulerPar':
-        return produit.annulerPar ?? '';
+      case 'annulerParCode':
+        return produit.annulerParCode ?? '';
       case 'motifAnnul':
         return produit.motifAnnul ?? '';
 

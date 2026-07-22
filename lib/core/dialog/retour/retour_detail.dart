@@ -109,7 +109,7 @@ Future<void> RetourDetail(BuildContext context, Retour retour) async {
                   detailinfo(l10n.dateCreated, (retour.dateCree)),
                   detailinfo(l10n.modifiedBy, retour.modifParCode),
                   detailinfo(l10n.modifiedAt, (retour.dateModif)),
-                  detailinfo(l10n.cancelledBy, retour.annulPar),
+                  detailinfo(l10n.cancelledBy, retour.annulParCode),
                   detailinfo(l10n.cancellationReason, retour.motifAnnul),
                 ]),
               ),

@@ -17,7 +17,7 @@ class PannierProduit {
 
   String?   modifParCode;
   DateTime? modifLe;
-  String?   annulPar;
+  String?   annulParCode;
   DateTime? annulLe;
   String?   motifAnnul;
   PannierProduit({
@@ -37,7 +37,7 @@ class PannierProduit {
     this.modifLe,
     this.modifParCode,
     this.annulLe,
-    this.annulPar,
+    this.annulParCode,
     this.motifAnnul,
   });
 
@@ -61,7 +61,7 @@ class PannierProduit {
 
       motifAnnul  : map['motif_annul'],
       modifParCode    : map['modif_par_code'],
-      annulPar    : map['annul_par'],
+      annulParCode    : map['annul_par_code'],
       annulLe     : map['annul_le'] != null
           ? DateTime.parse(map['annul_le'])
           : null,
@@ -90,7 +90,7 @@ class PannierProduit {
       'cree_par_code' : creeParCode,
 
       'modif_par_code'     : modifParCode,
-      'annul_par'     : annulPar,
+      'annul_par_code'     : annulParCode,
       'date_annul'    : annulLe?.toIso8601String(),
       'date_modif'    : modifLe?.toIso8601String(),
       'motif_annul'   : motifAnnul,

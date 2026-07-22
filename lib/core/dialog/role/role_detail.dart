@@ -105,7 +105,7 @@ Future<void> RoleDetail(BuildContext context, Role role) async {
                     l10n.modifiedAt,
                     role.dateModif?.toString().split(" ").first,
                   ),
-                  detailinfo(l10n.cancelledBy, role.annulPar),
+                  detailinfo(l10n.cancelledBy, role.annulParCode),
                   detailinfo(l10n.cancellationReason, role.motifAnnul),
                 ]),
               ),

@@ -133,7 +133,7 @@ Future<void> PannierDetail(BuildContext context, Pannier pannier) async {
                   detailinfo(l10n.createdAt, pannier.dateCree.toString().split(" ").first),
                   detailinfo(l10n.modifiedBy, pannier.modifParCode),
                   detailinfo(l10n.modifiedAt, pannier.dateModif?.toString().split(" ").first),
-                  detailinfo(l10n.cancelledBy, pannier.annulPar),
+                  detailinfo(l10n.cancelledBy, pannier.annulParCode),
                   detailinfo(l10n.cancelledAt, pannier.dateAnnul?.toString().split(" ").first),
                   detailinfo(l10n.cancellationReason, pannier.motifAnnul),
                 ]),

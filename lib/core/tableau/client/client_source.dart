@@ -75,8 +75,8 @@ class ClientDataSource extends BaseTableDataSource<Client> {
         return client.modifParCode;
       case 'dateAnnul':
         return formatDate(client.dateAnnul);
-      case 'annulPar':
-        return client.annulPar;
+      case 'annulParCode':
+        return client.annulParCode;
       case 'motifAnnul':
         return client.motifAnnul;
 

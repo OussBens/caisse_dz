@@ -151,7 +151,7 @@ Future<void> FournisseurDetail(BuildContext context, Fournisseur fournisseur) as
                     l10n.modifiedAt,
                     fournisseur.dateModif?.toString().split(" ").first,
                   ),
-                  detailinfo(l10n.cancelledBy, fournisseur.annulPar),
+                  detailinfo(l10n.cancelledBy, fournisseur.annulParCode),
                   detailinfo(l10n.cancellationReason, fournisseur.motifAnnul),
                 ]),
               ),

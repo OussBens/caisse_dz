@@ -27,7 +27,7 @@ class RoleDetail {
   DateTime? dateModif;
   String?   modifParCode;
   DateTime? dateAnnul;
-  String?   annulPar;
+  String?   annulParCode;
   String?   motifAnnul;
 
   RoleDetail({
@@ -58,7 +58,7 @@ class RoleDetail {
     this.dateAnnul,
     this.dateModif,
     this.modifParCode,
-    this.annulPar,
+    this.annulParCode,
   });
 
   factory RoleDetail.fromMap(Map<String, dynamic> map)
@@ -91,7 +91,7 @@ class RoleDetail {
       creeParCode : map['cree_par_code'],
 
       modifParCode    : map['modif_par_code'],
-      annulPar    : map['annul_par'],
+      annulParCode    : map['annul_par_code'],
       motifAnnul  : map['motif_annul'],
       dateAnnul   : map['date_annul'] != null
           ? DateTime.parse(map['date_annul'])
@@ -130,7 +130,7 @@ class RoleDetail {
       'cree_par_code'     : creeParCode,
 
       'modif_par_code'         : modifParCode,
-      'annul_par'         : annulPar,
+      'annul_par_code'         : annulParCode,
       'date_modif'        : dateModif?.toIso8601String(),
       'date_annul'        : dateAnnul?.toIso8601String(),
       'motif_annul'       : motifAnnul,

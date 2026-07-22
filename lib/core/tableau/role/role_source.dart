@@ -47,8 +47,8 @@ class RoleDataSource extends BaseTableDataSource<Role> {
         return role.modifParCode;
       case 'dateAnnul':
         return formatDate(role.dateAnnul);
-      case 'annulPar':
-        return role.annulPar;
+      case 'annulParCode':
+        return role.annulParCode;
       case 'motifAnnul':
         return role.motifAnnul;
 

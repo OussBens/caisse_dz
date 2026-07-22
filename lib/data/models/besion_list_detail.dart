@@ -16,7 +16,7 @@ class BesoinListDetail {
   DateTime? dateModif;
   String? modifParCode;
   DateTime? dateAnnul;
-  String? annulPar;
+  String? annulParCode;
   String? motifAnnul;
 
   BesoinListDetail({
@@ -32,7 +32,7 @@ class BesoinListDetail {
     this.dateModif,
     this.modifParCode,
     this.dateAnnul,
-    this.annulPar,
+    this.annulParCode,
     this.motifAnnul,
   }) : montant = montant ?? (quantite * (prix)); // calcul si non fourni
 
@@ -59,7 +59,7 @@ class BesoinListDetail {
       dateAnnul       : map['date_annul'] != null
           ? DateTime.parse(map['date_annul'])
           : null,
-      annulPar        : map['annul_par'],
+      annulParCode        : map['annul_par_code'],
       motifAnnul      : map['motif_annul'],
     );
   }
@@ -77,7 +77,7 @@ class BesoinListDetail {
       'besion_list_code'  : besoinListCode,
 
       'modif_par_code'         : modifParCode,
-      'annul_par'         : annulPar,
+      'annul_par_code'         : annulParCode,
       'date_annul'        : dateAnnul?.toIso8601String(),
       'date_modif'        : dateModif?.toIso8601String(),
       'motif_annul'       : motifAnnul,

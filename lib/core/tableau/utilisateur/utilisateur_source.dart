@@ -52,8 +52,8 @@ class UtilisateurDataSource extends BaseTableDataSource<Utilisateur> {
         return user.modifParCode;
       case 'dateAnnul':
         return formatDate(user.dateAnnul);
-      case 'annulPar':
-        return user.annulPar;
+      case 'annulParCode':
+        return user.annulParCode;
       case 'motifAnnul':
         return user.motifAnnul;
       default:

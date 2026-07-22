@@ -120,7 +120,7 @@ Future<void> BesoinListDetailDialog(
                   detailinfo(l10n.modifiedBy, besoin.modifParCode),
                   detailinfo(l10n.modifiedAt,
                       besoin.dateModif?.toString().split(" ").first),
-                  detailinfo(l10n.cancelledBy, besoin.annulPar),
+                  detailinfo(l10n.cancelledBy, besoin.annulParCode),
                   detailinfo(l10n.cancelledAt,
                       besoin.dateAnnul?.toString().split(" ").first),
                   detailinfo(l10n.cancellationReason, besoin.motifAnnul),

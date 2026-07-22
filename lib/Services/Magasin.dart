@@ -134,7 +134,7 @@ class MagasinServices {
       {
         'etat': 0,
         'date_annul': DateTime.now().toIso8601String(),
-        'annul_par': user,
+        'annul_par_code': user,
       },
       where: 'id = ?',
       whereArgs: [id],

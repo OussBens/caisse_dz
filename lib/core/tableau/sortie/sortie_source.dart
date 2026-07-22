@@ -63,8 +63,8 @@ class SortieDataSource extends BaseTableDataSource<Sortie> {
         return sortie.modifParCode;
       case 'dateAnnul':
         return formatDate(sortie.dateAnnul);
-      case 'annulPar':
-        return sortie.annulPar;
+      case 'annulParCode':
+        return sortie.annulParCode;
       case 'motifAnnul':
         return sortie.motifAnnul;
 

@@ -16,7 +16,7 @@ class SmartScanProduit {
 
   String? modifParCode;
   DateTime? modifLe;
-  String? annulPar;
+  String? annulParCode;
   DateTime? annulLe;
   String? motifAnnul;
 
@@ -34,7 +34,7 @@ class SmartScanProduit {
     required this.creeLe,
     
     this.motifAnnul,
-    this.annulPar,
+    this.annulParCode,
     this.annulLe,
     this.modifParCode,
     this.modifLe
@@ -59,7 +59,7 @@ class SmartScanProduit {
 
       motifAnnul    : map['motif_annul'],
       modifParCode      : map['modif_par_code'],
-      annulPar      : map['annul_par'],
+      annulParCode      : map['annul_par_code'],
       modifLe       : map['modif_le'] != null
           ? DateTime.parse(map['modif_le'])
           : null,
@@ -89,7 +89,7 @@ class SmartScanProduit {
 
       'modif_par_code'       : modifParCode,
       'date_modif'      : modifLe?.toIso8601String(),
-      'annul_par'       : annulPar,
+      'annul_par_code'       : annulParCode,
       'date_annul'      : annulLe?.toIso8601String(),
       'motif_annul'     : motifAnnul,
     };

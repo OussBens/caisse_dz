@@ -61,7 +61,7 @@ class _TableauPackAdvancedState extends State<TableauPackAdvanced> {
       'creeLe': {'visible': true, 'label': 'createdAt', 'field': 'creeLe'},
       'modifParCode': {'visible': true, 'label': 'modifiedBy', 'field': 'modifParCode'},
       'modifLe': {'visible': true, 'label': 'modifiedAt', 'field': 'modifLe'},
-      'annulPar': {'visible': true, 'label': 'cancelledBy', 'field': 'annulPar'},
+      'annulParCode': {'visible': true, 'label': 'cancelledBy', 'field': 'annulParCode'},
       'annulLe': {'visible': true, 'label': 'cancelledAt', 'field': 'annulLe'},
       'motifAnnul': {'visible': true, 'label': 'cancellationReason', 'field': 'motifAnnul'},
     };

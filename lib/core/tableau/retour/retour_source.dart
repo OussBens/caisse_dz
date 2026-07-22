@@ -65,8 +65,8 @@ class RetourDataSource extends BaseTableDataSource<Retour> {
         return retour.modifParCode;
       case 'dateAnnul':
         return _formatDate(retour.dateAnnul);
-      case 'annulPar':
-        return retour.annulPar;
+      case 'annulParCode':
+        return retour.annulParCode;
       case 'motifAnnul':
         return retour.motifAnnul;
 

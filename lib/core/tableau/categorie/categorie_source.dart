@@ -46,8 +46,8 @@ class CategorieDataSource extends BaseTableDataSource<Categorie> {
         return cat.modifParCode ?? '';
       case 'dateAnnul':
         return formatDate(cat.dateAnnul);
-      case 'annulPar':
-        return cat.annulPar ?? '';
+      case 'annulParCode':
+        return cat.annulParCode ?? '';
       case 'motifAnnul':
         return cat.motifAnnul ?? '';
       default:

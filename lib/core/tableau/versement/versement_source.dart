@@ -69,8 +69,8 @@ class VerssementDataSource extends BaseTableDataSource<Verssement> {
         return v.modifParCode;
       case 'dateAnnul':
         return formatDate(v.dateAnnul);
-      case 'annulPar':
-        return v.annulPar;
+      case 'annulParCode':
+        return v.annulParCode;
       case 'motifAnnul':
         return v.motifAnnul;
 

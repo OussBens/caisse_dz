@@ -51,7 +51,7 @@ class DbCreator {
     _db = await databaseFactory.openDatabase(
       dbPath,
       options: OpenDatabaseOptions(
-        version: 7,
+        version: 8,
         onConfigure: (db) async {
           await db.execute("PRAGMA KEY = '$password'");
           await db.execute('PRAGMA foreign_keys = ON');
@@ -232,6 +232,35 @@ class DbCreator {
               } catch (e) {
                 print('Skip rename $table.modif_par: $e');
               }
+            }
+          }
+
+          if (oldVersion < 8) {
+            // Champ d'audit "annulé par" : même principe que cree_par_code /
+            // modif_par_code, on identifie l'annulateur par annul_par_code
+            // (code utilisateur, stable) plutôt que par son nom.
+            const tablesWithAnnulPar = <String>[
+              'roledetail', 'categories', 'sous_categories', 'clients',
+              'remises', 'packs', 'fournisseurs', 'magasins', 'mouvements',
+              'entree', 'panniers', 'retours', 'verssements', 'smart_scan',
+              'utilisateur', 'role', 'besion_list_detail', 'besionList',
+              'caisseGestion', 'pannierProduit', 'smartScanProduit', 'sortie',
+              'transfert', 'zakat',
+            ];
+
+            for (final table in tablesWithAnnulPar) {
+              try {
+                await db.execute('ALTER TABLE $table RENAME COLUMN annul_par TO annul_par_code');
+              } catch (e) {
+                print('Skip rename $table.annul_par: $e');
+              }
+            }
+
+            // produits utilise une nomenclature différente (annuler_par).
+            try {
+              await db.execute('ALTER TABLE produits RENAME COLUMN annuler_par TO annuler_par_code');
+            } catch (e) {
+              print('Skip rename produits.annuler_par: $e');
             }
           }
         },
@@ -565,7 +594,7 @@ class DbCreator {
         date_modif    TEXT,
         modif_par_code     TEXT,
         date_annul    TEXT,
-        annul_par     TEXT,
+        annul_par_code     TEXT,
         motif_annul   TEXT,
         
         FOREIGN KEY (cree_par_code) REFERENCES utilisateur(code),
@@ -586,7 +615,7 @@ class DbCreator {
         date_modif  TEXT,
         modif_par_code   TEXT,
         date_annul  TEXT,
-        annul_par   TEXT,
+        annul_par_code   TEXT,
         motif_annul TEXT,
         FOREIGN KEY (cree_par_code) REFERENCES utilisateur(code)
       )
@@ -608,7 +637,7 @@ class DbCreator {
         date_modif TEXT ,
         modif_par_code TEXT,
         date_annul TEXT,
-        annul_par TEXT,
+        annul_par_code TEXT,
         motif_annul TEXT,
         FOREIGN KEY (categorie_id)  REFERENCES categories(id),
         FOREIGN KEY (cree_par_code) REFERENCES utilisateur(code)
@@ -642,7 +671,7 @@ class DbCreator {
         date_modif    TEXT,
         modif_par_code     TEXT,
         date_annul    TEXT,
-        annul_par     TEXT,
+        annul_par_code     TEXT,
         motif_annul   TEXT,
         FOREIGN KEY (cree_par_code) REFERENCES utilisateur(code)
       )
@@ -668,7 +697,7 @@ class DbCreator {
         modif_le TEXT,
         modif_par_code TEXT,
         annul_le TEXT,
-        annul_par TEXT,
+        annul_par_code TEXT,
         motif_annul TEXT,
         FOREIGN KEY (cree_par_code) REFERENCES utilisateur(code)
       )'''
@@ -690,7 +719,7 @@ class DbCreator {
         cree_le             TEXT    NOT NULL DEFAULT (datetime('now')),
         modif_par_code           TEXT,
         modif_le            TEXT,
-        annul_par           TEXT,
+        annul_par_code           TEXT,
         annul_le            TEXT,
         motif_annul         TEXT,
         FOREIGN KEY (cree_par_code) REFERENCES utilisateur(code)
@@ -757,7 +786,7 @@ class DbCreator {
       cree_par_code TEXT NOT NULL,
       date_modif  TEXT,
       modif_par_code   TEXT,
-      annuler_par TEXT,
+      annuler_par_code TEXT,
       annuler_le  TEXT,
       motif_annul TEXT,
       service INTEGER DEFAULT 0,
@@ -792,7 +821,7 @@ class DbCreator {
         date_modif TEXT,
         modif_par_code TEXT,
         date_annul TEXT,
-        annul_par TEXT,
+        annul_par_code TEXT,
         motif_annul TEXT,
         FOREIGN KEY (cree_par_code) REFERENCES utilisateur(code)     
       )
@@ -868,7 +897,7 @@ class DbCreator {
       date_modif      TEXT DEFAULT (datetime('now')),
       modif_par_code       TEXT,
       date_annul      TEXT,
-      annul_par       TEXT,
+      annul_par_code       TEXT,
       motif_annul     TEXT,
       FOREIGN KEY (cree_par_code) REFERENCES utilisateur(code)
     )
@@ -896,7 +925,7 @@ class DbCreator {
       date_modif    TEXT,
       modif_par_code     TEXT,
       date_annul    TEXT,
-      annul_par     TEXT,
+      annul_par_code     TEXT,
       motif_annul   TEXT,
       FOREIGN KEY (code_produit)  REFERENCES produits(code),
       FOREIGN KEY (cree_par_code) REFERENCES utilisateur(code)
@@ -926,7 +955,7 @@ class DbCreator {
         date_modif    TEXT,
         modif_par_code     TEXT,
         date_annul    TEXT,
-        annul_par     TEXT,
+        annul_par_code     TEXT,
         motif_annul   TEXT,
         FOREIGN KEY (fournisseur_code)  REFERENCES fournisseurs(code),
         FOREIGN KEY (produit_code)      REFERENCES produits(code),
@@ -977,7 +1006,7 @@ class DbCreator {
         date_modif        TEXT,
         modif_par_code         TEXT,
         date_annul        TEXT,
-        annul_par         TEXT,
+        annul_par_code         TEXT,
         motif_annul       TEXT,
         FOREIGN KEY (caisser_code)      REFERENCES utilisateur(code),
         FOREIGN KEY (caisse_code)       REFERENCES caisseGestion(code),
@@ -1009,7 +1038,7 @@ class DbCreator {
         date_modif        TEXT,
         modif_par_code         TEXT,
         date_annul        TEXT,
-        annul_par         TEXT,
+        annul_par_code         TEXT,
         motif_annul       TEXT,
         FOREIGN KEY (client_code)       REFERENCES  clients(code),
         FOREIGN KEY (fournisseur_code)  REFERENCES fournisseurs(code),
@@ -1039,7 +1068,7 @@ class DbCreator {
         date_modif      TEXT,
         modif_par_code       TEXT,
         date_annul      TEXT,
-        annul_par       TEXT,
+        annul_par_code       TEXT,
         motif_annul     TEXT,
         FOREIGN KEY (cree_par_code) REFERENCES utilisateur(code)
       )
@@ -1068,7 +1097,7 @@ class DbCreator {
         date_modif        TEXT,
         modif_par_code         TEXT,
         date_annul        TEXT,
-        annul_par         TEXT,
+        annul_par_code         TEXT,
         motif_annul       TEXT,
         FOREIGN KEY (fournisseur_code)  REFERENCES fournisseurs(code),
         FOREIGN KEY (cree_par_code)     REFERENCES utilisateur(code)
@@ -1095,7 +1124,7 @@ class DbCreator {
         date_modif    TEXT,
         modif_par_code     TEXT,
         date_annul    TEXT,
-        annul_par     TEXT,
+        annul_par_code     TEXT,
         motif_annul   TEXT,
         FOREIGN KEY (role_code)     REFERENCES role(code)
       )
@@ -1115,7 +1144,7 @@ class DbCreator {
         date_modif          TEXT,
         modif_par_code           TEXT,
         date_annul          TEXT,
-        annul_par           TEXT,
+        annul_par_code           TEXT,
         motif_annul         TEXT
       )
     ''');
@@ -1136,7 +1165,7 @@ class DbCreator {
         date_modif        TEXT,
         modif_par_code         TEXT,
         date_annul        TEXT,
-        annul_par         TEXT,
+        annul_par_code         TEXT,
         motif_annul       TEXT,
         FOREIGN KEY (besion_list_code)  REFERENCES  besionList(code),
         FOREIGN KEY (produit_code)      REFERENCES  produits(code),
@@ -1163,7 +1192,7 @@ class DbCreator {
         date_modif      TEXT,
         modif_par_code       TEXT,
         date_annul      TEXT,
-        annul_par       TEXT,
+        annul_par_code       TEXT,
         motif_annul     TEXT,
         FOREIGN KEY (cree_par_code) REFERENCES utilisateur(code)
       )
@@ -1187,7 +1216,7 @@ class DbCreator {
         date_modif      TEXT,
         modif_par_code       TEXT,
         date_annul      TEXT,
-        annul_par       TEXT,
+        annul_par_code       TEXT,
         motif_annul     TEXT,
         FOREIGN KEY (cree_par_code) REFERENCES utilisateur(code),
         FOREIGN KEY (magasin_code)  REFERENCES magasins(code)
@@ -1211,7 +1240,7 @@ class DbCreator {
         code_produit TEXT NOT NULL,
         cree_par_code TEXT NOT NULL,
         modif_par_code       TEXT,
-        annul_par       TEXT,
+        annul_par_code       TEXT,
         date_annul      TEXT,
         date_modif      TEXT,
         motif_annul     TEXT,
@@ -1237,7 +1266,7 @@ class DbCreator {
         etat            INTEGER NOT NULL DEFAULT 1,
         
         modif_par_code       TEXT,
-        annul_par       TEXT,
+        annul_par_code       TEXT,
         date_annul      TEXT,
         date_modif      TEXT,
         motif_annul     TEXT,
@@ -1268,7 +1297,7 @@ class DbCreator {
         date_modif    TEXT,
         categorie     TEXT,
         modif_par_code     TEXT,
-        annul_par     TEXT,
+        annul_par_code     TEXT,
         date_annul    TEXT,
         motif_annul   TEXT,
         FOREIGN KEY (cree_par_code) REFERENCES utilisateur(code),
@@ -1295,7 +1324,7 @@ class DbCreator {
         date_modif TEXT,
         modif_par_code TEXT,
         date_annul TEXT,
-        annul_par TEXT,
+        annul_par_code TEXT,
         motif_annul TEXT,
         FOREIGN KEY (cree_par_code)     REFERENCES utilisateur(code),
         FOREIGN KEY (caisse_exp_code)   REFERENCES caisseGestion(code),  
@@ -1330,7 +1359,7 @@ class DbCreator {
         date_modif TEXT,
         modif_par_code TEXT,
         date_annul TEXT,
-        annul_par TEXT,
+        annul_par_code TEXT,
         motif_annul TEXT,
         FOREIGN KEY (cree_par_code)     REFERENCES utilisateur(code)
       )

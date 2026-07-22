@@ -59,8 +59,8 @@ class RemiseDataSource extends BaseTableDataSource<Remise> {
         return remise.modifParCode ?? '';
       case 'modifLe':
         return formatDate(remise.modifLe);
-      case 'annulPar':
-        return remise.annulPar ?? '';
+      case 'annulParCode':
+        return remise.annulParCode ?? '';
       case 'annulLe':
         return formatDate(remise.annulLe);
       case 'motifAnnul':

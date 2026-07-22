@@ -121,7 +121,7 @@ Future<void> EntreeDetail(BuildContext context, Entree entree) async {
                   detailinfo(l10n.dateCreated, entree.dateCree),
                   detailinfo(l10n.modifiedBy, entree.modifParCode),
                   detailinfo(l10n.modifiedAt, entree.dateModif),
-                  detailinfo(l10n.cancelledBy, entree.annulPar),
+                  detailinfo(l10n.cancelledBy, entree.annulParCode),
                   detailinfo(l10n.cancellationReason, entree.motifAnnul),
                 ]),
               ),

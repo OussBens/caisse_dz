@@ -87,7 +87,7 @@ class _TableauStockAdvancedState extends State<TableauStockAdvanced> {
 
       'dateCree': {'visible': true, 'label': 'createdAt', 'field': 'dateCree'},
       'creeParCode': {'visible': true, 'label': 'createdBy', 'field': 'creeParCode'},
-      'annulerPar': {'visible': false, 'label': 'cancelledBy', 'field': 'annulerPar'},
+      'annulerParCode': {'visible': false, 'label': 'cancelledBy', 'field': 'annulerParCode'},
       'annulerLe': {'visible': false, 'label': 'cancelledAt', 'field': 'annulerLe'},
       'motifAnnul': {'visible': false, 'label': 'cancellationReason', 'field': 'motifAnnul'},
       'dateModif': {'visible': false, 'label': 'modifiedAt', 'field': 'dateModif'},

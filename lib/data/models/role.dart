@@ -12,7 +12,7 @@ class Role {
   DateTime? dateModif;
   String? modifParCode;
   DateTime? dateAnnul;
-  String? annulPar;
+  String? annulParCode;
   String? motifAnnul;
 
   Role({
@@ -27,7 +27,7 @@ class Role {
     this.dateAnnul,
     this.dateModif,
     this.modifParCode,
-    this.annulPar,
+    this.annulParCode,
   });
 
   factory Role.fromMap(Map<String, dynamic> map){
@@ -46,7 +46,7 @@ class Role {
       dateAnnul         : map['date_annul'] != null
           ? DateTime.parse(map['date_annul'])
           : null,
-      annulPar          : map['annul_par'],
+      annulParCode          : map['annul_par_code'],
       motifAnnul        : map['motif_annul'],
     );
   }
@@ -63,7 +63,7 @@ class Role {
     'date_modif'          : dateModif?.toIso8601String(),
     'modif_par_code'           : modifParCode,
     'date_annul'          : dateAnnul?.toIso8601String(),
-    'annul_par'           : annulPar,
+    'annul_par_code'           : annulParCode,
     'motif_annul'         : motifAnnul,
   };  String get searchableText {
     return toMap()

@@ -70,7 +70,7 @@ class _TableauMagasinAdvancedState
       'dateModif': {'visible': false, 'label': 'modifiedAt', 'field': 'dateModif'},
       'modifParCode': {'visible': false, 'label': 'modifiedBy', 'field': 'modifParCode'},
       'dateAnnul': {'visible': false, 'label': 'cancelledAt', 'field': 'dateAnnul'},
-      'annulPar': {'visible': false, 'label': 'cancelledBy', 'field': 'annulPar'},
+      'annulParCode': {'visible': false, 'label': 'cancelledBy', 'field': 'annulParCode'},
       'motifAnnul': {'visible': false, 'label': 'cancellationReason', 'field': 'motifAnnul'},
     };
 

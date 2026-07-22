@@ -121,7 +121,7 @@ Future<void> RemiseDetail(BuildContext context, Remise remise) async {
                     l10n.modifiedAt,
                     remise.modifLe?.toString().split(" ").first,
                   ),
-                  detailinfo(l10n.cancelledBy, remise.annulPar),
+                  detailinfo(l10n.cancelledBy, remise.annulParCode),
                   detailinfo(
                     l10n.cancelledAt,
                     remise.annulLe?.toString().split(" ").first,

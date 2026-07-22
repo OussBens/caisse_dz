@@ -62,8 +62,8 @@ class EntreeDataSource extends BaseTableDataSource<Entree> {
         return entree.modifParCode ?? '';
       case 'dateAnnul':
         return formatDate(entree.dateAnnul);
-      case 'annulPar':
-        return entree.annulPar ?? '';
+      case 'annulParCode':
+        return entree.annulParCode ?? '';
       case 'motifAnnul':
         return entree.motifAnnul ?? '';
       default:

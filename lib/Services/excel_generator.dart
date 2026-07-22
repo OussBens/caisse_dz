@@ -154,7 +154,7 @@ class ExcelGenerator {
           .value = TextCellValue(_formatDate(client.dateAnnul));
       // Cancelled By
       sheet.cell(CellIndex.indexByColumnRow(columnIndex: 22, rowIndex: rowIndex))
-          .value = TextCellValue(client.annulPar ?? '-');
+          .value = TextCellValue(client.annulParCode ?? '-');
       // Cancellation Reason
       sheet.cell(CellIndex.indexByColumnRow(columnIndex: 23, rowIndex: rowIndex))
           .value = TextCellValue(client.motifAnnul ?? '-');
@@ -317,7 +317,7 @@ class ExcelGenerator {
           .value = TextCellValue(_formatDate(pannier.dateAnnul));
       // Cancelled By
       sheet.cell(CellIndex.indexByColumnRow(columnIndex: 18, rowIndex: rowIndex))
-          .value = TextCellValue(pannier.annulPar ?? '-');
+          .value = TextCellValue(pannier.annulParCode ?? '-');
       // Cancellation Reason
       sheet.cell(CellIndex.indexByColumnRow(columnIndex: 19, rowIndex: rowIndex))
           .value = TextCellValue(pannier.motifAnnul ?? '-');
@@ -541,7 +541,7 @@ class ExcelGenerator {
       sheet.cell(CellIndex.indexByColumnRow(columnIndex: 32, rowIndex: rowIndex))
           .value = TextCellValue(_formatDate(produit.annulerLe));
       sheet.cell(CellIndex.indexByColumnRow(columnIndex: 33, rowIndex: rowIndex))
-          .value = TextCellValue(produit.annulerPar ?? '-');
+          .value = TextCellValue(produit.annulerParCode ?? '-');
       sheet.cell(CellIndex.indexByColumnRow(columnIndex: 34, rowIndex: rowIndex))
           .value = TextCellValue(produit.motifAnnul ?? '-');
       sheet.cell(CellIndex.indexByColumnRow(columnIndex: 35, rowIndex: rowIndex))
@@ -683,7 +683,7 @@ class ExcelGenerator {
           .value = TextCellValue(_formatDate(categorie.dateAnnul));
       // Cancelled By
       sheet.cell(CellIndex.indexByColumnRow(columnIndex: 9, rowIndex: rowIndex))
-          .value = TextCellValue(categorie.annulPar ?? '-');
+          .value = TextCellValue(categorie.annulParCode ?? '-');
       // Cancellation Reason
       sheet.cell(CellIndex.indexByColumnRow(columnIndex: 10, rowIndex: rowIndex))
           .value = TextCellValue(categorie.motifAnnul ?? '-');
@@ -830,7 +830,7 @@ class ExcelGenerator {
           .value = TextCellValue(_formatDate(remise.modifLe));
       // Cancelled By
       sheet.cell(CellIndex.indexByColumnRow(columnIndex: 14, rowIndex: rowIndex))
-          .value = TextCellValue(remise.annulPar ?? '-');
+          .value = TextCellValue(remise.annulParCode ?? '-');
       // Cancelled At
       sheet.cell(CellIndex.indexByColumnRow(columnIndex: 15, rowIndex: rowIndex))
           .value = TextCellValue(_formatDate(remise.annulLe));
@@ -978,7 +978,7 @@ class ExcelGenerator {
           .value = TextCellValue(_formatDate(pack.modifLe));
       // Cancelled By
       sheet.cell(CellIndex.indexByColumnRow(columnIndex: 9, rowIndex: rowIndex))
-          .value = TextCellValue(pack.annulPar ?? '-');
+          .value = TextCellValue(pack.annulParCode ?? '-');
       // Cancelled At
       sheet.cell(CellIndex.indexByColumnRow(columnIndex: 10, rowIndex: rowIndex))
           .value = TextCellValue(_formatDate(pack.annulLe));
@@ -1123,7 +1123,7 @@ class ExcelGenerator {
           .value = TextCellValue(_formatDate(sousCategorie.dateAnnul));
       // Cancelled By
       sheet.cell(CellIndex.indexByColumnRow(columnIndex: 10, rowIndex: rowIndex))
-          .value = TextCellValue(sousCategorie.annulPar ?? '-');
+          .value = TextCellValue(sousCategorie.annulParCode ?? '-');
       // Cancellation Reason
       sheet.cell(CellIndex.indexByColumnRow(columnIndex: 11, rowIndex: rowIndex))
           .value = TextCellValue(sousCategorie.motifAnnul ?? '-');
@@ -1281,7 +1281,7 @@ class ExcelGenerator {
           .value = TextCellValue(_formatDate(fournisseur.dateAnnul));
       // Cancelled By
       sheet.cell(CellIndex.indexByColumnRow(columnIndex: 16, rowIndex: rowIndex))
-          .value = TextCellValue(fournisseur.annulPar ?? '-');
+          .value = TextCellValue(fournisseur.annulParCode ?? '-');
       // Cancellation Reason
       sheet.cell(CellIndex.indexByColumnRow(columnIndex: 17, rowIndex: rowIndex))
           .value = TextCellValue(fournisseur.motifAnnul ?? '-');
@@ -1432,7 +1432,7 @@ class ExcelGenerator {
           .value = TextCellValue(_formatDate(versement.dateAnnul));
       // Cancelled By
       sheet.cell(CellIndex.indexByColumnRow(columnIndex: 14, rowIndex: rowIndex))
-          .value = TextCellValue(versement.annulPar ?? '-');
+          .value = TextCellValue(versement.annulParCode ?? '-');
       // Cancellation Reason
       sheet.cell(CellIndex.indexByColumnRow(columnIndex: 15, rowIndex: rowIndex))
           .value = TextCellValue(versement.motifAnnul ?? '-');
@@ -1631,7 +1631,7 @@ class ExcelGenerator {
           .value = TextCellValue(_formatDate(entree.dateAnnul));
       // Cancelled By
       sheet.cell(CellIndex.indexByColumnRow(columnIndex: 17, rowIndex: rowIndex))
-          .value = TextCellValue(entree.annulPar ?? '-');
+          .value = TextCellValue(entree.annulParCode ?? '-');
       // Cancellation Reason
       sheet.cell(CellIndex.indexByColumnRow(columnIndex: 18, rowIndex: rowIndex))
           .value = TextCellValue(entree.motifAnnul ?? '-');
@@ -1818,7 +1818,7 @@ class ExcelGenerator {
           .value = TextCellValue(_formatDate(scan.dateAnnul));
       // Cancelled By
       sheet.cell(CellIndex.indexByColumnRow(columnIndex: 18, rowIndex: rowIndex))
-          .value = TextCellValue(scan.annulPar ?? '-');
+          .value = TextCellValue(scan.annulParCode ?? '-');
       // Cancellation Reason
       sheet.cell(CellIndex.indexByColumnRow(columnIndex: 19, rowIndex: rowIndex))
           .value = TextCellValue(scan.motifAnnul ?? '-');
@@ -2021,7 +2021,7 @@ class ExcelGenerator {
           .value = TextCellValue(_formatDate(sortie.dateAnnul));
       // Cancelled By
       sheet.cell(CellIndex.indexByColumnRow(columnIndex: 16, rowIndex: rowIndex))
-          .value = TextCellValue(sortie.annulPar ?? '-');
+          .value = TextCellValue(sortie.annulParCode ?? '-');
       // Cancellation Reason
       sheet.cell(CellIndex.indexByColumnRow(columnIndex: 17, rowIndex: rowIndex))
           .value = TextCellValue(sortie.motifAnnul ?? '-');
@@ -2243,7 +2243,7 @@ class ExcelGenerator {
           .value = TextCellValue(_formatDate(retour.dateAnnul));
       // Cancelled By
       sheet.cell(CellIndex.indexByColumnRow(columnIndex: 16, rowIndex: rowIndex))
-          .value = TextCellValue(retour.annulPar ?? '-');
+          .value = TextCellValue(retour.annulParCode ?? '-');
       // Cancellation Reason
       sheet.cell(CellIndex.indexByColumnRow(columnIndex: 17, rowIndex: rowIndex))
           .value = TextCellValue(retour.motifAnnul ?? '-');
@@ -2426,7 +2426,7 @@ class ExcelGenerator {
           .value = TextCellValue(_formatDate(besoinList.dateAnnul));
       // Cancelled By
       sheet.cell(CellIndex.indexByColumnRow(columnIndex: 14, rowIndex: rowIndex))
-          .value = TextCellValue(besoinList.annulPar ?? '-');
+          .value = TextCellValue(besoinList.annulParCode ?? '-');
       // Cancellation Reason
       sheet.cell(CellIndex.indexByColumnRow(columnIndex: 15, rowIndex: rowIndex))
           .value = TextCellValue(besoinList.motifAnnul ?? '-');
@@ -2623,7 +2623,7 @@ class ExcelGenerator {
           .value = TextCellValue(_formatDate(mouvement.dateAnnul));
       // Cancelled By
       sheet.cell(CellIndex.indexByColumnRow(columnIndex: 16, rowIndex: rowIndex))
-          .value = TextCellValue(mouvement.annulPar ?? '-');
+          .value = TextCellValue(mouvement.annulParCode ?? '-');
       // Cancellation Reason
       sheet.cell(CellIndex.indexByColumnRow(columnIndex: 17, rowIndex: rowIndex))
           .value = TextCellValue(mouvement.motifAnnul ?? '-');
@@ -2846,7 +2846,7 @@ class ExcelGenerator {
           .value = TextCellValue(_formatDate(utilisateur.dateAnnul));
       // Cancelled By
       sheet.cell(CellIndex.indexByColumnRow(columnIndex: 12, rowIndex: rowIndex))
-          .value = TextCellValue(utilisateur.annulPar ?? '-');
+          .value = TextCellValue(utilisateur.annulParCode ?? '-');
       // Cancellation Reason
       sheet.cell(CellIndex.indexByColumnRow(columnIndex: 13, rowIndex: rowIndex))
           .value = TextCellValue(utilisateur.motifAnnul ?? '-');
@@ -2996,7 +2996,7 @@ class ExcelGenerator {
           .value = TextCellValue(_formatDate(role.dateAnnul));
       // Cancelled By
       sheet.cell(CellIndex.indexByColumnRow(columnIndex: 9, rowIndex: rowIndex))
-          .value = TextCellValue(role.annulPar ?? '-');
+          .value = TextCellValue(role.annulParCode ?? '-');
       // Cancellation Reason
       sheet.cell(CellIndex.indexByColumnRow(columnIndex: 10, rowIndex: rowIndex))
           .value = TextCellValue(role.motifAnnul ?? '-');
@@ -3126,7 +3126,7 @@ class ExcelGenerator {
           .value = TextCellValue(_formatDate(magasin.dateAnnul));
       // Cancelled By
       sheet.cell(CellIndex.indexByColumnRow(columnIndex: 10, rowIndex: rowIndex))
-          .value = TextCellValue(magasin.annulPar ?? '-');
+          .value = TextCellValue(magasin.annulParCode ?? '-');
       // Cancellation Reason
       sheet.cell(CellIndex.indexByColumnRow(columnIndex: 11, rowIndex: rowIndex))
           .value = TextCellValue(magasin.motifAnnul ?? '-');
@@ -3264,7 +3264,7 @@ class ExcelGenerator {
           .value = TextCellValue(_formatDate(caisse.dateAnnul));
       // Cancelled By
       sheet.cell(CellIndex.indexByColumnRow(columnIndex: 12, rowIndex: rowIndex))
-          .value = TextCellValue(caisse.annulPar ?? '-');
+          .value = TextCellValue(caisse.annulParCode ?? '-');
       // Cancellation Reason
       sheet.cell(CellIndex.indexByColumnRow(columnIndex: 13, rowIndex: rowIndex))
           .value = TextCellValue(caisse.motifAnnul ?? '-');
@@ -3555,7 +3555,7 @@ class ExcelGenerator {
       sheet.cell(CellIndex.indexByColumnRow(columnIndex: 21, rowIndex: rowIndex))
           .value = TextCellValue(_formatDate(zakat.dateAnnul));
       sheet.cell(CellIndex.indexByColumnRow(columnIndex: 22, rowIndex: rowIndex))
-          .value = TextCellValue(zakat.annulPar ?? '-');
+          .value = TextCellValue(zakat.annulParCode ?? '-');
       sheet.cell(CellIndex.indexByColumnRow(columnIndex: 23, rowIndex: rowIndex))
           .value = TextCellValue(zakat.motifAnnul ?? '-');
       sheet.cell(CellIndex.indexByColumnRow(columnIndex: 24, rowIndex: rowIndex))

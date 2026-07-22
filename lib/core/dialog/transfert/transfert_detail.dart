@@ -116,7 +116,7 @@ Future<void> TransfertCaisseDetail(
                     l10n.modifiedAt,
                     transfert.dateModif?.toString().split(" ").first,
                   ),
-                  detailinfo(l10n.cancelledBy, transfert.annulPar),
+                  detailinfo(l10n.cancelledBy, transfert.annulParCode),
                   detailinfo(l10n.cancellationReason, transfert.motifAnnul),
                 ]),
               ),

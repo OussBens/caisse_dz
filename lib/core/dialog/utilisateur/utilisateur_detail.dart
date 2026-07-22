@@ -120,7 +120,7 @@ Future<void> UtilisateurDetail(BuildContext context, Utilisateur user) async {
                     l10n.modifiedAt,
                     user.dateModif?.toString().split(" ").first,
                   ),
-                  detailinfo(l10n.cancelledBy, user.annulPar),
+                  detailinfo(l10n.cancelledBy, user.annulParCode),
                   detailinfo(l10n.cancellationReason, user.motifAnnul),
                 ]),
               ),

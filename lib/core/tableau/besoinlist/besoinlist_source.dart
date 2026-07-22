@@ -53,8 +53,8 @@ class BesoinListDataSource extends BaseTableDataSource<BesoinList> {
         return besoin.modifParCode;
       case 'dateAnnul':
         return formatDate(besoin.dateAnnul);
-      case 'annulPar':
-        return besoin.annulPar;
+      case 'annulParCode':
+        return besoin.annulParCode;
       case 'motifAnnul':
         return besoin.motifAnnul;
       default:

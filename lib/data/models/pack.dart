@@ -16,7 +16,7 @@ class Pack {
 
   String? modifParCode;
   DateTime? modifLe;
-  String? annulPar;
+  String? annulParCode;
   DateTime? annulLe;
   String? motifAnnul;
 
@@ -33,7 +33,7 @@ class Pack {
     this.prixVenteOriginal,
     this.modifParCode,
     this.modifLe,
-    this.annulPar,
+    this.annulParCode,
     this.annulLe,
     this.motifAnnul,
   });
@@ -55,7 +55,7 @@ class Pack {
       modifLe           : map['modif_le'] != null
           ? DateTime.parse(map['modif_le'])
           : null,
-      annulPar          : map['annul_par'],
+      annulParCode          : map['annul_par_code'],
       annulLe           : map['annul_le'] != null
           ? DateTime.parse(map['annul_le'])
           : null,
@@ -78,7 +78,7 @@ class Pack {
       'cree_le'           : creeLe.toIso8601String(),
       'modif_par_code'         : modifParCode,
       'modif_le'          : modifLe?.toIso8601String(),
-      'annul_par'         : annulPar,
+      'annul_par_code'         : annulParCode,
       'annul_le'          : annulLe?.toIso8601String(),
       'motif_annul'       : motifAnnul,
     };

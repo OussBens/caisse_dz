@@ -8,7 +8,7 @@ class Categorie {
   String    creeParCode;
 
   String?   modifParCode;
-  String?   annulPar;
+  String?   annulParCode;
   String?   motifAnnul;
   String?   observation;
   DateTime? dateAnnul;
@@ -29,7 +29,7 @@ class Categorie {
     this.dateModif,
     this.modifParCode,
     this.dateAnnul,
-    this.annulPar,
+    this.annulParCode,
     this.motifAnnul,
   });
 
@@ -50,7 +50,7 @@ class Categorie {
       dateAnnul:    map['date_annul'] != null ? DateTime.parse(map['date_annul']) : null,
       motifAnnul:   map['motif_annul'],
       modifParCode:     map['modif_par_code'],
-      annulPar:     map['annul_par'],
+      annulParCode:     map['annul_par_code'],
     );
   }
   // -----------------------------------------------------------
@@ -67,7 +67,7 @@ class Categorie {
       'date_cree'     : dateCree.toIso8601String(),
 
       'modif_par_code'     : modifParCode,
-      'annul_par'     : annulPar,
+      'annul_par_code'     : annulParCode,
       'motif_annul'   : motifAnnul,
       'observation'   : observation,
       'date_annul'    : dateAnnul?.toIso8601String(),

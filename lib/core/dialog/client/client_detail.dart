@@ -172,7 +172,7 @@ Future<void> ClientDetail(BuildContext context, Client client) async {
                     l10n.modifiedAt,
                     client.dateModif?.toString().split(" ").first,
                   ),
-                  detailinfo(l10n.cancelledBy, client.annulPar),
+                  detailinfo(l10n.cancelledBy, client.annulParCode),
                   detailinfo(l10n.cancellationReason, client.motifAnnul),
                 ]),
               ),
