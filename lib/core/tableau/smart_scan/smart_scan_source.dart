@@ -61,8 +61,8 @@ class SmartScanDataSource extends BaseTableDataSource<SmartScan> {
         return scan.creeParCode;
       case 'dateModif':
         return formatDate(scan.dateModif);
-      case 'modifPar':
-        return scan.modifPar;
+      case 'modifParCode':
+        return scan.modifParCode;
       case 'dateAnnul':
         return formatDate(scan.dateAnnul);
       case 'annulPar':

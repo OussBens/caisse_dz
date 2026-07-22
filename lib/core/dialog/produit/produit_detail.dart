@@ -281,7 +281,7 @@ Future<void> ProduitDetail(BuildContext context, Produit produit) async {
                 child: detailwrap([
                   detailinfo(l10n.createdBy, produit.creeParcode),
                   detailinfo(l10n.dateCreated, produit.dateCree.toString().split(" ").first),
-                  detailinfo(l10n.modifiedBy, produit.modifPar),
+                  detailinfo(l10n.modifiedBy, produit.modifParCode),
                   detailinfo(l10n.modifiedAt, produit.dateModif?.toString().split(" ").first),
                   detailinfo(l10n.cancelledBy, produit.annulerPar),
                   detailinfo(l10n.cancellationReason, produit.motifAnnul),

@@ -226,7 +226,7 @@ Future<ApiResponse<int>> _SavePannier ({
     Produite = Produitse.where((e) => e.nom == prod.nomProduit).first;
     Produite.quantite   = Produite.quantite   - quantiteReelle;
     Produite.dateModif  = DateTime.now();
-    Produite.modifPar   = userName;
+    Produite.modifParCode   = userName;
     await serviceP.updateProduit(Produite);
 
     idh = await _GetNextHistoriqueId();
@@ -246,7 +246,7 @@ Future<ApiResponse<int>> _SavePannier ({
   }
 
   client.dernierAchat = DateTime.now();
-  client.modifPar     = userName;
+  client.modifParCode     = userName;
 
   await serviceC.updateClient(client);
 

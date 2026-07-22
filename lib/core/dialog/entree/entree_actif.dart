@@ -48,7 +48,7 @@ Future<void> _DeleteEs({
 
     prod.quantite = prod.quantite - entree.quantite;
     prod.dateModif = DateTime.now();
-    prod.modifPar = userName;
+    prod.modifParCode = userName;
 
     await servicep.updateProduit(prod);
 

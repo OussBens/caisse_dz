@@ -115,7 +115,7 @@ Future<void> UtilisateurDetail(BuildContext context, Utilisateur user) async {
                     l10n.dateCreated,
                     user.dateCree?.toString().split(" ").first,
                   ),
-                  detailinfo(l10n.modifiedBy, user.modifPar),
+                  detailinfo(l10n.modifiedBy, user.modifParCode),
                   detailinfo(
                     l10n.modifiedAt,
                     user.dateModif?.toString().split(" ").first,

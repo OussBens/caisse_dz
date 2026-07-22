@@ -74,7 +74,7 @@ Future<ApiResponse<int>> _updateProduit({
     produit.sousCategorie = sous.nom;
     produit.sousCategorieId = sous.id;
     produit.dateModif = DateTime.now();
-    produit.modifPar = userName;
+    produit.modifParCode = userName;
     lastResponse = await services.updateProduit(produit);
 
     final db = await DbCreator.openDb();

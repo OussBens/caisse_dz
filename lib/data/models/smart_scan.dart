@@ -20,7 +20,7 @@ class SmartScan {
   DateTime dateCree;
   DateTime? dateModif;
   DateTime? dateAnnul;
-  String? modifPar;
+  String? modifParCode;
   String? annulPar;
   String? motifAnnul;
 
@@ -48,7 +48,7 @@ class SmartScan {
     this.dateModif,
     this.dateAnnul,
     this.annulPar,
-    this.modifPar,
+    this.modifParCode,
   });
 
   factory SmartScan.fromMap(Map<String, dynamic> map) {
@@ -73,7 +73,7 @@ class SmartScan {
       observation: map['observation'],
       fournisseurCode: map['fournisseur_code'],
       dateModif: map['date_modif'] != null ? DateTime.parse(map['date_modif']) : null,
-      modifPar: map['modif_par'],
+      modifParCode: map['modif_par_code'],
       dateAnnul: map['date_annul'] != null ? DateTime.parse(map['date_annul']) : null,
       annulPar: map['annul_par'],
       motifAnnul: map['motif_annul'],
@@ -102,7 +102,7 @@ class SmartScan {
       'cree_par_code': creeParCode,
       'fournisseur_code': fournisseurCode,
       'date_modif': dateModif?.toIso8601String(),
-      'modif_par': modifPar,
+      'modif_par_code': modifParCode,
       'date_annul': dateAnnul?.toIso8601String(),
       'annul_par': annulPar,
       'motif_annul': motifAnnul,

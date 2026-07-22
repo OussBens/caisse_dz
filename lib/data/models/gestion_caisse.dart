@@ -15,7 +15,7 @@ class CaisseGestion {
   DateTime dateCree;
 
   
-  String? modifPar;
+  String? modifParCode;
   String? annulPar;
   String? motifAnnul;
   DateTime? dateAnnul;
@@ -38,7 +38,7 @@ class CaisseGestion {
 
     this.observation,
     this.dateModif,
-    this.modifPar,
+    this.modifParCode,
     this.dateAnnul,
     this.annulPar,
     this.motifAnnul,
@@ -61,7 +61,7 @@ class CaisseGestion {
       soldeInitial  : map['solde_initial'],
 
       observation   : map['observation'],
-      modifPar      : map['modif_par'],
+      modifParCode      : map['modif_par_code'],
       annulPar      : map['annul_par'],
       motifAnnul    : map['motif_annul'],
       dateAnnul     : map['date_annul'] != null
@@ -90,7 +90,7 @@ class CaisseGestion {
       'solde_initial' : soldeInitial,
 
       'observation'   : observation,
-      'modif_par'     : modifPar,
+      'modif_par_code'     : modifParCode,
       'annul_par'     : annulPar,
       'motif_annul'   : motifAnnul,
       'date_modif'    : dateModif?.toIso8601String(),

@@ -47,7 +47,7 @@ Future<void> _DeleteR({
     if (retour.client != null) {
       Prod.quantite = Prod.quantite - retour.quantite;
     }
-    Prod.modifPar = userName;
+    Prod.modifParCode = userName;
     Prod.dateModif = DateTime.now();
 
     await serviceP.updateProduit(Prod);

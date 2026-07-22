@@ -149,7 +149,7 @@ Future<void> _updateProduct({
 
 
     produit.dateModif = DateTime.now();
-    produit.modifPar = "system";
+    produit.modifParCode = "system";
 
     await service.updateProduit(produit);
 
@@ -289,7 +289,7 @@ Future<ApiResponse<int>> _UpdatePannier({
             mouv.dateModif = DateTime.now();
             mouv.prixVente = prod.prix;
             mouv.quantite = prod.quantite;
-            mouv.modifPar = userName;
+            mouv.modifParCode = userName;
             mouv.client = panniere.client;
             mouv.date = panniere.date;
             await servicem.updateMouvement(mouv);
@@ -332,7 +332,7 @@ Future<ApiResponse<int>> _UpdatePannier({
     if (diffMontant != 0) {
       client.dernierAchat = DateTime.now();
       client.dateModif = DateTime.now();
-      client.modifPar = userName;
+      client.modifParCode = userName;
       await serviceC.updateClient(client);
 
       await _addHistorique(
@@ -668,7 +668,7 @@ Future<void> PannierModif(BuildContext context, Pannier panier) async {
                         // Mise à jour du panier
                         panier.modePaiement = selectedModePaiement;
                         panier.dateModif = DateTime.now();
-                        panier.modifPar = userName;
+                        panier.modifParCode = userName;
                         panier.client = selectedClient!;
                         panier.client_code = clientsTest
                             .where((c) => c.nom == selectedClient)

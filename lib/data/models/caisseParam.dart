@@ -15,7 +15,7 @@ class CaisseParam {
   String    creeParCode;
   DateTime  dateCree;
 
-  String?   modifPar;
+  String?   modifParCode;
   DateTime? dateModif;
 
   // -----------------------------------------------------------
@@ -35,7 +35,7 @@ class CaisseParam {
     required  this.caisseCode,
 
     this.dateModif,
-    this.modifPar,
+    this.modifParCode,
   });
 
   // -----------------------------------------------------------
@@ -56,7 +56,7 @@ class CaisseParam {
       creeParCode       : map['cree_par_code'],
       dateCree          : DateTime.parse(map['date_cree']),
 
-      modifPar          : map['modif_par'],
+      modifParCode          : map['modif_par_code'],
       dateModif         : map['date_modif'] != null
           ? DateTime.parse(map['date_modif'] as String)
           : null,
@@ -79,7 +79,7 @@ class CaisseParam {
       'date_cree'     : dateCree.toIso8601String(),
       'cree_par_code' : creeParCode,
 
-      'modif_par'     : modifPar,
+      'modif_par_code'     : modifParCode,
       'date_modif'    : dateModif?.toIso8601String(),
     };
   }

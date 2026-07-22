@@ -111,7 +111,7 @@ Future<void> TransfertCaisseDetail(
                     l10n.dateCreated,
                     transfert.dateCree?.toString().split(" ").first,
                   ),
-                  detailinfo(l10n.modifiedBy, transfert.modifPar),
+                  detailinfo(l10n.modifiedBy, transfert.modifParCode),
                   detailinfo(
                     l10n.modifiedAt,
                     transfert.dateModif?.toString().split(" ").first,

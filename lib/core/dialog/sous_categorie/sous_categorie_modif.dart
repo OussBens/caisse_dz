@@ -83,7 +83,7 @@ Future<ApiResponse<int>> _saveSousCategorie({
     produit.categorie = defaultCategorie;
     produit.categorieId = defaultCategorieId;
     produit.dateModif = DateTime.now();
-    produit.modifPar = userName;
+    produit.modifParCode = userName;
 
     await produitService.updateProduit(produit);
   }
@@ -108,7 +108,7 @@ Future<ApiResponse<int>> _saveSousCategorie({
     produit.categorie = sousCategorie.categorieNom;
     produit.categorieId = sousCategorie.categorieId;
     produit.dateModif = DateTime.now();
-    produit.modifPar = userName;
+    produit.modifParCode = userName;
 
     await produitService.updateProduit(produit);
 
@@ -318,7 +318,7 @@ Future<void> SousCategorieModif(BuildContext context, SousCategorie sousCategori
                                   etat: selectedEtatR == l10n.active,
                                   dateCree: sousCategorie.dateCree,
                                   creeParCode: sousCategorie.creeParCode,
-                                  modifPar: userName,
+                                  modifParCode: userName,
                                   dateModif: DateTime.now(),
                                   categorieId: newCategorieId!,
                                   categorieNom: selectedCategorieNom ?? "",

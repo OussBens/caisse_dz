@@ -153,7 +153,7 @@ Future<ApiResponse<int>> _SaveEntree({
 
 
   // ✅ Audit
-  prod.modifPar = userName;
+  prod.modifParCode = userName;
   prod.dateModif = DateTime.now();
 
   // ✅ Mettre à jour le produit

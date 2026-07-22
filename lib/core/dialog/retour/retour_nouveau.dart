@@ -152,7 +152,7 @@ Future<ApiResponse<int>> _SaveRetour({
     Produit produit = prod.where((e) => e.nom == retour.nomProduit).first;
     produit.quantite = produit.quantite - retour.quantite;
     produit.dateModif = DateTime.now();
-    produit.modifPar = userName;
+    produit.modifParCode = userName;
     await serviceP.updateProduit(produit);
 
     // ✅ AUGMENTER LE NOMBRE DE RETOURS DU FOURNISSEUR
@@ -171,7 +171,7 @@ Future<ApiResponse<int>> _SaveRetour({
     Produit produit = prod.where((e) => e.nom == retour.nomProduit).first;
     produit.quantite = produit.quantite + retour.quantite;
     produit.dateModif = DateTime.now();
-    produit.modifPar = userName;
+    produit.modifParCode = userName;
     await serviceP.updateProduit(produit);
 
     // ✅ AUGMENTER LE NOMBRE DE RETOURS DU CLIENT

@@ -272,7 +272,7 @@ Future<void> FournisseurModif(BuildContext context, Fournisseur fournisseur) asy
                               wilaya: wilayaControllerF.text,
                               dateCree: fournisseur.dateCree,
                               dateModif: DateTime.now(),
-                              modifPar: userName,
+                              modifParCode: userName,
                               creeParCode: fournisseur.creeParCode,
                             );
 

@@ -1255,7 +1255,7 @@ class _ProduitScreenState extends State<ProduitScreen> with TickerProviderStateM
       Minimum: minInput ?? ParamtersDB.Minimum,
       Maximum: maxInput ?? ParamtersDB.Maximum,
       Datemodif: DateTime.now(),
-      modifPar: userName,
+      modifParCode: userName,
       Datecree: ParamtersDB.Datecree,
       creeParCode: ParamtersDB.creeParCode,
     );

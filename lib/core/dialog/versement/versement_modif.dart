@@ -393,7 +393,7 @@ Future<void> VersementModif(
                               beneficiare: _selectedBeneficiaireV!,
                               dateModif: DateTime.now(),
                               dateCree: versement.dateCree,
-                              modifPar: userName,
+                              modifParCode: userName,
                               montant: double.parse(_montantControllerV.text),
                               sense: versement.sense,
                               etat: _selectedEtatV == l10n.validated,

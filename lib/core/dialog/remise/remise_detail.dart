@@ -116,7 +116,7 @@ Future<void> RemiseDetail(BuildContext context, Remise remise) async {
                     l10n.dateCreated,
                     remise.creeLe?.toString().split(" ").first,
                   ),
-                  detailinfo(l10n.modifiedBy, remise.modifPar),
+                  detailinfo(l10n.modifiedBy, remise.modifParCode),
                   detailinfo(
                     l10n.modifiedAt,
                     remise.modifLe?.toString().split(" ").first,

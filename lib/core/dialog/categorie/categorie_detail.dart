@@ -108,7 +108,7 @@ Future<void> CategorieDetail(
                     l10n.createdAt,
                     categorie.dateCree?.toString().split(" ").first,
                   ),
-                  detailinfo(l10n.modifiedBy, categorie.modifPar),
+                  detailinfo(l10n.modifiedBy, categorie.modifParCode),
                   detailinfo(
                     l10n.modifiedAt,
                     categorie.dateModif?.toString().split(" ").first,

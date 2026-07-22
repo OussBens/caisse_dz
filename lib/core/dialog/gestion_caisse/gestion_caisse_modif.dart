@@ -325,7 +325,7 @@ Future<void> CaisseGestionModif(BuildContext context, CaisseGestion caisse) asyn
                               etat: selectedEtatM == l10n.active,
                               code: caisse.code,
                               magasin: selectedMagasinM!,
-                              modifPar: userName,
+                              modifParCode: userName,
                               dateCree: caisse.dateCree,
                               dateModif: DateTime.now(),
                               nomCaisse: nomCaisseControllerM.text,

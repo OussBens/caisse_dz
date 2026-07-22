@@ -96,7 +96,7 @@ Future<ApiResponse<int>> UpdateSS({
       Produit prod = Produitse.where((e) => e.nom == oldProd.nomProduit).first;
       prod.quantite = prod.quantite - oldProd.quantite;
       prod.dateModif = DateTime.now();
-      prod.modifPar = userName;
+      prod.modifParCode = userName;
       await serviceP.updateProduit(prod);
       await MouvementsServices.deleteMouvement(mouv.where((e) => e.nomProduit == oldProd.nomProduit).first.id);
       int idh = await _GetNextHistoriqueId();
@@ -163,13 +163,13 @@ Future<ApiResponse<int>> UpdateSS({
       Mouvement mouve = mouv.where((f) => f.nomProduit == newProd.nomProduit).first;
       mouve.prixAchat = newProd.prix;
       mouve.quantite = newProd.quantite;
-      mouve.modifPar = userName;
+      mouve.modifParCode = userName;
       mouve.dateModif = DateTime.now();
 
       if (oldProd.prix != newProd.prix) {
         Produit prod = Produitse.where((e) => e.nom == newProd.nomProduit).first;
         prod.prixAchat = newProd.prix;
-        prod.modifPar = userName;
+        prod.modifParCode = userName;
         prod.dateModif = DateTime.now();
         await serviceP.updateProduit(prod);
 
@@ -189,7 +189,7 @@ Future<ApiResponse<int>> UpdateSS({
       if (oldProd.quantite != newProd.quantite) {
         Produit prod = Produitse.where((e) => e.nom == newProd.nomProduit).first;
         prod.quantite = (newProd.quantite - oldProd.quantite) + prod.quantite;
-        prod.modifPar = userName;
+        prod.modifParCode = userName;
         prod.dateModif = DateTime.now();
         await serviceP.updateProduit(prod);
 

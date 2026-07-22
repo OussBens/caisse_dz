@@ -148,7 +148,7 @@ class ExcelGenerator {
           .value = TextCellValue(_formatDate(client.dateModif));
       // Modified By
       sheet.cell(CellIndex.indexByColumnRow(columnIndex: 20, rowIndex: rowIndex))
-          .value = TextCellValue(client.modifPar ?? '-');
+          .value = TextCellValue(client.modifParCode ?? '-');
       // Cancelled At
       sheet.cell(CellIndex.indexByColumnRow(columnIndex: 21, rowIndex: rowIndex))
           .value = TextCellValue(_formatDate(client.dateAnnul));
@@ -311,7 +311,7 @@ class ExcelGenerator {
           .value = TextCellValue(_formatDate(pannier.dateModif));
       // Modified By
       sheet.cell(CellIndex.indexByColumnRow(columnIndex: 16, rowIndex: rowIndex))
-          .value = TextCellValue(pannier.modifPar ?? '-');
+          .value = TextCellValue(pannier.modifParCode ?? '-');
       // Cancelled At
       sheet.cell(CellIndex.indexByColumnRow(columnIndex: 17, rowIndex: rowIndex))
           .value = TextCellValue(_formatDate(pannier.dateAnnul));
@@ -537,7 +537,7 @@ class ExcelGenerator {
       sheet.cell(CellIndex.indexByColumnRow(columnIndex: 30, rowIndex: rowIndex))
           .value = TextCellValue(_formatDate(produit.dateModif));
       sheet.cell(CellIndex.indexByColumnRow(columnIndex: 31, rowIndex: rowIndex))
-          .value = TextCellValue(produit.modifPar ?? '-');
+          .value = TextCellValue(produit.modifParCode ?? '-');
       sheet.cell(CellIndex.indexByColumnRow(columnIndex: 32, rowIndex: rowIndex))
           .value = TextCellValue(_formatDate(produit.annulerLe));
       sheet.cell(CellIndex.indexByColumnRow(columnIndex: 33, rowIndex: rowIndex))
@@ -677,7 +677,7 @@ class ExcelGenerator {
           .value = TextCellValue(_formatDate(categorie.dateModif));
       // Modified By
       sheet.cell(CellIndex.indexByColumnRow(columnIndex: 7, rowIndex: rowIndex))
-          .value = TextCellValue(categorie.modifPar ?? '-');
+          .value = TextCellValue(categorie.modifParCode ?? '-');
       // Cancelled At
       sheet.cell(CellIndex.indexByColumnRow(columnIndex: 8, rowIndex: rowIndex))
           .value = TextCellValue(_formatDate(categorie.dateAnnul));
@@ -824,7 +824,7 @@ class ExcelGenerator {
           .value = TextCellValue(_formatDate(remise.creeLe));
       // Modified By
       sheet.cell(CellIndex.indexByColumnRow(columnIndex: 12, rowIndex: rowIndex))
-          .value = TextCellValue(remise.modifPar ?? '-');
+          .value = TextCellValue(remise.modifParCode ?? '-');
       // Modified At
       sheet.cell(CellIndex.indexByColumnRow(columnIndex: 13, rowIndex: rowIndex))
           .value = TextCellValue(_formatDate(remise.modifLe));
@@ -972,7 +972,7 @@ class ExcelGenerator {
           .value = TextCellValue(_formatDate(pack.creeLe));
       // Modified By
       sheet.cell(CellIndex.indexByColumnRow(columnIndex: 7, rowIndex: rowIndex))
-          .value = TextCellValue(pack.modifPar ?? '-');
+          .value = TextCellValue(pack.modifParCode ?? '-');
       // Modified At
       sheet.cell(CellIndex.indexByColumnRow(columnIndex: 8, rowIndex: rowIndex))
           .value = TextCellValue(_formatDate(pack.modifLe));
@@ -1117,7 +1117,7 @@ class ExcelGenerator {
           .value = TextCellValue(_formatDate(sousCategorie.dateModif));
       // Modified By
       sheet.cell(CellIndex.indexByColumnRow(columnIndex: 8, rowIndex: rowIndex))
-          .value = TextCellValue(sousCategorie.modifPar ?? '-');
+          .value = TextCellValue(sousCategorie.modifParCode ?? '-');
       // Cancelled At
       sheet.cell(CellIndex.indexByColumnRow(columnIndex: 9, rowIndex: rowIndex))
           .value = TextCellValue(_formatDate(sousCategorie.dateAnnul));
@@ -1275,7 +1275,7 @@ class ExcelGenerator {
           .value = TextCellValue(_formatDate(fournisseur.dateModif));
       // Modified By
       sheet.cell(CellIndex.indexByColumnRow(columnIndex: 14, rowIndex: rowIndex))
-          .value = TextCellValue(fournisseur.modifPar ?? '-');
+          .value = TextCellValue(fournisseur.modifParCode ?? '-');
       // Cancelled At
       sheet.cell(CellIndex.indexByColumnRow(columnIndex: 15, rowIndex: rowIndex))
           .value = TextCellValue(_formatDate(fournisseur.dateAnnul));
@@ -1426,7 +1426,7 @@ class ExcelGenerator {
           .value = TextCellValue(_formatDate(versement.dateModif));
       // Modified By
       sheet.cell(CellIndex.indexByColumnRow(columnIndex: 12, rowIndex: rowIndex))
-          .value = TextCellValue(versement.modifPar ?? '-');
+          .value = TextCellValue(versement.modifParCode ?? '-');
       // Cancelled At
       sheet.cell(CellIndex.indexByColumnRow(columnIndex: 13, rowIndex: rowIndex))
           .value = TextCellValue(_formatDate(versement.dateAnnul));
@@ -1625,7 +1625,7 @@ class ExcelGenerator {
           .value = TextCellValue(_formatDate(entree.dateModif));
       // Modified By
       sheet.cell(CellIndex.indexByColumnRow(columnIndex: 15, rowIndex: rowIndex))
-          .value = TextCellValue(entree.modifPar ?? '-');
+          .value = TextCellValue(entree.modifParCode ?? '-');
       // Cancelled At
       sheet.cell(CellIndex.indexByColumnRow(columnIndex: 16, rowIndex: rowIndex))
           .value = TextCellValue(_formatDate(entree.dateAnnul));
@@ -1812,7 +1812,7 @@ class ExcelGenerator {
           .value = TextCellValue(_formatDate(scan.dateModif));
       // Modified By
       sheet.cell(CellIndex.indexByColumnRow(columnIndex: 16, rowIndex: rowIndex))
-          .value = TextCellValue(scan.modifPar ?? '-');
+          .value = TextCellValue(scan.modifParCode ?? '-');
       // Cancelled At
       sheet.cell(CellIndex.indexByColumnRow(columnIndex: 17, rowIndex: rowIndex))
           .value = TextCellValue(_formatDate(scan.dateAnnul));
@@ -2015,7 +2015,7 @@ class ExcelGenerator {
           .value = TextCellValue(_formatDate(sortie.dateModif));
       // Modified By
       sheet.cell(CellIndex.indexByColumnRow(columnIndex: 14, rowIndex: rowIndex))
-          .value = TextCellValue(sortie.modifPar ?? '-');
+          .value = TextCellValue(sortie.modifParCode ?? '-');
       // Cancelled At
       sheet.cell(CellIndex.indexByColumnRow(columnIndex: 15, rowIndex: rowIndex))
           .value = TextCellValue(_formatDate(sortie.dateAnnul));
@@ -2237,7 +2237,7 @@ class ExcelGenerator {
           .value = TextCellValue(_formatDate(retour.dateModif));
       // Modified By
       sheet.cell(CellIndex.indexByColumnRow(columnIndex: 14, rowIndex: rowIndex))
-          .value = TextCellValue(retour.modifPar ?? '-');
+          .value = TextCellValue(retour.modifParCode ?? '-');
       // Cancelled At
       sheet.cell(CellIndex.indexByColumnRow(columnIndex: 15, rowIndex: rowIndex))
           .value = TextCellValue(_formatDate(retour.dateAnnul));
@@ -2420,7 +2420,7 @@ class ExcelGenerator {
           .value = TextCellValue(_formatDate(besoinList.dateModif));
       // Modified By
       sheet.cell(CellIndex.indexByColumnRow(columnIndex: 12, rowIndex: rowIndex))
-          .value = TextCellValue(besoinList.modifPar ?? '-');
+          .value = TextCellValue(besoinList.modifParCode ?? '-');
       // Cancelled At
       sheet.cell(CellIndex.indexByColumnRow(columnIndex: 13, rowIndex: rowIndex))
           .value = TextCellValue(_formatDate(besoinList.dateAnnul));
@@ -2617,7 +2617,7 @@ class ExcelGenerator {
           .value = TextCellValue(_formatDate(mouvement.dateModif));
       // Modified By
       sheet.cell(CellIndex.indexByColumnRow(columnIndex: 14, rowIndex: rowIndex))
-          .value = TextCellValue(mouvement.modifPar ?? '-');
+          .value = TextCellValue(mouvement.modifParCode ?? '-');
       // Cancelled At
       sheet.cell(CellIndex.indexByColumnRow(columnIndex: 15, rowIndex: rowIndex))
           .value = TextCellValue(_formatDate(mouvement.dateAnnul));
@@ -2840,7 +2840,7 @@ class ExcelGenerator {
           .value = TextCellValue(_formatDate(utilisateur.dateModif));
       // Modified By
       sheet.cell(CellIndex.indexByColumnRow(columnIndex: 10, rowIndex: rowIndex))
-          .value = TextCellValue(utilisateur.modifPar ?? '-');
+          .value = TextCellValue(utilisateur.modifParCode ?? '-');
       // Cancelled At
       sheet.cell(CellIndex.indexByColumnRow(columnIndex: 11, rowIndex: rowIndex))
           .value = TextCellValue(_formatDate(utilisateur.dateAnnul));
@@ -2990,7 +2990,7 @@ class ExcelGenerator {
           .value = TextCellValue(_formatDate(role.dateModif));
       // Modified By
       sheet.cell(CellIndex.indexByColumnRow(columnIndex: 7, rowIndex: rowIndex))
-          .value = TextCellValue(role.modifPar ?? '-');
+          .value = TextCellValue(role.modifParCode ?? '-');
       // Cancelled At
       sheet.cell(CellIndex.indexByColumnRow(columnIndex: 8, rowIndex: rowIndex))
           .value = TextCellValue(_formatDate(role.dateAnnul));
@@ -3120,7 +3120,7 @@ class ExcelGenerator {
           .value = TextCellValue(_formatDate(magasin.dateModif));
       // Modified By
       sheet.cell(CellIndex.indexByColumnRow(columnIndex: 8, rowIndex: rowIndex))
-          .value = TextCellValue(magasin.modifPar ?? '-');
+          .value = TextCellValue(magasin.modifParCode ?? '-');
       // Cancelled At
       sheet.cell(CellIndex.indexByColumnRow(columnIndex: 9, rowIndex: rowIndex))
           .value = TextCellValue(_formatDate(magasin.dateAnnul));
@@ -3258,7 +3258,7 @@ class ExcelGenerator {
           .value = TextCellValue(_formatDate(caisse.dateModif));
       // Modified By
       sheet.cell(CellIndex.indexByColumnRow(columnIndex: 10, rowIndex: rowIndex))
-          .value = TextCellValue(caisse.modifPar ?? '-');
+          .value = TextCellValue(caisse.modifParCode ?? '-');
       // Cancelled At
       sheet.cell(CellIndex.indexByColumnRow(columnIndex: 11, rowIndex: rowIndex))
           .value = TextCellValue(_formatDate(caisse.dateAnnul));
@@ -3551,7 +3551,7 @@ class ExcelGenerator {
       sheet.cell(CellIndex.indexByColumnRow(columnIndex: 19, rowIndex: rowIndex))
           .value = TextCellValue(_formatDate(zakat.dateModif));
       sheet.cell(CellIndex.indexByColumnRow(columnIndex: 20, rowIndex: rowIndex))
-          .value = TextCellValue(zakat.modifPar ?? '-');
+          .value = TextCellValue(zakat.modifParCode ?? '-');
       sheet.cell(CellIndex.indexByColumnRow(columnIndex: 21, rowIndex: rowIndex))
           .value = TextCellValue(_formatDate(zakat.dateAnnul));
       sheet.cell(CellIndex.indexByColumnRow(columnIndex: 22, rowIndex: rowIndex))

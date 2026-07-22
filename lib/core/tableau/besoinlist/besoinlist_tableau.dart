@@ -68,7 +68,7 @@ class _TableauBesoinListAdvancedState extends State<TableauBesoinListAdvanced> {
       'dateCree': {'visible': true, 'label': 'createdAt', 'field': 'dateCree'},
       'creeParCode': {'visible': true, 'label': 'createdBy', 'field': 'creeParCode'},
       'dateModif': {'visible': false, 'label': 'modifiedAt', 'field': 'dateModif'},
-      'modifPar': {'visible': false, 'label': 'modifiedBy', 'field': 'modifPar'},
+      'modifParCode': {'visible': false, 'label': 'modifiedBy', 'field': 'modifParCode'},
       'dateAnnul': {'visible': false, 'label': 'cancelledAt', 'field': 'dateAnnul'},
       'annulPar': {'visible': false, 'label': 'cancelledBy', 'field': 'annulPar'},
       'motifAnnul': {'visible': false, 'label': 'cancellationReason', 'field': 'motifAnnul'},

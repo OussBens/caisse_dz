@@ -71,8 +71,8 @@ class ZakatDataSource extends BaseTableDataSource<Zakat> {
         return zakat.creeParCode ?? '';
       case 'dateModif':
         return formatDate(zakat.dateModif);
-      case 'modifPar':
-        return zakat.modifPar ?? '';
+      case 'modifParCode':
+        return zakat.modifParCode ?? '';
       case 'dateAnnul':
         return formatDate(zakat.dateAnnul);
       case 'annulPar':

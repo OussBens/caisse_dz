@@ -167,7 +167,7 @@ Future<void> ClientDetail(BuildContext context, Client client) async {
                     l10n.createdAt,
                     client.dateCree.toString().split(" ").first,
                   ),
-                  detailinfo(l10n.modifiedBy, client.modifPar),
+                  detailinfo(l10n.modifiedBy, client.modifParCode),
                   detailinfo(
                     l10n.modifiedAt,
                     client.dateModif?.toString().split(" ").first,

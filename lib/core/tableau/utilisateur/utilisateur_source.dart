@@ -48,8 +48,8 @@ class UtilisateurDataSource extends BaseTableDataSource<Utilisateur> {
         return user.creeParCode;
       case 'dateModif':
         return formatDate(user.dateModif);
-      case 'modifPar':
-        return user.modifPar;
+      case 'modifParCode':
+        return user.modifParCode;
       case 'dateAnnul':
         return formatDate(user.dateAnnul);
       case 'annulPar':

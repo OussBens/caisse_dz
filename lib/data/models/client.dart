@@ -37,7 +37,7 @@ class Client {
 
   DateTime? dateModif;
   DateTime? dateAnnul;
-  String?   modifPar;
+  String?   modifParCode;
   String?   annulPar;
   String?   motifAnnul;
 
@@ -65,7 +65,7 @@ class Client {
     this.rib,
     this.banque,
     this.annulPar,
-    this.modifPar,
+    this.modifParCode,
     this.dateAnnul,
     this.dateModif,
     this.motifAnnul,
@@ -98,7 +98,7 @@ class Client {
 
       rib           : map['rib'],
       banque        : map['banque'],
-      modifPar      : map['modif_par'],
+      modifParCode      : map['modif_par_code'],
       annulPar      : map['annul_par'],
       motifAnnul    : map['motif_annul'],
       dateModif     : map['date_modif'] != null
@@ -139,7 +139,7 @@ class Client {
       'banque'        : banque,
       'dernier_achat' : dernierAchat?.toIso8601String(),
       'date_modif'    : dateModif?.toIso8601String(),
-      'modif_par'     : modifPar,
+      'modif_par_code'     : modifParCode,
       'date_annul'    : dateAnnul?.toIso8601String(),
       'annul_par'     : annulPar,
       'motif_annul'   : motifAnnul,

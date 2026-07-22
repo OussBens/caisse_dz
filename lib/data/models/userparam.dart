@@ -11,7 +11,7 @@ class UserParam {
   String creeParCode;
 
   DateTime? modifLe;    // Changed from 'dateModif' to 'modifLe'
-  String? modifPar;
+  String? modifParCode;
 
   UserParam({
     required this.id,
@@ -23,7 +23,7 @@ class UserParam {
     required this.creeParCode,
     required this.creeLe,
     this.modifLe,
-    this.modifPar,
+    this.modifParCode,
   });
 
   factory UserParam.fromMap(Map<String, dynamic> map) {
@@ -39,7 +39,7 @@ class UserParam {
       modifLe: map['modif_le'] != null
           ? DateTime.parse(map['modif_le'] as String)
           : null,
-      modifPar: map['modif_par'] as String?,
+      modifParCode: map['modif_par_code'] as String?,
     );
   }
 
@@ -53,6 +53,6 @@ class UserParam {
     'cree_par_code': creeParCode,
     'cree_le': creeLe.toIso8601String(),
     'modif_le': modifLe?.toIso8601String(),
-    'modif_par': modifPar,
+    'modif_par_code': modifParCode,
   };
 }

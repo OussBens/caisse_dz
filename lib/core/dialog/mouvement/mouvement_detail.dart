@@ -97,7 +97,7 @@ Future<void> MouvementDetail(BuildContext context, Mouvement mouvement) async {
                 child: detailwrap([
                   detailinfo(l10n.createdBy, mouvement.creeParCode),
                   detailinfo(l10n.createdAt, _formatDate(mouvement.dateCree)),
-                  detailinfo(l10n.modifiedBy, mouvement.modifPar),
+                  detailinfo(l10n.modifiedBy, mouvement.modifParCode),
                   detailinfo(l10n.modifiedAt, _formatDate(mouvement.dateModif)),
                   detailinfo(l10n.cancelledBy, mouvement.annulPar),
                   detailinfo(l10n.cancellationReason, mouvement.motifAnnul),

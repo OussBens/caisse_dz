@@ -237,7 +237,7 @@ class _RemiseDialogState extends State<RemiseDialog> {
     for (var produit in produits) {
       produit.remise = remise.nom;
       produit.remiseId = remise.id;
-      produit.modifPar = widget.userName;
+      produit.modifParCode = widget.userName;
       produit.dateModif = DateTime.now();
 
       await service.updateProduit(produit);

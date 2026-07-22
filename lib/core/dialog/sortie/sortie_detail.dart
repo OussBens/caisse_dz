@@ -108,7 +108,7 @@ Future<void> SortieDetail(BuildContext context, Sortie sortie) async {
                 child: detailwrap([
                   detailinfo(l10n.createdBy, sortie.creeParCode),
                   detailinfo(l10n.dateCreated, sortie.dateCree),
-                  detailinfo(l10n.modifiedBy, sortie.modifPar),
+                  detailinfo(l10n.modifiedBy, sortie.modifParCode),
                   detailinfo(l10n.modifiedAt, sortie.dateModif),
                   detailinfo(l10n.cancelledBy, sortie.annulPar),
                   detailinfo(l10n.cancellationReason, sortie.motifAnnul),

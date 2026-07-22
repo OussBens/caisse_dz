@@ -79,14 +79,14 @@ Future<ApiResponse<int>> _UpdateEntree({
   mouv.codeProduit = entree.produitcode;
   mouv.date = entree.date;
   mouv.dateModif = DateTime.now();
-  mouv.modifPar = userName;
+  mouv.modifParCode = userName;
   mouv.type = "Entrée";
   await serviceM.updateMouvement(mouv);
 
   final produits = await ProduitServices.getAllProduits();
   final prod = produits.where((p) => p.nom == entree.produit).first;
   prod.quantite += (entree.quantite - originalQte);
-  prod.modifPar = userName;
+  prod.modifParCode = userName;
   prod.dateModif = DateTime.now();
   await serviceP.updateProduit(prod);
 
@@ -416,7 +416,7 @@ Future<void> EntreeModif(BuildContext context, Entree entree) async {
                       entree.prix = double.parse(prixControllerE.text);
                       entree.montant = double.parse(montantControllerE.text);
                       entree.observation = observationControllerE.text;
-                      entree.modifPar = userName;
+                      entree.modifParCode = userName;
                       entree.dateModif = DateTime.now();
                       entree.fournisseur = selectedFournisseurE!;
 

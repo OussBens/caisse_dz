@@ -110,7 +110,7 @@ Future<void> VersementDetail(BuildContext context, Verssement versement) async {
                 child: detailwrap([
                   detailinfo(l10n.createdBy, versement.creeParCode),
                   detailinfo(l10n.dateCreated, versement.dateCree),
-                  detailinfo(l10n.modifiedBy, versement.modifPar),
+                  detailinfo(l10n.modifiedBy, versement.modifParCode),
                   detailinfo(l10n.modifiedAt, versement.dateModif),
                   detailinfo(l10n.cancelledBy, versement.annulPar),
                   detailinfo(l10n.cancellationReason, versement.motifAnnul),

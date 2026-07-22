@@ -65,7 +65,7 @@ Future<void> DeleteSousCategorie({
       produit.sousCategorieId = defaultSousCategorieId;
       produit.categorie = defaultCategorie;
       produit.categorieId = defaultCategorieId;
-      produit.modifPar = userName;
+      produit.modifParCode = userName;
       produit.dateModif = DateTime.now();
 
       await servicep.updateProduit(produit);

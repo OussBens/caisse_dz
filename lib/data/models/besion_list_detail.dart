@@ -14,7 +14,7 @@ class BesoinListDetail {
   String creeParCode;
 
   DateTime? dateModif;
-  String? modifPar;
+  String? modifParCode;
   DateTime? dateAnnul;
   String? annulPar;
   String? motifAnnul;
@@ -30,7 +30,7 @@ class BesoinListDetail {
     required this.creeParCode,
     double? montant, // calculé automatiquement
     this.dateModif,
-    this.modifPar,
+    this.modifParCode,
     this.dateAnnul,
     this.annulPar,
     this.motifAnnul,
@@ -55,7 +55,7 @@ class BesoinListDetail {
       dateModif       : map['date_modif'] != null
           ? DateTime.parse(map['date_modif'])
           : null,
-      modifPar        : map['modif_par'],
+      modifParCode        : map['modif_par_code'],
       dateAnnul       : map['date_annul'] != null
           ? DateTime.parse(map['date_annul'])
           : null,
@@ -76,7 +76,7 @@ class BesoinListDetail {
       'cree_par_code'     : creeParCode,
       'besion_list_code'  : besoinListCode,
 
-      'modif_par'         : modifPar,
+      'modif_par_code'         : modifParCode,
       'annul_par'         : annulPar,
       'date_annul'        : dateAnnul?.toIso8601String(),
       'date_modif'        : dateModif?.toIso8601String(),

@@ -87,7 +87,7 @@ Future<void> _SaveSousCategorieData({
     produit.sousCategorieId = sousCategorie.id;
     produit.categorie = sousCategorie.categorieNom;
     produit.categorieId = sousCategorie.categorieId;
-    produit.modifPar = userName;
+    produit.modifParCode = userName;
     produit.dateModif = DateTime.now();
 
     await produitService.updateProduit(produit);

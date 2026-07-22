@@ -522,7 +522,7 @@ Future<void> PackModif(BuildContext context, Pack pack) async {
                                 quantiteTotale: quantiteTotale,
                                 prixVente: prixTotal,
                                 modifLe: DateTime.now(),
-                                modifPar: userName,
+                                modifParCode: userName,
                                 creeParCode: pack.creeParCode,
                                 creeLe: pack.creeLe,
                               );

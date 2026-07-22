@@ -75,7 +75,7 @@ Future<void> _DeletePannier ({
     await serviceh.addHistorique(histo);
 
     client.dateModif  = DateTime.now();
-    client.modifPar   = userName;
+    client.modifParCode   = userName;
     await serviceC.updateClient(client);
   }
 }

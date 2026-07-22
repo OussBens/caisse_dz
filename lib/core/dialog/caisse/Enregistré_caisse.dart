@@ -189,7 +189,7 @@ Future<ApiResponse<int>> _SavePannier({
     if (produitOriginal != null) {
       produitOriginal.quantite = produitOriginal.quantite - quantiteReelle;
       produitOriginal.dateModif = DateTime.now();
-      produitOriginal.modifPar = userName;
+      produitOriginal.modifParCode = userName;
       await serviceP.updateProduit(produitOriginal);
       print("✅ Produit mis à jour: nouvelle quantite=${produitOriginal.quantite}");
 
@@ -214,7 +214,7 @@ Future<ApiResponse<int>> _SavePannier({
   // 5️⃣ Mise à jour du client
   print("👤 Mise à jour du client: ${client.nom}");
   client.dernierAchat = DateTime.now();
-  client.modifPar = userName;
+  client.modifParCode = userName;
   await serviceC.updateClient(client);
   print("✅ Client mis à jour");
 

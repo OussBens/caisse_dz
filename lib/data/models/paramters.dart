@@ -2,7 +2,7 @@ class Paramters {
   int id;
 
   String    creeParCode;
-  String?   modifPar;
+  String?   modifParCode;
   String    typeMarge;
   double    TauxMargePerncetage;
   double    TauxMargeMontant;
@@ -24,7 +24,7 @@ class Paramters {
         required this.Datecree,
         required this.creeParCode,
         this.Datemodif,
-        this.modifPar,
+        this.modifParCode,
       }
 
   );
@@ -40,7 +40,7 @@ class Paramters {
         Datecree            : DateTime.parse(map['date_cree']),
         creeParCode         : map['cree_par_code'],
         Datemodif           : map['date_modif'] != null ? DateTime.parse(map['date_modif']) : DateTime.parse('0000-00-00'),
-        modifPar            : map['modif_par']
+        modifParCode            : map['modif_par_code']
     );
   }
 
@@ -55,7 +55,7 @@ class Paramters {
       'date_cree'              : Datecree.toIso8601String(),
       'date_modif'             : Datemodif?.toIso8601String(),
       'cree_par_code'          : creeParCode,
-      'modif_par'              : modifPar,
+      'modif_par_code'              : modifParCode,
     };
   }
 

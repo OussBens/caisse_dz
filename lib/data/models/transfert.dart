@@ -24,7 +24,7 @@ class TransfertCaisse {
   DateTime? dateModif;
   DateTime? dateAnnul;
   String?   motifAnnul;
-  String?   modifPar;
+  String?   modifParCode;
   String?   annulPar;
 
   // -----------------------------
@@ -45,7 +45,7 @@ class TransfertCaisse {
 
     this.observation,
     this.dateModif,
-    this.modifPar,
+    this.modifParCode,
     this.dateAnnul,
     this.annulPar,
     this.motifAnnul,
@@ -69,7 +69,7 @@ class TransfertCaisse {
       creeParCode     : map['cree_par_code'],
 
       observation     : map['observation'],
-      modifPar        : map['modif_par'],
+      modifParCode        : map['modif_par_code'],
       annulPar        : map['annul_par'],
       motifAnnul      : map['motif_annul'],
       dateAnnul       : map['date_annul'] != null
@@ -100,7 +100,7 @@ class TransfertCaisse {
 
       'observation'       : observation,
       'date_modif'        : dateModif?.toIso8601String(),
-      'modif_par'         : modifPar,
+      'modif_par_code'         : modifParCode,
       'date_annul'        : dateAnnul?.toIso8601String(),
       'annul_par'         : annulPar,
       'motif_annul'       : motifAnnul,

@@ -100,7 +100,7 @@ Future<void> RoleDetail(BuildContext context, Role role) async {
                     l10n.dateCreated,
                     role.dateCree?.toString().split(" ").first,
                   ),
-                  detailinfo(l10n.modifiedBy, role.modifPar),
+                  detailinfo(l10n.modifiedBy, role.modifParCode),
                   detailinfo(
                     l10n.modifiedAt,
                     role.dateModif?.toString().split(" ").first,

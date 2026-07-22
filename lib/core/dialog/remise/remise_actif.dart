@@ -42,7 +42,7 @@ Future<void> DeleteRemise({
     for (var produit in produits) {
       produit.remise = "";
       produit.remiseId = 0;
-      produit.modifPar = userName;
+      produit.modifParCode = userName;
       produit.dateModif = DateTime.now();
       await services.updateProduit(produit);
       final int idN = await _GetNextHistoriqueId();

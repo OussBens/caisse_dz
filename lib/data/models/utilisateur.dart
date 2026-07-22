@@ -20,7 +20,7 @@ class Utilisateur {
   String    creeParCode;
   
   DateTime? dateModif;
-  String?   modifPar;
+  String?   modifParCode;
   DateTime? dateAnnul;
   String?   annulPar;
   String?   motifAnnul;
@@ -41,7 +41,7 @@ class Utilisateur {
     
     this.observation,
     this.dateModif,
-    this.modifPar,
+    this.modifParCode,
     this.dateAnnul,
     this.annulPar,
     this.motifAnnul,
@@ -65,7 +65,7 @@ class Utilisateur {
 
       observation   : map['observation'],
       motifAnnul    : map['motif_annul'],
-      modifPar      : map['modif_par'],
+      modifParCode      : map['modif_par_code'],
       annulPar      : map['annul_par'],
       dateModif     : map['date_modif'] != null
           ? DateTime.parse(map['date_modif'])
@@ -97,7 +97,7 @@ class Utilisateur {
       'motif_annul'   : motifAnnul,
       'date_modif'    : dateModif?.toIso8601String(),
       'date_annul'    : dateAnnul?.toIso8601String(),
-      'modif_par'     : modifPar,
+      'modif_par_code'     : modifParCode,
       'annul_par'     : annulPar,
     }
     ;

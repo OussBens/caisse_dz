@@ -57,7 +57,7 @@ Future<ApiResponse<int>> _updateProduit({
   for (var produit in produits) {
     produit.remise = remise.nom;
     produit.remiseId = remise.id;
-    produit.modifPar = userName;
+    produit.modifParCode = userName;
     produit.dateModif = DateTime.now();
     lastResponse = await services.updateProduit(produit);
 

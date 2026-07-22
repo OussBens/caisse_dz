@@ -67,7 +67,7 @@ class _TableauRemiseAdvancedState extends State<TableauRemiseAdvanced> {
       'observation': {'visible': true, 'label': 'observation', 'field': 'observation'},
       'creeParCode': {'visible': true, 'label': 'createdBy', 'field': 'creeParCode'},
       'creeLe': {'visible': true, 'label': 'createdAt', 'field': 'creeLe'},
-      'modifPar': {'visible': true, 'label': 'modifiedBy', 'field': 'modifPar'},
+      'modifParCode': {'visible': true, 'label': 'modifiedBy', 'field': 'modifParCode'},
       'modifLe': {'visible': true, 'label': 'modifiedAt', 'field': 'modifLe'},
       'annulPar': {'visible': true, 'label': 'cancelledBy', 'field': 'annulPar'},
       'annulLe': {'visible': true, 'label': 'cancelledAt', 'field': 'annulLe'},

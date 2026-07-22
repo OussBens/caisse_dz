@@ -105,7 +105,7 @@ Future<void> CaisseGestionDetail(
                   l10n.createdAt,
                   caisse.dateCree?.toString().split(" ").first,
                 ),
-                detailinfo(l10n.modifiedBy, caisse.modifPar),
+                detailinfo(l10n.modifiedBy, caisse.modifParCode),
                 detailinfo(
                   l10n.modifiedAt,
                   caisse.dateModif?.toString().split(" ").first,

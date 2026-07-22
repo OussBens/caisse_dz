@@ -42,8 +42,8 @@ class CategorieDataSource extends BaseTableDataSource<Categorie> {
         return cat.creeParCode;
       case 'dateModif':
         return formatDate(cat.dateModif);
-      case 'modifPar':
-        return cat.modifPar ?? '';
+      case 'modifParCode':
+        return cat.modifParCode ?? '';
       case 'dateAnnul':
         return formatDate(cat.dateAnnul);
       case 'annulPar':

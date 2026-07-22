@@ -74,8 +74,8 @@ class MouvementDataSource extends BaseTableDataSource<Mouvement> {
         return mouvement.creeParCode;
       case 'dateModif':
         return formatDate(mouvement.dateModif);
-      case 'modifPar':
-        return mouvement.modifPar;
+      case 'modifParCode':
+        return mouvement.modifParCode;
       case 'dateAnnul':
         return formatDate(mouvement.dateAnnul);
       case 'annulPar':

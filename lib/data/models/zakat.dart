@@ -37,7 +37,7 @@ class Zakat {
 
   DateTime? dateModif;
   DateTime? dateAnnul;
-  String?   modifPar;
+  String?   modifParCode;
   String?   annulPar;
   String?   motifAnnul;
 
@@ -65,7 +65,7 @@ class Zakat {
     this.datePaiement,
     this.observation,
     this.dateModif,
-    this.modifPar,
+    this.modifParCode,
     this.dateAnnul,
     this.annulPar,
     this.motifAnnul,
@@ -95,7 +95,7 @@ class Zakat {
       dateDebutHawl : DateTime.parse(map['date_debut_hawl']),
 
       annulPar      : map['annul_par'],
-      modifPar      : map['modif_par'],
+      modifParCode      : map['modif_par_code'],
       motifAnnul    : map['motif_annul'],
       observation   : map['observation'],
       datePaiement  : map['date_paiement'] != null
@@ -136,7 +136,7 @@ class Zakat {
       'date_paiement'   : datePaiement?.toIso8601String(),
       'observation'     : observation,
       'annul_par'       : annulPar,
-      'modif_par'       : modifPar,
+      'modif_par_code'       : modifParCode,
       'date_modif'      : dateModif?.toIso8601String(),
       'date_annul'      : dateAnnul?.toIso8601String(),
       'motif_annul'     : motifAnnul,

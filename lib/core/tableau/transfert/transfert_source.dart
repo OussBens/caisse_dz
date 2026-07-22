@@ -50,8 +50,8 @@ class TransfertCaisseDataSource extends BaseTableDataSource<TransfertCaisse> {
         return t.creeParCode;
       case 'dateModif':
         return formatDate(t.dateModif);
-      case 'modifPar':
-        return t.modifPar;
+      case 'modifParCode':
+        return t.modifParCode;
       case 'dateAnnul':
         return formatDate(t.dateTransfert);
       case 'annulPar':

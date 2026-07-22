@@ -447,7 +447,7 @@ Future<void> ZakatModif(BuildContext context, Zakat zakat) async {
                             zakat.observation = observationControllerZ.text;
                             zakat.etat = selectedEtatZ == l10n.active;
                             zakat.dateModif = DateTime.now();
-                            zakat.modifPar = userName;
+                            zakat.modifParCode = userName;
 
                             final response = await _SaveData(
                               zakat: zakat,

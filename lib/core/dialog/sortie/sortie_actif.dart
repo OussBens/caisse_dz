@@ -45,7 +45,7 @@ Future<void> _DeleteSs({
 
     prod.quantite = prod.quantite + sortie.quantite;
     prod.dateModif = DateTime.now();
-    prod.modifPar = userName;
+    prod.modifParCode = userName;
 
     await servicep.updateProduit(prod);
 

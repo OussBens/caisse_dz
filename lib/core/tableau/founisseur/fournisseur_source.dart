@@ -58,8 +58,8 @@ class FournisseurDataSource extends BaseTableDataSource<Fournisseur> {
         return fournisseur.creeParCode;
       case 'dateModif':
         return formatDate(fournisseur.dateModif);
-      case 'modifPar':
-        return fournisseur.modifPar;
+      case 'modifParCode':
+        return fournisseur.modifParCode;
       case 'dateAnnul':
         return formatDate(fournisseur.dateAnnul);
       case 'annulPar':

@@ -292,7 +292,7 @@ Future<void> BesoinListModifier(BuildContext context, BesoinList header,) async 
                             header.nombreArticle  = int.parse(nombreArticleControllerB.text);
 
                             header.dateModif  = DateTime.now();
-                            header.modifPar   = userName;
+                            header.modifParCode   = userName;
 
                             final response = await _UpdateBL(
                               details     : produitsBesoin,

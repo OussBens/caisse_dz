@@ -133,7 +133,7 @@ Future<void> ZakatDetail(BuildContext context, Zakat zakat) async {
                     l10n.dateCreated,
                     zakat.dateCree?.toString().split(" ").first ?? "-",
                   ),
-                  detailinfo(l10n.modifiedBy, zakat.modifPar),
+                  detailinfo(l10n.modifiedBy, zakat.modifParCode),
                   detailinfo(
                     l10n.modifiedAt,
                     zakat.dateModif?.toString().split(" ").first ?? "-",

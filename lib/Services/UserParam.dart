@@ -63,7 +63,7 @@ class UserParamServices {
       final data = userParam.toMap()
         ..remove('id')
         ..['modif_le'] = now
-        ..['modif_par'] = modifiedBy;
+        ..['modif_par_code'] = modifiedBy;
 
       final rows = await db.update(
         'userparam',

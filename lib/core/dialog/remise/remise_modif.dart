@@ -130,7 +130,7 @@ Future<ApiResponse<int>> _saveRemise({
       if (!produitsRemise.any((pr) => pr.id == p.id)) {
         p.remise = null;
         p.dateModif = DateTime.now();
-        p.modifPar = userName;
+        p.modifParCode = userName;
         await service.updateProduit(p);
 
         final int idN = await _GetNextHistoriqueId();
@@ -151,7 +151,7 @@ Future<ApiResponse<int>> _saveRemise({
       if (p.remise != remised.nom) {
         p.remise = remised.nom;
         p.dateModif = DateTime.now();
-        p.modifPar = userName;
+        p.modifParCode = userName;
         await service.updateProduit(p);
 
         final int idN = await _GetNextHistoriqueId();
@@ -307,7 +307,7 @@ Future<void> RemiseModif(BuildContext context, Remise remise) async {
                                 tauxType: selectedTypeCalcul!,
                                 montant: double.tryParse(montantRemiseController.text),
                                 modifLe: DateTime.now(),
-                                modifPar: userName,
+                                modifParCode: userName,
                                 creeLe: remise.creeLe,
                                 creeParCode: remise.creeParCode,
                                 etat: true,

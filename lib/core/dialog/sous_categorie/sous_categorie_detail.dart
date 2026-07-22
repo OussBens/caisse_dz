@@ -98,7 +98,7 @@ Future<void> SousCategorieDetail(
                     l10n.dateCreated,
                     sousCategorie.dateCree?.toString().split(" ").first,
                   ),
-                  detailinfo(l10n.modifiedBy, sousCategorie.modifPar),
+                  detailinfo(l10n.modifiedBy, sousCategorie.modifParCode),
                   detailinfo(
                     l10n.modifiedAt,
                     sousCategorie.dateModif?.toString().split(" ").first,

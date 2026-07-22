@@ -117,7 +117,7 @@ Future<void> BesoinListDetailDialog(
                   detailinfo(l10n.createdBy, besoin.creeParCode),
                   detailinfo(l10n.createdAt,
                       besoin.dateCree.toString().split(" ").first),
-                  detailinfo(l10n.modifiedBy, besoin.modifPar),
+                  detailinfo(l10n.modifiedBy, besoin.modifParCode),
                   detailinfo(l10n.modifiedAt,
                       besoin.dateModif?.toString().split(" ").first),
                   detailinfo(l10n.cancelledBy, besoin.annulPar),

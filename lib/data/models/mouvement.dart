@@ -26,7 +26,7 @@ class Mouvement {
   DateTime? dateModif;
   DateTime? dateAnnul;
 
-  String?   modifPar;
+  String?   modifParCode;
   String?   annulPar;
   String?   motifAnnul;
 
@@ -50,7 +50,7 @@ class Mouvement {
     this.client,
 
     this.dateModif,
-    this.modifPar,
+    this.modifParCode,
     this.dateAnnul,
     this.annulPar,
     this.motifAnnul,
@@ -76,7 +76,7 @@ class Mouvement {
         codeOperation : map['code_operation'],
 
         dateModif     : map['date_modif'] != null ? DateTime.parse(map['date_modif']) : null,
-        modifPar      : map['modif_par'],
+        modifParCode      : map['modif_par_code'],
         dateAnnul     : map['date_annul'] != null ? DateTime.parse(map['date_annul']) : null,
         annulPar      : map['annul_par'],
         motifAnnul    : map['motif_annul'],
@@ -101,7 +101,7 @@ class Mouvement {
       'date_cree'       : dateCree.toIso8601String(),
       'cree_par_code'   : creeParCode,
       'date_modif'      : dateModif?.toIso8601String(),
-      'modif_par'       : modifPar,
+      'modif_par_code'       : modifParCode,
       'date_annul'      : dateAnnul?.toIso8601String(),
       'annul_par'       : annulPar,
       'motif_annul'     : motifAnnul,

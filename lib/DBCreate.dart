@@ -51,7 +51,7 @@ class DbCreator {
     _db = await databaseFactory.openDatabase(
       dbPath,
       options: OpenDatabaseOptions(
-        version: 6,
+        version: 7,
         onConfigure: (db) async {
           await db.execute("PRAGMA KEY = '$password'");
           await db.execute('PRAGMA foreign_keys = ON');
@@ -208,6 +208,29 @@ class DbCreator {
                 await db.execute('ALTER TABLE $table DROP COLUMN cree_par');
               } catch (e) {
                 print('Skip drop $table.cree_par: $e');
+              }
+            }
+          }
+
+          if (oldVersion < 7) {
+            // Champ d'audit "modifié par" : même principe que cree_par_code,
+            // on identifie le dernier modificateur par modif_par_code (clé
+            // étrangère stable vers utilisateur.code) plutôt que par son nom.
+            const tablesWithModifPar = <String>[
+              'caisseparam', 'roledetail', 'categories', 'sous_categories',
+              'clients', 'remises', 'packs', 'userparam', 'produits',
+              'fournisseurs', 'parametre', 'zakatParam', 'magasins',
+              'mouvements', 'entree', 'panniers', 'retours', 'verssements',
+              'smart_scan', 'utilisateur', 'role', 'besion_list_detail',
+              'besionList', 'caisseGestion', 'pannierProduit',
+              'smartScanProduit', 'sortie', 'transfert', 'zakat',
+            ];
+
+            for (final table in tablesWithModifPar) {
+              try {
+                await db.execute('ALTER TABLE $table RENAME COLUMN modif_par TO modif_par_code');
+              } catch (e) {
+                print('Skip rename $table.modif_par: $e');
               }
             }
           }
@@ -485,7 +508,7 @@ class DbCreator {
         cree_par_code TEXT NOT NULL,
         
         date_modif  TEXT,
-        modif_par   TEXT,
+        modif_par_code   TEXT,
         
         FOREIGN KEY (user)          REFERENCES  utilisateur   (code),
         FOREIGN KEY (caisseCode)    REFERENCES  caisseGestion (code),
@@ -540,7 +563,7 @@ class DbCreator {
         cree_par_code TEXT NOT NULL,
         
         date_modif    TEXT,
-        modif_par     TEXT,
+        modif_par_code     TEXT,
         date_annul    TEXT,
         annul_par     TEXT,
         motif_annul   TEXT,
@@ -561,7 +584,7 @@ class DbCreator {
         cree_par_code TEXT NOT NULL,
         observation TEXT,
         date_modif  TEXT,
-        modif_par   TEXT,
+        modif_par_code   TEXT,
         date_annul  TEXT,
         annul_par   TEXT,
         motif_annul TEXT,
@@ -583,7 +606,7 @@ class DbCreator {
         date_cree TEXT NOT NULL DEFAULT (datetime('now')),
         cree_par_code TEXT NOT NULL,
         date_modif TEXT ,
-        modif_par TEXT,
+        modif_par_code TEXT,
         date_annul TEXT,
         annul_par TEXT,
         motif_annul TEXT,
@@ -617,7 +640,7 @@ class DbCreator {
         date_cree     TEXT NOT NULL DEFAULT(datetime('now')),
         cree_par_code TEXT NOT NULL,
         date_modif    TEXT,
-        modif_par     TEXT,
+        modif_par_code     TEXT,
         date_annul    TEXT,
         annul_par     TEXT,
         motif_annul   TEXT,
@@ -643,7 +666,7 @@ class DbCreator {
         cree_le       TEXT NOT NULL DEFAULT (datetime('now')),
         fin TEXT,
         modif_le TEXT,
-        modif_par TEXT,
+        modif_par_code TEXT,
         annul_le TEXT,
         annul_par TEXT,
         motif_annul TEXT,
@@ -665,7 +688,7 @@ class DbCreator {
         prix_vente_original REAL,
         cree_par_code       TEXT    NOT NULL,
         cree_le             TEXT    NOT NULL DEFAULT (datetime('now')),
-        modif_par           TEXT,
+        modif_par_code           TEXT,
         modif_le            TEXT,
         annul_par           TEXT,
         annul_le            TEXT,
@@ -686,7 +709,7 @@ class DbCreator {
         currency      TEXT NOT NULL,
         cree_par_code TEXT NOT NULL, 
         cree_le       TEXT NOT NULL DEFAULT (datetime('now')),
-        modif_par     TEXT,
+        modif_par_code     TEXT,
         modif_le      TEXT,
         FOREIGN KEY (cree_par_code) REFERENCES utilisateur(code)
       ) 
@@ -733,7 +756,7 @@ class DbCreator {
       date_cree     TEXT NOT NULL DEFAULT (datetime('now')),
       cree_par_code TEXT NOT NULL,
       date_modif  TEXT,
-      modif_par   TEXT,
+      modif_par_code   TEXT,
       annuler_par TEXT,
       annuler_le  TEXT,
       motif_annul TEXT,
@@ -767,7 +790,7 @@ class DbCreator {
         date_cree     TEXT DEFAULT (datetime('now')),
         cree_par_code TEXT NOT NULL,
         date_modif TEXT,
-        modif_par TEXT,
+        modif_par_code TEXT,
         date_annul TEXT,
         annul_par TEXT,
         motif_annul TEXT,
@@ -789,7 +812,7 @@ class DbCreator {
       date_cree             TEXT NOT NULL,
       cree_par_code         TEXT NOT NULL,
       date_modif            TEXT,
-      modif_par             TEXT,
+      modif_par_code             TEXT,
       FOREIGN KEY (cree_par_code) REFERENCES utilisateur(code)
     )
   ''');
@@ -804,7 +827,7 @@ class DbCreator {
         date_cree     TEXT NOT NULL,
         cree_par_code TEXT NOT NULL,
         date_modif    TEXT,
-        modif_par     TEXT,
+        modif_par_code     TEXT,
         
         FOREIGN KEY (cree_par_code) REFERENCES utilisateur(code)
       )
@@ -843,7 +866,7 @@ class DbCreator {
       date_cree       TEXT DEFAULT (datetime('now')),
       cree_par_code   TEXT NOT NULL, 
       date_modif      TEXT DEFAULT (datetime('now')),
-      modif_par       TEXT,
+      modif_par_code       TEXT,
       date_annul      TEXT,
       annul_par       TEXT,
       motif_annul     TEXT,
@@ -871,7 +894,7 @@ class DbCreator {
       date_cree     TEXT DEFAULT (datetime('now')),
       cree_par_code TEXT NOT NULL,
       date_modif    TEXT,
-      modif_par     TEXT,
+      modif_par_code     TEXT,
       date_annul    TEXT,
       annul_par     TEXT,
       motif_annul   TEXT,
@@ -901,7 +924,7 @@ class DbCreator {
         observation TEXT,
         
         date_modif    TEXT,
-        modif_par     TEXT,
+        modif_par_code     TEXT,
         date_annul    TEXT,
         annul_par     TEXT,
         motif_annul   TEXT,
@@ -952,7 +975,7 @@ class DbCreator {
         date_cree         TEXT DEFAULT (datetime('now')),
         date              TEXT DEFAULT (datetime('now')),
         date_modif        TEXT,
-        modif_par         TEXT,
+        modif_par_code         TEXT,
         date_annul        TEXT,
         annul_par         TEXT,
         motif_annul       TEXT,
@@ -984,7 +1007,7 @@ class DbCreator {
         fournisseur_code  TEXT,
         observation       TEXT,
         date_modif        TEXT,
-        modif_par         TEXT,
+        modif_par_code         TEXT,
         date_annul        TEXT,
         annul_par         TEXT,
         motif_annul       TEXT,
@@ -1014,7 +1037,7 @@ class DbCreator {
         caisse          TEXT,
         observation     TEXT,
         date_modif      TEXT,
-        modif_par       TEXT,
+        modif_par_code       TEXT,
         date_annul      TEXT,
         annul_par       TEXT,
         motif_annul     TEXT,
@@ -1043,7 +1066,7 @@ class DbCreator {
         date_cree         TEXT    NOT NULL  DEFAULT (datetime('now')),
         cree_par_code     TEXT    NOT NULL,
         date_modif        TEXT,
-        modif_par         TEXT,
+        modif_par_code         TEXT,
         date_annul        TEXT,
         annul_par         TEXT,
         motif_annul       TEXT,
@@ -1070,7 +1093,7 @@ class DbCreator {
         dernier_acces TEXT    NOT NULL,
         observation   TEXT,
         date_modif    TEXT,
-        modif_par     TEXT,
+        modif_par_code     TEXT,
         date_annul    TEXT,
         annul_par     TEXT,
         motif_annul   TEXT,
@@ -1090,7 +1113,7 @@ class DbCreator {
         date_cree           TEXT NOT NULL DEFAULT (datetime('now')),
         cree_par_code       TEXT,
         date_modif          TEXT,
-        modif_par           TEXT,
+        modif_par_code           TEXT,
         date_annul          TEXT,
         annul_par           TEXT,
         motif_annul         TEXT
@@ -1111,7 +1134,7 @@ class DbCreator {
         date_cree         TEXT NOT NULL DEFAULT (datetime('now')),
         cree_par_code     TEXT NOT NULL,
         date_modif        TEXT,
-        modif_par         TEXT,
+        modif_par_code         TEXT,
         date_annul        TEXT,
         annul_par         TEXT,
         motif_annul       TEXT,
@@ -1138,7 +1161,7 @@ class DbCreator {
         date_cree       TEXT    NOT NULL DEFAULT (datetime('now')),
         cree_par_code   TEXT    NOT NULL,
         date_modif      TEXT,
-        modif_par       TEXT,
+        modif_par_code       TEXT,
         date_annul      TEXT,
         annul_par       TEXT,
         motif_annul     TEXT,
@@ -1162,7 +1185,7 @@ class DbCreator {
         solde_initial REAL NOT NULL,
         observation TEXT,
         date_modif      TEXT,
-        modif_par       TEXT,
+        modif_par_code       TEXT,
         date_annul      TEXT,
         annul_par       TEXT,
         motif_annul     TEXT,
@@ -1187,7 +1210,7 @@ class DbCreator {
         nom_produit TEXT NOT NULL,
         code_produit TEXT NOT NULL,
         cree_par_code TEXT NOT NULL,
-        modif_par       TEXT,
+        modif_par_code       TEXT,
         annul_par       TEXT,
         date_annul      TEXT,
         date_modif      TEXT,
@@ -1213,7 +1236,7 @@ class DbCreator {
         date_cree       TEXT    NOT NULL,
         etat            INTEGER NOT NULL DEFAULT 1,
         
-        modif_par       TEXT,
+        modif_par_code       TEXT,
         annul_par       TEXT,
         date_annul      TEXT,
         date_modif      TEXT,
@@ -1244,7 +1267,7 @@ class DbCreator {
         observation   TEXT,
         date_modif    TEXT,
         categorie     TEXT,
-        modif_par     TEXT,
+        modif_par_code     TEXT,
         annul_par     TEXT,
         date_annul    TEXT,
         motif_annul   TEXT,
@@ -1270,7 +1293,7 @@ class DbCreator {
         caisse_dest_code TEXT NOT NULL,
         observation TEXT,
         date_modif TEXT,
-        modif_par TEXT,
+        modif_par_code TEXT,
         date_annul TEXT,
         annul_par TEXT,
         motif_annul TEXT,
@@ -1305,7 +1328,7 @@ class DbCreator {
         date_paiement TEXT,
         observation TEXT,
         date_modif TEXT,
-        modif_par TEXT,
+        modif_par_code TEXT,
         date_annul TEXT,
         annul_par TEXT,
         motif_annul TEXT,

@@ -686,7 +686,7 @@ Future<void> ProduitModif(BuildContext context, Produit produit) async {
             tvaController.text = produit.tva.toString();
             prixController2.text = produit.prixVente.toString();
             dateController.text = produit.dateEmpreint.toString();
-            modifParController.text = produit.modifPar ?? '';
+            modifParController.text = produit.modifParCode ?? '';
             seuilminController.text = produit.seuilMin.toString();
             seuilmaxController.text = produit.seuilMax.toString();
             margeController.text = produit.margeTaux.toString();
@@ -868,7 +868,7 @@ Future<void> ProduitModif(BuildContext context, Produit produit) async {
                               service: produits.service,
                               taille: tailleController.text.trim(),
                               couleur: couleurController.text.trim(),
-                              modifPar: userName,
+                              modifParCode: userName,
                               creeParcode: produits.creeParcode,
                               photo: productPhoto != null ? productPhoto : null,
 

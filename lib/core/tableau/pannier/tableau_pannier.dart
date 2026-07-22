@@ -77,7 +77,7 @@ class _TableauPannierAdvancedState extends State<TableauPannierAdvanced> {
       'dateCree': {'visible': false, 'label': 'createdAt', 'field': 'dateCree'},
       'creeParCode': {'visible': false, 'label': 'createdBy', 'field': 'creeParCode'},
       'dateModif': {'visible': false, 'label': 'modifiedAt', 'field': 'dateModif'},
-      'modifPar': {'visible': false, 'label': 'modifiedBy', 'field': 'modifPar'},
+      'modifParCode': {'visible': false, 'label': 'modifiedBy', 'field': 'modifParCode'},
       'dateAnnul': {'visible': false, 'label': 'cancelledAt', 'field': 'dateAnnul'},
       'annulPar': {'visible': false, 'label': 'cancelledBy', 'field': 'annulPar'},
       'motifAnnul': {'visible': false, 'label': 'cancellationReason', 'field': 'motifAnnul'},

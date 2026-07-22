@@ -57,7 +57,7 @@ class Produit {
   bool      etat;
 
   DateTime? dateModif;
-  String?   modifPar;
+  String?   modifParCode;
   String?   annulerPar;
   DateTime? annulerLe;
   String?   motifAnnul;
@@ -112,7 +112,7 @@ class Produit {
     this.dateModif,
     this.codeBarre,
     this.annulerLe,
-    this.modifPar,
+    this.modifParCode,
     this.couleur,
      this.photo,
     this.remise,
@@ -181,7 +181,7 @@ class Produit {
       dateModif             : map['date_modif'] != null
           ? DateTime.parse(map['date_modif'])
           : null,
-      modifPar              : map['modif_par'],
+      modifParCode              : map['modif_par_code'],
       annulerPar            : map['annuler_par'],
       annulerLe             : map['annuler_le'] != null
           ? DateTime.parse(map['annuler_le'])
@@ -255,7 +255,7 @@ class Produit {
      'cree_par_code'        : creeParcode,
 
      'date_modif'           : dateModif?.toIso8601String(),
-     'modif_par'            : modifPar,
+     'modif_par_code'            : modifParCode,
      'annuler_par'          : annulerPar,
      'annuler_le'           : annulerLe?.toIso8601String(),
      'motif_annul'          : motifAnnul,

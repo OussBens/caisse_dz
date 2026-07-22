@@ -88,13 +88,13 @@ Future<ApiResponse<int>> _UpdateR({
   if (retour.fournisseur != null) {
     prod.quantite = prod.quantite + (Orignal - retour.quantite);
     prod.dateModif = DateTime.now();
-    prod.modifPar = userName;
+    prod.modifParCode = userName;
     await serviceP.updateProduit(prod);
   }
   if (retour.client != null) {
     prod.quantite = prod.quantite - (Orignal - retour.quantite);
     prod.dateModif = DateTime.now();
-    prod.modifPar = userName;
+    prod.modifParCode = userName;
     await serviceP.updateProduit(prod);
   }
   mouv.first.fournisseur = retour.fournisseur;
@@ -424,7 +424,7 @@ Future<void> RetourModif(BuildContext context, Retour retour) async {
                             } else {
                               retour.fournisseur = selectedFournisseurR!;
                             }
-                            retour.modifPar = userName;
+                            retour.modifParCode = userName;
                             retour.dateModif = DateTime.now();
                             retour.etat = selectedEtatR == l10n.active;
                             retour.observation = observationControllerR.text;

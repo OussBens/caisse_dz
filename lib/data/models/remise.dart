@@ -18,7 +18,7 @@ class Remise {
 
   DateTime? modifLe;
   DateTime? annulLe;
-  String? modifPar;
+  String? modifParCode;
   String? annulPar;
   String? motifAnnul;
 
@@ -36,7 +36,7 @@ class Remise {
     required this.creeLe,
     this.montant,
     this.observation,
-    this.modifPar,
+    this.modifParCode,
     this.modifLe,
     this.annulPar,
     this.annulLe,
@@ -57,7 +57,7 @@ class Remise {
       creeParCode : map['cree_par_code'],
       observation : map['observation'],
 
-      modifPar    : map['modif_par'],
+      modifParCode    : map['modif_par_code'],
       annulPar    : map['annul_par'],
       motifAnnul  : map['motif_annul'],
       taux        : map['taux'] ?? 0.0,
@@ -88,7 +88,7 @@ class Remise {
       'debut'         : debut.toIso8601String(),
       'cree_le'       : creeLe.toIso8601String(),
 
-      'modif_par'     : modifPar,
+      'modif_par_code'     : modifParCode,
       'annul_par'     : annulPar,
       'motif_annul'   : motifAnnul,
       'modif_le'      : modifLe?.toIso8601String(),

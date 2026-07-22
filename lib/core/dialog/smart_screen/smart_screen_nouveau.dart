@@ -93,7 +93,7 @@ async {
     prod.prixAchat = produit.prix;
     prod.prixVente = produit.prixVente; // ✅ Mettre à jour le prix de vente
     prod.dateModif = DateTime.now();
-    prod.modifPar = userName;
+    prod.modifParCode = userName;
 
 
 

@@ -132,7 +132,7 @@ Future<void> SmartScanDetail(
                   detailinfo(l10n.createdBy, scan.creeParCode),
                   detailinfo(l10n.dateCreated,
                       scan.dateCree.toString().split(" ").first),
-                  detailinfo(l10n.modifiedBy, scan.modifPar),
+                  detailinfo(l10n.modifiedBy, scan.modifParCode),
                   detailinfo(l10n.modifiedAt,
                       scan.dateModif?.toString().split(" ").first),
                   detailinfo(l10n.cancelledBy, scan.annulPar),

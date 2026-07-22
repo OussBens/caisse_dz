@@ -1109,7 +1109,7 @@ class _AISmartScanDialogState extends State<AISmartScanDialog> {
         fullProduct.prixAchat = product.prix;
         fullProduct.prixVente = product.prixVente; // ✅ Mettre à jour le prix de vente
         fullProduct.dateModif = DateTime.now();
-        fullProduct.modifPar = userName;
+        fullProduct.modifParCode = userName;
 
 
         final services = ProduitServices(db);

@@ -50,8 +50,8 @@ class CaisseGestionDataSource extends BaseTableDataSource<CaisseGestion> {
         return caisse.creeParCode;
       case 'dateModif':
         return formatDate(caisse.dateModif);
-      case 'modifPar':
-        return caisse.modifPar;
+      case 'modifParCode':
+        return caisse.modifParCode;
       case 'dateAnnul':
         return formatDate(caisse.dateAnnul);
       case 'annulPar':

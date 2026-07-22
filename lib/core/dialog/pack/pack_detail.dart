@@ -112,7 +112,7 @@ Future<void> PackDetail(BuildContext context, Pack pack) async {
                     l10n.createdAt,
                     pack.creeLe?.toString().split(" ").first,
                   ),
-                  detailinfo(l10n.modifiedBy, pack.modifPar),
+                  detailinfo(l10n.modifiedBy, pack.modifParCode),
                   detailinfo(
                     l10n.modifiedAt,
                     pack.modifLe?.toString().split(" ").first,

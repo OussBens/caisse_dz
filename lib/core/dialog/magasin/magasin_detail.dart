@@ -124,7 +124,7 @@ Future<void> MagasinDetail(BuildContext context, Magasin magasin) async {
                     l10n.createdAt,
                     magasin.dateCree?.toString().split(" ").first,
                   ),
-                  detailinfo(l10n.modifiedBy, magasin.modifPar),
+                  detailinfo(l10n.modifiedBy, magasin.modifParCode),
                   detailinfo(
                     l10n.modifiedAt,
                     magasin.dateModif?.toString().split(" ").first,

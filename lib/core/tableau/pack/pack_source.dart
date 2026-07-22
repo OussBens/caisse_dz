@@ -43,8 +43,8 @@ class PackDataSource extends BaseTableDataSource<Pack> {
         return pack.creeParCode;
       case 'creeLe':
         return formatDate(pack.creeLe);
-      case 'modifPar':
-        return pack.modifPar ?? '';
+      case 'modifParCode':
+        return pack.modifParCode ?? '';
       case 'modifLe':
         return formatDate(pack.modifLe);
       case 'annulPar':

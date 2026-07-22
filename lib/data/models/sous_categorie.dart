@@ -12,7 +12,7 @@ class SousCategorie {
   DateTime  dateCree;
 
   String?   observation;
-  String?   modifPar;
+  String?   modifParCode;
   String?   annulPar;
   String?   motifAnnul;
   DateTime? dateAnnul;
@@ -33,7 +33,7 @@ class SousCategorie {
 
     this.observation,
     this.dateModif,
-    this.modifPar,
+    this.modifParCode,
     this.dateAnnul,
     this.annulPar,
     this.motifAnnul,
@@ -54,7 +54,7 @@ class SousCategorie {
       dateCree      : DateTime.parse(map['date_cree']),
 
       observation   : map['observation'],
-      modifPar      : map['modif_par'],
+      modifParCode      : map['modif_par_code'],
       annulPar      : map['annul_par'],
       motifAnnul    : map['motif_annul'],
       dateModif     : map['date_modif'] != null
@@ -80,7 +80,7 @@ class SousCategorie {
       'cree_par_code' : creeParCode,
 
       'annul_par'     : annulPar,
-      'modif_par'     : modifPar,
+      'modif_par_code'     : modifParCode,
       'motif_annul'   : motifAnnul,
       'observation'   : observation,
       'date_modif'    : dateModif?.toIso8601String(),

@@ -72,7 +72,7 @@ Future<ApiResponse<int>> _SaveSortie({
 
   final prod = produits.where((e) => e.nom == sortie.produit).first;
   prod.quantite = prod.quantite - sortie.quantite;
-  prod.modifPar = userName;
+  prod.modifParCode = userName;
   prod.dateModif = DateTime.now();
   await servicep.updateProduit(prod);
 

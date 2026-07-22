@@ -119,7 +119,7 @@ Future<void> EntreeDetail(BuildContext context, Entree entree) async {
                 child: detailwrap([
                   detailinfo(l10n.createdBy, entree.creeParCode),
                   detailinfo(l10n.dateCreated, entree.dateCree),
-                  detailinfo(l10n.modifiedBy, entree.modifPar),
+                  detailinfo(l10n.modifiedBy, entree.modifParCode),
                   detailinfo(l10n.modifiedAt, entree.dateModif),
                   detailinfo(l10n.cancelledBy, entree.annulPar),
                   detailinfo(l10n.cancellationReason, entree.motifAnnul),

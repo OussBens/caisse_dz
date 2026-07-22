@@ -205,7 +205,7 @@ Future<ApiResponse<int>> _SavePannier({
     // Mise à jour du produit (quantité globale)
     produitOriginal.quantite = produitOriginal.quantite - quantiteReelle;
     produitOriginal.dateModif = DateTime.now();
-    produitOriginal.modifPar = userName;
+    produitOriginal.modifParCode = userName;
     await serviceP.updateProduit(produitOriginal);
 
     // Historique mise à jour produit
@@ -227,7 +227,7 @@ Future<ApiResponse<int>> _SavePannier({
 
   // 5. Mise à jour du client
   client.dernierAchat = DateTime.now();
-  client.modifPar = userName;
+  client.modifParCode = userName;
   await serviceC.updateClient(client);
 
   // 6. Ajout du versement

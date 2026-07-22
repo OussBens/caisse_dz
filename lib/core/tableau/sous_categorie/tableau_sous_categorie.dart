@@ -67,7 +67,7 @@ class _TableauSousCategorieAdvancedState extends State<TableauSousCategorieAdvan
       'dateCree': {'visible': true, 'label': 'createdAt', 'field': 'dateCree'},
       'creeParCode': {'visible': true, 'label': 'createdBy', 'field': 'creeParCode'},
       'dateModif': {'visible': true, 'label': 'modifiedAt', 'field': 'dateModif'},
-      'modifPar': {'visible': true, 'label': 'modifiedBy', 'field': 'modifPar'},
+      'modifParCode': {'visible': true, 'label': 'modifiedBy', 'field': 'modifParCode'},
       'dateAnnul': {'visible': true, 'label': 'cancelledAt', 'field': 'dateAnnul'},
       'annulPar': {'visible': true, 'label': 'cancelledBy', 'field': 'annulPar'},
       'motifAnnul': {'visible': true, 'label': 'cancellationReason', 'field': 'motifAnnul'},

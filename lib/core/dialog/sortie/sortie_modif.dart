@@ -66,7 +66,7 @@ Future<ApiResponse<int>> _UpdateR({
   mouvement.first.etat = sortie.etat;
   mouvement.first.date = sortie.date;
   mouvement.first.dateModif = DateTime.now();
-  mouvement.first.modifPar = userName;
+  mouvement.first.modifParCode = userName;
   mouvement.first.prixVente = sortie.prix;
   mouvement.first.nomProduit = sortie.produit;
   mouvement.first.codeProduit = sortie.produitCode;
@@ -76,7 +76,7 @@ Future<ApiResponse<int>> _UpdateR({
   final prod = produits.where((e) => e.nom == sortie.produit).first;
   prod.quantite = prod.quantite + (orignal - sortie.quantite);
   prod.dateModif = DateTime.now();
-  prod.modifPar = userName;
+  prod.modifParCode = userName;
   servicep.updateProduit(prod);
 
   int idh = await _GetNextHistoriqueId();
@@ -382,7 +382,7 @@ Future<void> SortieModif(BuildContext context, Sortie sortie) async {
                           titre: l10n.modification,
                           message: l10n.confirmModifyExit,
                           onConfirmer: () async {
-                            sortie.modifPar = userName;
+                            sortie.modifParCode = userName;
                             sortie.dateModif = DateTime.now();
                             sortie.etat = selectedEtatR == l10n.active;
                             sortie.observation = observationControllerS.text;

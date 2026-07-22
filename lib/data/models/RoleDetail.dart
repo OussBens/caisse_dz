@@ -25,7 +25,7 @@ class RoleDetail {
   String    creeParCode;
 
   DateTime? dateModif;
-  String?   modifPar;
+  String?   modifParCode;
   DateTime? dateAnnul;
   String?   annulPar;
   String?   motifAnnul;
@@ -57,7 +57,7 @@ class RoleDetail {
     this.motifAnnul,
     this.dateAnnul,
     this.dateModif,
-    this.modifPar,
+    this.modifParCode,
     this.annulPar,
   });
 
@@ -90,7 +90,7 @@ class RoleDetail {
       dateCree    : DateTime.parse(map['date_cree']),
       creeParCode : map['cree_par_code'],
 
-      modifPar    : map['modif_par'],
+      modifParCode    : map['modif_par_code'],
       annulPar    : map['annul_par'],
       motifAnnul  : map['motif_annul'],
       dateAnnul   : map['date_annul'] != null
@@ -129,7 +129,7 @@ class RoleDetail {
       'date_cree'         : dateCree.toIso8601String(),
       'cree_par_code'     : creeParCode,
 
-      'modif_par'         : modifPar,
+      'modif_par_code'         : modifParCode,
       'annul_par'         : annulPar,
       'date_modif'        : dateModif?.toIso8601String(),
       'date_annul'        : dateAnnul?.toIso8601String(),

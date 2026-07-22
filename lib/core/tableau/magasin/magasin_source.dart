@@ -47,8 +47,8 @@ class MagasinDataSource extends BaseTableDataSource<Magasin> {
         return magasin.creeParCode;
       case 'dateModif':
         return formatDate(magasin.dateModif);
-      case 'modifPar':
-        return magasin.modifPar;
+      case 'modifParCode':
+        return magasin.modifParCode;
       case 'dateAnnul':
         return formatDate(magasin.dateAnnul);
       case 'annulPar':

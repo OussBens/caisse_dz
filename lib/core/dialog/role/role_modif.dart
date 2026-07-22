@@ -360,7 +360,7 @@ class _RoleModificationDialogState extends State<RoleModificationDialog> {
     Role updatedRole = Role(
       observation: _observationController.text,
       dateModif: DateTime.now(),
-      modifPar: widget.userName,
+      modifParCode: widget.userName,
       dateCree: widget.role.dateCree,
       rolenom: _nomController.text,
       etat: _selectedEtat == l10n.active,

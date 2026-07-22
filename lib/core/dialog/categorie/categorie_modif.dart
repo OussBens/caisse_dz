@@ -73,7 +73,7 @@ Future<ApiResponse<int>> _saveCategorie({
           creeParCode: sous.creeParCode,
           dateCree: sous.dateCree,
           observation: sous.observation,
-          modifPar: userName,
+          modifParCode: userName,
           dateModif: DateTime.now(),
         );
 
@@ -140,7 +140,7 @@ Future<ApiResponse<int>> _saveCategorie({
           dateCree: produit.dateCree,
           etat: produit.etat,
           dateModif: DateTime.now(),
-          modifPar: userName,
+          modifParCode: userName,
           annulerPar: produit.annulerPar,
           annulerLe: produit.annulerLe,
           motifAnnul: produit.motifAnnul,
@@ -312,7 +312,7 @@ Future<void> CategorieModif(BuildContext context, Categorie categorie) async {
                                 creeParCode: categorie.creeParCode,
                                 dateCree: categorie.dateCree,
                                 dateModif: DateTime.now(),
-                                modifPar: userName,
+                                modifParCode: userName,
                               );
 
                               final response = await _saveCategorie(
