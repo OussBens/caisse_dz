@@ -279,7 +279,7 @@ Future<void> ProduitDetail(BuildContext context, Produit produit) async {
                 title: l10n.audit,
                 icon: Icons.history,
                 child: detailwrap([
-                  detailinfo(l10n.createdBy, produit.creePar),
+                  detailinfo(l10n.createdBy, produit.creeParcode),
                   detailinfo(l10n.dateCreated, produit.dateCree.toString().split(" ").first),
                   detailinfo(l10n.modifiedBy, produit.modifPar),
                   detailinfo(l10n.modifiedAt, produit.dateModif?.toString().split(" ").first),

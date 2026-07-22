@@ -5,7 +5,6 @@ class ParamZakat {
 
   DateTime  dateCree;
   String    creeParCode;
-  String    creePar;
 
   DateTime? dateModif;
   String?   modifPar;
@@ -16,7 +15,6 @@ class ParamZakat {
     required this.Taux,
     required this.creeParCode,
     required this.dateCree,
-    required this.creePar,
 
     this.dateModif,
     this.modifPar,
@@ -28,7 +26,6 @@ class ParamZakat {
       id            : map['id'],
       Taux          : map['taux'] ?? 200,
       Nissab        : map['nissab'],
-      creePar       : map['cree_par'],
       dateCree      : DateTime.parse(map['date_cree']),
       creeParCode   : map['cree_par_code'],
 
@@ -44,7 +41,6 @@ class ParamZakat {
       'id'              : id,
       'taux'            : Taux,
       'nissab'          : Nissab,
-      'cree_par'        : creePar,
       'date_cree'       : dateCree.toIso8601String(),
       'cree_par_code'   : creeParCode,
 

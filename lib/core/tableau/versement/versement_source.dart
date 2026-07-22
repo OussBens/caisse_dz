@@ -61,8 +61,8 @@ class VerssementDataSource extends BaseTableDataSource<Verssement> {
       // Audit
       case 'dateCree':
         return formatDate(v.dateCree);
-      case 'creePar':
-        return v.creePar;
+      case 'creeParCode':
+        return v.creeParCode;
       case 'dateModif':
         return formatDate(v.dateModif);
       case 'modifPar':

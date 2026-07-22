@@ -536,8 +536,8 @@ class _CaisseScreenState extends State<CaisseScreen> {
   late  Remise selectedRemise;
   late Client  clientselectione = clientsTest.isEmpty ? Client(
     id: 0, nom: "Comptoire", code: "", telephone: "", adresse: "",
-    type: "", etat: true, dateCree: DateTime.now(),
-    creePar: "", creeParCode: "", dernierAchat: null, wilaya: '',
+    type: "", etat: true, dateCree: DateTime.now(), wilaya: "",
+    creeParCode: "SYSTEM",
   ) : clientsTest.first;
 
   CaisseState get caisseActive {
@@ -1670,7 +1670,6 @@ class _CaisseScreenState extends State<CaisseScreen> {
                                                               debut: DateTime.now(),
                                                               id: 0,
                                                               fin: DateTime.now(),
-                                                              creePar: '',
                                                               creeParCode: '',
                                                               creeLe: DateTime.now(),
                                                             ),

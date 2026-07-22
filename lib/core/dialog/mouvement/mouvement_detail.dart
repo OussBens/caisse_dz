@@ -95,7 +95,7 @@ Future<void> MouvementDetail(BuildContext context, Mouvement mouvement) async {
                 title: l10n.audit,
                 icon: Icons.history,
                 child: detailwrap([
-                  detailinfo(l10n.createdBy, mouvement.creePar),
+                  detailinfo(l10n.createdBy, mouvement.creeParCode),
                   detailinfo(l10n.createdAt, _formatDate(mouvement.dateCree)),
                   detailinfo(l10n.modifiedBy, mouvement.modifPar),
                   detailinfo(l10n.modifiedAt, _formatDate(mouvement.dateModif)),

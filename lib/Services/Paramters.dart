@@ -38,7 +38,6 @@ class ParamServices {
         TauxMargeMontant: 0,
         Maximum: 0,
         Minimum: 0,
-        creePar: '',
         Datecree: DateTime.now(),
         creeParCode: '',
       );

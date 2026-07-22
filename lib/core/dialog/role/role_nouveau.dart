@@ -45,7 +45,6 @@ Future<ApiResponse<int>> _SaveRole({
       type: "Role",
       desc: "L'utilisateur $userName a ajouté le Rôle ${role.rolenom}",
       oper: ListsConst.typeHisto[0],
-      creePar: userName,
       dateCree: DateTime.now(),
       creeParCode: userCode,
     );
@@ -205,7 +204,6 @@ class _RoleCreationDialogState extends State<RoleCreationDialog> {
     _roleDetail = RoleDetail(
       id: widget.id,
       Rolecode: widget.code,
-      creePar: widget.userName,
       creeParCode: widget.userCode,
       dateCree: DateTime.now(),
       dash: false,
@@ -408,7 +406,6 @@ class _RoleCreationDialogState extends State<RoleCreationDialog> {
       observation: _observationController.text,
       dateCree: DateTime.now(),
       rolenom: _nomRoleController.text,
-      creePar: widget.userName,
       code: widget.code,
       etat: true,
       id: widget.id,

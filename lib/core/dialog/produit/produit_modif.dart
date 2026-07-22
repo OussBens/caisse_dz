@@ -121,7 +121,6 @@ Future<void> _UpdatePackDetail({
           desc: "l'utilisateur $userName a supprimer le ProduitPackDetail ${produit.produitNom} de Pack ${produit.packNom}}",
           type: "ProduitPackDetail",
           oper: ListsConst.typeHisto[3],
-          creePar: userName,
           dateCree: DateTime.now(),
           creeParCode: userCode);
       await serviceh.addHistorique(histo);
@@ -135,7 +134,6 @@ Future<void> _UpdatePackDetail({
       produitNom: produite.nom,
       produitCode: produite.code,
       dateCree: DateTime.now(),
-      creePar: userName,
       id: await _GetNextPackDetailId(),
       creeParCode: userCode, prixUnitaire: produit.prixVente, quantite: 1, montant: produit.prixVente,
     );
@@ -154,7 +152,6 @@ Future<void> _UpdatePackDetail({
           desc: "l'utilisateur $userName a ajouter le ProduitPackDetail ${produite.nom} de Pack ${produit.nom}",
           oper: ListsConst.typeHisto[1],
           type: "ProduitPackDetail",
-          creePar: userName,
           dateCree: DateTime.now(),
           creeParCode: userCode);
       await serviceh.addHistorique(histo);
@@ -196,7 +193,6 @@ Future<void> _UpdateCodeDetail({
         "l'utilisateur $userName a supprimer le Codebar $code de Produit ${produite.nom}",
         type: "ProduitCodeDetail",
         oper: ListsConst.typeHisto[3],
-        creePar: userName,
         dateCree: DateTime.now(),
         creeParCode: userCode,
       ),
@@ -210,8 +206,8 @@ Future<void> _UpdateCodeDetail({
       CodeBar: code,
       produitCode: produite.code,
       dateCree: DateTime.now(),
-      creePar: userName,
       id: await _GetNextCodeDetailId(),
+      creeParCode: userCode,
     );
 
     final response = await service.addProduitCodeDetail(detail);
@@ -227,7 +223,6 @@ Future<void> _UpdateCodeDetail({
           "l'utilisateur $userName a ajouter le Codebar $code de Produit ${produite.nom}",
           oper: ListsConst.typeHisto[1],
           type: "ProduitCodeDetail",
-          creePar: userName,
           dateCree: DateTime.now(),
           creeParCode: userCode,
         ),
@@ -295,7 +290,6 @@ Future<void> updateMagasinDetail({
           desc: "l'utilisateur $userName a supprimer le ProduitMagasinDetail ${produit.nom} de Magasin $magasinNom automatiquement",
           type: "ProduitMagasinDetail",
           oper: ListsConst.typeHisto[3],
-          creePar: userName,
           dateCree: DateTime.now(),
           creeParCode: userCode);
       await serviceh.addHistorique(histo);
@@ -306,7 +300,6 @@ Future<void> updateMagasinDetail({
       magasinCode: magasin.code,
       produitCode: produit.code,
       dateCree: DateTime.now(),
-      creePar: userName,
       id: await _GetNextMDetailId(),
       creeParCode: userCode,
     );
@@ -324,7 +317,6 @@ Future<void> updateMagasinDetail({
           desc: "l'utilisateur $userName a ajoutee le ProduitMagasinDetail ${produit.nom} de Magasin ${magasin.nom} automatiquement",
           oper: ListsConst.typeHisto[1],
           type: "ProduitMagasinDetail",
-          creePar: userName,
           dateCree: DateTime.now(),
           creeParCode: userCode);
       await serviceh.addHistorique(histo);
@@ -386,7 +378,6 @@ Future<ApiResponse<int>> _updateProduit({
     desc: "l'utilisateur $userName a modifié les informations du produit ${produit.nom}",
     oper: ListsConst.typeHisto[2],
     type: "Produit",
-    creePar: userName,
     dateCree: DateTime.now(),
     creeParCode: userCode,
   );
@@ -874,7 +865,6 @@ Future<void> ProduitModif(BuildContext context, Produit produit) async {
                               emballageP2: double.tryParse(jeu2PrixController.text) ?? 0,
                               etat: selectedetat == l10n.active,
                               dateCree: produits.dateCree,
-                              creePar: produits.creePar,
                               service: produits.service,
                               taille: tailleController.text.trim(),
                               couleur: couleurController.text.trim(),

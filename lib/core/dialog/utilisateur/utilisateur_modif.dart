@@ -54,7 +54,6 @@ Future<ApiResponse<int>> _UpdateUser({
       desc: "L'utilisateur $userName a modifié l'utilisateur ${user.username}",
       type: "Utilisateur",
       oper: ListsConst.typeHisto[1], // ✅ Type modification
-      creePar: userName,
       dateCree: DateTime.now(),
       creeParCode: userCode,
     );
@@ -276,7 +275,6 @@ Future<void> UtilisateurModif(BuildContext context, Utilisateur user) async {
                               dateCree: user.dateCree,
                               username: usernameController.text,
                               password: user.password,
-                              creePar: user.creePar,
                               credit: user.credit,
                               code: user.code,
                               role: selectedRole ?? user.role,

@@ -14,7 +14,6 @@ class ProduitPackDetail {
 
   // --- Audit ---
   DateTime dateCree;
-  String   creePar;
   String   creeParCode;
 
   ProduitPackDetail({
@@ -27,7 +26,6 @@ class ProduitPackDetail {
     required this.quantite,
     required this.montant,
     required this.dateCree,
-    required this.creePar,
     required this.creeParCode
   });
 
@@ -45,7 +43,6 @@ class ProduitPackDetail {
         quantite:     map['quantite'] ?? 1,
         montant:      (map['montant'] ?? 0).toDouble(),
         dateCree:     DateTime.parse(map['date_cree']),
-        creePar:      map['cree_par'],
         creeParCode : map['cree_par_code']
     );
   }
@@ -63,7 +60,6 @@ class ProduitPackDetail {
       'quantite': quantite,
       'montant': montant,
       'date_cree': dateCree.toIso8601String(),
-      'cree_par': creePar,
       'cree_par_code': creeParCode,
     };
 

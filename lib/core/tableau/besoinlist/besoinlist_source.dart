@@ -45,8 +45,8 @@ class BesoinListDataSource extends BaseTableDataSource<BesoinList> {
         return besoin.etat ? l10n.actif : l10n.inactif;
       case 'dateCree':
         return formatDate(besoin.dateCree);
-      case 'creePar':
-        return besoin.creePar;
+      case 'creeParCode':
+        return besoin.creeParCode;
       case 'dateModif':
         return formatDate(besoin.dateModif);
       case 'modifPar':

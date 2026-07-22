@@ -68,7 +68,7 @@ class _TableauUtilisateurAdvancedState
 
       // Audit
       'dateCree': {'visible': false, 'label': 'createdAt', 'field': 'dateCree'},
-      'creePar': {'visible': false, 'label': 'createdBy', 'field': 'creePar'},
+      'creeParCode': {'visible': false, 'label': 'createdBy', 'field': 'creeParCode'},
       'dateModif': {'visible': false, 'label': 'modifiedAt', 'field': 'dateModif'},
       'modifPar': {'visible': false, 'label': 'modifiedBy', 'field': 'modifPar'},
       'dateAnnul': {'visible': false, 'label': 'cancelledAt', 'field': 'dateAnnul'},

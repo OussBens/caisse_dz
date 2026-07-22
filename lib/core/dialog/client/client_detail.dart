@@ -162,7 +162,7 @@ Future<void> ClientDetail(BuildContext context, Client client) async {
                 title: l10n.audit,
                 icon: Icons.history,
                 child: detailwrap([
-                  detailinfo(l10n.createdBy, client.creePar),
+                  detailinfo(l10n.createdBy, client.creeParCode),
                   detailinfo(
                     l10n.createdAt,
                     client.dateCree.toString().split(" ").first,

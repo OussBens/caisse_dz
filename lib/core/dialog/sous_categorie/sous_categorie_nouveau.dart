@@ -78,7 +78,6 @@ Future<void> _SaveSousCategorieData({
     desc: "Utilisateur $userName a créé la sous-catégorie ${sousCategorie.nom}",
     type: "SousCategorie",
     oper: ListsConst.typeHisto[0],
-    creePar: userName,
     dateCree: DateTime.now(),
     creeParCode: userCode,
   ));
@@ -103,7 +102,6 @@ Future<void> _SaveSousCategorieData({
       desc: "Utilisateur $userName a assigné ${sousCategorie.nom} au produit ${produit.nom}",
       type: "Produit",
       oper: ListsConst.typeHisto[1],
-      creePar: userName,
       dateCree: DateTime.now(),
       creeParCode: userCode,
     ));
@@ -305,7 +303,6 @@ Future<void> SousCategorieNouveau(BuildContext context) async {
                           categorieNom: selectedCategorie ?? '',
                           code: code, // ✅ Code généré automatiquement
                           etat: true,
-                          creePar: userName,
                           dateCree: DateTime.now(),
                           creeParCode: userCode,
                           categorieId: categorieid,

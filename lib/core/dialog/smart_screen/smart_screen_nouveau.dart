@@ -80,7 +80,6 @@ async {
       desc: "l'utilisateur $userName a ajoutee un nouveau Smart Scan de Fournisseur de ${SmartScan.fournisseur}",
       oper: ListsConst.typeHisto[0],
       type: "SmartScan",
-      creePar: userName,
       dateCree: DateTime.now(),
       creeParCode: userCode
   );
@@ -116,7 +115,6 @@ async {
         desc: "l'utilisateur $userName a ajoutee un nouveau Smart Scan Produit de Produit de ${produit.nomProduit} de Smart Scan ${SmartScan.code}",
         oper: ListsConst.typeHisto[0],
         type: "SmartScanProduit",
-        creePar: userName,
         dateCree: DateTime.now(),
         creeParCode: userCode
     );
@@ -586,7 +584,6 @@ class _SmartScanDialogState extends State<SmartScanDialog> {
       date: date,
       etat: etat,
       ecart: ecart,
-      creePar: userName,
       dateCree: DateTime.now(),
       activity: ListsConst.typeactivitySmartScan[1],
       fournisseur: fournisseurController.text,
@@ -1163,7 +1160,6 @@ class _SmartScanDialogState extends State<SmartScanDialog> {
               codeOperation: 'd',
               etat: true,
               dateCree: DateTime.now(),
-              creePar: userName,
               creeParCode: userCode,
             );
 
@@ -1175,7 +1171,6 @@ class _SmartScanDialogState extends State<SmartScanDialog> {
               creeParCode: userCode,
               nomProduit: produit.nom,
               quantite: produit.quantite.toDouble(),
-              creePar: userName,
               creeLe: DateTime.now(),
               total: produit.quantite.toDouble() * produit.prixAchat.toDouble(),
               prix: produit.prixAchat.toDouble(),

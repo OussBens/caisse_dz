@@ -55,7 +55,6 @@ Future<void> DeleteSousCategorie({
         desc: "l'utilisateur ${userName} Supprimer la SousCategorie ${sous.nom}",
         type: "SousCategorie",
         oper: ListsConst.typeHisto[3],
-        creePar: userName,
         dateCree: DateTime.now(),
         creeParCode: userCode
     );
@@ -78,7 +77,6 @@ Future<void> DeleteSousCategorie({
           desc: "l'utilisateur ${userName} Supprimer la SousCategorie ${sous.nom} de Produit ${produit.nom}",
           oper: ListsConst.typeHisto[3],
           type: 'SousCategorie',
-          creePar: userName,
           dateCree: DateTime.now(),
           creeParCode: userCode
       );

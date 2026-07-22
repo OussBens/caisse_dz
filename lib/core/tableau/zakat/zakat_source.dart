@@ -67,8 +67,8 @@ class ZakatDataSource extends BaseTableDataSource<Zakat> {
       // Audit
       case 'dateCree':
         return formatDate(zakat.dateCree);
-      case 'creePar':
-        return zakat.creePar ?? '';
+      case 'creeParCode':
+        return zakat.creeParCode ?? '';
       case 'dateModif':
         return formatDate(zakat.dateModif);
       case 'modifPar':

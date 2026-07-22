@@ -103,7 +103,7 @@ Future<void> CategorieDetail(
                 title: l10n.audit,
                 icon: Icons.history,
                 child: detailwrap([
-                  detailinfo(l10n.createdBy, categorie.creePar),
+                  detailinfo(l10n.createdBy, categorie.creeParCode),
                   detailinfo(
                     l10n.createdAt,
                     categorie.dateCree?.toString().split(" ").first,

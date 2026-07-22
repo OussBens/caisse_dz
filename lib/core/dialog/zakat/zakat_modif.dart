@@ -106,7 +106,6 @@ Future<ApiResponse<int>> _SaveData({
       desc: "l'utilisateur $userName a modifer les information de Zakat de l'annee ${zakat.annee}",
       oper: ListsConst.typeHisto[1],
       type: "zakat",
-      creePar: userName,
       dateCree: DateTime.now(),
       creeParCode: userCode
   );

@@ -92,7 +92,7 @@ class AfficheurHistorique extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 _infoLine(Icons.category, historique.type),
-                _infoLine(Icons.person, historique.creePar),
+                _infoLine(Icons.person, historique.creeParCode),
                 _infoLine(
                   Icons.calendar_today,
                   "${historique.dateCree.day}/${historique.dateCree.month}/${historique.dateCree.year}",

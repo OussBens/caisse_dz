@@ -54,8 +54,8 @@ class EntreeDataSource extends BaseTableDataSource<Entree> {
         return formatDate(entree.dateCree);
       case 'creeparcode':
         return entree.creeParCode;
-      case 'creePar':
-        return entree.creePar;
+      case 'creeParCode':
+        return entree.creeParCode;
       case 'dateModif':
         return formatDate(entree.dateModif);
       case 'modifPar':

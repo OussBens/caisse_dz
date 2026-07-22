@@ -89,7 +89,6 @@ Future<ApiResponse<int>> _SaveBesion({
     for (var detail in besionDetail) {
       detail.id = await BesoinListDetailServices.getNextBesoinListDetailId(db);
       detail.creeParCode = userCode;
-      detail.creePar = userName;
       detail.besoinListCode = besionList.code;
 
       await serviceD.addbesion_list_detail(detail);
@@ -104,7 +103,6 @@ Future<ApiResponse<int>> _SaveBesion({
           desc:
           "L'utilisateur $userName a ajouté le besoin du produit ${detail.ProduitNom}",
           oper: ListsConst.typeHisto[0],
-          creePar: userName,
           dateCree: DateTime.now(),
           creeParCode: userCode,
         ),
@@ -375,7 +373,6 @@ Future<void> BesoinListNouveau(BuildContext context, List<Fournisseur> fournisse
                       fournisseur   : fournisseurSelected!,
                       etat          : true,
                       dateCree      : DateTime.now(),
-                      creePar       : userName!,
                       creeParCode   : userCode!,
                       observation   : observationControllerB.text,
                     );
@@ -409,7 +406,6 @@ Future<void> BesoinListNouveau(BuildContext context, List<Fournisseur> fournisse
                       desc: "L'utilisateur $userName a ajouté un nouveau besoinlist sous le code de ${"BL$id${DateTime.now().millisecondsSinceEpoch}"}",
                       oper: ListsConst.typeHisto[0],
                       type: "BesoinList",
-                      creePar: userName,
                       dateCree: DateTime.now(),
                       creeParCode: userCode,
                     );
@@ -543,7 +539,6 @@ void ouvrirInsertionProduit(
               prix            : produit.prixAchat,
               quantite        : 0,
               montant         : 0,
-              creePar         : "",
               dateCree        : DateTime.now(),
               ProduitNom      : produit.nom,
               ProduitCode     : produit.code,

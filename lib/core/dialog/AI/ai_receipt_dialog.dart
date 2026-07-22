@@ -263,7 +263,6 @@ class _AISmartScanDialogState extends State<AISmartScanDialog> {
           prix: item.unitPrice,
           prixVente: prixVente, // ✅ Ajout du prix de vente
           total: item.totalPrice,
-          creePar: '',
           creeParCode: '',
           creeLe: DateTime.now(),
           etat: true,
@@ -298,7 +297,6 @@ class _AISmartScanDialogState extends State<AISmartScanDialog> {
       quantite: 0,
       seuilMin: 10,
       dateCree: DateTime.now(),
-      creePar: '',
       creeParcode: '',
       marque: '',
       categorie: '',
@@ -1085,7 +1083,6 @@ class _AISmartScanDialogState extends State<AISmartScanDialog> {
         paye: amountPaid,
         ecart: false,
         reste: remainingAmount,
-        creePar: userName,
         montant: totalAmount,
         dateCree: DateTime.now(),
         activity: ListsConst.typeactivitySmartScan[1],
@@ -1131,7 +1128,6 @@ class _AISmartScanDialogState extends State<AISmartScanDialog> {
           codeOperation: code,
           etat: true,
           dateCree: DateTime.now(),
-          creePar: userName,
           creeParCode: userCode,
           fournisseur: selectedSupplier,
         ));
@@ -1161,7 +1157,6 @@ class _AISmartScanDialogState extends State<AISmartScanDialog> {
         desc: "L'utilisateur $userName a ajouté un nouveau Smart Scan IA de $selectedSupplier avec ${validatedProducts.length} produits",
         oper: ListsConst.typeHisto[0],
         type: "SmartScanAI",
-        creePar: userName,
         dateCree: DateTime.now(),
         creeParCode: userCode,
       );
@@ -1203,7 +1198,6 @@ class _AISmartScanDialogState extends State<AISmartScanDialog> {
       quantite: product.quantite,
       seuilMin: 10,
        dateCree: DateTime.now(),
-      creePar: '',
       creeParcode: '',
       marque: '',
       categorie: '',

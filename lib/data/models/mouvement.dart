@@ -20,7 +20,6 @@ class Mouvement {
   DateTime  date;
 
   // Audit
-  String    creePar;
   String    creeParCode;
   DateTime  dateCree;
 
@@ -45,7 +44,6 @@ class Mouvement {
     required this.codeOperation,
 
     required this.dateCree,
-    required this.creePar,
     required this.creeParCode,
 
     this.fournisseur,
@@ -73,7 +71,6 @@ class Mouvement {
         type          : map['type'],
         etat          : map['etat'] == 1 ,
         date          : DateTime.parse(map['date']),
-        creePar       : map['cree_par'],
         creeParCode   : map['cree_par_code'],
         dateCree      : DateTime.parse(map['date_cree']),
         codeOperation : map['code_operation'],
@@ -102,7 +99,6 @@ class Mouvement {
       'etat'            : etat ? 1 : 0,
       'date'            : date.toIso8601String(),
       'date_cree'       : dateCree.toIso8601String(),
-      'cree_par'        : creePar,
       'cree_par_code'   : creeParCode,
       'date_modif'      : dateModif?.toIso8601String(),
       'modif_par'       : modifPar,

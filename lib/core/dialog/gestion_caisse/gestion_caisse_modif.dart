@@ -69,7 +69,6 @@ Future<ApiResponse<int>> _SaveData({
   int   id        = await _GetNextHistoriqueId();
   Historique histo = Historique(
     id          : id,
-    creePar     : userName,
     dateCree    : DateTime.now(),
     creeParCode : userCode,
     type        : "caisseGestion",
@@ -325,7 +324,6 @@ Future<void> CaisseGestionModif(BuildContext context, CaisseGestion caisse) asyn
                               id: caisse.id,
                               etat: selectedEtatM == l10n.active,
                               code: caisse.code,
-                              creePar: caisse.creePar,
                               magasin: selectedMagasinM!,
                               modifPar: userName,
                               dateCree: caisse.dateCree,

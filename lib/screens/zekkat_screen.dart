@@ -85,7 +85,6 @@ class _ZakatScreenState extends State<ZakatScreen> with TickerProviderStateMixin
       Taux: 0,
       creeParCode: 'ADMIN',
       dateCree: DateTime.now(),
-      creePar: 'admin'
   );
 
   // Plus besoin de selectedCardIndex, on utilise _tabController.index
@@ -400,7 +399,6 @@ class _ZakatScreenState extends State<ZakatScreen> with TickerProviderStateMixin
       Taux: double.parse(tauxZakatController.text),
       creeParCode: paramZakat.creeParCode,
       dateCree: paramZakat.dateCree,
-      creePar: paramZakat.creePar,
       modifPar: UserName,
       dateModif: DateTime.now(),
     );
@@ -414,7 +412,6 @@ class _ZakatScreenState extends State<ZakatScreen> with TickerProviderStateMixin
       desc: "${l10n.modificationOf} ${l10n.zakatParameter} ${l10n.by} $UserName",
       oper: ListsConst.typeHisto[2],
       type: 'paramter',
-      creePar: UserName,
       dateCree: DateTime.now(),
       creeParCode: UserCode,
     );

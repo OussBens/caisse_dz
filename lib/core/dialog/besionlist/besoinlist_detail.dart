@@ -114,7 +114,7 @@ Future<void> BesoinListDetailDialog(
                 title: l10n.audit,
                 icon: Icons.history,
                 child: detailwrap([
-                  detailinfo(l10n.createdBy, besoin.creePar),
+                  detailinfo(l10n.createdBy, besoin.creeParCode),
                   detailinfo(l10n.createdAt,
                       besoin.dateCree.toString().split(" ").first),
                   detailinfo(l10n.modifiedBy, besoin.modifPar),

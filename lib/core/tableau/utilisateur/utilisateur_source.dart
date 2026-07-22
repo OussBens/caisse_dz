@@ -44,8 +44,8 @@ class UtilisateurDataSource extends BaseTableDataSource<Utilisateur> {
       // Audit
       case 'dateCree':
         return formatDate(user.dateCree);
-      case 'creePar':
-        return user.creePar;
+      case 'creeParCode':
+        return user.creeParCode;
       case 'dateModif':
         return formatDate(user.dateModif);
       case 'modifPar':

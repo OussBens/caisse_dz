@@ -11,7 +11,6 @@ class BesoinListDetail {
 
   // --- Audit ---
   DateTime dateCree;
-  String creePar;
   String creeParCode;
 
   DateTime? dateModif;
@@ -28,7 +27,6 @@ class BesoinListDetail {
     required this.quantite,
     required this.prix, // valeur par défaut
     required this.dateCree,
-    required this.creePar,
     required this.creeParCode,
     double? montant, // calculé automatiquement
     this.dateModif,
@@ -52,7 +50,6 @@ class BesoinListDetail {
       prix            : p,
       montant         : map['montant'] ?? q * p,
       dateCree        : DateTime.parse(map['date_cree']),
-      creePar         : map['cree_par'],
       creeParCode     : map['cree_par_code'],
 
       dateModif       : map['date_modif'] != null
@@ -72,7 +69,6 @@ class BesoinListDetail {
       'id'                : id,
       'prix'              : prix,
       'montant'           : montant,
-      'cree_par'          : creePar,
       'quantite'          : quantite,
       'date_cree'         : dateCree.toIso8601String(),
       'produit_nom'       : ProduitNom,

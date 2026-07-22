@@ -49,7 +49,6 @@ Future<void> _DeleteBL({
           type        : "besion_list_detail",
           desc        : "L'utilisateur $userName a Supprimer Le Besion List Detail ${detail.ProduitNom} de Besion List${Besion.numero}",
           oper        : ListsConst.typeHisto[2],
-          creePar     : userName,
           dateCree    : DateTime.now(),
           creeParCode : userCode
       );
@@ -63,7 +62,6 @@ Future<void> _DeleteBL({
         type        : "besionList",
         desc        : "L'utilisateur $userName a Supprimer Le Besion List ${Besion.numero}",
         oper        : ListsConst.typeHisto[2],
-        creePar     : userName,
         dateCree    : DateTime.now(),
         creeParCode : userCode
     );

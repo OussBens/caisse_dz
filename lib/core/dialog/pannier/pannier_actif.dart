@@ -54,7 +54,6 @@ Future<void> _DeletePannier ({
         type        : 'pannierProduit',
         desc        : "l'utilisateur $userName a supprimer le Produit ${prod.nomProduit} de Pannier ${pannier.code}",
         oper        : ListsConst.typeHisto[2],
-        creePar     : userName,
         dateCree    : DateTime.now(),
         creeParCode : userCode,
       );
@@ -70,7 +69,6 @@ Future<void> _DeletePannier ({
       type        : 'panniers',
       desc        : "l'utilisateur $userName a supprimer le pannier ${pannier.code}",
       oper        : ListsConst.typeHisto[2],
-      creePar     : userName,
       dateCree    : DateTime.now(),
       creeParCode : userCode,
     );

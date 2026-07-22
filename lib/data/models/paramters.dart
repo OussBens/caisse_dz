@@ -1,7 +1,6 @@
 class Paramters {
   int id;
 
-  String    creePar;
   String    creeParCode;
   String?   modifPar;
   String    typeMarge;
@@ -22,7 +21,6 @@ class Paramters {
         required this.Maximum,
         required this.typeMarge,
         required this.Minimum,
-        required this.creePar,
         required this.Datecree,
         required this.creeParCode,
         this.Datemodif,
@@ -40,7 +38,6 @@ class Paramters {
         Maximum             : map['maximum'],
         Minimum             : map['minimum'],
         Datecree            : DateTime.parse(map['date_cree']),
-        creePar             : map['cree_par'],
         creeParCode         : map['cree_par_code'],
         Datemodif           : map['date_modif'] != null ? DateTime.parse(map['date_modif']) : DateTime.parse('0000-00-00'),
         modifPar            : map['modif_par']
@@ -57,7 +54,6 @@ class Paramters {
       'minimum'                : Minimum,
       'date_cree'              : Datecree.toIso8601String(),
       'date_modif'             : Datemodif?.toIso8601String(),
-      'cree_par'               : creePar,
       'cree_par_code'          : creeParCode,
       'modif_par'              : modifPar,
     };

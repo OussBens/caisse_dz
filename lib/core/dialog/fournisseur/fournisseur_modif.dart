@@ -271,7 +271,6 @@ Future<void> FournisseurModif(BuildContext context, Fournisseur fournisseur) asy
                               observation: onbservationControllerF.text,
                               wilaya: wilayaControllerF.text,
                               dateCree: fournisseur.dateCree,
-                              creePar: fournisseur.creePar,
                               dateModif: DateTime.now(),
                               modifPar: userName,
                               creeParCode: fournisseur.creeParCode,

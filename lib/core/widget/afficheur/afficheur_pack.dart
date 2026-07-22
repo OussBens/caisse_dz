@@ -130,7 +130,7 @@ class AfficheurPack extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                _infoLine(Icons.person, "${l10n.createdBy} : ${pack.creePar ?? "—"}"),
+                _infoLine(Icons.person, "${l10n.createdBy} : ${pack.creeParCode ?? "—"}"),
                 _infoLine(
                   Icons.calendar_today,
                   "${l10n.dateCreated} : ${_formatDate(pack.creeLe as DateTime)}",

@@ -12,7 +12,6 @@ class PannierProduit {
 
 
   bool      etat; // "actif" ou "inactif"
-  String    creePar;
   String    creeParCode;
   DateTime  creeLe;
 
@@ -32,7 +31,6 @@ class PannierProduit {
     required this.prixAchat,
     required this.totalAchat,
     required this.etat,
-    required this.creePar,
     required this.creeParCode,
     required this.creeLe,
 
@@ -55,7 +53,6 @@ class PannierProduit {
       prixAchat        : map['prix_achat'] ?? 0.0,
       totalAchat       : map['total_achat']?? 0.0,
       creeLe      : DateTime.parse(map['date_cree']),
-      creePar     : map['cree_par'],
       quantite    : map['quantite'],
       nomProduit  : map['nom_produit'],
       codeProduit : map['code_produit'],
@@ -85,7 +82,6 @@ class PannierProduit {
       'total'         : total,
       'total_achat'         : totalAchat,
       'prix_achat'         : prixAchat,
-      'cree_par'      : creePar,
       'quantite'      : quantite,
       'date_cree'     : creeLe.toIso8601String(),
       'code_pannier'   : codePannier,

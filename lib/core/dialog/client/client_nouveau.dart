@@ -351,7 +351,6 @@ Future<void> ClientNouveau(BuildContext context) async {
                           dernierAchat: null,
                           observation: onbservationControllerN.text,
                           dateCree: DateTime.now(),
-                          creePar: userName,
                           creeParCode: userCode,
                         );
 
@@ -426,7 +425,6 @@ Future<ApiResponse<int>> _saveClient({required Client client, required String us
       type: "Client",
       desc: "L'utilisateur $userName a ajouté le Client ${client.nom}",
       oper: ListsConst.typeHisto[0],
-      creePar: userName,
       dateCree: DateTime.now(),
       creeParCode: userCode,
     );

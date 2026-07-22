@@ -40,7 +40,6 @@ Future<ApiResponse<int>> _saveFournisseur({required Fournisseur fournisseur, req
       type: "Fournisseur",
       desc: "L'utilisateur $userName a ajouté le Fournisseur ${fournisseur.nom}",
       oper: ListsConst.typeHisto[0],
-      creePar: userName,
       dateCree: DateTime.now(),
       creeParCode: userCode,
     );
@@ -316,7 +315,6 @@ Future<void> FournisseurNouveau(BuildContext context) async {
                           activity: selectedActiviteF!,
                           dateCree: DateTime.now(),
                           type: selectedTypeF!,
-                          creePar: userName,
                           etat: true,
                           code: code, // ✅ Code généré automatiquement
                           id: id,

@@ -74,7 +74,6 @@ Future<ApiResponse<int>> _SaveData({
     type        : "caisseGestion",
     desc        : "l'utilisateur ${userName} Ajoutee la Caisse ${caisse.nomCaisse}",
     oper        : ListsConst.typeHisto[0],
-    creePar     : userName,
     dateCree    : DateTime.now(),
     creeParCode : userCode,
   );
@@ -341,7 +340,6 @@ Future<void> CaisseGestionNouveau(BuildContext context) async {
                           id: id,
                           etat: true,
                           code: code, // ✅ Code généré automatiquement
-                          creePar: userName,
                           magasin: selectedMagasinC!,
                           dateCree: DateTime.now(),
                           nomCaisse: nomCaisseController.text,

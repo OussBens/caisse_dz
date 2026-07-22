@@ -161,7 +161,6 @@ Future<ApiResponse<int>> _SavePannier ({
       type        : "panniers",
       desc        : "L'utilisateur $userName a Ajoutee le Pannier ${pannier.code}",
       oper        : ListsConst.typeHisto[0],
-      creePar     : userName,
       dateCree    : DateTime.now(),
       creeParCode : userCode
   );
@@ -178,7 +177,6 @@ Future<ApiResponse<int>> _SavePannier ({
       etat        : true,
       total       : produit.montant,
       creeLe      : DateTime.now(),
-      creePar     : userName,
       quantite    : quantiteReelle,
       nomProduit  : produit.nom,
       codeProduit : produit.code,
@@ -198,7 +196,6 @@ Future<ApiResponse<int>> _SavePannier ({
         type        : "pannierProduit",
         desc        : "L'utilisateur $userName a Ajoutee le Produit ${prod.nomProduit} au Pannier ${pannier.code}",
         oper        : ListsConst.typeHisto[0],
-        creePar     : userName,
         dateCree    : DateTime.now(),
         creeParCode : userCode
     );
@@ -214,7 +211,6 @@ Future<ApiResponse<int>> _SavePannier ({
       date          : pannier.date,
       type          : ListsConst.typeMouvement[0],
       etat          : true,
-      creePar       : userName,
       dateCree      : DateTime.now(),
       quantite      : quantiteReelle,
       prixAchat     : Produitse.where((e) => e.nom == prod.nomProduit).first.prixAchat,
@@ -243,7 +239,6 @@ Future<ApiResponse<int>> _SavePannier ({
         type        : "produits",
         desc        : "La Quantite de Produit ${Produite.nom} est mis a jouree automatiquement Apres le Vente dans le Pannier ${pannier.code}",
         oper        : ListsConst.typeHisto[0],
-        creePar     : userName,
         dateCree    : DateTime.now(),
         creeParCode : userCode
     );
@@ -274,7 +269,6 @@ Future<ApiResponse<int>> _SavePannier ({
       sense: 'Entrée',
       type: "Pannier",
       dateCree: DateTime.now(),
-      creePar: userName,
       creeParCode: userCode,
       caisse: pannier.caisse,
     );
@@ -639,7 +633,6 @@ Future<void> EncaissementBLSCDialog({
                             reste: double.parse(resteController.text),
                             client: caisse.client,
                             client_code: client.code,
-                            creePar: userName!,
                             montant: caisse.total,
                             caissier: userName,
                             dateCree: DateTime.now(),

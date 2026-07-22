@@ -51,7 +51,6 @@ Future<ApiResponse<int>> _SaveData({
     type: "transfert",
     desc: "l'utilisateur ${userName} A Transferee le Montant ${transfert.montant} de La Caisse ${transfert.caisseExp} a La Caisse ${transfert.caisseDest}",
     oper: ListsConst.typeHisto[1],
-    creePar: userName,
     dateCree: DateTime.now(),
     creeParCode: userCode,
   );
@@ -320,7 +319,6 @@ Future<void> TransfertCaisseModif(
                               caisseDest: selectedCaisseDestinationM!,
                               caisseExp: selectedCaisseSourceM!,
                               creeParCode: transfert.creeParCode,
-                              creePar: transfert.creePar,
                               code: transfert.code,
                               dateCree: transfert.dateCree,
                               dateTransfert: DateTime.now(),

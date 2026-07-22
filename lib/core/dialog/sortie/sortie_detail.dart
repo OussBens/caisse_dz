@@ -106,7 +106,7 @@ Future<void> SortieDetail(BuildContext context, Sortie sortie) async {
                 title: l10n.audit,
                 icon: Icons.history,
                 child: detailwrap([
-                  detailinfo(l10n.createdBy, sortie.creePar),
+                  detailinfo(l10n.createdBy, sortie.creeParCode),
                   detailinfo(l10n.dateCreated, sortie.dateCree),
                   detailinfo(l10n.modifiedBy, sortie.modifPar),
                   detailinfo(l10n.modifiedAt, sortie.dateModif),

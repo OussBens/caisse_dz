@@ -7,7 +7,6 @@ class Role {
 
   // Audit
   DateTime dateCree;
-  String creePar;
   String creeParCode;
 
   DateTime? dateModif;
@@ -19,7 +18,6 @@ class Role {
   Role({
     required this.creeParCode,
     required this.dateCree,
-    required this.creePar,
     required this.rolenom,
     required this.etat,
     required this.code,
@@ -41,7 +39,6 @@ class Role {
       rolenom           : map['rolenom'],
       creeParCode       : map['cree_par_code'],
       dateCree          : DateTime.parse(map['date_cree']),
-      creePar           : map['cree_par'],
       dateModif         : map['date_modif'] != null
           ? DateTime.parse(map['date_modif'])
           : null,
@@ -59,7 +56,6 @@ class Role {
     'etat'                : etat ? 1 : 0,
     'code'                : code,
     'rolenom'             : rolenom,
-    'cree_par'            : creePar,
     'date_cree'           : dateCree.toIso8601String(),
     'cree_par_code'       : creeParCode,
 

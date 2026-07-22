@@ -106,7 +106,7 @@ Future<void> TransfertCaisseDetail(
                 title: l10n.audit,
                 icon: Icons.history,
                 child: detailwrap([
-                  detailinfo(l10n.createdBy, transfert.creePar),
+                  detailinfo(l10n.createdBy, transfert.creeParCode),
                   detailinfo(
                     l10n.dateCreated,
                     transfert.dateCree?.toString().split(" ").first,

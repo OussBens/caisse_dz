@@ -55,8 +55,8 @@ class SortieDataSource extends BaseTableDataSource<Sortie> {
       // ===== Audit =====
       case 'dateCree':
         return formatDate(sortie.dateCree);
-      case 'creePar':
-        return sortie.creePar;
+      case 'creeParCode':
+        return sortie.creeParCode;
       case 'dateModif':
         return formatDate(sortie.dateModif);
       case 'modifPar':

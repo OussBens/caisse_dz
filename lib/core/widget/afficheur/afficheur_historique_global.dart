@@ -58,7 +58,7 @@ class _DashboardHistoriqueState extends State<DashboardHistorique>
         h.dateCree.year == DateTime.now().year
     ).length;
     final lastUser = widget.historiques.isNotEmpty
-        ? widget.historiques.last.creePar
+        ? widget.historiques.last.creeParCode
         : "-";
 
     return FadeTransition(

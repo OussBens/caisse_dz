@@ -13,7 +13,6 @@ class Remise {
   DateTime? fin;
 
   String    creeParCode;
-  String    creePar;
   DateTime  creeLe;
 
 
@@ -33,7 +32,6 @@ class Remise {
     required this.nom,
     required this.id,
     required this.fin,
-    required this.creePar,
     required this.creeParCode,
     required this.creeLe,
     this.montant,
@@ -55,7 +53,6 @@ class Remise {
       debut       : DateTime.parse(map['debut']),
       creeLe      : DateTime.parse(map['cree_le']),
       montant     : map['montant'] ?? 0.0,
-      creePar     : map['cree_par'],
       tauxType    : map['taux_type'],
       creeParCode : map['cree_par_code'],
       observation : map['observation'],
@@ -88,7 +85,6 @@ class Remise {
       'taux_type'     : tauxType,
       'taux'          : taux,
       'cree_par_code' : creeParCode,
-      'cree_par'      : creePar,
       'debut'         : debut.toIso8601String(),
       'cree_le'       : creeLe.toIso8601String(),
 

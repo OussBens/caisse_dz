@@ -202,7 +202,7 @@ class ProduitServices{
           codebar TEXT NOT NULL,
           produit_code TEXT NOT NULL,
           date_cree TEXT NOT NULL,
-          cree_par TEXT NOT NULL
+          cree_par_code TEXT NOT NULL
         )
       ''');
         print('✅ Table produit_code_detail créée');
@@ -266,7 +266,6 @@ class ProduitServices{
             'code': 'SYS${systemMagasinId.toString().padLeft(6, '0')}',
             'etat': 1,
             'date_cree': DateTime.now().toIso8601String(),
-            'cree_par': produit.creePar,
             'cree_par_code': produit.creeParcode,
           };
           await txn.insert('magasins', systemMagasin);
@@ -279,7 +278,6 @@ class ProduitServices{
             'produit_code': produit.code,
             'quantite': 0,
             'date_cree': DateTime.now().toIso8601String(),
-            'cree_par': produit.creePar,
             'cree_par_code': produit.creeParcode,
           };
           await txn.insert('produit_magasin_detail', detail);
@@ -294,7 +292,6 @@ class ProduitServices{
             'produit_code': produit.code,
             'quantite': 0,
             'date_cree': DateTime.now().toIso8601String(),
-            'cree_par': produit.creePar,
             'cree_par_code': produit.creeParcode,
           };
           await txn.insert('produit_magasin_detail', detail);

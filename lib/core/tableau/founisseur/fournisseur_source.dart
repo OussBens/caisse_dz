@@ -54,8 +54,8 @@ class FournisseurDataSource extends BaseTableDataSource<Fournisseur> {
       // Audit
       case 'dateCree':
         return formatDate(fournisseur.dateCree);
-      case 'creePar':
-        return fournisseur.creePar;
+      case 'creeParCode':
+        return fournisseur.creeParCode;
       case 'dateModif':
         return formatDate(fournisseur.dateModif);
       case 'modifPar':

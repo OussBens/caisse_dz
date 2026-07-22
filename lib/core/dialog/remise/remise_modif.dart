@@ -140,7 +140,6 @@ Future<ApiResponse<int>> _saveRemise({
           desc: "L'utilisateur $userName a retiré la remise ${remised.nom} du produit ${p.nom}",
           oper: ListsConst.typeHisto[1],
           type: "Produit",
-          creePar: userName,
           dateCree: DateTime.now(),
           creeParCode: userCode,
         );
@@ -162,7 +161,6 @@ Future<ApiResponse<int>> _saveRemise({
           desc: "L'utilisateur $userName a appliqué la remise ${remised.nom} au produit ${p.nom}",
           oper: ListsConst.typeHisto[1],
           type: "Produit",
-          creePar: userName,
           dateCree: DateTime.now(),
           creeParCode: userCode,
         );
@@ -179,7 +177,6 @@ Future<ApiResponse<int>> _saveRemise({
       desc: "L'utilisateur $userName a modifié la remise ${remised.nom}",
       type: "Remise",
       oper: ListsConst.typeHisto[1],
-      creePar: userName,
       dateCree: DateTime.now(),
       creeParCode: userCode,
     );
@@ -312,7 +309,6 @@ Future<void> RemiseModif(BuildContext context, Remise remise) async {
                                 modifLe: DateTime.now(),
                                 modifPar: userName,
                                 creeLe: remise.creeLe,
-                                creePar: remise.creePar,
                                 creeParCode: remise.creeParCode,
                                 etat: true,
                               );

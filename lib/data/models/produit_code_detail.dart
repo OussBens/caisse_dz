@@ -7,14 +7,14 @@ class ProduitCodeDetail {
 
   // --- Audit ---
   DateTime dateCree;
-  String   creePar;
+  String   creeParCode;
 
   ProduitCodeDetail({
     required this.id,
     required this.produitCode,
     required this.CodeBar,
     required this.dateCree,
-    required this.creePar,
+    required this.creeParCode,
   });
 
   // ----------------------------------------------------
@@ -25,7 +25,7 @@ class ProduitCodeDetail {
         id:           map['id'],
         produitCode:  map['produit_code'],
         dateCree:     DateTime.parse(map['date_cree']),
-        creePar:      map['cree_par'],
+        creeParCode:  map['cree_par_code'],
         CodeBar:      map['codebar'],
     );
   }
@@ -38,7 +38,7 @@ class ProduitCodeDetail {
       'id': id,
       'produit_code': produitCode,
       'date_cree': dateCree.toIso8601String(),
-      'cree_par': creePar,
+      'cree_par_code': creeParCode,
       'codebar': CodeBar,
 
     };

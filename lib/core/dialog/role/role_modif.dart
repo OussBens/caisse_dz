@@ -146,7 +146,6 @@ class _RoleModificationDialogState extends State<RoleModificationDialog> {
       _roleDetail = RoleDetail(
         id: widget.role.id,
         Rolecode: widget.role.code,
-        creePar: widget.role.creePar,
         creeParCode: widget.role.creeParCode,
         dateCree: widget.role.dateCree,
         dash: false,
@@ -363,7 +362,6 @@ class _RoleModificationDialogState extends State<RoleModificationDialog> {
       dateModif: DateTime.now(),
       modifPar: widget.userName,
       dateCree: widget.role.dateCree,
-      creePar: widget.role.creePar,
       rolenom: _nomController.text,
       etat: _selectedEtat == l10n.active,
       code: widget.role.code,

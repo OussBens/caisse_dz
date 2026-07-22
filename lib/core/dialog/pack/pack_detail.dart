@@ -107,7 +107,7 @@ Future<void> PackDetail(BuildContext context, Pack pack) async {
                 title: l10n.audit,
                 icon: Icons.history,
                 child: detailwrap([
-                  detailinfo(l10n.createdBy, pack.creePar),
+                  detailinfo(l10n.createdBy, pack.creeParCode),
                   detailinfo(
                     l10n.createdAt,
                     pack.creeLe?.toString().split(" ").first,

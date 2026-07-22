@@ -46,8 +46,8 @@ class CaisseGestionDataSource extends BaseTableDataSource<CaisseGestion> {
       // Audit
       case 'dateCree':
         return formatDate(caisse.dateCree);
-      case 'creePar':
-        return caisse.creePar;
+      case 'creeParCode':
+        return caisse.creeParCode;
       case 'dateModif':
         return formatDate(caisse.dateModif);
       case 'modifPar':

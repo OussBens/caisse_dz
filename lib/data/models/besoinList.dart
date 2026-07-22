@@ -16,7 +16,6 @@ class BesoinList {
   String? observation;
   // Audit
   DateTime dateCree;
-  String   creePar;
   String   creeParCode;
 
   DateTime? dateModif;
@@ -36,7 +35,6 @@ class BesoinList {
     required this.fournisseur,
     required this.etat,
     required this.dateCree,
-    required this.creePar,
     required this.creeParCode,
 
     this.observation,
@@ -60,7 +58,6 @@ class BesoinList {
       etat          : map['etat'] == 1 ,
       observation   : map['observation'],
       dateCree      : DateTime.parse(map['date_cree']),
-      creePar       : map['cree_par'],
       creeParCode   : map['cree_par_code'],
 
       dateModif     : map['date_modif'] != null
@@ -88,7 +85,6 @@ class BesoinList {
       'etat'            : etat ? 1 : 0,
       'observation'     : observation,
       'date_cree'       : dateCree.toIso8601String(),
-      'cree_par'        : creePar,
       'cree_par_code'   : creeParCode,
 
       'date_modif'      : dateModif?.toIso8601String(),

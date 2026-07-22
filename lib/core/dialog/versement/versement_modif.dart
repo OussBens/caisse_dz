@@ -395,7 +395,6 @@ Future<void> VersementModif(
                               dateCree: versement.dateCree,
                               modifPar: userName,
                               montant: double.parse(_montantControllerV.text),
-                              creePar: versement.creePar,
                               sense: versement.sense,
                               etat: _selectedEtatV == l10n.validated,
                               date: parsedDate,

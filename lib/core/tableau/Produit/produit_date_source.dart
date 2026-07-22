@@ -112,8 +112,8 @@ class ProduitDataSource extends BaseTableDataSource<Produit> {
         return formatDate(produit.dateEmpreint);
 
       // --- Audit ---
-      case 'creePar':
-        return produit.creePar;
+      case 'creeParCode':
+        return produit.creeParcode;
       case 'modifPar':
         return produit.modifPar ?? '';
       case 'annulerPar':

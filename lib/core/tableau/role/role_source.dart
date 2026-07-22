@@ -39,8 +39,8 @@ class RoleDataSource extends BaseTableDataSource<Role> {
       // ===== Audit =====
       case 'dateCree':
         return formatDate(role.dateCree);
-      case 'creePar':
-        return role.creePar;
+      case 'creeParCode':
+        return role.creeParCode;
       case 'dateModif':
         return formatDate(role.dateModif);
       case 'modifPar':

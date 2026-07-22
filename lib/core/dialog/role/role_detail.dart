@@ -95,7 +95,7 @@ Future<void> RoleDetail(BuildContext context, Role role) async {
                 title: l10n.audit,
                 icon: Icons.history,
                 child: detailwrap([
-                  detailinfo(l10n.createdBy, role.creePar),
+                  detailinfo(l10n.createdBy, role.creeParCode),
                   detailinfo(
                     l10n.dateCreated,
                     role.dateCree?.toString().split(" ").first,

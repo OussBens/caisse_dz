@@ -39,8 +39,8 @@ class PackDataSource extends BaseTableDataSource<Pack> {
         return pack.etat ? l10n.active : l10n.inactive;
       case 'prixVente':
         return "${pack.prixVente} ${l10n.currency}";
-      case 'creePar':
-        return pack.creePar;
+      case 'creeParCode':
+        return pack.creeParCode;
       case 'creeLe':
         return formatDate(pack.creeLe);
       case 'modifPar':

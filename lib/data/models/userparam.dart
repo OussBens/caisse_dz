@@ -8,7 +8,6 @@ class UserParam {
 
   // Audit
   DateTime creeLe;      // Changed from 'dateCree' to 'creeLe' to match DB
-  String creePar;
   String creeParCode;
 
   DateTime? modifLe;    // Changed from 'dateModif' to 'modifLe'
@@ -21,7 +20,6 @@ class UserParam {
     required this.magasinid,
     required this.language,
     required this.currency,
-    required this.creePar,
     required this.creeParCode,
     required this.creeLe,
     this.modifLe,
@@ -36,7 +34,6 @@ class UserParam {
       magasinid: map['magasinid'] as String,
       language: map['language'] as String,
       currency: map['currency'] as String,
-      creePar: map['cree_par'] as String,
       creeParCode: map['cree_par_code'] as String,
       creeLe: DateTime.parse(map['cree_le'] as String),
       modifLe: map['modif_le'] != null
@@ -53,7 +50,6 @@ class UserParam {
     'magasinid': magasinid,
     'language': language,
     'currency': currency,
-    'cree_par': creePar,
     'cree_par_code': creeParCode,
     'cree_le': creeLe.toIso8601String(),
     'modif_le': modifLe?.toIso8601String(),

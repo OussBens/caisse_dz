@@ -63,8 +63,8 @@ class PannierDataSource extends BaseTableDataSource<Pannier> {
         return p.typepannier ?? '';
       case 'dateCree':
         return formatDate(p.dateCree);
-      case 'creePar':
-        return p.creePar ?? '';
+      case 'creeParCode':
+        return p.caissier_code;
       case 'dateModif':
         return formatDate(p.dateModif);
       case 'modifPar':

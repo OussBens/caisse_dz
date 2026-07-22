@@ -111,7 +111,7 @@ Future<void> RemiseDetail(BuildContext context, Remise remise) async {
                 title: l10n.audit,
                 icon: Icons.history,
                 child: detailwrap([
-                  detailinfo(l10n.createdBy, remise.creePar),
+                  detailinfo(l10n.createdBy, remise.creeParCode),
                   detailinfo(
                     l10n.dateCreated,
                     remise.creeLe?.toString().split(" ").first,

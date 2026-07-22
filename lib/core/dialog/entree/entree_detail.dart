@@ -117,7 +117,7 @@ Future<void> EntreeDetail(BuildContext context, Entree entree) async {
                 title: l10n.audit,
                 icon: Icons.history,
                 child: detailwrap([
-                  detailinfo(l10n.createdBy, entree.creePar),
+                  detailinfo(l10n.createdBy, entree.creeParCode),
                   detailinfo(l10n.dateCreated, entree.dateCree),
                   detailinfo(l10n.modifiedBy, entree.modifPar),
                   detailinfo(l10n.modifiedAt, entree.dateModif),

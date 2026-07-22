@@ -15,7 +15,6 @@ class Sortie{
   String? souscategorie;
   String? observation;
   // Audit
-  String    creePar;
   String    creeParCode;
   DateTime  dateCree;
 
@@ -36,7 +35,6 @@ class Sortie{
     required this.type,
     required this.etat,
     required this.dateCree,
-    required this.creePar,
     required this.creeParCode,
 
     required this.date,
@@ -58,7 +56,6 @@ class Sortie{
       type          : map['type'],
       prix          : map['prix'],
       code          : map['code'],
-      creePar       : map['cree_par'],
       produit       : map['produit'],
       produitCode   : map['produit_code'],
       montant       : map['montant'],
@@ -92,7 +89,6 @@ class Sortie{
       'produit_code'  : produitCode,
       'montant'       : montant,
       'quantite'      : quantite,
-      'cree_par'      : creePar,
       'date_cree'     : dateCree.toIso8601String(),
       'cree_par_code' : creeParCode,
       'date'          : date.toIso8601String(),

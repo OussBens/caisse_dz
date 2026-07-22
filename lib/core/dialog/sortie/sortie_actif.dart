@@ -58,7 +58,6 @@ Future<void> _DeleteSs({
         type: "sortie",
         desc: "L'utilisateur $userName a Supprimer la Sortie de Produit ${sortie.produit} de Type ${sortie.type}",
         oper: ListsConst.typeHisto[2],
-        creePar: userName,
         dateCree: DateTime.now(),
         creeParCode: userCode
     );

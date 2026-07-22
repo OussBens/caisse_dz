@@ -17,7 +17,6 @@ class Entree {
   String? observation;
 
   // Audit
-  String creePar;
   String creeParCode;
   DateTime dateCree;
 
@@ -39,7 +38,6 @@ class Entree {
     required this.fournisseur,
     required this.fournisseurCode,
     required this.etat,
-    required this.creePar,
     required this.creeParCode,
     required this.dateCree,
 
@@ -69,7 +67,6 @@ class Entree {
 
       etat: map['etat'] == 1,
 
-      creePar: map['cree_par'],
       creeParCode: map['cree_par_code'],
       dateCree: DateTime.parse(map['date_cree']),
 
@@ -108,7 +105,6 @@ class Entree {
 
       'etat': etat ? 1 : 0,
 
-      'cree_par': creePar,
       'cree_par_code': creeParCode,
       'date_cree': dateCree.toIso8601String(),
 

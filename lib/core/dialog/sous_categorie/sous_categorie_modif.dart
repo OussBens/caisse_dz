@@ -119,7 +119,6 @@ Future<ApiResponse<int>> _saveSousCategorie({
       desc: "L'utilisateur $userName a modifié le produit ${produit.nom} pour la sous-catégorie ${sousCategorie.nom}",
       oper: ListsConst.typeHisto[1],
       type: 'Produit',
-      creePar: userName,
       dateCree: DateTime.now(),
       creeParCode: userCode,
     );
@@ -135,7 +134,6 @@ Future<ApiResponse<int>> _saveSousCategorie({
     desc: "L'utilisateur $userName a modifié la SousCategorie ${sousCategorie.nom}",
     oper: ListsConst.typeHisto[1],
     type: 'SousCategorie',
-    creePar: userName,
     dateCree: DateTime.now(),
     creeParCode: userCode,
   );
@@ -319,7 +317,6 @@ Future<void> SousCategorieModif(BuildContext context, SousCategorie sousCategori
                                   code: sousCategorie.code,
                                   etat: selectedEtatR == l10n.active,
                                   dateCree: sousCategorie.dateCree,
-                                  creePar: sousCategorie.creePar,
                                   creeParCode: sousCategorie.creeParCode,
                                   modifPar: userName,
                                   dateModif: DateTime.now(),

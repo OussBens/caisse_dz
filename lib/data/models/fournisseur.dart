@@ -21,7 +21,6 @@ class Fournisseur {
 
   // Audit
   DateTime  dateCree;
-  String    creePar;
   String    creeParCode;
   DateTime? dateModif;
   String? modifPar;
@@ -34,7 +33,6 @@ class Fournisseur {
     required this.telephone,
     required this.dateCree,
     required this.activity,
-    required this.creePar,
     required this.etat,
     required this.type,
     required this.code,
@@ -68,7 +66,6 @@ class Fournisseur {
       etat          : map['etat'] == 1,
       observation   : map['observation'],
       dateCree      : DateTime.parse(map['date_cree']),
-      creePar       : map['cree_par'],
       creeParCode   : map['cree_par_code'],
       dateModif     : map['date_modif'] != null
           ? DateTime.parse(map['date_modif'])
@@ -98,7 +95,6 @@ class Fournisseur {
       'etat'          : etat ? 1 : 0,
       'observation'   : observation,
       'date_cree'     : dateCree.toIso8601String(),
-      'cree_par'      : creePar,
       'cree_par_code' : creeParCode,
       'date_modif'    : dateModif?.toIso8601String(),
       'modif_par'     : modifPar,

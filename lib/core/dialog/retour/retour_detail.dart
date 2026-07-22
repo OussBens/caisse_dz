@@ -105,7 +105,7 @@ Future<void> RetourDetail(BuildContext context, Retour retour) async {
                 title: l10n.audit,
                 icon: Icons.history,
                 child: detailwrap([
-                  detailinfo(l10n.createdBy, retour.creePar),
+                  detailinfo(l10n.createdBy, retour.creeParCode),
                   detailinfo(l10n.dateCreated, (retour.dateCree)),
                   detailinfo(l10n.modifiedBy, retour.modifPar),
                   detailinfo(l10n.modifiedAt, (retour.dateModif)),

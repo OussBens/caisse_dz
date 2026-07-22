@@ -63,7 +63,7 @@ class _TableauEntreeAdvancedState extends State<TableauEntreeAdvanced> {
       'fournisseurCode': {'visible': false, 'label': 'supplierCode', 'field': 'fournisseurCode'},
       'observation': {'visible': true, 'label': 'observation', 'field': 'observation'},
       'dateCree': {'visible': true, 'label': 'createdAt', 'field': 'dateCree'},
-      'creePar': {'visible': true, 'label': 'createdBy', 'field': 'creePar'},
+      'creeParCode': {'visible': true, 'label': 'createdBy', 'field': 'creeParCode'},
       'dateModif': {'visible': true, 'label': 'modifiedAt', 'field': 'dateModif'},
       'modifPar': {'visible': true, 'label': 'modifiedBy', 'field': 'modifPar'},
       'dateAnnul': {'visible': true, 'label': 'cancelledAt', 'field': 'dateAnnul'},

@@ -108,7 +108,7 @@ Future<void> VersementDetail(BuildContext context, Verssement versement) async {
                 title: l10n.audit,
                 icon: Icons.history,
                 child: detailwrap([
-                  detailinfo(l10n.createdBy, versement.creePar),
+                  detailinfo(l10n.createdBy, versement.creeParCode),
                   detailinfo(l10n.dateCreated, versement.dateCree),
                   detailinfo(l10n.modifiedBy, versement.modifPar),
                   detailinfo(l10n.modifiedAt, versement.dateModif),

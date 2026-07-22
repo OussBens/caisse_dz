@@ -6,7 +6,6 @@ class Historique {
   String type;///////NOM TABLE
   String? observation;
   // Champs d’audit
-  String creePar;
   DateTime dateCree;
   String creeParCode;
   // -----------------------------------------------------------
@@ -18,7 +17,6 @@ class Historique {
     required this.type,
     required this.desc,
     required this.oper,
-    required this.creePar,
     required this.dateCree,
     required this.creeParCode,
     this.observation,
@@ -31,7 +29,6 @@ class Historique {
     return Historique(
       id            : map['id'],
       code          : map['code'],
-      creePar       : map['cree_par'],
       type          : map['type'],
       dateCree      : DateTime.parse(map['date_cree']),
       creeParCode   : map['cree_par_code'],
@@ -50,7 +47,6 @@ class Historique {
       'id'            : id,
       'code'          : code,
       'type'          : type,
-      'cree_par'      : creePar,
       'date_cree'     : dateCree.toIso8601String(),
       'operation'     : oper,
       'description'   : desc,

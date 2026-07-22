@@ -111,10 +111,9 @@ Future<void> _saveProduitCodeDetailes({
         CREATE TABLE produit_code_detail (
           id INTEGER PRIMARY KEY AUTOINCREMENT,
           codebar TEXT NOT NULL,
-          produit_nom TEXT NOT NULL,
           produit_code TEXT NOT NULL,
           date_cree TEXT NOT NULL,
-          cree_par TEXT NOT NULL
+          cree_par_code TEXT NOT NULL
         )
       ''');
       print('✅ Table produit_code_detail créée');
@@ -143,7 +142,7 @@ Future<void> _saveProduitCodeDetailes({
         CodeBar: code,
         produitCode: produit.code,
         dateCree: DateTime.now(),
-        creePar: userName,
+        creeParCode: userCode,
       );
 
       // ✅ Insertion DIRECTE
@@ -168,7 +167,6 @@ Future<void> _saveProduitCodeDetailes({
         desc: "l'utilisateur $userName a ajouter le CodeBar ${code} au produit ${produit.nom}",
         type: "ProduitCodeDetail",
         oper: ListsConst.typeHisto[0],
-        creePar: userName,
         dateCree: DateTime.now(),
         creeParCode: userCode,
       );
@@ -202,7 +200,6 @@ Future<void> _saveProduitPackDetailes({
       produitNom: produit.nom,
       produitCode: produit.code,
       dateCree: DateTime.now(),
-      creePar: userName,
       id: await _GetNextPackDetailId(),
       creeParCode: userCode, prixUnitaire: produit.prixVente, quantite: 1, montant: produit.prixVente,
     );
@@ -217,7 +214,6 @@ Future<void> _saveProduitPackDetailes({
         desc: "l'utilisateur $userName a ajouter le ProduitPackDetail de Pack ${pack.nom} de produit ${produit.nom}",
         type: "ProduitPackDetail",
         oper: ListsConst.typeHisto[0],
-        creePar: userName,
         dateCree: DateTime.now(),
         creeParCode: userCode);
 
@@ -242,7 +238,6 @@ Future<void> _savePrduitMagasinDetail({
       magasinCode: magasin.code,
       produitCode: produit.code,
       dateCree: DateTime.now(),
-      creePar: userName,
       id: await _GetNextMagasinDetailId(),
       creeParCode: userCode,
       quantite: 0, // Initialiser à 0
@@ -258,7 +253,6 @@ Future<void> _savePrduitMagasinDetail({
         desc: "l'utilisateur $userName a ajouter le ProduitMagasinDetail de Magasin ${magasin.nom} de produit ${produit.nom}",
         type: "ProduitMagasinDetail",
         oper: ListsConst.typeHisto[0],
-        creePar: userName,
         dateCree: DateTime.now(),
         creeParCode: userCode);
     await serviceh.addHistorique(histo);
@@ -424,7 +418,6 @@ void resetProduitForm() {
       nom: "Magasin System",
       code: "MAG0000",
       etat: true,
-      creePar: "System",
       creeParCode: "SYS001",
       dateCree: DateTime.now(),
     ),
@@ -763,7 +756,6 @@ Future<void> ProduitNouveau(BuildContext context) async {
                           dateEmpreint: DateTime.tryParse(dateController.text),
                           etat: true,
                           dateCree: DateTime.now(),
-                          creePar: userName,
                           creeParcode: userCode,
                           service: service,
                           photo: null, // Initialiser avec une liste vide
@@ -799,7 +791,6 @@ Future<void> ProduitNouveau(BuildContext context) async {
                           desc: "L'utilisateur $userName a ajouté un nouveau produit sous le nom de ${produit.nom}",
                           oper: ListsConst.typeHisto[0],
                           type: "Produit",
-                          creePar: userName,
                           dateCree: DateTime.now(),
                           creeParCode: userCode,
                         );

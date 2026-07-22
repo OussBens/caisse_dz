@@ -68,7 +68,6 @@ Future<ApiResponse<int>> _updateProduit({
         desc: "l'utilisateur ${userName} Ajoutee la Remise ${remise.nom} a le Produit ${produit.nom}",
         oper: ListsConst.typeHisto[1],
         type: "Produit",
-        creePar: userName,
         dateCree: DateTime.now(),
         creeParCode: userCode);
     await serviceh.addHistorique(histo);

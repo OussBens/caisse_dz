@@ -229,7 +229,6 @@ class _RemiseDialogState extends State<RemiseDialog> {
       desc: "l'utilisateur ${widget.userName} cree la Remise ${remise.nom}",
       type: "Remise",
       oper: ListsConst.typeHisto[0],
-      creePar: widget.userName,
       dateCree: DateTime.now(),
       creeParCode: widget.userCode,
     );
@@ -253,7 +252,6 @@ class _RemiseDialogState extends State<RemiseDialog> {
         desc: "l'utilisateur ${widget.userName} Ajoutee la Remise ${remise.nom} en Produit ${produit.nom}",
         type: "Produit",
         oper: ListsConst.typeHisto[1],
-        creePar: widget.userName,
         dateCree: DateTime.now(),
         creeParCode: widget.userCode,
       );
@@ -315,7 +313,6 @@ class _RemiseDialogState extends State<RemiseDialog> {
         tauxType: selectedRemiseType ?? 'Pourcentage',
         montant: double.tryParse(montantController.text),
         creeLe: DateTime.now(),
-        creePar: widget.userName,
         etat: true,
         creeParCode: widget.userCode,
       );

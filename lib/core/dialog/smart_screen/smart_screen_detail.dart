@@ -129,7 +129,7 @@ Future<void> SmartScanDetail(
                 title: l10n.audit,
                 icon: Icons.history,
                 child: detailwrap([
-                  detailinfo(l10n.createdBy, scan.creePar),
+                  detailinfo(l10n.createdBy, scan.creeParCode),
                   detailinfo(l10n.dateCreated,
                       scan.dateCree.toString().split(" ").first),
                   detailinfo(l10n.modifiedBy, scan.modifPar),

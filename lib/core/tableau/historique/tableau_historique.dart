@@ -83,10 +83,10 @@ class _TableauHistoriqueAdvancedState
         'label': 'description',
         'field': 'description'
       },
-      'creePar': {
+      'creeParCode': {
         'visible': true,
         'label': 'createdBy',
-        'field': 'creePar'
+        'field': 'creeParCode'
       },
       'creeParCode': {
         'visible': false,

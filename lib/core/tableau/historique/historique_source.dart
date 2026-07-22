@@ -36,8 +36,8 @@ class HistoriqueDataSource extends BaseTableDataSource<Historique> {
         return _getTranslatedType(historique.type, l10n);
       case 'description':
         return historique.observation;
-      case 'creePar':
-        return historique.creePar;
+      case 'creeParCode':
+        return historique.creeParCode;
       case 'creeParCode':
         return historique.creeParCode;
       case 'dateCree':

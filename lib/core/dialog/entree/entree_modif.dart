@@ -97,7 +97,6 @@ Future<ApiResponse<int>> _UpdateEntree({
     type: "entree",
     desc: "L'utilisateur $userName a modifié l'entrée du produit ${entree.produit}",
     oper: ListsConst.typeHisto[0],
-    creePar: userName,
     dateCree: DateTime.now(),
     creeParCode: userCode,
   );
@@ -433,7 +432,6 @@ Future<void> EntreeModif(BuildContext context, Entree entree) async {
                         etat: true,
                         codeOperation: entree.code,
                         dateCree: DateTime.now(),
-                        creePar: userName,
                         creeParCode: userCode,
                         prixAchat: 100,
                       );

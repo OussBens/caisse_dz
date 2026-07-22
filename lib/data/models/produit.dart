@@ -54,7 +54,6 @@ class Produit {
   // --- Audit / Historique ---
   String    creeParcode;
   DateTime  dateCree;
-  String    creePar;
   bool      etat;
 
   DateTime? dateModif;
@@ -91,7 +90,6 @@ class Produit {
     required this.tva,
     required this.etat,
     required this.dateCree,
-    required this.creePar,
     required this.creeParcode,
     required this.service,
     required this.categorieId,
@@ -159,7 +157,6 @@ class Produit {
       seuilMax              : double.parse(map['seuil_max'].toString()),
       etat                  : map['etat'] == 1,
       dateCree              : DateTime.parse(map['date_cree']),
-      creePar               : map['cree_par'],
       creeParcode           : map['cree_par_code'],
       service               : map['service'] == 1,
       tva                   : double.parse(map['tva'].toString()),
@@ -255,7 +252,6 @@ class Produit {
 
      'etat'                 : etat ? 1 : 0,
      'date_cree'            : dateCree.toIso8601String(),
-     'cree_par'             : creePar,
      'cree_par_code'        : creeParcode,
 
      'date_modif'           : dateModif?.toIso8601String(),

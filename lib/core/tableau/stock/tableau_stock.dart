@@ -86,7 +86,7 @@ class _TableauStockAdvancedState extends State<TableauStockAdvanced> {
       'seuilBool': {'visible': false, 'label': 'thresholdBool', 'field': 'seuilBool'},
 
       'dateCree': {'visible': true, 'label': 'createdAt', 'field': 'dateCree'},
-      'creePar': {'visible': true, 'label': 'createdBy', 'field': 'creePar'},
+      'creeParCode': {'visible': true, 'label': 'createdBy', 'field': 'creeParCode'},
       'annulerPar': {'visible': false, 'label': 'cancelledBy', 'field': 'annulerPar'},
       'annulerLe': {'visible': false, 'label': 'cancelledAt', 'field': 'annulerLe'},
       'motifAnnul': {'visible': false, 'label': 'cancellationReason', 'field': 'motifAnnul'},

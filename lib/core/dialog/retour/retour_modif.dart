@@ -115,7 +115,6 @@ Future<ApiResponse<int>> _UpdateR({
       type: "Retours",
       desc: "L'utilisateur $userName modifee le Retour ${retour.code} de Produit ${retour.nomProduit}",
       oper: ListsConst.typeHisto[1],
-      creePar: userName,
       dateCree: DateTime.now(),
       creeParCode: userCode);
   await serviceh.addHistorique(histo);

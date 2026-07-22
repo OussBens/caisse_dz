@@ -23,7 +23,6 @@ class Pannier {
 
   // Audit
   DateTime  dateCree;
-  String    creePar;
 
   DateTime? dateModif;
   String?   modifPar;
@@ -44,7 +43,6 @@ class Pannier {
     required this.typepannier,
     required this.date,
     required this.dateCree,
-    required this.creePar,
     required this.etat,
     required this.caissier,
     required this.caissier_code,
@@ -87,7 +85,6 @@ class Pannier {
       typepannier     : map['type_pannier'],
       dateCree        : DateTime.parse(map['date_cree']),
       date            : DateTime.parse(map['date']),
-      creePar         : map['cree_par'],
       dateModif       : map['date_modif'] != null
           ? DateTime.parse(map['date_modif'])
           : null,
@@ -124,7 +121,6 @@ class Pannier {
       'observation'       : observation,
       'type_pannier'      : typepannier,
       'date_cree'         : dateCree.toIso8601String(),
-      'cree_par'          : creePar,
       'date_modif'        : dateModif?.toIso8601String(),
       'modif_par'         : modifPar,
       'date_annul'        : dateAnnul?.toIso8601String(),

@@ -100,7 +100,7 @@ Future<void> CaisseGestionDetail(
 
               detailsection(l10n.audit),
               detailwrap([
-                detailinfo(l10n.createdBy, caisse.creePar),
+                detailinfo(l10n.createdBy, caisse.creeParCode),
                 detailinfo(
                   l10n.createdAt,
                   caisse.dateCree?.toString().split(" ").first,

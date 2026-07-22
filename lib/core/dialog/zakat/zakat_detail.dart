@@ -128,7 +128,7 @@ Future<void> ZakatDetail(BuildContext context, Zakat zakat) async {
                 title: l10n.audit,
                 icon: Icons.history,
                 child: detailwrap([
-                  detailinfo(l10n.createdBy, zakat.creePar),
+                  detailinfo(l10n.createdBy, zakat.creeParCode),
                   detailinfo(
                     l10n.dateCreated,
                     zakat.dateCree?.toString().split(" ").first ?? "-",

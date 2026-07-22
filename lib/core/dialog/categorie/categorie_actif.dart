@@ -61,7 +61,6 @@ Future<void> DeleteCategorie({
           desc        : "l'utilisateur ${userName} Supprimer la Categorie ${cate.nom} de Produit ${produit.nom}",
           type        : "Produit",
           oper        : ListsConst.typeHisto[3],
-          creePar     : userName,
           dateCree    : DateTime.now(),
           creeParCode : userCode
       );
@@ -74,7 +73,6 @@ Future<void> DeleteCategorie({
         desc        : "l'utilisateur ${userName} Supprimer la Categorie ${cate.nom}",
         type        : "Categorie",
         oper        : ListsConst.typeHisto[3],
-        creePar     : userName,
         dateCree    : DateTime.now(),
         creeParCode : userCode
     );

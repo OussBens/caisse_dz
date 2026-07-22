@@ -219,7 +219,6 @@ void _ajouterProduitPackComplet(
                 quantite: 1,
                 montant: produit.prixVente,
                 dateCree: DateTime.now(),
-                creePar: userName,
                 creeParCode: userCode,
               ),
             );
@@ -267,7 +266,6 @@ Future<void> _UpdatePackDetailComplet({
         desc: "Suppression de ${produit.produitNom} du pack ${pack.nom} par $userName",
         type: "ProduitPackDetail",
         oper: ListsConst.typeHisto[1],
-        creePar: userName,
         dateCree: DateTime.now(),
         creeParCode: userCode,
       );
@@ -292,7 +290,6 @@ Future<void> _UpdatePackDetailComplet({
           desc: "Ajout de ${produit.produitNom} au pack ${pack.nom} par $userName",
           type: "ProduitPackDetail",
           oper: ListsConst.typeHisto[0],
-          creePar: userName,
           dateCree: DateTime.now(),
           creeParCode: userCode,
         );
@@ -526,7 +523,6 @@ Future<void> PackModif(BuildContext context, Pack pack) async {
                                 prixVente: prixTotal,
                                 modifLe: DateTime.now(),
                                 modifPar: userName,
-                                creePar: pack.creePar,
                                 creeParCode: pack.creeParCode,
                                 creeLe: pack.creeLe,
                               );
@@ -553,7 +549,6 @@ Future<void> PackModif(BuildContext context, Pack pack) async {
                                 desc: "Modification du pack ${updatedPack.nom} par $userName",
                                 type: "Pack",
                                 oper: ListsConst.typeHisto[1],
-                                creePar: userName,
                                 dateCree: DateTime.now(),
                                 creeParCode: userCode,
                               );

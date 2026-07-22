@@ -5,7 +5,6 @@ class ProduitMagasinDetail {
   String produitCode;
   double quantite;
   // --- Audit ---
-  String    creePar;
   String    creeParCode;
   DateTime  dateCree;
 
@@ -14,7 +13,6 @@ class ProduitMagasinDetail {
     required this.magasinCode,
     required this.produitCode,
     required this.dateCree,
-    required this.creePar,
     required this.creeParCode,
     this.quantite = 0 ,
   }
@@ -30,7 +28,6 @@ class ProduitMagasinDetail {
       magasinCode : map['magasin_code'],
       produitCode : map['produit_code'],
       dateCree    : DateTime.parse(map['date_cree']),
-      creePar     : map['cree_par'],
       creeParCode : map['cree_par_code'],
       quantite    : map['quantite'],
 
@@ -47,7 +44,6 @@ class ProduitMagasinDetail {
       'magasin_code'  : magasinCode,
       'produit_code'  : produitCode,
       'date_cree'     : dateCree.toIso8601String(),
-      'cree_par'      : creePar,
       'cree_par_code' : creeParCode,
       'quantite'      : quantite,
 

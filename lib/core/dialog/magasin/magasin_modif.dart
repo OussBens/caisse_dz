@@ -84,7 +84,6 @@ Future<ApiResponse<int>> _UpdateMagasin({
       desc: "L'utilisateur $userName a modifié le magasin ${magasin.nom}",
       type: "Magasin",
       oper: ListsConst.typeHisto[1],
-      creePar: userName,
       dateCree: DateTime.now(),
       creeParCode: userCode,
     );
@@ -123,7 +122,6 @@ Future<void> _savePackDetail({
         desc: "L'utilisateur $userName a supprimé le ProduitMagasinDetail ${produit.produitCode} du magasin ${magasin.nom}",
         type: "ProduitMagasinDetail",
         oper: ListsConst.typeHisto[1],
-        creePar: userName,
         dateCree: DateTime.now(),
         creeParCode: userCode,
       );
@@ -136,7 +134,6 @@ Future<void> _savePackDetail({
       magasinCode : magasin.code,
       produitCode : produit.produitCode,
       dateCree    : DateTime.now(),
-      creePar     : userName,
       id          : await _GetNextDetailId(),
       creeParCode : userCode,
     );
@@ -151,7 +148,6 @@ Future<void> _savePackDetail({
         desc: "L'utilisateur $userName a ajouté ${produit.produitCode} au magasin ${magasin.nom}",
         type: "ProduitMagasinDetail",
         oper: ListsConst.typeHisto[1],
-        creePar: userName,
         dateCree: DateTime.now(),
         creeParCode: userCode,
       );
@@ -369,7 +365,6 @@ Future<void> MagasinModif(BuildContext context, Magasin magasin) async {
                               dateModif: DateTime.now(),
                               modifPar: userName,
                               dateCree: magasin.dateCree,
-                              creePar: magasin.creePar,
                               etat: selectedEtatM == l10n.active,
                               code: magasin.code,
                               nom: newMagasinNom,
@@ -529,7 +524,6 @@ void _ajouterProduitMagasin(
               magasinCode : magasin.code,
               creeParCode : userCode,
               dateCree    : DateTime.now(),
-              creePar     : userName,
               id          : 0,
             ),
           );

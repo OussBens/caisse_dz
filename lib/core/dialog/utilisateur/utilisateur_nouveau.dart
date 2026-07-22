@@ -55,7 +55,6 @@ Future<ApiResponse<int>> _SaveUtilisateur({required Utilisateur utilisateur, req
       type: "Utilisateur",
       desc: "L'utilisateur $userName a ajouté l'Utilisateur ${utilisateur.username}",
       oper: ListsConst.typeHisto[0],
-      creePar: userName,
       dateCree: DateTime.now(),
       creeParCode: userCode,
     );
@@ -71,12 +70,11 @@ Future<ApiResponse<int>> _SaveUtilisateur({required Utilisateur utilisateur, req
       magasinid: magPrinc.first.id.toString(),
       language: 'fr',
       currency: 'DZD',
-      creePar: utilisateur.creePar,
       creeParCode: utilisateur.creeParCode,
       creeLe: DateTime.now()
   );
   final servicep  = UserParamServices(db);
-  await servicep.addUserParam(userparam, utilisateur.creePar, utilisateur.creeParCode);
+  await servicep.addUserParam(userparam, utilisateur.creeParCode, utilisateur.creeParCode);
 
   return response;
 }
@@ -325,7 +323,6 @@ Future<void> UtilisateurNouveau(BuildContext context) async {
                           dateCree      : DateTime.now(),
                           username      : usernameControllerN.text,
                           password      : hashedPassword, // ✅ Using the same hashing as AuthState
-                          creePar       : userName,
                           credit        : 0,
                           code          : code,
                           role          : selectedRoleN!,

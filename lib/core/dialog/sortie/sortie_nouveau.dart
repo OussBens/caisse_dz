@@ -86,7 +86,6 @@ Future<ApiResponse<int>> _SaveSortie({
       type: "sortie",
       desc: "L'utilisateur $userName a Ajoutee le Retour de Produit ${sortie.produit} de Type ${sortie.type}",
       oper: ListsConst.typeHisto[0],
-      creePar: userName,
       dateCree: DateTime.now(),
       creeParCode: userCode
   );
@@ -391,7 +390,6 @@ Future<void> SortieNouveau(BuildContext context) async {
                           type: selectedTypeS!,
                           etat: true,
                           date: DateTime.parse(dateControllerS.text),
-                          creePar: userName,
                           produit: selectedProduitS!,
                           montant: double.parse(montantControllerS.text),
                           quantite: double.parse(quantiteControllerS.text),
@@ -420,7 +418,6 @@ Future<void> SortieNouveau(BuildContext context) async {
                           etat: true,
                           codeOperation: code,
                           dateCree: DateTime.now(),
-                          creePar: userName,
                           creeParCode: userCode,
                         );
 

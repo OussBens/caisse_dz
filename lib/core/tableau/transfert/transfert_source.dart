@@ -46,8 +46,8 @@ class TransfertCaisseDataSource extends BaseTableDataSource<TransfertCaisse> {
       // Audit
       case 'dateCree':
         return formatDate(t.dateCree);
-      case 'creePar':
-        return t.creePar;
+      case 'creeParCode':
+        return t.creeParCode;
       case 'dateModif':
         return formatDate(t.dateModif);
       case 'modifPar':

@@ -61,7 +61,7 @@ class _TableauRoleAdvancedState extends State<TableauRoleAdvanced> {
 
       // Audit
       'dateCree': {'visible': true, 'label': 'createdAt', 'field': 'dateCree'},
-      'creePar': {'visible': true, 'label': 'createdBy', 'field': 'creePar'},
+      'creeParCode': {'visible': true, 'label': 'createdBy', 'field': 'creeParCode'},
       'dateModif': {'visible': false, 'label': 'modifiedAt', 'field': 'dateModif'},
       'modifPar': {'visible': false, 'label': 'modifiedBy', 'field': 'modifPar'},
       'dateAnnul': {'visible': false, 'label': 'cancelledAt', 'field': 'dateAnnul'},

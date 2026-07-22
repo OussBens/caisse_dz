@@ -12,7 +12,6 @@ class CaisseParam {
   String    caisseCode;
   String    magasinCode;
 
-  String    creePar;
   String    creeParCode;
   DateTime  dateCree;
 
@@ -30,7 +29,6 @@ class CaisseParam {
     required  this.selectedMagasin,
     required  this.selectedColis,
     required  this.caisseParDefaut,
-    required  this.creePar,
     required  this.dateCree,
     required  this.creeParCode,
     required  this.magasinCode,
@@ -55,7 +53,6 @@ class CaisseParam {
       caisseCode        : map['caisseCode'],
       magasinCode       : map['magasinCode'],
 
-      creePar           : map['cree_par'],
       creeParCode       : map['cree_par_code'],
       dateCree          : DateTime.parse(map['date_cree']),
 
@@ -79,7 +76,6 @@ class CaisseParam {
       'caisse'        : selectedCaisse,
       'caisseCode'    : caisseCode,
       'colis'         : selectedColis,
-      'cree_par'      : creePar,
       'date_cree'     : dateCree.toIso8601String(),
       'cree_par_code' : creeParCode,
 

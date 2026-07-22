@@ -8,7 +8,6 @@ class SousCategorie {
   String    code;
   String    categorieNom; // optionnel, nom de la catégorie parente
 
-  String    creePar;
   String    creeParCode;
   DateTime  dateCree;
 
@@ -27,7 +26,6 @@ class SousCategorie {
     required this.nom,
     required this.etat,
     required this.code,
-    required this.creePar,
     required this.dateCree,
     required this.creeParCode,
     required this.categorieId,
@@ -52,7 +50,6 @@ class SousCategorie {
       etat          : map['etat'] == 1,
       categorieId   : map['categorie_id'],
       categorieNom  : map['categorie_nom'],
-      creePar       : map['cree_par'],
       creeParCode   : map['cree_par_code'],
       dateCree      : DateTime.parse(map['date_cree']),
 
@@ -77,7 +74,6 @@ class SousCategorie {
       'nom'           : nom,
       'code'          : code,
       'etat'          : etat ? 1 : 0,
-      'cree_par'      : creePar,
       'date_cree'     : dateCree.toIso8601String(),
       'categorie_id'  : categorieId,
       'categorie_nom' : categorieNom,

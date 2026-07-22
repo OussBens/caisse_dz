@@ -62,7 +62,6 @@ Future<ApiResponse<int>> _SaveMagasin({
     desc: "L'utilisateur $userName a ajouté un nouveau magasin: ${magasin.nom} (Code: ${magasin.code})",
     oper: ListsConst.typeHisto[0],
     type: "Magasin",
-    creePar: userName,
     dateCree: DateTime.now(),
     creeParCode: userCode,
   );
@@ -121,7 +120,6 @@ Future<void> _savePackDetail({
         desc        : "Creation d'un nouveau Magasin Produit detail Par ${userName}",
         type        : "Magasin",
         oper        : ListsConst.typeHisto[0],
-        creePar     : userName,
         dateCree    : DateTime.now(),
         creeParCode : userCode
     );
@@ -133,7 +131,6 @@ Future<void> _savePackDetail({
       produitCode : produit.code,
       magasinCode : magasin.code,
       dateCree    : DateTime.now(),
-      creePar     : userName,
       id          : await _GetNextDetailId(),
     );
     await service.addProduitMagasinDetail(detail);
@@ -316,7 +313,6 @@ Future<void> MagasinNouveau(BuildContext context) async {
                           observation: observationControllerM.text,
                           adresse: adresseControllerM.text,
                           dateCree: DateTime.now(),
-                          creePar: userName,
                           code: code,
                           etat: selectedEtatM == l10n.active,
                           nom: nomControllerM.text,

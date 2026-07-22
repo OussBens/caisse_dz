@@ -55,7 +55,6 @@ Future<ApiResponse<int>> _SaveData({
     type: "transfert",
     desc: "l'utilisateur ${userName} A Transferee le Montant ${transfert.montant} de La Caisse ${transfert.caisseExp} a La Caisse ${transfert.caisseDest}",
     oper: ListsConst.typeHisto[0],
-    creePar: userName,
     dateCree: DateTime.now(),
     creeParCode: userCode,
   );
@@ -310,7 +309,6 @@ Future<void> TransfertCaisseNouveau(BuildContext context,) async {
                           etat: true,
                           code: code, // ✅ Code généré automatiquement
                           montant: double.tryParse(montantController.text) ?? 0,
-                          creePar: userName,
                           creeParCode: userCode,
                           dateCree: DateTime.now(),
                           dateTransfert: DateTime.now(),

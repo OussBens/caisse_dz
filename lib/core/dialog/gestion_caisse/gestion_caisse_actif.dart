@@ -44,7 +44,6 @@ Future<void> _DeleteCaisse({
         type        : 'caisseGestion',
         desc        : "l'utilisateur $userName a supprimer la caisse ${caisse.nomCaisse}",
         oper        : ListsConst.typeHisto[3],
-        creePar     : userName,
         dateCree    : DateTime.now(),
         creeParCode : userCode
     );

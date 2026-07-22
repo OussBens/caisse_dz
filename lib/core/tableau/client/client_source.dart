@@ -67,8 +67,8 @@ class ClientDataSource extends BaseTableDataSource<Client> {
       // Audit
       case 'dateCree':
         return formatDate(client.dateCree);
-      case 'creePar':
-        return client.creePar;
+      case 'creeParCode':
+        return client.creeParCode;
       case 'dateModif':
         return formatDate(client.dateModif);
       case 'modifPar':

@@ -129,7 +129,7 @@ Future<void> PannierDetail(BuildContext context, Pannier pannier) async {
                 title: l10n.audit,
                 icon: Icons.history,
                 child: detailwrap([
-                  detailinfo(l10n.createdBy, pannier.creePar),
+                  detailinfo(l10n.createdBy, pannier.caissier),
                   detailinfo(l10n.createdAt, pannier.dateCree.toString().split(" ").first),
                   detailinfo(l10n.modifiedBy, pannier.modifPar),
                   detailinfo(l10n.modifiedAt, pannier.dateModif?.toString().split(" ").first),

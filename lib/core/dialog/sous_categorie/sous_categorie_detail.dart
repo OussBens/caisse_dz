@@ -93,7 +93,7 @@ Future<void> SousCategorieDetail(
                 title: l10n.audit,
                 icon: Icons.history,
                 child: detailwrap([
-                  detailinfo(l10n.createdBy, sousCategorie.creePar),
+                  detailinfo(l10n.createdBy, sousCategorie.creeParCode),
                   detailinfo(
                     l10n.dateCreated,
                     sousCategorie.dateCree?.toString().split(" ").first,

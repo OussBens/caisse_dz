@@ -62,7 +62,6 @@ Future<void> _DeleteEs({
       type: "entree",
       desc: "L'utilisateur $userName a Supprimer l'Entrée du Produit ${entree.produit}",
       oper: ListsConst.typeHisto[2],
-      creePar: userName,
       dateCree: DateTime.now(),
       creeParCode: userCode,
     );

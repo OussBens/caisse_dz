@@ -169,7 +169,6 @@ class _ProduitScreenState extends State<ProduitScreen> with TickerProviderStateM
       Maximum: 0,
       Minimum: 0,
       typeMarge: "Montant",
-      creePar: "imad",
       Datecree: DateTime.now(),
       creeParCode: "IMAD2"
   );
@@ -1257,7 +1256,6 @@ class _ProduitScreenState extends State<ProduitScreen> with TickerProviderStateM
       Maximum: maxInput ?? ParamtersDB.Maximum,
       Datemodif: DateTime.now(),
       modifPar: userName,
-      creePar: ParamtersDB.creePar,
       Datecree: ParamtersDB.Datecree,
       creeParCode: ParamtersDB.creeParCode,
     );
@@ -1270,7 +1268,6 @@ class _ProduitScreenState extends State<ProduitScreen> with TickerProviderStateM
       desc: "${l10n.modification} ${l10n.parametreProduit} ${l10n.by} $userName",
       oper: 'modification',
       type: 'paramter',
-      creePar: userName,
       dateCree: DateTime.now(),
       creeParCode: userCode,
     );

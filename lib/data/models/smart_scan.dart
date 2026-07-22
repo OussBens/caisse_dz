@@ -16,7 +16,6 @@ class SmartScan {
   bool etat;
   String activity;
   String? observation;
-  String creePar;
   String creeParCode;
   DateTime dateCree;
   DateTime? dateModif;
@@ -40,7 +39,6 @@ class SmartScan {
     required this.fournisseur,
     required this.etat,
     required this.dateCree,
-    required this.creePar,
     required this.activity,
     required this.ecart,
     required this.creeParCode,
@@ -60,7 +58,6 @@ class SmartScan {
       date: DateTime.parse(map['date']),
       etat: map['etat'] == 1,
       ecart: map['ecart'] == 1,
-      creePar: map['cree_par'],
       montant: _toDouble(map['montant']),
       paye: _toDouble(map['paye']),
       reste: _toDouble(map['reste']),
@@ -99,7 +96,6 @@ class SmartScan {
       'nbr_produit_calcul': nbrProduitCalcul,
       'quantite_article_calcul': quantiteArticleCalcul,
       'activity': activity,
-      'cree_par': creePar,
       'date_cree': dateCree.toIso8601String(),
       'fournisseur': fournisseur,
       'observation': observation,

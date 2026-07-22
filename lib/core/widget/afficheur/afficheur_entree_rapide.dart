@@ -150,7 +150,7 @@ class AfficheurEntreeMouvement extends StatelessWidget {
                 const SizedBox(height: 4),
 
                 Text(
-                  "Créé par : ${entree.creePar}",
+                  "Créé par : ${entree.creeParCode}",
                   style: TextStyle(color: Colors.grey.shade700),
                 ),
               ],

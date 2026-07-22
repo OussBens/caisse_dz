@@ -296,7 +296,6 @@ class AuthState extends ChangeNotifier {
             type: 'Login',
             desc: "l'utilisateur $_username a Login le ${DateTime.now()}",
             oper: 'Login',
-            creePar: _username!,
             dateCree: DateTime.now(),
             creeParCode: _userCode!
         );
@@ -323,7 +322,6 @@ class AuthState extends ChangeNotifier {
             type: 'Login',
             desc: "l'utilisateur demo a Login le ${DateTime.now()}",
             oper: 'Login',
-            creePar: 'demo',
             dateCree: DateTime.now(),
             creeParCode: 'DEMO'
         );
@@ -399,7 +397,6 @@ class AuthState extends ChangeNotifier {
         id: 0,
         nom: _username!,
         creeLe: DateTime.now(),
-        creePar: modifiedBy,
         magasin: magasin,
         language: language,
         currency: currency,
@@ -435,7 +432,6 @@ class AuthState extends ChangeNotifier {
         nom: _userParam!.nom,
         creeLe: _userParam!.creeLe,
         magasin: magasin,
-        creePar: _userParam!.creePar,
         language: language,
         currency: currency,
         magasinid: magasinId,
@@ -492,7 +488,6 @@ class AuthState extends ChangeNotifier {
         type: 'Logout',
         desc: "l'utilisateur $username a Logout le ${DateTime.now()}",
         oper: 'Logout',
-        creePar: username,
         dateCree: DateTime.now(),
         creeParCode: userCode
     );

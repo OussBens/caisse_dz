@@ -38,8 +38,8 @@ class CategorieDataSource extends BaseTableDataSource<Categorie> {
         return cat.etat ? l10n.active : l10n.inactive;
       case 'dateCree':
         return formatDate(cat.dateCree);
-      case 'creePar':
-        return cat.creePar;
+      case 'creeParCode':
+        return cat.creeParCode;
       case 'dateModif':
         return formatDate(cat.dateModif);
       case 'modifPar':

@@ -79,7 +79,6 @@ Future<void> _saveProduitPackDetailes({
     produitNom: produit.nom,
     produitCode: produit.code,
     dateCree: DateTime.now(),
-    creePar: userName,
     id: await _GetNextPackDetailId(),
     creeParCode: userCode, prixUnitaire: produit.prixVente, quantite: 1, montant: produit.prixVente,
   );
@@ -124,7 +123,6 @@ Future<void> _saveProccess({
         desc: "L'utilisateur $userName a ajouté le pack ${pack.nom} au produit ${produit.nom}",
         type: "ProduitPackDetail",
         oper: ListsConst.typeHisto[1],
-        creePar: userName,
         dateCree: DateTime.now(),
         creeParCode: userCode,
       );

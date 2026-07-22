@@ -181,7 +181,6 @@ Future<ApiResponse<int>> _SaveEntree({
           magasinCode: systemMagasin.code,
           produitCode: prod.code,
           dateCree: DateTime.now(),
-          creePar: userName,
           creeParCode: userCode,
           quantite: entree.quantite,
         );
@@ -218,7 +217,6 @@ Future<ApiResponse<int>> _SaveEntree({
       type: "entree",
       desc: "L'utilisateur $userName a ajouté une entrée de produit ${entree.produit}",
       oper: ListsConst.typeHisto[0],
-      creePar: userName,
       dateCree: DateTime.now(),
       creeParCode: userCode
   );
@@ -586,7 +584,6 @@ Future<void> EntreeNouveau(BuildContext context, {VoidCallback? onSuccess}) asyn
                         fournisseur: selectedFournisseurE!,
                         fournisseurCode: "N/A",
                         etat: true,
-                        creePar: userName,
                         creeParCode: userCode,
                         dateCree: DateTime.now(),
                         observation: observationControllerE.text,
@@ -609,7 +606,6 @@ Future<void> EntreeNouveau(BuildContext context, {VoidCallback? onSuccess}) asyn
                         etat: true,
                         codeOperation: code,
                         dateCree: DateTime.now(),
-                        creePar: userName,
                         creeParCode: userCode,
                       );
 

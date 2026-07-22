@@ -86,7 +86,6 @@ Future<ApiResponse<int>> _UpdateR({
       type: "sortie",
       desc: "L'utilisateur $userName a Modifee les information de Sortie de Produit ${sortie.produit}",
       oper: ListsConst.typeHisto[1],
-      creePar: userName,
       dateCree: DateTime.now(),
       creeParCode: userCode
   );

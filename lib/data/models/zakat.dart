@@ -33,7 +33,6 @@ class Zakat {
   /// ================= Audit =================
   DateTime  dateCree;
   String    creeParCode;
-  String    creePar;
   bool      etat;
 
   DateTime? dateModif;
@@ -62,7 +61,6 @@ class Zakat {
     required this.dateZakatDue,
     required this.creeParCode,
     required this.dateCree,
-    required this.creePar,
 
     this.datePaiement,
     this.observation,
@@ -86,7 +84,6 @@ class Zakat {
       dattes        : map['dattes'] ?? 0.0, // ✅ Ajout avec valeur par défaut
       statut        : map['status'],
       nissab        : map['nissab'],
-      creePar       : map['cree_par'],
       dateCree      : DateTime.parse(map['date_cree']),
       creances      : map['creances'],
       liquidites    : map['liquidites'],
@@ -127,7 +124,6 @@ class Zakat {
       'nissab'          : nissab,
       'status'          : statut,
       'creances'        : creances,
-      'cree_par'        : creePar,
       'date_cree'       : dateCree.toIso8601String(),
       'liquidites'      : liquidites,
       'obligatoire'     : obligatoire ? 1 : 0,

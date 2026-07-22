@@ -22,7 +22,6 @@ class RoleDetail {
 
   // Audit
   DateTime  dateCree;
-  String    creePar;
   String    creeParCode;
 
   DateTime? dateModif;
@@ -33,7 +32,6 @@ class RoleDetail {
 
   RoleDetail({
     required this.id,
-    required this.creePar,
     required this.magasin,
     required this.pannier,
     required this.fournisseur,
@@ -90,7 +88,6 @@ class RoleDetail {
       gestionCaisse : map['gestionCaisse']  == 1,
 
       dateCree    : DateTime.parse(map['date_cree']),
-      creePar     : map['cree_par'],
       creeParCode : map['cree_par_code'],
 
       modifPar    : map['modif_par'],
@@ -129,7 +126,6 @@ class RoleDetail {
       'utilisateur'   : utilisateur   ? 1 : 0,
       'gestionCaisse' : gestionCaisse ? 1 : 0,
 
-      'cree_par'          : creePar,
       'date_cree'         : dateCree.toIso8601String(),
       'cree_par_code'     : creeParCode,
 

@@ -51,8 +51,8 @@ class RemiseDataSource extends BaseTableDataSource<Remise> {
         return formatDate(remise.debut);
       case 'fin':
         return formatDate(remise.fin);
-      case 'creePar':
-        return remise.creePar;
+      case 'creeParCode':
+        return remise.creeParCode;
       case 'creeLe':
         return formatDate(remise.creeLe);
       case 'modifPar':

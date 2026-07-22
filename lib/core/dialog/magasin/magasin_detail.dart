@@ -119,7 +119,7 @@ Future<void> MagasinDetail(BuildContext context, Magasin magasin) async {
                 title: l10n.audit,
                 icon: Icons.history,
                 child: detailwrap([
-                  detailinfo(l10n.createdBy, magasin.creePar),
+                  detailinfo(l10n.createdBy, magasin.creeParCode),
                   detailinfo(
                     l10n.createdAt,
                     magasin.dateCree?.toString().split(" ").first,

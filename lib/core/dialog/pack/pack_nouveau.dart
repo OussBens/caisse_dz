@@ -134,7 +134,6 @@ Future<void> _savePackDetails({
     // Mettre à jour les informations du détail
     detail.packNom = packNom;
     detail.packCode = packCode;
-    detail.creePar = userName;
     detail.creeParCode = userCode;
 
     // Vérifier que le produit existe
@@ -161,7 +160,6 @@ Future<void> _savePackDetails({
       desc: "Ajout de produit ${detail.produitNom} au pack $packNom par $userName",
       type: "Pack",
       oper: ListsConst.typeHisto[0],
-      creePar: userName,
       dateCree: DateTime.now(),
       creeParCode: userCode,
     );
@@ -377,7 +375,6 @@ Future<void> PackNouveau(BuildContext context) async {
                         quantiteTotale: quantiteTotale,
                         prixVente: prixTotal,
                         etat: true,
-                        creePar: userName,
                         creeLe: DateTime.now(),
                         creeParCode: userCode,
                       );
@@ -395,7 +392,6 @@ Future<void> PackNouveau(BuildContext context) async {
                         desc: "Création d'un nouveau Pack ${packN.nom} par $userName",
                         type: "Pack",
                         oper: ListsConst.typeHisto[1],
-                        creePar: userName,
                         dateCree: DateTime.now(),
                         creeParCode: userCode,
                       );
@@ -597,7 +593,6 @@ void _ouvrirInsertionProduitPackNouveau(
                 quantite: 1,
                 montant: produit.prixVente,
                 dateCree: DateTime.now(),
-                creePar: '',      // Sera mis à jour dans _savePackDetails
                 creeParCode: '',  // Sera mis à jour dans _savePackDetails
               ),
             );

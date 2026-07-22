@@ -11,7 +11,6 @@ class CaisseGestion {
   String? observation;
   
   // Champs d’audit
-  String creePar;
   String creeParCode;
   DateTime dateCree;
 
@@ -29,7 +28,6 @@ class CaisseGestion {
     required this.id,
     required this.etat,
     required this.code,
-    required this.creePar,
     required this.magasin,
     required this.dateCree,
     required this.nomCaisse,
@@ -54,7 +52,6 @@ class CaisseGestion {
       id            : map['id'],
       code          : map['code'],
       etat          : map['etat'] == 1,
-      creePar       : map['cree_par'],
       magasin       : map['magasin'],
       dateCree      : DateTime.parse(map['date_cree']),
       nomCaisse     : map['nom_caisse'],
@@ -86,7 +83,6 @@ class CaisseGestion {
       'etat'          : etat ? 1 : 0,
       'magasin'       : magasin,
       'magasin_code'  : magasinCode,
-      'cree_par'      : creePar,
       'date_cree'     : dateCree.toIso8601String(),
       'typecaisse'    : typecaisse,
       'nom_caisse'    : nomCaisse,

@@ -108,7 +108,7 @@ class AfficheurCategorie extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                _infoLine(Icons.person, categorie.creePar ?? "—"),
+                _infoLine(Icons.person, categorie.creeParCode ?? "—"),
                 _infoLine(
                   Icons.calendar_today,
                   categorie.dateCree != null

@@ -193,7 +193,6 @@ Future<ApiResponse<int>> _SaveRetour({
     type: "Retour",
     desc: "L'utilisateur $userName a ajouté le Retour de Produit ${retour.nomProduit}",
     oper: ListsConst.typeHisto[0],
-    creePar: userName,
     dateCree: DateTime.now(),
     creeParCode: userCode,
   );
@@ -210,7 +209,6 @@ Future<ApiResponse<int>> _SaveRetour({
     date: retour.date,
     type: ListsConst.typeMouvement[2],
     etat: true,
-    creePar: userName,
     quantite: quantiteInt.toDouble(),
     dateCree: DateTime.now(),
     prixAchat: retour.prixAchat!,
@@ -570,7 +568,6 @@ Future<void> RetourNouveau(BuildContext context) async {
                             dateCree: DateTime.now(),
                             prixAchat: double.parse(prixAchatControllerN.text),
                             prixVente: double.parse(prixVenteControllerN.text),
-                            creePar: userName,
                             client: newSelectedClientR,
                             code: cod, // ✅ Code généré automatiquement
                             date: DateTime.parse(dateController.text),
@@ -615,7 +612,6 @@ Future<void> RetourNouveau(BuildContext context) async {
                             fournisseur_code: codetype,
                             quantite: double.parse(quantiteControllerN.text),
                             dateCree: DateTime.now(),
-                            creePar: userName,
                             prixAchat: double.parse(prixAchatControllerN.text),
                             prixVente: double.parse(prixVenteControllerN.text),
                             code: cod, // ✅ Code généré automatiquement

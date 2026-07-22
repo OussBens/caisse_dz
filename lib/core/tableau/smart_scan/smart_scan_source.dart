@@ -57,8 +57,8 @@ class SmartScanDataSource extends BaseTableDataSource<SmartScan> {
       /// Audit
       case 'dateCree':
         return formatDate(scan.dateCree);
-      case 'creePar':
-        return scan.creePar;
+      case 'creeParCode':
+        return scan.creeParCode;
       case 'dateModif':
         return formatDate(scan.dateModif);
       case 'modifPar':

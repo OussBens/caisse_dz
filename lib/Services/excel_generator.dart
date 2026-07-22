@@ -142,7 +142,7 @@ class ExcelGenerator {
           .value = TextCellValue(_formatDate(client.dateCree));
       // Created By
       sheet.cell(CellIndex.indexByColumnRow(columnIndex: 18, rowIndex: rowIndex))
-          .value = TextCellValue(client.creePar ?? '-');
+          .value = TextCellValue(client.creeParCode ?? '-');
       // Modified At
       sheet.cell(CellIndex.indexByColumnRow(columnIndex: 19, rowIndex: rowIndex))
           .value = TextCellValue(_formatDate(client.dateModif));
@@ -305,7 +305,7 @@ class ExcelGenerator {
           .value = TextCellValue(_formatDate(pannier.dateCree));
       // Created By
       sheet.cell(CellIndex.indexByColumnRow(columnIndex: 14, rowIndex: rowIndex))
-          .value = TextCellValue(pannier.creePar ?? '-');
+          .value = TextCellValue(pannier.caissier_code);
       // Modified At
       sheet.cell(CellIndex.indexByColumnRow(columnIndex: 15, rowIndex: rowIndex))
           .value = TextCellValue(_formatDate(pannier.dateModif));
@@ -533,7 +533,7 @@ class ExcelGenerator {
       sheet.cell(CellIndex.indexByColumnRow(columnIndex: 28, rowIndex: rowIndex))
           .value = TextCellValue(_formatDate(produit.dateCree));
       sheet.cell(CellIndex.indexByColumnRow(columnIndex: 29, rowIndex: rowIndex))
-          .value = TextCellValue(produit.creePar ?? '-');
+          .value = TextCellValue(produit.creeParcode ?? '-');
       sheet.cell(CellIndex.indexByColumnRow(columnIndex: 30, rowIndex: rowIndex))
           .value = TextCellValue(_formatDate(produit.dateModif));
       sheet.cell(CellIndex.indexByColumnRow(columnIndex: 31, rowIndex: rowIndex))
@@ -671,7 +671,7 @@ class ExcelGenerator {
           .value = TextCellValue(_formatDate(categorie.dateCree));
       // Created By
       sheet.cell(CellIndex.indexByColumnRow(columnIndex: 5, rowIndex: rowIndex))
-          .value = TextCellValue(categorie.creePar ?? '-');
+          .value = TextCellValue(categorie.creeParCode ?? '-');
       // Modified At
       sheet.cell(CellIndex.indexByColumnRow(columnIndex: 6, rowIndex: rowIndex))
           .value = TextCellValue(_formatDate(categorie.dateModif));
@@ -818,7 +818,7 @@ class ExcelGenerator {
           .value = TextCellValue(remise.observation ?? '-');
       // Created By
       sheet.cell(CellIndex.indexByColumnRow(columnIndex: 10, rowIndex: rowIndex))
-          .value = TextCellValue(remise.creePar ?? '-');
+          .value = TextCellValue(remise.creeParCode ?? '-');
       // Created At
       sheet.cell(CellIndex.indexByColumnRow(columnIndex: 11, rowIndex: rowIndex))
           .value = TextCellValue(_formatDate(remise.creeLe));
@@ -966,7 +966,7 @@ class ExcelGenerator {
           .value = TextCellValue(pack.prixVente.toStringAsFixed(2));
       // Created By
       sheet.cell(CellIndex.indexByColumnRow(columnIndex: 5, rowIndex: rowIndex))
-          .value = TextCellValue(pack.creePar ?? '-');
+          .value = TextCellValue(pack.creeParCode ?? '-');
       // Created At
       sheet.cell(CellIndex.indexByColumnRow(columnIndex: 6, rowIndex: rowIndex))
           .value = TextCellValue(_formatDate(pack.creeLe));
@@ -1111,7 +1111,7 @@ class ExcelGenerator {
           .value = TextCellValue(_formatDate(sousCategorie.dateCree));
       // Created By
       sheet.cell(CellIndex.indexByColumnRow(columnIndex: 6, rowIndex: rowIndex))
-          .value = TextCellValue(sousCategorie.creePar ?? '-');
+          .value = TextCellValue(sousCategorie.creeParCode ?? '-');
       // Modified At
       sheet.cell(CellIndex.indexByColumnRow(columnIndex: 7, rowIndex: rowIndex))
           .value = TextCellValue(_formatDate(sousCategorie.dateModif));
@@ -1269,7 +1269,7 @@ class ExcelGenerator {
           .value = TextCellValue(_formatDate(fournisseur.dateCree));
       // Created By
       sheet.cell(CellIndex.indexByColumnRow(columnIndex: 12, rowIndex: rowIndex))
-          .value = TextCellValue(fournisseur.creePar ?? '-');
+          .value = TextCellValue(fournisseur.creeParCode ?? '-');
       // Modified At
       sheet.cell(CellIndex.indexByColumnRow(columnIndex: 13, rowIndex: rowIndex))
           .value = TextCellValue(_formatDate(fournisseur.dateModif));
@@ -1420,7 +1420,7 @@ class ExcelGenerator {
           .value = TextCellValue(_formatDate(versement.dateCree));
       // Created By
       sheet.cell(CellIndex.indexByColumnRow(columnIndex: 10, rowIndex: rowIndex))
-          .value = TextCellValue(versement.creePar ?? '-');
+          .value = TextCellValue(versement.creeParCode ?? '-');
       // Modified At
       sheet.cell(CellIndex.indexByColumnRow(columnIndex: 11, rowIndex: rowIndex))
           .value = TextCellValue(_formatDate(versement.dateModif));
@@ -1616,7 +1616,7 @@ class ExcelGenerator {
           .value = TextCellValue(_formatDate(entree.dateCree));
       // Created By
       sheet.cell(CellIndex.indexByColumnRow(columnIndex: 12, rowIndex: rowIndex))
-          .value = TextCellValue(entree.creePar ?? '-');
+          .value = TextCellValue(entree.creeParCode ?? '-');
       // Created By Code
       sheet.cell(CellIndex.indexByColumnRow(columnIndex: 13, rowIndex: rowIndex))
           .value = TextCellValue(entree.creeParCode ?? '-');
@@ -1806,7 +1806,7 @@ class ExcelGenerator {
           .value = TextCellValue(_formatDate(scan.dateCree));
       // Created By
       sheet.cell(CellIndex.indexByColumnRow(columnIndex: 14, rowIndex: rowIndex))
-          .value = TextCellValue(scan.creePar ?? '-');
+          .value = TextCellValue(scan.creeParCode ?? '-');
       // Modified At
       sheet.cell(CellIndex.indexByColumnRow(columnIndex: 15, rowIndex: rowIndex))
           .value = TextCellValue(_formatDate(scan.dateModif));
@@ -2009,7 +2009,7 @@ class ExcelGenerator {
           .value = TextCellValue(_formatDate(sortie.dateCree));
       // Created By
       sheet.cell(CellIndex.indexByColumnRow(columnIndex: 12, rowIndex: rowIndex))
-          .value = TextCellValue(sortie.creePar ?? '-');
+          .value = TextCellValue(sortie.creeParCode ?? '-');
       // Modified At
       sheet.cell(CellIndex.indexByColumnRow(columnIndex: 13, rowIndex: rowIndex))
           .value = TextCellValue(_formatDate(sortie.dateModif));
@@ -2231,7 +2231,7 @@ class ExcelGenerator {
           .value = TextCellValue(_formatDate(retour.dateCree));
       // Created By
       sheet.cell(CellIndex.indexByColumnRow(columnIndex: 12, rowIndex: rowIndex))
-          .value = TextCellValue(retour.creePar ?? '-');
+          .value = TextCellValue(retour.creeParCode ?? '-');
       // Modified At
       sheet.cell(CellIndex.indexByColumnRow(columnIndex: 13, rowIndex: rowIndex))
           .value = TextCellValue(_formatDate(retour.dateModif));
@@ -2414,7 +2414,7 @@ class ExcelGenerator {
           .value = TextCellValue(_formatDate(besoinList.dateCree));
       // Created By
       sheet.cell(CellIndex.indexByColumnRow(columnIndex: 10, rowIndex: rowIndex))
-          .value = TextCellValue(besoinList.creePar ?? '-');
+          .value = TextCellValue(besoinList.creeParCode ?? '-');
       // Modified At
       sheet.cell(CellIndex.indexByColumnRow(columnIndex: 11, rowIndex: rowIndex))
           .value = TextCellValue(_formatDate(besoinList.dateModif));
@@ -2611,7 +2611,7 @@ class ExcelGenerator {
           .value = TextCellValue(_formatDate(mouvement.dateCree));
       // Created By
       sheet.cell(CellIndex.indexByColumnRow(columnIndex: 12, rowIndex: rowIndex))
-          .value = TextCellValue(mouvement.creePar ?? '-');
+          .value = TextCellValue(mouvement.creeParCode ?? '-');
       // Modified At
       sheet.cell(CellIndex.indexByColumnRow(columnIndex: 13, rowIndex: rowIndex))
           .value = TextCellValue(_formatDate(mouvement.dateModif));
@@ -2834,7 +2834,7 @@ class ExcelGenerator {
           .value = TextCellValue(_formatDate(utilisateur.dateCree));
       // Created By
       sheet.cell(CellIndex.indexByColumnRow(columnIndex: 8, rowIndex: rowIndex))
-          .value = TextCellValue(utilisateur.creePar ?? '-');
+          .value = TextCellValue(utilisateur.creeParCode ?? '-');
       // Modified At
       sheet.cell(CellIndex.indexByColumnRow(columnIndex: 9, rowIndex: rowIndex))
           .value = TextCellValue(_formatDate(utilisateur.dateModif));
@@ -2984,7 +2984,7 @@ class ExcelGenerator {
           .value = TextCellValue(_formatDate(role.dateCree));
       // Created By
       sheet.cell(CellIndex.indexByColumnRow(columnIndex: 5, rowIndex: rowIndex))
-          .value = TextCellValue(role.creePar ?? '-');
+          .value = TextCellValue(role.creeParCode ?? '-');
       // Modified At
       sheet.cell(CellIndex.indexByColumnRow(columnIndex: 6, rowIndex: rowIndex))
           .value = TextCellValue(_formatDate(role.dateModif));
@@ -3114,7 +3114,7 @@ class ExcelGenerator {
           .value = TextCellValue(_formatDate(magasin.dateCree));
       // Created By
       sheet.cell(CellIndex.indexByColumnRow(columnIndex: 6, rowIndex: rowIndex))
-          .value = TextCellValue(magasin.creePar ?? '-');
+          .value = TextCellValue(magasin.creeParCode ?? '-');
       // Modified At
       sheet.cell(CellIndex.indexByColumnRow(columnIndex: 7, rowIndex: rowIndex))
           .value = TextCellValue(_formatDate(magasin.dateModif));
@@ -3252,7 +3252,7 @@ class ExcelGenerator {
           .value = TextCellValue(_formatDate(caisse.dateCree));
       // Created By
       sheet.cell(CellIndex.indexByColumnRow(columnIndex: 8, rowIndex: rowIndex))
-          .value = TextCellValue(caisse.creePar ?? '-');
+          .value = TextCellValue(caisse.creeParCode ?? '-');
       // Modified At
       sheet.cell(CellIndex.indexByColumnRow(columnIndex: 9, rowIndex: rowIndex))
           .value = TextCellValue(_formatDate(caisse.dateModif));
@@ -3382,7 +3382,7 @@ class ExcelGenerator {
       sheet.cell(CellIndex.indexByColumnRow(columnIndex: 3, rowIndex: rowIndex))
           .value = TextCellValue(historique.observation ?? '-');
       sheet.cell(CellIndex.indexByColumnRow(columnIndex: 4, rowIndex: rowIndex))
-          .value = TextCellValue(historique.creePar ?? '-');
+          .value = TextCellValue(historique.creeParCode ?? '-');
       sheet.cell(CellIndex.indexByColumnRow(columnIndex: 5, rowIndex: rowIndex))
           .value = TextCellValue(historique.creeParCode ?? '-');
       sheet.cell(CellIndex.indexByColumnRow(columnIndex: 6, rowIndex: rowIndex))
@@ -3547,7 +3547,7 @@ class ExcelGenerator {
       sheet.cell(CellIndex.indexByColumnRow(columnIndex: 17, rowIndex: rowIndex))
           .value = TextCellValue(_formatDate(zakat.dateCree));
       sheet.cell(CellIndex.indexByColumnRow(columnIndex: 18, rowIndex: rowIndex))
-          .value = TextCellValue(zakat.creePar ?? '-');
+          .value = TextCellValue(zakat.creeParCode ?? '-');
       sheet.cell(CellIndex.indexByColumnRow(columnIndex: 19, rowIndex: rowIndex))
           .value = TextCellValue(_formatDate(zakat.dateModif));
       sheet.cell(CellIndex.indexByColumnRow(columnIndex: 20, rowIndex: rowIndex))

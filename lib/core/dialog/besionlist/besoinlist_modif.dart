@@ -90,7 +90,6 @@ Future<ApiResponse<int>> _UpdateBL({
       type        : "besionList",
       desc        : "L'utilisateur $userName a Modifier Les information de Besion List ${besionList.numero}",
       oper        : ListsConst.typeHisto[1],
-      creePar     : userName,
       dateCree    : DateTime.now(),
       creeParCode : userCode
   );
@@ -113,7 +112,6 @@ Future<ApiResponse<int>> _UpdateBL({
           type: "besion_list_detail",
           desc: "L'utilisateur $userName a supprimé ${old.ProduitNom} de ${besionList.numero}",
           oper: ListsConst.typeHisto[1],
-          creePar: userName,
           dateCree: DateTime.now(),
           creeParCode: userCode,
         ),
@@ -135,7 +133,6 @@ Future<ApiResponse<int>> _UpdateBL({
           type: "besion_list_detail",
           desc: "L'utilisateur $userName a ajouté ${detail.ProduitNom}",
           oper: ListsConst.typeHisto[0],
-          creePar: userName,
           dateCree: DateTime.now(),
           creeParCode: userCode,
         ),
@@ -151,7 +148,6 @@ Future<ApiResponse<int>> _UpdateBL({
           type        : "besion_list_detail",
           desc        : "L'utilisateur $userName a Modifier les information de Besion List Detail ${detail.ProduitNom} de Besion List ${besionList.numero}",
           oper        : ListsConst.typeHisto[1],
-          creePar     : userName,
           dateCree    : DateTime.now(),
           creeParCode : userCode
       );
@@ -209,7 +205,6 @@ Future<void> BesoinListModifier(BuildContext context, BesoinList header,) async 
       .map((d) => BesoinListDetail(
     id              : d.id,
     prix            : d.prix,
-    creePar         : d.creePar,
     montant         : d.montant,
     quantite        : d.quantite,
     dateCree        : d.dateCree,
@@ -607,7 +602,6 @@ void ouvrirInsertionProduit(
                 besoinListCode  : besoinList.code,
                 ProduitCode     : produit.code,
                 dateCree        : DateTime.now(),
-                creePar         : userName,
                 creeParCode     : userCode,
               ),
             );

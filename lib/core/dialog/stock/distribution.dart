@@ -98,7 +98,6 @@ Future<void> UpdateDistribution({
         produitCode: '',
         quantite: 0,
         dateCree: DateTime.now(),
-        creePar: '',
         creeParCode: '',
       ),
     );
@@ -115,7 +114,6 @@ Future<void> UpdateDistribution({
           desc: "L'utilisateur $userName a supprimé le produit ${oldDetail.produitCode} du magasin ${magasinNomByCode(oldDetail.magasinCode)}",
           type: "ProduitMagasinDetail",
           oper: ListsConst.typeHisto[2],
-          creePar: userName,
           dateCree: DateTime.now(),
           creeParCode: userCode
       );
@@ -133,7 +131,6 @@ Future<void> UpdateDistribution({
           desc: "L'utilisateur $userName a modifié la quantité du produit ${matchingNewDetail.produitCode} dans le magasin ${magasinNomByCode(matchingNewDetail.magasinCode)} : ${oldDetail.quantite.toInt()} → ${matchingNewDetail.quantite.toInt()}",
           type: "ProduitMagasinDetail",
           oper: ListsConst.typeHisto[1],
-          creePar: userName,
           dateCree: DateTime.now(),
           creeParCode: userCode
       );
@@ -149,7 +146,6 @@ Future<void> UpdateDistribution({
       final newId = await ProduitMagasinDetailServices.getNextId(db);
       newDetail.id = newId;
       newDetail.dateCree = DateTime.now();
-      newDetail.creePar = userName;
       newDetail.creeParCode = userCode;
 
       await services.addProduitMagasinDetail(newDetail);
@@ -161,7 +157,6 @@ Future<void> UpdateDistribution({
           desc: "L'utilisateur $userName a ajouté le produit ${newDetail.produitCode} dans le magasin ${magasinNomByCode(newDetail.magasinCode)} avec quantité ${newDetail.quantite.toInt()}",
           type: "ProduitMagasinDetail",
           oper: ListsConst.typeHisto[0],
-          creePar: userName,
           dateCree: DateTime.now(),
           creeParCode: userCode
       );
@@ -194,7 +189,6 @@ Future<void> DistributionProduit(BuildContext context, Produit produit) async {
       produitCode: detail.produitCode,
       quantite: detail.quantite,
       dateCree: detail.dateCree,
-      creePar: detail.creePar,
       creeParCode: detail.creeParCode,
     ));
   }
@@ -208,7 +202,6 @@ Future<void> DistributionProduit(BuildContext context, Produit produit) async {
       produitCode: detail.produitCode,
       quantite: detail.quantite,
       dateCree: detail.dateCree,
-      creePar: detail.creePar,
       creeParCode: detail.creeParCode,
     ));
   }

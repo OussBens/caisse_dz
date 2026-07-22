@@ -52,7 +52,6 @@ Future<void> DeleteRemise({
           desc: "l'utilisateur ${userName} Supprimer la Remise ${remise.nom} de Produit ${produit.nom}",
           oper: ListsConst.typeHisto[3],
           type: "Produit",
-          creePar: userName,
           dateCree: DateTime.now(),
           creeParCode: userCode);
       await serviceh.addHistorique(histN);
@@ -64,7 +63,6 @@ Future<void> DeleteRemise({
         desc: "l'utilisateur ${userName} Supprimer la Remise ${remise.nom}",
         type: "Remise",
         oper: ListsConst.typeHisto[3],
-        creePar: userName,
         dateCree: DateTime.now(),
         creeParCode: userCode);
     await serviceh.addHistorique(histo);

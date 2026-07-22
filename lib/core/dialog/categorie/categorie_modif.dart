@@ -70,7 +70,6 @@ Future<ApiResponse<int>> _saveCategorie({
           etat: sous.etat,
           categorieId: sous.categorieId,
           categorieNom: categorie.nom, // ✅ Nouveau nom
-          creePar: sous.creePar,
           creeParCode: sous.creeParCode,
           dateCree: sous.dateCree,
           observation: sous.observation,
@@ -88,7 +87,6 @@ Future<ApiResponse<int>> _saveCategorie({
           desc: "L'utilisateur $userName a modifié la catégorie de la sous-catégorie ${sous.nom} de '$oldNom' vers '${categorie.nom}'",
           type: "SousCategorie",
           oper: ListsConst.typeHisto[1],
-          creePar: userName,
           dateCree: DateTime.now(),
           creeParCode: userCode,
         );
@@ -140,7 +138,6 @@ Future<ApiResponse<int>> _saveCategorie({
           emballage2: produit.emballage2,
           creeParcode: produit.creeParcode,
           dateCree: produit.dateCree,
-          creePar: produit.creePar,
           etat: produit.etat,
           dateModif: DateTime.now(),
           modifPar: userName,
@@ -162,7 +159,6 @@ Future<ApiResponse<int>> _saveCategorie({
           desc: "L'utilisateur $userName a modifié la catégorie du produit ${produit.nom} de '$oldNom' vers '${categorie.nom}'",
           type: "Produit",
           oper: ListsConst.typeHisto[1],
-          creePar: userName,
           dateCree: DateTime.now(),
           creeParCode: userCode,
         );
@@ -181,7 +177,6 @@ Future<ApiResponse<int>> _saveCategorie({
     desc: "L'utilisateur $userName a modifié la catégorie ${categorie.nom}",
     type: "Categorie",
     oper: ListsConst.typeHisto[1],
-    creePar: userName,
     dateCree: DateTime.now(),
     creeParCode: userCode,
   );
@@ -314,7 +309,6 @@ Future<void> CategorieModif(BuildContext context, Categorie categorie) async {
                                 nom: nomCategorieController.text.trim(),
                                 observation: onbservCategorieController.text.trim(),
                                 etat: selectedEtatR == l10n.active,
-                                creePar: categorie.creePar,
                                 creeParCode: categorie.creeParCode,
                                 dateCree: categorie.dateCree,
                                 dateModif: DateTime.now(),

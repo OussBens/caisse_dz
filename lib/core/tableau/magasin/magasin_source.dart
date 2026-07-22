@@ -43,8 +43,8 @@ class MagasinDataSource extends BaseTableDataSource<Magasin> {
       // Audit
       case 'dateCree':
         return formatDate(magasin.dateCree);
-      case 'creePar':
-        return magasin.creePar;
+      case 'creeParCode':
+        return magasin.creeParCode;
       case 'dateModif':
         return formatDate(magasin.dateModif);
       case 'modifPar':

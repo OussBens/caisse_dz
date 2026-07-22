@@ -33,7 +33,6 @@ class Client {
 
   // Audit
   DateTime  dateCree;
-  String    creePar;
   String    creeParCode;
 
   DateTime? dateModif;
@@ -50,7 +49,6 @@ class Client {
     required this.type,
     required this.code,
     required this.wilaya,
-    required this.creePar,
     required this.dateCree,
     required this.telephone,
     required this.creeParCode,
@@ -84,7 +82,6 @@ class Client {
       code          : map['code'],
       type          : map['type'],
       wilaya        : map['wilaya'],
-      creePar       : map['cree_par'],
       dateCree      : DateTime.parse(map['date_cree']),
       telephone     : map['telephone'],
       creeParCode   : map['cree_par_code'],
@@ -125,7 +122,6 @@ class Client {
       'etat'          : etat ? 1 : 0,
       'type'          : type,
       'wilaya'        : wilaya,
-      'cree_par'      : creePar,
       'telephone'     : telephone,
       'date_cree'     : dateCree.toIso8601String(),
       'cree_par_code' : creeParCode,

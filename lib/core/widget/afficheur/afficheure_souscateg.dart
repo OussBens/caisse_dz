@@ -129,7 +129,7 @@ class AfficheurSousCategorie extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                _infoLine(Icons.person, "${l10n.createdBy} : ${sousCategorie.creePar ?? "—"}"),
+                _infoLine(Icons.person, "${l10n.createdBy} : ${sousCategorie.creeParCode ?? "—"}"),
                 _infoLine(
                   Icons.calendar_today,
                   sousCategorie.dateCree != null

@@ -87,7 +87,7 @@ Future<void> HistoriqueDetail(
 
               detailsection(l10n.audit),
               detailwrap([
-                detailinfo(l10n.createdBy, historique.creePar),
+                detailinfo(l10n.createdBy, historique.creeParCode),
                 detailinfo(l10n.creatorCode, historique.creeParCode),
                 detailinfo(
                   l10n.createdAt,

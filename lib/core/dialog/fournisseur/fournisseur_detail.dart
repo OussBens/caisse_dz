@@ -141,7 +141,7 @@ Future<void> FournisseurDetail(BuildContext context, Fournisseur fournisseur) as
                 title: l10n.audit,
                 icon: Icons.history,
                 child: detailwrap([
-                  detailinfo(l10n.createdBy, fournisseur.creePar),
+                  detailinfo(l10n.createdBy, fournisseur.creeParCode),
                   detailinfo(
                     l10n.createdAt,
                     fournisseur.dateCree?.toString().split(" ").first,

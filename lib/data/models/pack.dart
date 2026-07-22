@@ -11,7 +11,6 @@ class Pack {
 
   String? observation;
 
-  String    creePar;
   String    creeParCode;
   DateTime    creeLe;
 
@@ -24,7 +23,6 @@ class Pack {
   Pack({
     required this.creeParCode,
     required this.prixVente,
-    required this.creePar,
     required this.quantiteTotale,  // NOUVEAU
     required this.creeLe,
     required this.etat,
@@ -47,7 +45,6 @@ class Pack {
       creeParCode       : map['cree_par_code'],
       prixVente         : map['prix_vente'] ?? 0.0,
       prixVenteOriginal : map['prix_vente_original']?.toDouble(),
-      creePar           : map['cree_par'],
       quantiteTotale    : map['quantite_totale'] ?? 0,
       creeLe            : DateTime.parse(map['cree_le']),
       code              : map['code'],
@@ -77,7 +74,6 @@ class Pack {
       'quantite_totale'   : quantiteTotale,
       'prix_vente'        : prixVente,
       'prix_vente_original': prixVenteOriginal,
-      'cree_par'          : creePar,
       'cree_par_code'     : creeParCode,
       'cree_le'           : creeLe.toIso8601String(),
       'modif_par'         : modifPar,

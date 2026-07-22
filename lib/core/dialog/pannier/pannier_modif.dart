@@ -82,7 +82,6 @@ Future<void> _addHistorique({
       type: type,
       desc: desc,
       oper: ListsConst.typeHisto[1],
-      creePar: userName,
       dateCree: DateTime.now(),
       creeParCode: userCode,
     );

@@ -51,7 +51,7 @@ class DbCreator {
     _db = await databaseFactory.openDatabase(
       dbPath,
       options: OpenDatabaseOptions(
-        version: 5,
+        version: 6,
         onConfigure: (db) async {
           await db.execute("PRAGMA KEY = '$password'");
           await db.execute('PRAGMA foreign_keys = ON');
@@ -185,6 +185,32 @@ class DbCreator {
               print('Skip add panniers.client_code: $e');
             }
           }
+
+          if (oldVersion < 6) {
+            // Champs d'audit "créé par" : on n'identifie plus le créateur par
+            // son nom (modifiable) mais uniquement par cree_par_code (clé
+            // étrangère stable vers utilisateur.code). Le nom est donc
+            // supprimé ; panniers n'en avait pas besoin car caisser_code
+            // joue déjà ce rôle.
+            const tablesWithCreePar = <String>[
+              'role', 'utilisateur', 'magasins', 'categories', 'sous_categories',
+              'clients', 'remises', 'packs', 'userparam', 'produits',
+              'fournisseurs', 'parametre', 'zakatParam', 'produit_pack_detail',
+              'mouvements', 'entree', 'produit_magasin_detail', 'panniers',
+              'retours', 'verssements', 'smart_scan', 'besion_list_detail',
+              'besionList', 'caisseGestion', 'pannierProduit',
+              'smartScanProduit', 'sortie', 'transfert', 'zakat', 'Historique',
+              'produit_code_detail', 'roledetail', 'caisseparam',
+            ];
+
+            for (final table in tablesWithCreePar) {
+              try {
+                await db.execute('ALTER TABLE $table DROP COLUMN cree_par');
+              } catch (e) {
+                print('Skip drop $table.cree_par: $e');
+              }
+            }
+          }
         },
       ),
     );
@@ -202,7 +228,6 @@ class DbCreator {
         'code': 'ADMIN',
         'rolenom': 'admin',
         'etat': 1,
-        'cree_par': 'System',
         'cree_par_code': 'SYSTEM',
         'date_cree': now
       });
@@ -213,7 +238,6 @@ class DbCreator {
         'role': 'admin',
         'code': 'ADMIN',
         'credit': 0,
-        'cree_par': 'System',
         'username': 'admin',
         'password': saltedHash,
         'date_cree': now,
@@ -246,7 +270,6 @@ class DbCreator {
         'gestionCaisse' : 1,
 
         'date_cree'     : now,
-        'cree_par'      : 'admin',
         'cree_par_code' : 'ADMIN'
       });
 
@@ -258,7 +281,6 @@ class DbCreator {
         'etat': 1,
         'observation': 'Magasin System',
         'date_cree': now,
-        'cree_par': 'admin',
         'cree_par_code': 'ADMIN',
       });
 
@@ -268,7 +290,6 @@ class DbCreator {
         'etat': 1,
         'magasin': 'Magasin System',
         'magasin_code': 'MAG0000',
-        'cree_par': 'admin',
         'date_cree': now,
         'typecaisse': "Physique",
         'nom_caisse': 'Caisse System',
@@ -284,7 +305,6 @@ class DbCreator {
         'etat': 1,
         'observation': 'System categorié',
         'date_cree': now,
-        'cree_par': 'admin',
         'cree_par_code': 'ADMIN',
       });
 
@@ -297,7 +317,6 @@ class DbCreator {
         'observation': 'Sous categorié System',
         'etat': 1,
         'date_cree': now,
-        'cree_par': 'admin',
         'cree_par_code': 'ADMIN',
       });
 
@@ -321,7 +340,6 @@ class DbCreator {
         'dernier_achat': now,
         'observation': 'CLient System',
         'date_cree': now,
-        'cree_par': 'admin',
         'cree_par_code': 'ADMIN',
       });
 
@@ -339,7 +357,6 @@ class DbCreator {
         'activity': '',
         'observation': 'Fournisseur System',
         'date_cree': now,
-        'cree_par': 'admin',
         'cree_par_code': 'ADMIN',
       });
 
@@ -351,7 +368,6 @@ class DbCreator {
         'minimum': 1,
         'maximum': 100,
         'type_marge': 'montant',
-        'cree_par': 'admin',
         'cree_par_code': 'ADMIN',
         'date_cree': now,
       });
@@ -361,7 +377,6 @@ class DbCreator {
         'id': 1,
         'nissab': 0,
         'taux': 0,
-        'cree_par': 'admin',
         'cree_par_code': 'ADMIN',
         'date_cree': now,
       });
@@ -372,7 +387,6 @@ class DbCreator {
         'type': 'SYSTEM',
         'description': 'Initialisation base de données',
         'operation': 'CREATE_DB',
-        'cree_par': 'admin',
         'cree_par_code': 'ADMIN',
         'date_cree': now
       });
@@ -383,7 +397,6 @@ class DbCreator {
         'colis': 'default',
         'caisse': 'Caisse System',
         'magasin': 'Magasin System',
-        'cree_par': 'admin',
         'date_cree': now,
         'caisseCode': 'CIS0000',
         'magasinCode': 'MAG0000',
@@ -397,7 +410,6 @@ class DbCreator {
         'magasinid': '1',
         'language': 'fr',
         'currency': 'DZD',
-        'cree_par': 'admin',
         'cree_par_code': 'ADMIN',
         'cree_le': now,
       });
@@ -408,7 +420,6 @@ class DbCreator {
         'type': 'USER_PARAM',
         'description': 'Création des paramètres utilisateur pour admin',
         'operation': 'INSERTION',
-        'cree_par': 'admin',
         'cree_par_code': 'ADMIN',
         'date_cree': now,
         'observation': 'Paramètres par défaut pour l\'utilisateur admin',
@@ -470,7 +481,6 @@ class DbCreator {
         magasinPD   INTEGER NOT NULL DEFAULT 1,
         caissePD    INTEGER NOT NULL DEFAULT 1,
         
-        cree_par      TEXT NOT NULL,
         date_cree     TEXT NOT NULL,
         cree_par_code TEXT NOT NULL,
         
@@ -490,7 +500,6 @@ class DbCreator {
       id            INTEGER PRIMARY KEY AUTOINCREMENT,
       produit_code  TEXT    NOT NULL,
       date_cree     TEXT    NOT NULL DEFAULT (datetime('now')),
-      cree_par      TEXT    NOT NULL,
       cree_par_code TEXT    NOT NULL,
       codebar       TEXT    NOT NULL,
       UNIQUE(produit_code, codebar),
@@ -527,7 +536,6 @@ class DbCreator {
         utilisateur   INTEGER NOT NULL,
         gestionCaisse INTEGER NOT NULL,
         
-        cree_par      TEXT NOT NULL,
         date_cree     TEXT NOT NULL,
         cree_par_code TEXT NOT NULL,
         
@@ -549,7 +557,6 @@ class DbCreator {
         nom           TEXT NOT NULL,
         code          TEXT UNIQUE NOT NULL,
         etat          INTEGER NOT NULL DEFAULT 1,
-        cree_par      TEXT NOT NULL,
         date_cree     TEXT NOT NULL,
         cree_par_code TEXT NOT NULL,
         observation TEXT,
@@ -574,7 +581,6 @@ class DbCreator {
         observation TEXT,
         etat INTEGER NOT NULL DEFAULT 1,
         date_cree TEXT NOT NULL DEFAULT (datetime('now')),
-        cree_par TEXT NOT NULL,
         cree_par_code TEXT NOT NULL,
         date_modif TEXT ,
         modif_par TEXT,
@@ -609,7 +615,6 @@ class DbCreator {
         dernier_achat TEXT,
         observation   TEXT,
         date_cree     TEXT NOT NULL DEFAULT(datetime('now')),
-        cree_par      TEXT NOT NULL,
         cree_par_code TEXT NOT NULL,
         date_modif    TEXT,
         modif_par     TEXT,
@@ -634,7 +639,6 @@ class DbCreator {
         debut         TEXT NOT NULL,
         observation   TEXT,
         etat          INTEGER NOT NULL DEFAULT 1,
-        cree_par      TEXT NOT NULL ,
         cree_par_code TEXT NOT NULL,
         cree_le       TEXT NOT NULL DEFAULT (datetime('now')),
         fin TEXT,
@@ -660,7 +664,6 @@ class DbCreator {
         prix_vente          REAL    NOT NULL DEFAULT 0,
         prix_vente_original REAL,
         cree_par_code       TEXT    NOT NULL,
-        cree_par            TEXT    NOT NULL,
         cree_le             TEXT    NOT NULL DEFAULT (datetime('now')),
         modif_par           TEXT,
         modif_le            TEXT,
@@ -682,7 +685,6 @@ class DbCreator {
         language       TEXT NOT NULL,
         currency      TEXT NOT NULL,
         cree_par_code TEXT NOT NULL, 
-        cree_par      TEXT NOT NULL,
         cree_le       TEXT NOT NULL DEFAULT (datetime('now')),
         modif_par     TEXT,
         modif_le      TEXT,
@@ -729,7 +731,6 @@ class DbCreator {
       emballagep2   REAL,
       etat          INTEGER NOT NULL DEFAULT 1,
       date_cree     TEXT NOT NULL DEFAULT (datetime('now')),
-      cree_par      TEXT NOT NULL,
       cree_par_code TEXT NOT NULL,
       date_modif  TEXT,
       modif_par   TEXT,
@@ -764,7 +765,6 @@ class DbCreator {
         etat INTEGER NOT NULL DEFAULT 1,
         observation   TEXT,
         date_cree     TEXT DEFAULT (datetime('now')),
-        cree_par      TEXT NOT NULL,
         cree_par_code TEXT NOT NULL,
         date_modif TEXT,
         modif_par TEXT,
@@ -787,7 +787,6 @@ class DbCreator {
       minimum               REAL DEFAULT 0,
       maximum               REAL DEFAULT 0,
       date_cree             TEXT NOT NULL,
-      cree_par              TEXT NOT NULL,
       cree_par_code         TEXT NOT NULL,
       date_modif            TEXT,
       modif_par             TEXT,
@@ -803,7 +802,6 @@ class DbCreator {
         nissab        REAL DEFAULT 0,
         taux          REAL DEFAULT 0,
         date_cree     TEXT NOT NULL,
-        cree_par      TEXT NOT NULL,
         cree_par_code TEXT NOT NULL,
         date_modif    TEXT,
         modif_par     TEXT,
@@ -825,7 +823,6 @@ class DbCreator {
         quantite            INTEGER NOT NULL DEFAULT 1,
         montant             REAL    NOT NULL DEFAULT 0,
         date_cree           TEXT    NOT NULL DEFAULT (datetime('now')),
-        cree_par            TEXT    NOT NULL,
         cree_par_code       TEXT    NOT NULL,
         FOREIGN KEY (cree_par_code) REFERENCES utilisateur(code),
         FOREIGN KEY (pack_code)     REFERENCES packs(code),
@@ -844,7 +841,6 @@ class DbCreator {
       etat            INTEGER NOT NULL DEFAULT 1,
       observation     TEXT,
       date_cree       TEXT DEFAULT (datetime('now')),
-      cree_par        TEXT NOT NULL,
       cree_par_code   TEXT NOT NULL, 
       date_modif      TEXT DEFAULT (datetime('now')),
       modif_par       TEXT,
@@ -873,7 +869,6 @@ class DbCreator {
       type          TEXT,
       etat          INTEGER NOT NULL DEFAULT 1,
       date_cree     TEXT DEFAULT (datetime('now')),
-      cree_par      TEXT NOT NULL,
       cree_par_code TEXT NOT NULL,
       date_modif    TEXT,
       modif_par     TEXT,
@@ -901,7 +896,6 @@ class DbCreator {
         fournisseur TEXT NOT NULL,
         fournisseur_code TEXT NOT NULL,
         etat INTEGER NOT NULL,
-        cree_par TEXT NOT NULL,
         cree_par_code TEXT NOT NULL,
         date_cree TEXT NOT NULL,
         observation TEXT,
@@ -925,7 +919,6 @@ class DbCreator {
         produit_code  TEXT    NOT NULL,
         quantite      REAL    DEFAULT 0,
         date_cree     TEXT    NOT NULL DEFAULT (datetime('now')),
-        cree_par      TEXT    NOT NULL,
         cree_par_code TEXT    NOT NULL,
         FOREIGN KEY (magasin_code)  REFERENCES magasins(code),
         FOREIGN KEY (produit_code)  REFERENCES produits(code),
@@ -958,7 +951,6 @@ class DbCreator {
         client_code       TEXT,
         date_cree         TEXT DEFAULT (datetime('now')),
         date              TEXT DEFAULT (datetime('now')),
-        cree_par          TEXT NOT NULL,
         date_modif        TEXT,
         modif_par         TEXT,
         date_annul        TEXT,
@@ -982,7 +974,6 @@ class DbCreator {
         prix_achat        REAL    NOT NULL,
         prix_vente        REAL    NOT NULL,
         type              TEXT    NOT NULL,
-        cree_par          TEXT    NOT NULL,
         cree_par_code     TEXT    NOT NULL,
         etat              INTEGER NOT NULL DEFAULT 1,
         date_cree         TEXT    NOT NULL DEFAULT (datetime('now')),
@@ -1019,7 +1010,6 @@ class DbCreator {
         mode_paiement   TEXT    NOT NULL,
         date            TEXT    NOT NULL,
         date_cree       TEXT    NOT NULL DEFAULT (datetime('now')),
-        cree_par        TEXT    NOT NULL,
         cree_par_code   TEXT    NOT NULL,
         caisse          TEXT,
         observation     TEXT,
@@ -1051,7 +1041,6 @@ class DbCreator {
         observation       TEXT,
         quantite_article  INTEGER NOT NULL,
         date_cree         TEXT    NOT NULL  DEFAULT (datetime('now')),
-        cree_par          TEXT    NOT NULL,
         cree_par_code     TEXT    NOT NULL,
         date_modif        TEXT,
         modif_par         TEXT,
@@ -1074,7 +1063,6 @@ class DbCreator {
         credit        REAL    NOT NULL,
         username      TEXT    NOT NULL UNIQUE,
         password      TEXT    NOT NULL,
-        cree_par      TEXT    NOT NULL,
         telephone     TEXT    NOT NULL,
         role_code     TEXT    NOT NULL,
         date_cree     TEXT    NOT NULL DEFAULT (datetime('now')),
@@ -1100,7 +1088,6 @@ class DbCreator {
         etat                INTEGER NOT NULL DEFAULT 1,
         observation         TEXT,
         date_cree           TEXT NOT NULL DEFAULT (datetime('now')),
-        cree_par            TEXT NOT NULL,
         cree_par_code       TEXT,
         date_modif          TEXT,
         modif_par           TEXT,
@@ -1122,7 +1109,6 @@ class DbCreator {
         prix              REAL NOT NULL,
         montant           REAL NOT NULL,
         date_cree         TEXT NOT NULL DEFAULT (datetime('now')),
-        cree_par          TEXT NOT NULL,
         cree_par_code     TEXT NOT NULL,
         date_modif        TEXT,
         modif_par         TEXT,
@@ -1150,7 +1136,6 @@ class DbCreator {
         etat            TEXT    NOT NULL,
         observation     TEXT,
         date_cree       TEXT    NOT NULL DEFAULT (datetime('now')),
-        cree_par        TEXT    NOT NULL,
         cree_par_code   TEXT    NOT NULL,
         date_modif      TEXT,
         modif_par       TEXT,
@@ -1170,7 +1155,6 @@ class DbCreator {
         etat INTEGER NOT NULL DEFAULT 1,
         magasin TEXT NOT NULL,
         magasin_code TEXT NOT NULL,
-        cree_par TEXT NOT NULL,
         date_cree TEXT NOT NULL DEFAULT (datetime('now')),
         typecaisse TEXT NOT NULL,
         nom_caisse TEXT NOT NULL,
@@ -1197,7 +1181,6 @@ class DbCreator {
         total REAL NOT NULL,
         total_achat REAL NOT NULL,
         prix_achat REAL NOT NULL,
-        cree_par TEXT NOT NULL,
         quantite REAL NOT NULL,
         date_cree TEXT NOT NULL DEFAULT (datetime ('now')),
         code_pannier TEXT NOT NULL,
@@ -1226,7 +1209,6 @@ class DbCreator {
         prix            REAL    NOT NULL,
         prixVente       REAL    NOT NULL,
         total           REAL    NOT NULL,
-        cree_par        TEXT    NOT NULL,
         cree_par_code   TEXT    NOT NULL,
         date_cree       TEXT    NOT NULL,
         etat            INTEGER NOT NULL DEFAULT 1,
@@ -1252,7 +1234,6 @@ class DbCreator {
         code          TEXT    NOT NULL UNIQUE,
         type          TEXT    NOT NULL,
         produit       TEXT    NOT NULL,
-        cree_par      TEXT    NOT NULL,
         date_cree     TEXT    NOT NULL DEFAULT(datetime('now')),
         cree_par_code TEXT    NOT NULL,
         montant       REAL    NOT NULL,
@@ -1284,7 +1265,6 @@ class DbCreator {
         montant REAL NOT NULL,
         etat INTEGER NOT NULL DEFAULT 1,
         date_cree TEXT NOT NULL DEFAULT(datetime('now')),
-        cree_par TEXT NOT NULL,
         cree_par_code TEXT NOT NULL,
         caisse_exp_code TEXT NOT NULL,
         caisse_dest_code TEXT NOT NULL,
@@ -1314,7 +1294,6 @@ class DbCreator {
         nissab REAL NOT NULL,
         status TEXT NOT NULL,
         creances REAL NOT NULL,
-        cree_par TEXT NOT NULL,
         date_cree TEXT NOT NULL DEFAULT(datetime('now')),
         liquidites  REAL NOT NULL,
         obligatoire INTEGER NOT NULL,
@@ -1343,7 +1322,6 @@ class DbCreator {
         type          TEXT NOT NULL,
         description   TEXT NOT NULL,
         operation     TEXT NOT NULL,
-        cree_par      TEXT NOT NULL,
         cree_par_code TEXT NOT NULL,
         date_cree     TEXT NOT NULL,
         observation   TEXT,

@@ -8,7 +8,6 @@ class Magasin {
   String? adresse;
   String? observation;
   // Audit
-  String    creePar;
   String    creeParCode;
   DateTime  dateCree;
 
@@ -21,7 +20,6 @@ class Magasin {
   Magasin({
     required this.creeParCode,
     required this.dateCree,
-    required this.creePar,
     required this.etat,
     required this.code,
     required this.nom,
@@ -43,7 +41,6 @@ class Magasin {
       etat          : map['etat'] == 1,
       code          : map['code'],
       adresse       : map['adresse'],
-      creePar       : map['cree_par'],
       dateCree      : DateTime.parse(map['date_cree']),
       creeParCode   : map['cree_par_code'],
 
@@ -69,7 +66,6 @@ class Magasin {
       'etat'          : etat ? 1 : 0,
       'observation'   : observation,
       'date_cree'     : dateCree.toIso8601String(),
-      'cree_par'      : creePar,
       'cree_par_code' : creeParCode,
       'date_modif'    : dateModif?.toIso8601String(),
       'modif_par'     : modifPar,

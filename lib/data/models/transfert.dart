@@ -19,7 +19,6 @@ class TransfertCaisse {
   // Champs d’audit
   // -----------------------------
   DateTime  dateCree;
-  String    creePar;
   String    creeParCode;
 
   DateTime? dateModif;
@@ -40,7 +39,6 @@ class TransfertCaisse {
     required this.montant,
     required this.etat,
     required this.dateCree,
-    required this.creePar,
     required this.creeParCode,
     required this.caisseDestCode,
     required this.caisseExpCode,
@@ -68,7 +66,6 @@ class TransfertCaisse {
       montant         : map['montant'],
       etat            : map['etat'] == 1,
       dateCree        : DateTime.parse(map['date_cree']),
-      creePar         : map['cree_par'],
       creeParCode     : map['cree_par_code'],
 
       observation     : map['observation'],
@@ -97,7 +94,6 @@ class TransfertCaisse {
       'montant'           : montant,
       'etat'              : etat ? 1 : 0,
       'date_cree'         : dateCree.toIso8601String(),
-      'cree_par'          : creePar,
       'cree_par_code'     : creeParCode,
       'caisse_exp_code'   : caisseExpCode,
       'caisse_dest_code'  : caisseDestCode,

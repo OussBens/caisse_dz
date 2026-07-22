@@ -57,7 +57,7 @@ class _TableauPackAdvancedState extends State<TableauPackAdvanced> {
       'nom': {'visible': true, 'label': 'name', 'field': 'nom'},
       'prixVente': {'visible': true, 'label': 'salePrice', 'field': 'prixVente'},
       'observation': {'visible': true, 'label': 'observation', 'field': 'observation'},
-      'creePar': {'visible': true, 'label': 'createdBy', 'field': 'creePar'},
+      'creeParCode': {'visible': true, 'label': 'createdBy', 'field': 'creeParCode'},
       'creeLe': {'visible': true, 'label': 'createdAt', 'field': 'creeLe'},
       'modifPar': {'visible': true, 'label': 'modifiedBy', 'field': 'modifPar'},
       'modifLe': {'visible': true, 'label': 'modifiedAt', 'field': 'modifLe'},

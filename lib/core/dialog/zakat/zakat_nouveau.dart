@@ -69,7 +69,6 @@ Future<ApiResponse<int>> _SaveZakat({
           desc: "L'utilisateur $userName a ajouté un nouveau Zakat de l'année ${zakat.annee}",
           oper: ListsConst.typeHisto[0],
           type: "zakat",
-          creePar: userName,
           dateCree: DateTime.now(),
           creeParCode: userCode
       );
@@ -525,7 +524,6 @@ Future<void> ZakatNouveau(BuildContext context) async {
                             dateZakatDue: DateTime.now(),
                             creeParCode: userCode,
                             dateCree: DateTime.now(),
-                            creePar: userName,
                             observation: observationController.text,
                           );
 

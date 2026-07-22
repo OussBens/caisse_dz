@@ -79,7 +79,6 @@ Future<ApiResponse<int>> _saveCategorie({
       desc        : "l'utilisateur ${userName} Ajoutee la Categorie ${categorie.nom}",
       oper        : ListsConst.typeHisto[0],
       type        : "Categorie",
-      creePar     : userName,
       dateCree    : DateTime.now(),
       creeParCode : userCode
   );
@@ -194,7 +193,6 @@ Future<void> CategorieNouveau(BuildContext context) async{
                           nom: categorieNomController.text,
                           etat: true,
                           code: cd, // ✅ Code généré automatiquement
-                          creePar: userName,
                           dateCree: DateTime.now(),
                           creeParCode: userCode,
                           observation: categorieObservController.text,

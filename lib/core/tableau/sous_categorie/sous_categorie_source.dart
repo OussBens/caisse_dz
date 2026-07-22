@@ -43,8 +43,8 @@ class SousCategorieDataSource extends BaseTableDataSource<SousCategorie> {
         return sc.categorieNom ?? '';
       case 'dateCree':
         return formatDate(sc.dateCree);
-      case 'creePar':
-        return sc.creePar ?? '';
+      case 'creeParCode':
+        return sc.creeParCode ?? '';
       case 'dateModif':
         return formatDate(sc.dateModif);
       case 'modifPar':

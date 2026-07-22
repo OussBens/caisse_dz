@@ -52,7 +52,6 @@ Future<ApiResponse<int>> _updateClient({
       desc: "L'utilisateur $userName a modifié le client ${client.nom}",
       type: "Client",
       oper: ListsConst.typeHisto[1], // ✅ Type modification
-      creePar: userName,
       dateCree: DateTime.now(),
       creeParCode: userCode,
     );
@@ -421,7 +420,6 @@ Future<void> ClientModif(BuildContext context, Client client) async {
                               dernierAchat  : client.dernierAchat,
                               observation   : onbservationControllerN.text,
                               dateCree      : client.dateCree,
-                              creePar       : client.creePar,
                               creeParCode   : client.creeParCode,
                               dateModif     : DateTime.now(),
                               modifPar      : userName,

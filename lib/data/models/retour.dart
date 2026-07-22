@@ -19,7 +19,6 @@ class Retour {
 
   // Audit
   DateTime  dateCree;
-  String    creePar;
   String    creeParCode;
 
   DateTime? dateModif;
@@ -39,7 +38,6 @@ class Retour {
     required this.type,
     required this.etat,
     required this.id,
-    required this.creePar,
 
     this.client_code,
     this.fournisseur_code,
@@ -74,7 +72,6 @@ class Retour {
       observation       : map['observation'],
       dateCree          : DateTime.parse(map['date_cree']),
       date              : DateTime.parse(map['date']),
-      creePar           : map['cree_par'],
       creeParCode       : map['cree_par_code'],
       client_code       : map['client_code'],
 
@@ -109,7 +106,6 @@ class Retour {
       'observation'       : observation,
       'date_cree'         : dateCree.toIso8601String(),
       'date'              : date.toIso8601String(),
-      'cree_par'          : creePar,
       'cree_par_code'     :creeParCode,
 
       'date_modif'        : dateModif?.toIso8601String(),

@@ -44,7 +44,6 @@ Future<void> _DeleteZakawat({
       type: 'zakat',
       desc: "L'utilisateur $userName supprimer Zakat de l'annee ${zakat.annee}",
       oper: ListsConst.typeHisto[3],
-      creePar: userName,
       dateCree: DateTime.now(),
       creeParCode: userCode,
     );

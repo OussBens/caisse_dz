@@ -50,7 +50,6 @@ Future<void> _DeleteSS({
         type: "SmartScan",
         desc: "l'utilisateur $userName a supprimer le SmartScan ${ss.code}",
         oper: ListsConst.typeHisto[2],
-        creePar: userName,
         dateCree: DateTime.now(),
         creeParCode: userCode
     );
@@ -78,7 +77,6 @@ Future<void> _DeleteSS({
           type: "SmartScanProduit",
           desc: "l'utilisateur $userName a supprimer le SmartScanProduit ${produit.nomProduit} de SmartScan ${produit.codeSmartScan}",
           oper: ListsConst.typeHisto[2],
-          creePar: userName,
           dateCree: DateTime.now(),
           creeParCode: userCode
       );

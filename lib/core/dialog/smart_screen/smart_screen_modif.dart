@@ -83,7 +83,6 @@ Future<ApiResponse<int>> UpdateSS({
     type: 'SmartScan',
     desc: "l'utilisateur $userName a modife les information de Smart Scan de fournisseur ${smartscan.fournisseur}",
     oper: ListsConst.typeHisto[1],
-    creePar: userName,
     dateCree: DateTime.now(),
     creeParCode: userCode,
   );
@@ -108,7 +107,6 @@ Future<ApiResponse<int>> UpdateSS({
           type: 'SmartScanProduit',
           desc: "l'utilisateur $userName a supprimé le SmartScanProduit ${oldProd.nomProduit} de SmartScan ${oldProd.codeSmartScan}",
           oper: ListsConst.typeHisto[1],
-          creePar: userName,
           dateCree: DateTime.now(),
           creeParCode: userCode,
         ),
@@ -134,7 +132,6 @@ Future<ApiResponse<int>> UpdateSS({
           etat: true,
           codeOperation: smartscan.code,
           dateCree: DateTime.now(),
-          creePar: userName,
           creeParCode: userCode
       );
       await servicep.addSmartScanProduit(newProd);
@@ -147,7 +144,6 @@ Future<ApiResponse<int>> UpdateSS({
           type: 'SmartScanProduit',
           desc: "l'utilisateur $userName a ajouté le SmartScanProduit ${newProd.nomProduit} de SmartScan ${newProd.codeSmartScan}",
           oper: ListsConst.typeHisto[0],
-          creePar: userName,
           dateCree: DateTime.now(),
           creeParCode: userCode,
         ),
@@ -185,7 +181,6 @@ Future<ApiResponse<int>> UpdateSS({
               type: 'produit',
               desc: "l'utilisateur $userName a modifié Le Prix Achat de Produit${prod.nom}",
               oper: ListsConst.typeHisto[1],
-              creePar: userName,
               dateCree: DateTime.now(),
               creeParCode: userCode,
             )
@@ -206,7 +201,6 @@ Future<ApiResponse<int>> UpdateSS({
               type: 'produit',
               desc: "l'utilisateur $userName a modifié La Quantite de Produit${prod.nom}",
               oper: ListsConst.typeHisto[1],
-              creePar: userName,
               dateCree: DateTime.now(),
               creeParCode: userCode,
             )
@@ -224,7 +218,6 @@ Future<ApiResponse<int>> UpdateSS({
               "(Qté: ${oldProd.quantite} → ${newProd.quantite}, "
               "Prix: ${oldProd.prix} → ${newProd.prix})",
           oper: ListsConst.typeHisto[1],
-          creePar: userName,
           dateCree: DateTime.now(),
           creeParCode: userCode,
         ),

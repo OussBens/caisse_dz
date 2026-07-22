@@ -87,7 +87,6 @@ Future<ApiResponse<int>> _saveVersement({required Verssement vers, required Stri
       type: "Versement Sortie",
       desc: "L'utilisateur $userName a ajouté un Versement Sortie de ${vers.montant} DZD pour ${vers.beneficiare}",
       oper: ListsConst.typeHisto[0],
-      creePar: userName,
       dateCree: DateTime.now(),
       creeParCode: userCode,
     );
@@ -466,7 +465,6 @@ Future<void> VersementNouveauRetour(
                           sense: 'Sortie',
                           type: selectedtype,
                           dateCree: DateTime.now(),
-                          creePar: userName,
                           creeParCode: userCode,
                           caisse: selectedCaisse,
                         );

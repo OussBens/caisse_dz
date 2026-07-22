@@ -42,7 +42,6 @@ Future<void> DeletePack({required List<Pack> packs, required String userName, re
       desc: "l'utilisateur $userName a supprimé tous les ProduitPackDetail du pack ${pack.nom}",
       oper: ListsConst.typeHisto[3],
       type: "ProduitPackDetail",
-      creePar: userName,
       dateCree: DateTime.now(),
       creeParCode: userCode,
     );
@@ -61,7 +60,6 @@ Future<void> DeletePack({required List<Pack> packs, required String userName, re
       desc: "l'utilisateur $userName a supprimé le pack ${pack.nom}",
       oper: ListsConst.typeHisto[3],
       type: "Pack",
-      creePar: userName,
       dateCree: DateTime.now(),
       creeParCode: userCode,
     );

@@ -127,7 +127,6 @@ class UserParamServices {
       final data = userParam.toMap()
         ..remove('id')
         ..['cree_le'] = now
-        ..['cree_par'] = createdBy
         ..['cree_par_code'] = createdByCode;
 
       final id = await db.insert(
@@ -195,7 +194,6 @@ class UserParamServices {
       'type': 'USER_PARAM',
       'description': description,
       'operation': operation,
-      'cree_par': modifiedBy,
       'cree_par_code': modifiedByCode,
       'date_cree': now,
       'observation': '''

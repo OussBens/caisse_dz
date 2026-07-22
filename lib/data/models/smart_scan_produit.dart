@@ -11,7 +11,6 @@ class SmartScanProduit {
 
   bool  etat; // "actif" ou "inactif"
 
-  String    creePar;
   String    creeParCode;
   DateTime  creeLe;
 
@@ -33,7 +32,6 @@ class SmartScanProduit {
     required this.etat,
     required this.creeParCode,
     required this.creeLe,
-    required this.creePar,
     
     this.motifAnnul,
     this.annulPar,
@@ -53,7 +51,6 @@ class SmartScanProduit {
       prixVente          : map['prixVente'],
       total         : map['total'],
       creeLe        : DateTime.parse(map['date_cree']),
-      creePar       : map['cree_par'],
       quantite      : map['quantite'],
       nomProduit    : map['nom_produit'],
       creeParCode   : map['cree_par_code'],
@@ -87,7 +84,6 @@ class SmartScanProduit {
       'total'           : total,
       'etat'            : etat ? 1 : 0,
 
-      'cree_par'        : creePar,
       'cree_par_code'   : creeParCode,
       'date_cree'       : creeLe.toIso8601String(),
 
@@ -114,7 +110,6 @@ class SmartScanProduit {
     prixVente: prixVente,
     total: total,
     etat: etat,
-    creePar: creePar,
     creeParCode: creeParCode,
     creeLe: creeLe,
     modifPar: modifPar,

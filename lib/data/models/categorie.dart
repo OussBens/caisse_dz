@@ -5,7 +5,6 @@ class Categorie {
   bool      etat;
 
   DateTime  dateCree;
-  String    creePar;
   String    creeParCode;
 
   String?   modifPar;
@@ -23,7 +22,6 @@ class Categorie {
     required this.nom,
     required this.code,
     required this.etat,
-    required this.creePar,
     required this.dateCree,
     required this.creeParCode,
 
@@ -43,7 +41,6 @@ class Categorie {
       id:           map['id'],
       nom:          map['nom'],
       code:         map['code'],
-      creePar:      map['cree_par'],
       etat:         map['etat'] == 1,
       observation:  map['observation'],
       creeParCode:  map['cree_par_code'],
@@ -65,7 +62,6 @@ class Categorie {
       'id'            : id,
       'nom'           : nom,
       'code'          : code,
-      'cree_par'      : creePar,
       'etat'          : etat ? 1 : 0,
       'cree_par_code' : creeParCode,
       'date_cree'     : dateCree.toIso8601String(),

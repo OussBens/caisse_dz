@@ -16,7 +16,6 @@ class Verssement {
   DateTime  date;
 
   DateTime  dateCree;
-  String    creePar;
   String    creeParCode;
 
 
@@ -36,7 +35,6 @@ class Verssement {
     required this.beneficiare,
     required this.dateCree,
     required this.montant,
-    required this.creePar,
     required this.sense,
     required this.caisse,
     required this.etat,
@@ -68,7 +66,6 @@ class Verssement {
         beneficiare     : map['beneficiare'],
         mode_paiement   : map['mode_paiement'],
         dateCree        : DateTime.parse(map['date_cree']),
-        creePar         : map['cree_par'],
         creeParCode     : map['cree_par_code'],
         date            : DateTime.parse(map['date']),
         dateModif       : map['date_modif'] != null
@@ -98,7 +95,6 @@ class Verssement {
       'mode_paiement'   : mode_paiement,
       'date'            : date.toIso8601String(),
       'date_cree'       : dateCree.toIso8601String(),
-      'cree_par'        : creePar,
       'cree_par_code'   : creeParCode,
       'date_modif'      : dateModif?.toIso8601String(),
       'modif_par'       : modifPar,

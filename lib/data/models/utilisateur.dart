@@ -17,7 +17,6 @@ class Utilisateur {
 
   // Audit
   DateTime  dateCree;
-  String    creePar;
   String    creeParCode;
   
   DateTime? dateModif;
@@ -34,7 +33,6 @@ class Utilisateur {
     required this.dateCree,
     required this.username,
     required this.password,
-    required this.creePar,
     required this.credit,
     required this.code,
     required this.role,
@@ -57,7 +55,6 @@ class Utilisateur {
       role          : map['role'],
       etat          : map['etat'] == 1,
       credit        : map['credit'],
-      creePar       : map['cree_par'],
       username      : map['username'],
       password      : map['password'],
       dateCree      : DateTime.parse(map['date_cree']),
@@ -90,7 +87,6 @@ class Utilisateur {
       'credit'        : credit,
       'username'      : username,
       'password'      : password,
-      'cree_par'      : creePar,
       'role_code'     : role_code,
       'date_cree'     : dateCree.toIso8601String(),
       'telephone'     : telephone,

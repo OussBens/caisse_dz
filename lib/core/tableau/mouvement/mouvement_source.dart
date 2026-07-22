@@ -70,8 +70,8 @@ class MouvementDataSource extends BaseTableDataSource<Mouvement> {
       // Audit
       case 'dateCree':
         return formatDate(mouvement.dateCree);
-      case 'creePar':
-        return mouvement.creePar;
+      case 'creeParCode':
+        return mouvement.creeParCode;
       case 'dateModif':
         return formatDate(mouvement.dateModif);
       case 'modifPar':

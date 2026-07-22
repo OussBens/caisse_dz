@@ -110,7 +110,7 @@ Future<void> UtilisateurDetail(BuildContext context, Utilisateur user) async {
                 title: l10n.audit,
                 icon: Icons.history,
                 child: detailwrap([
-                  detailinfo(l10n.createdBy, user.creePar),
+                  detailinfo(l10n.createdBy, user.creeParCode),
                   detailinfo(
                     l10n.dateCreated,
                     user.dateCree?.toString().split(" ").first,

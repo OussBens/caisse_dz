@@ -67,7 +67,6 @@ Future<void> DeleteProduit({
         desc: "l'utilisateur $userName a supprimer le ProduitCodeDetail de  ${produit.nom}",
         type: "ProduitCodeDetail",
         oper: ListsConst.typeHisto[3],
-        creePar: userName,
         dateCree: DateTime.now(),
         creeParCode: userCode);
     await serviceh.addHistorique(histC);
@@ -80,7 +79,6 @@ Future<void> DeleteProduit({
         desc: "l'utilisateur $userName a supprimer le ProduitPackDetail de  ${produit.nom}",
         type: "ProduitPackDetail",
         oper: ListsConst.typeHisto[3],
-        creePar: userName,
         dateCree: DateTime.now(),
         creeParCode: userCode);
     await serviceh.addHistorique(histN);
@@ -93,7 +91,6 @@ Future<void> DeleteProduit({
         desc: "l'utilisateur $userName a supprimer le ProduitMagasinDetail de  ${produit.nom}",
         oper: ListsConst.typeHisto[3],
         type: "ProduitMagasinDetail",
-        creePar: userName,
         dateCree: DateTime.now(),
         creeParCode: userCode);
     await serviceh.addHistorique(histM);
@@ -108,7 +105,6 @@ Future<void> DeleteProduit({
         desc: "l'utilisateur $userName a supprimer le Produit ${produit.nom}",
         type: "Produit",
         oper: ListsConst.typeHisto[3],
-        creePar: userName,
         dateCree: DateTime.now(),
         creeParCode: userCode);
     await serviceh.addHistorique(histo);

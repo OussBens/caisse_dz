@@ -66,7 +66,6 @@ Future<void> _DeleteR({
       type: "Retours",
       desc: "L'utilisateur $userName a supprimer le Retour ${retour.code} de Produit ${retour.nomProduit}",
       oper: ListsConst.typeHisto[3],
-      creePar: userName,
       dateCree: DateTime.now(),
       creeParCode: userCode,
     );

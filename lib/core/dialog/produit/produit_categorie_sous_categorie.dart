@@ -87,7 +87,6 @@ Future<ApiResponse<int>> _updateProduit({
         desc: "l'utilisateur $userName a changer le categorie et le sousCategorie de Produit ${produit.nom}",
         oper: ListsConst.typeHisto[2],
         type: "Produit",
-        creePar: userName,
         dateCree: DateTime.now(),
         creeParCode: userCode);
     await serviceh.addHistorique(histo);
@@ -210,7 +209,6 @@ Future<void> CategorieSousCategorieProduit(
                                   etat: false,
                                   categorieNom: "",
                                   id: 0,
-                                  creePar: '',
                                   dateCree: DateTime.now(),
                                   creeParCode: '',
                                   categorieId: 0);
