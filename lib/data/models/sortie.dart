@@ -1,0 +1,115 @@
+class Sortie{
+  int     id;
+  bool    etat;
+  double  quantite;
+  double  prix;
+  double  montant;
+  String  produit;
+  String  produitCode;
+  String  code;
+  String  type;
+
+  DateTime date;
+
+  String? categorie;
+  String? souscategorie;
+  String? observation;
+  // Audit
+  String    creePar;
+  String    creeParCode;
+  DateTime  dateCree;
+
+  DateTime? dateModif;
+  DateTime? dateAnnul;
+  String?   modifPar;
+  String?   annulPar;
+  String?   motifAnnul;
+
+  Sortie({
+    required this.id,
+    required this.code,
+    required this.produit,
+    required this.produitCode,
+    required this.quantite,
+    required this.prix,
+    required this.montant,
+    required this.type,
+    required this.etat,
+    required this.dateCree,
+    required this.creePar,
+    required this.creeParCode,
+
+    required this.date,
+
+    this.categorie,
+    this.observation,
+    this.souscategorie,
+    this.dateModif,
+    this.modifPar,
+    this.dateAnnul,
+    this.annulPar,
+    this.motifAnnul,
+  });
+
+  factory Sortie.fromMap(Map<String, dynamic> map) {
+    return Sortie(
+      id            : map['id'],
+      etat          : map['etat'] == 1,
+      type          : map['type'],
+      prix          : map['prix'],
+      code          : map['code'],
+      creePar       : map['cree_par'],
+      produit       : map['produit'],
+      produitCode   : map['produit_code'],
+      montant       : map['montant'],
+      quantite      : map['quantite'],
+      dateCree      : DateTime.parse(map['date_cree']),
+      creeParCode   : map['cree_par_code'],
+      date          : DateTime.parse(map['date']),
+
+      souscategorie : map['souscategorie'],
+      observation   : map['observation'],
+      motifAnnul    : map['motif_annul'],
+      categorie     : map['categorie'],
+      modifPar      : map['modif_par'],
+      annulPar      : map['annul_par'],
+      dateAnnul     : map['date_annul'] != null
+          ? DateTime.parse(map['date_annul'])
+          : null,
+      dateModif     : map['date_modif'] != null
+          ? DateTime.parse(map['date_modif'])
+          : null,
+    );
+  }
+  Map<String, dynamic> toMap() {
+    return{
+      'id'            : id,
+      'code'          : code,
+      'type'          : type,
+      'prix'          : prix,
+      'etat'          : etat ? 1 : 0,
+      'produit'       : produit,
+      'produit_code'  : produitCode,
+      'montant'       : montant,
+      'quantite'      : quantite,
+      'cree_par'      : creePar,
+      'date_cree'     : dateCree.toIso8601String(),
+      'cree_par_code' : creeParCode,
+      'date'          : date.toIso8601String(),
+      'souscategorie' : souscategorie,
+      'observation'   : observation,
+      'date_modif'    : dateModif?.toIso8601String(),
+      'categorie'     : categorie,
+      'modif_par'     : modifPar,
+      'annul_par'     : annulPar,
+      'date_annul'    : dateAnnul?.toIso8601String(),
+      'motif_annul'   : motifAnnul,
+    };
+  }
+  String get searchableText {
+    return toMap()
+        .values
+        .map((e) => e?.toString().toLowerCase() ?? '')
+        .join(' ');
+  }
+}

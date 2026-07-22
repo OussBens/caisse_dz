@@ -1,0 +1,862 @@
+import 'dart:io';
+import 'package:caisse_dz/Services/excel_generator.dart';
+import 'package:caisse_dz/Services/ExcelPreviewDialog.dart';
+import 'package:caisse_dz/core/Auth/auth_state.dart';
+import 'package:caisse_dz/core/dialog/information_dialog.dart';
+import 'package:caisse_dz/core/locale/locale_provider.dart';
+import 'package:caisse_dz/core/tableau/historique/tableau_historique.dart';
+import 'package:caisse_dz/core/widget/afficheur/afficheur_historique.dart';
+import 'package:caisse_dz/core/widget/afficheur/afficheur_historique_global.dart';
+import 'package:caisse_dz/l10n/app_localizations.dart';
+import 'package:excel/excel.dart';
+import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import '../Services/Historique.dart';
+import '../core/dialog/historique/historique_detail.dart';
+import '../core/theme/app_style.dart';
+import '../core/utilis/constant.dart';
+import '../core/widget/account.dart';
+import '../core/widget/button/Icon_button.dart';
+import '../core/widget/champ/date_champ.dart';
+import '../core/widget/champ/liste_champ.dart';
+import '../core/widget/champ/text_champ_l.dart';
+import '../core/widget/search_bar.dart';
+import '../core/widget/section_decoration_filtre.dart';
+import '../core/widget/side_bar.dart';
+import '../core/widget/header_module.dart';
+import '../core/widget/time_date_widget.dart';
+import '../core/widget/button/main_button.dart';
+import '../core/widget/champ/champ_avec_label.dart';
+import '../data/constant.dart';
+import '../data/models/histore.dart';
+List<Historique> historiquesTest = [];
+class HistoriqueScreen extends StatefulWidget {
+  const HistoriqueScreen({super.key});
+
+  @override
+  State<HistoriqueScreen> createState() => _HistoriqueScreenState();
+}
+
+class _HistoriqueScreenState extends State<HistoriqueScreen> {
+  String? typeHistoriqueFilter;
+  String? operationHistoriquedansFilter;
+  final Map<String, String> periodesRapides = {
+    "today": "today",
+    "yesterday": "yesterday",
+    "week": "thisWeek",
+    "lastWeek": "lastWeek",
+    "month": "thisMonth",
+    "lastMonth": "lastMonth",
+    "last7days": "last7Days",
+    "last30days": "last30Days",
+    "year": "thisYear",
+    "lastYear": "lastYear",
+  };
+  DateTime? dateDebut;
+  DateTime? dateFin;
+  final TextEditingController _dateDebutCtrl = TextEditingController();
+  final TextEditingController _dateFinCtrl = TextEditingController();
+  String? periodeRapide;
+  bool filtresActifs = false;
+  List<Historique> historiquesFiltres = [];
+  List<Historique> historiquesSelectionnes = [];
+  List<Historique> historiqueTest = [];
+
+  final TextEditingController _searchController = TextEditingController();
+
+  Future<void> _loadAllData() async {
+    final historiques = await HistoriqueServices.getAllHistorique();
+
+    setState(() {
+      historiqueTest = historiques;
+      historiquesFiltres = historiques;
+    });
+  }
+
+  // Excel Export Methods
+  Future<void> _exportCurrentModuleToExcel() async {
+    try {
+      showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (context) => const Center(
+          child: CircularProgressIndicator(),
+        ),
+      );
+
+      final l10n = AppLocalizations.of(context)!;
+
+      final historiquesToExport = filtresActifs ? historiquesFiltres : historiqueTest;
+
+      if (historiquesToExport.isEmpty) {
+        Navigator.pop(context);
+        await InformationDialog(
+          context: context,
+          titre_type_message: l10n.information,
+          titre_concerne: l10n.historique,
+          message: l10n.noDataToExport,
+        );
+        return;
+      }
+
+      final excelFile = await ExcelGenerator.generateHistoriquesExcel(
+        historiques: historiquesToExport,
+        l10n: l10n,
+      );
+
+      Navigator.pop(context);
+
+      // Decode the Excel file to show preview
+      final excel = Excel.decodeBytes(await excelFile.readAsBytes());
+
+      var sheet = excel.tables['Historiques'];
+
+      if (sheet == null && excel.tables.isNotEmpty) {
+        sheet = excel.tables.values.first;
+      }
+
+      if (sheet != null) {
+        List<List<dynamic>> data = [];
+        List<String> headers = [];
+
+        // Extract headers
+        for (int col = 0; col < sheet.maxColumns; col++) {
+          final cell = sheet.cell(CellIndex.indexByColumnRow(columnIndex: col, rowIndex: 0));
+          if (cell.value != null && cell.value.toString().isNotEmpty) {
+            headers.add(cell.value.toString());
+          }
+        }
+
+        // Extract data rows
+        for (int row = 1; row < sheet.maxRows; row++) {
+          List<dynamic> rowData = [];
+          bool hasData = false;
+
+          for (int col = 0; col < sheet.maxColumns; col++) {
+            final cell = sheet.cell(CellIndex.indexByColumnRow(columnIndex: col, rowIndex: row));
+            if (cell.value != null && cell.value.toString().isNotEmpty) {
+              rowData.add(cell.value);
+              hasData = true;
+            } else {
+              rowData.add('-');
+            }
+          }
+
+          if (hasData) {
+            data.add(rowData);
+          }
+        }
+
+        if (data.isEmpty) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('No data found in Excel file'),
+              backgroundColor: Colors.orange,
+            ),
+          );
+          return;
+        }
+
+        showDialog(
+          context: context,
+          barrierDismissible: false,
+          builder: (context) => ExcelPreviewDialog(
+            data: data,
+            headers: headers,
+            title: l10n.historique,
+            l10n: l10n,
+            excelFile: excelFile,
+            onSave: () {
+              Navigator.pop(context);
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text(l10n.exportSuccess),
+                  backgroundColor: Colors.green,
+                ),
+              );
+            },
+            onShare: () {
+              Navigator.pop(context);
+            },
+            onCancel: () {
+              Navigator.pop(context);
+            },
+          ),
+        );
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Could not find data sheet in Excel file'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    } catch (e) {
+      if (Navigator.canPop(context)) {
+        Navigator.pop(context);
+      }
+
+      print('Excel export error: $e');
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('${AppLocalizations.of(context)!.exportError}: $e'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
+  }
+
+  Future<void> _exportSelectedToExcel() async {
+    final l10n = AppLocalizations.of(context)!;
+
+    try {
+      if (historiquesSelectionnes.isEmpty) {
+        await InformationDialog(
+          context: context,
+          titre_type_message: l10n.information,
+          titre_concerne: l10n.historique,
+          message: l10n.noHistoriqueSelected,
+        );
+        return;
+      }
+
+      showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (context) => const Center(
+          child: CircularProgressIndicator(),
+        ),
+      );
+
+      final excelFile = await ExcelGenerator.generateHistoriquesExcel(
+        historiques: historiquesSelectionnes,
+        l10n: l10n,
+      );
+
+      Navigator.pop(context);
+
+      // Decode the Excel file to show preview
+      final excel = Excel.decodeBytes(await excelFile.readAsBytes());
+
+      var sheet = excel.tables['Historiques'];
+
+      if (sheet == null && excel.tables.isNotEmpty) {
+        sheet = excel.tables.values.first;
+      }
+
+      if (sheet != null) {
+        List<List<dynamic>> data = [];
+        List<String> headers = [];
+
+        // Extract headers
+        for (int col = 0; col < sheet.maxColumns; col++) {
+          final cell = sheet.cell(CellIndex.indexByColumnRow(columnIndex: col, rowIndex: 0));
+          if (cell.value != null && cell.value.toString().isNotEmpty) {
+            headers.add(cell.value.toString());
+          }
+        }
+
+        // Extract data rows
+        for (int row = 1; row < sheet.maxRows; row++) {
+          List<dynamic> rowData = [];
+          bool hasData = false;
+
+          for (int col = 0; col < sheet.maxColumns; col++) {
+            final cell = sheet.cell(CellIndex.indexByColumnRow(columnIndex: col, rowIndex: row));
+            if (cell.value != null && cell.value.toString().isNotEmpty) {
+              rowData.add(cell.value);
+              hasData = true;
+            } else {
+              rowData.add('-');
+            }
+          }
+
+          if (hasData) {
+            data.add(rowData);
+          }
+        }
+
+        showDialog(
+          context: context,
+          barrierDismissible: false,
+          builder: (context) => ExcelPreviewDialog(
+            data: data,
+            headers: headers,
+            title: "${l10n.historique} (${l10n.selected})",
+            l10n: l10n,
+            excelFile: excelFile,
+            onSave: () {
+              Navigator.pop(context);
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text(l10n.exportSuccess),
+                  backgroundColor: Colors.green,
+                ),
+              );
+            },
+            onShare: () {
+              Navigator.pop(context);
+            },
+            onCancel: () {
+              Navigator.pop(context);
+            },
+          ),
+        );
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Could not find data sheet in Excel file'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    } catch (e) {
+      if (Navigator.canPop(context)) {
+        Navigator.pop(context);
+      }
+
+      print('Excel export error: $e');
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('${AppLocalizations.of(context)!.exportError}: $e'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
+  }
+
+  String _formatDate(DateTime d) {
+    return "${d.day.toString().padLeft(2, '0')}/"
+        "${d.month.toString().padLeft(2, '0')}/"
+        "${d.year}";
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    _loadAllData();
+    historiquesFiltres = historiquesTest;
+  }
+
+  String _getLocalizedPeriod(String key, AppLocalizations l10n) {
+    switch (key) {
+      case "today"      : return l10n.today;
+      case "yesterday"  : return l10n.yesterday;
+      case "week"       : return l10n.thisWeek;
+      case "lastWeek"   : return l10n.lastWeek;
+      case "month"      : return l10n.thisMonth;
+      case "lastMonth"  : return l10n.lastMonth;
+      case "last7days"  : return l10n.last7Days;
+      case "last30days" : return l10n.last30Days;
+      case "year"       : return l10n.thisYear;
+      case "lastYear"   : return l10n.lastYear;
+      default           : return key;
+    }
+  }
+
+  void _appliquerPeriodeRapide(String p) {
+    final now = DateTime.now();
+
+    switch (p) {
+      case "today":
+        dateDebut = DateTime(now.year, now.month, now.day);
+        dateFin = dateDebut;
+        break;
+      case "yesterday":
+        dateDebut = DateTime(now.year, now.month, now.day - 1);
+        dateFin = dateDebut;
+        break;
+      case "week":
+        dateDebut = now.subtract(Duration(days: now.weekday - 1));
+        dateFin = dateDebut!.add(const Duration(days: 6));
+        break;
+      case "lastWeek":
+        dateDebut = now.subtract(Duration(days: now.weekday + 6));
+        dateFin = dateDebut!.add(const Duration(days: 6));
+        break;
+      case "month":
+        dateDebut = DateTime(now.year, now.month, 1);
+        dateFin = DateTime(now.year, now.month + 1, 0);
+        break;
+      case "lastMonth":
+        dateDebut = DateTime(now.year, now.month - 1, 1);
+        dateFin = DateTime(now.year, now.month, 0);
+        break;
+      case "last7days":
+        dateDebut = now.subtract(const Duration(days: 6));
+        dateFin = now;
+        break;
+      case "last30days":
+        dateDebut = now.subtract(const Duration(days: 29));
+        dateFin = now;
+        break;
+      case "year":
+        dateDebut = DateTime(now.year, 1, 1);
+        dateFin = DateTime(now.year, 12, 31);
+        break;
+      case "lastYear":
+        dateDebut = DateTime(now.year - 1, 1, 1);
+        dateFin = DateTime(now.year - 1, 12, 31);
+        break;
+    }
+
+    _dateDebutCtrl.text = _formatDate(dateDebut!);
+    _dateFinCtrl.text = _formatDate(dateFin!);
+    appliquerFiltre();
+  }
+
+  Future<void> _pickDateDebut() async {
+    final picked = await showDatePicker(
+      context: context,
+      initialDate: dateDebut ?? DateTime.now(),
+      firstDate: DateTime(2000),
+      lastDate: DateTime(2100),
+    );
+
+    if (picked != null) {
+      setState(() {
+        dateDebut = picked;
+        _dateDebutCtrl.text = _formatDate(picked);
+        periodeRapide = null;
+        appliquerFiltre();
+      });
+    }
+  }
+
+  void appliquerFiltre() {
+    historiquesFiltres = historiquesTest.where((z) {
+      final searchText = _searchController.text.toLowerCase();
+      final searchOk = searchText.isEmpty || z.searchableText.contains(searchText);
+      final typeOk = typeHistoriqueFilter == null || z.oper == typeHistoriqueFilter;
+      final operationdans = operationHistoriquedansFilter == null || z.type == operationHistoriquedansFilter;
+      final dateOk = () {
+        if (dateDebut == null && dateFin == null) return true;
+        final d = z.dateCree;
+        final debut = dateDebut != null
+            ? DateTime(dateDebut!.year, dateDebut!.month, dateDebut!.day)
+            : null;
+        final fin = dateFin != null
+            ? DateTime(dateFin!.year, dateFin!.month, dateFin!.day, 23, 59, 59)
+            : null;
+        if (debut != null && d.isBefore(debut)) return false;
+        if (fin != null && d.isAfter(fin)) return false;
+        return true;
+      }();
+
+      return searchOk && dateOk && typeOk && operationdans;
+    }).toList();
+
+    if (_searchController.text.isEmpty &&
+        dateDebut == null &&
+        dateFin == null &&
+        typeHistoriqueFilter == null &&
+        operationHistoriquedansFilter == null) {
+      historiquesFiltres = historiquesTest;
+    }
+  }
+
+  Future<void> _pickDateFin() async {
+    final picked = await showDatePicker(
+      context: context,
+      initialDate: dateFin ?? dateDebut ?? DateTime.now(),
+      firstDate: DateTime(2000),
+      lastDate: DateTime(2100),
+    );
+
+    if (picked != null) {
+      setState(() {
+        dateFin = picked;
+        if (dateDebut != null && picked.isBefore(dateDebut!)) {
+          dateFin = dateDebut;
+        }
+        _dateFinCtrl.text = _formatDate(dateFin!);
+        periodeRapide = null;
+        appliquerFiltre();
+      });
+    }
+  }
+
+  void supprimerFiltre() {
+    operationHistoriquedansFilter = null;
+    typeHistoriqueFilter = null;
+    _searchController.clear();
+    dateDebut = null;
+    dateFin = null;
+    periodeRapide = null;
+    _dateDebutCtrl.clear();
+    _dateFinCtrl.clear();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final auth = Provider.of<AuthState>(context, listen: false);
+    final userName = auth.username ?? "";
+    final l10n = AppLocalizations.of(context)!;
+    final local = context.watch<LocaleProvider>();
+    final isRTL = local.locale.languageCode == 'ar';
+    final textDirection = isRTL ? TextDirection.rtl : TextDirection.ltr;
+
+    return Scaffold(
+      backgroundColor: Appstyle.violetC,
+      body: Directionality(
+        textDirection: textDirection,
+        child: LayoutBuilder(
+          builder: (context, constraints) {
+            final screenHeight  = constraints.maxHeight  ;
+            final screenWidth   = constraints.maxWidth   ;
+            const minHeight     = Constant.minHeight;
+            const minWidth      = Constant.minWidth ;
+
+            final adjustedWidth = screenWidth < minWidth ? minWidth : screenWidth;
+            final adjustedHeight = screenHeight < minHeight ? minHeight : screenHeight;
+
+            final paddingV = adjustedHeight * 0.02;
+            final paddingH = adjustedWidth * 0.02;
+
+            return SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              child: SingleChildScrollView(
+                scrollDirection: Axis.vertical,
+                child: ConstrainedBox(
+                  constraints: const BoxConstraints(
+                    minWidth: minWidth,
+                    minHeight: minHeight,
+                  ),
+
+                    child: SizedBox(
+                      width: adjustedWidth,
+                      height: adjustedHeight,
+                      child: Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          SideBarWidget(),
+                          Expanded(
+                            child: SingleChildScrollView(
+                            padding: const EdgeInsets.all(16),
+                              child: Column(
+                                crossAxisAlignment: isRTL ? CrossAxisAlignment.end : CrossAxisAlignment.start,
+                                children: [
+                                  /// HEADER
+                                  HeaderModule(
+                                    gradientColors: [Appstyle.Tblanc, Appstyle.Tblanc],
+                                    child: Row(
+                                      textDirection: textDirection,
+                                      children: [
+                                        /// -------- LEFT (Icon + Title)
+                                        Row(
+                                          textDirection: textDirection,
+                                          children: [
+                                            Image.asset(
+                                              "assets/icons/sidebar/historique_icon.png",
+                                              width: 40,
+                                              color: Appstyle.gris,
+                                            ),
+                                            const SizedBox(width: 10),
+                                            Text(
+                                              l10n.historique,
+                                              style: Appstyle.textXLB.copyWith(
+                                                color: Appstyle.gris,
+                                                fontWeight: FontWeight.bold,
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                        const Spacer(),
+                                        /// -------- RIGHT (Time + Account)
+                                        Row(
+                                          textDirection: textDirection,
+                                          children: [
+                                            TimeDateWidget(
+                                              heure: "18:00",
+                                              date: "25 Nov 2025",
+                                              iconHeure: "assets/icons/hour_icon.png",
+                                              iconDate: "assets/icons/agenda_icon.png",
+                                            ),
+                                            const SizedBox(width: 20),
+                                            AccountWidget(
+                                              name: userName,
+                                              imageUrl: "assets/images/support.png",
+                                            ),
+                                          ],
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                  SizedBox(height: paddingV / 2),
+                                  SizedBox(height: paddingV / 2),
+
+                                  // Afficheur / Dashboard
+                                  if (historiquesSelectionnes.length == 1)
+                                    AfficheurHistorique(
+                                      historique: historiquesSelectionnes.first,
+                                      onDetails: () {
+                                        HistoriqueDetail(
+                                          context,
+                                          historiquesSelectionnes.first,
+                                        );
+                                      },
+                                    )
+                                  else if (historiquesSelectionnes.isEmpty || historiquesSelectionnes.length != 1)
+                                    DashboardHistorique(
+                                      historiques: historiquesTest,
+                                    ),
+
+                                  SizedBox(height: paddingV / 2),
+
+                                  // Bouton filtre et Action
+                                  Row(
+                                    textDirection: textDirection,
+                                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                    children: [
+                                      Row(
+                                        textDirection: textDirection,
+                                        children: [
+                                          MainButton(
+                                            text: l10n.filter,
+                                            textColor: Appstyle.violet,
+                                            color: Appstyle.Tblanc,
+                                            icon: filtresActifs ? Icons.visibility_off : Icons.visibility,
+                                            iconColor:Appstyle.violet ,
+                                            onPressed: () {
+                                              setState(() {
+                                                filtresActifs = !filtresActifs;
+                                                if (!filtresActifs) {
+                                                  supprimerFiltre();
+                                                  appliquerFiltre();
+                                                }
+                                              });
+                                            },
+                                          ),
+                                          SizedBox(width: paddingH / 4),
+                                          if (filtresActifs)
+                                            MainIconButton(
+                                              color: Colors.grey.shade400,
+                                              imagePath: 'assets/icons/action/supprimer_icon.png',
+                                              onPressed: () {
+                                                setState(() {
+                                                  supprimerFiltre();
+                                                  appliquerFiltre();
+                                                });
+                                              },
+                                            ),
+                                          if (filtresActifs)
+                                            SizedBox(width: paddingH / 4),
+                                          // EXTRACT ALL Button
+                                          MainButton(
+                                            text: l10n.extract,
+                                            textColor:Colors.green ,
+                                            iconColor: Colors.green,
+                                            color: Appstyle.Tblanc,
+                                            icon: Icons.download,
+                                            onPressed: () async {
+                                              await _exportCurrentModuleToExcel();
+                                            },
+                                          ),
+                                          SizedBox(width: paddingH / 4),
+                                          // EXTRACT SELECTED Button
+                                          MainIconButton(
+                                            imagePath: "assets/icons/action/extacter_filtre_icon.png",
+                                            color: Colors.orange,
+                                            onPressed: () async {
+                                              await _exportSelectedToExcel();
+                                            },
+                                          ),
+
+                                        ],
+                                      ),
+                                      SizedBox(
+                                        height: 50,
+                                        child: Row(
+                                          textDirection: textDirection,
+                                          children: [
+                                            MainIconButton(
+                                              color: Appstyle.blueC,
+                                              imagePath: 'assets/icons/action/detail_icon.png',
+                                              onPressed: () async {
+                                                if (historiquesSelectionnes.length == 1) {
+                                                  HistoriqueDetail(context, historiquesSelectionnes.first);
+                                                } else if (historiquesSelectionnes.isEmpty) {
+                                                  await InformationDialog(
+                                                    context: context,
+                                                    titre_type_message: l10n.information,
+                                                    titre_concerne: l10n.historique,
+                                                    message: l10n.noHistoriqueSelected,
+                                                  );
+                                                } else {
+                                                  await InformationDialog(
+                                                    context: context,
+                                                    titre_type_message: l10n.information,
+                                                    titre_concerne: l10n.historique,
+                                                    message: l10n.selectSingleHistoriqueForDetail,
+                                                  );
+                                                }
+                                              },
+                                            ),
+                                          ],
+                                        ),
+                                      )
+                                    ],
+                                  ),
+
+                                  // Filtres
+                                  if (filtresActifs)
+                                    filtreHistorique(paddingH, adjustedWidth / 3, l10n, isRTL),
+                                  SizedBox(height: paddingV),
+
+                                  // Tableau
+                                  SizedBox(
+                                    height: adjustedHeight * 0.75,
+                                    child: TableauHistoriqueAdvanced(
+                                      key: ValueKey(historiquesFiltres),
+                                      historiques: historiquesFiltres,
+                                      onSelectionChanged: (selection) {
+                                        setState(() {
+                                          historiquesSelectionnes = selection;
+                                        });
+                                      },
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+
+                ),
+              ),
+            );
+          },
+        ),
+      ),
+    );
+  }
+
+  Widget filtreHistorique(double paddingH, double width, AppLocalizations l10n, bool isRTL) {
+    final textDirection = isRTL ? TextDirection.rtl : TextDirection.ltr;
+
+    return SectionDecorationFiltre(
+      padding: EdgeInsets.all(10),
+      color: Appstyle.Tblanc,
+      child: Column(
+        crossAxisAlignment: isRTL ? CrossAxisAlignment.end : CrossAxisAlignment.start,
+        children: [
+          // Date
+          Row(
+            textDirection: textDirection,
+            children: [
+              Expanded(
+                child: ChampAvecLabel(
+                  label: l10n.from,
+                  child: TextDate(
+                    hint: l10n.startDate,
+                    controller: _dateDebutCtrl,
+                    onTap: _pickDateDebut,
+                  ),
+                ),
+              ),
+              const SizedBox(width: 20),
+              Expanded(
+                child: ChampAvecLabel(
+                  label: l10n.to,
+                  child: TextDate(
+                    hint: l10n.endDate,
+                    enabled: dateDebut != null,
+                    controller: _dateFinCtrl,
+                    onTap: _pickDateFin,
+                  ),
+                ),
+              ),
+              const SizedBox(width: 20),
+              SizedBox(
+                width: 400,
+                child: ChampAvecLabel(
+                  label: l10n.quickPeriod,
+                  child: DropdownButtonFormField<String>(
+                    value: periodeRapide,
+                    decoration: InputDecoration(
+                      hintText: l10n.choosePeriod,
+                      isDense: true,
+                      border: OutlineInputBorder(),
+                    ),
+                    items: periodesRapides.entries.map((e) {
+                      return DropdownMenuItem<String>(
+                        value: e.key,
+                        child: Text(_getLocalizedPeriod(e.key, l10n)),
+                      );
+                    }).toList(),
+                    onChanged: (v) {
+                      if (v != null) {
+                        setState(() {
+                          periodeRapide = v;
+                          _appliquerPeriodeRapide(v);
+                        });
+                      }
+                    },
+                  ),
+                ),
+              ),
+            ],
+          ),
+          SizedBox(height: 15),
+          // Search and filters
+          Row(
+            textDirection: textDirection,
+            children: [
+              SizedBox(
+                width: width * 0.9,
+                child: Row(
+                  textDirection: textDirection,
+                  children: [
+                    Expanded(
+                      child: ChampAvecLabel(
+                        label: l10n.search,
+                        child: SearchField(
+                          controller: _searchController,
+                          onChanged: (v) {
+                            setState(() {
+                              appliquerFiltre();
+                            });
+                          },
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              SizedBox(width: paddingH / 2),
+              Expanded(
+                child: ChampAvecLabel(
+                  label: l10n.typeOperation,
+                  child: TextListe(
+                    value: typeHistoriqueFilter,
+                    items: ListsConst.typeHisto,
+                    onChanged: (v) {
+                      setState(() => typeHistoriqueFilter = v);
+                      appliquerFiltre();
+                    },
+                  ),
+                ),
+              ),
+              SizedBox(width: paddingH / 2),
+              Expanded(
+                child: ChampAvecLabel(
+                  label: l10n.operationOn,
+                  child: TextListe(
+                    value: operationHistoriquedansFilter,
+                    items: ListsConst.operationHistoriqueDansList,
+                    onChanged: (v) {
+                      setState(() => operationHistoriquedansFilter = v);
+                      appliquerFiltre();
+                    },
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+}

@@ -1,0 +1,99 @@
+class SousCategorie {
+  int       id;
+  int       categorieId;// id de la catégorie parente
+
+  bool      etat;        // actif, inactif
+
+  String    nom;
+  String    code;
+  String    categorieNom; // optionnel, nom de la catégorie parente
+
+  String    creePar;
+  String    creeParCode;
+  DateTime  dateCree;
+
+  String?   observation;
+  String?   modifPar;
+  String?   annulPar;
+  String?   motifAnnul;
+  DateTime? dateAnnul;
+  DateTime? dateModif;
+
+  // -----------------------------------------------------------
+  // Constructeur
+  // -----------------------------------------------------------
+  SousCategorie({
+    required this.id,
+    required this.nom,
+    required this.etat,
+    required this.code,
+    required this.creePar,
+    required this.dateCree,
+    required this.creeParCode,
+    required this.categorieId,
+    required this.categorieNom,
+
+    this.observation,
+    this.dateModif,
+    this.modifPar,
+    this.dateAnnul,
+    this.annulPar,
+    this.motifAnnul,
+  });
+
+  // -----------------------------------------------------------
+  // map -> Objet
+  // -----------------------------------------------------------
+  factory SousCategorie.fromMap(Map<String, dynamic> map) {
+    return SousCategorie(
+      id            : map['id'],
+      nom           : map['nom'],
+      code          : map['code'],
+      etat          : map['etat'] == 1,
+      categorieId   : map['categorie_id'],
+      categorieNom  : map['categorie_nom'],
+      creePar       : map['cree_par'],
+      creeParCode   : map['cree_par_code'],
+      dateCree      : DateTime.parse(map['date_cree']),
+
+      observation   : map['observation'],
+      modifPar      : map['modif_par'],
+      annulPar      : map['annul_par'],
+      motifAnnul    : map['motif_annul'],
+      dateModif     : map['date_modif'] != null
+          ? DateTime.parse(map['date_modif'] as String)
+          : null,
+      dateAnnul     : map['date_annul'] != null
+          ? DateTime.parse(map['date_annul'] as String)
+          : null,
+    );
+  }
+  // -----------------------------------------------------------
+  // Objet -> map
+  // -----------------------------------------------------------
+  Map<String, dynamic> toMap() {
+    return {
+      'id'            : id,
+      'nom'           : nom,
+      'code'          : code,
+      'etat'          : etat ? 1 : 0,
+      'cree_par'      : creePar,
+      'date_cree'     : dateCree.toIso8601String(),
+      'categorie_id'  : categorieId,
+      'categorie_nom' : categorieNom,
+      'cree_par_code' : creeParCode,
+
+      'annul_par'     : annulPar,
+      'modif_par'     : modifPar,
+      'motif_annul'   : motifAnnul,
+      'observation'   : observation,
+      'date_modif'    : dateModif?.toIso8601String(),
+      'date_annul'    : dateAnnul?.toIso8601String(),
+    };
+  }  String get searchableText {
+    return toMap()
+        .values
+        .map((e) => e?.toString().toLowerCase() ?? '')
+        .join(' ');
+  }
+}

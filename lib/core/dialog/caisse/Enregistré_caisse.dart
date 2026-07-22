@@ -1,0 +1,577 @@
+import 'package:caisse_dz/DBCreate.dart';
+import 'package:caisse_dz/Services/CaisseGestion.dart' hide ApiResponse;
+import 'package:caisse_dz/Services/Client.dart' hide ApiResponse;
+import 'package:caisse_dz/Services/Historique.dart' hide ApiResponse;
+import 'package:caisse_dz/Services/Mouvement.dart' hide ApiResponse;
+import 'package:caisse_dz/Services/Pannier.dart';
+import 'package:caisse_dz/Services/PannierProduit.dart' hide ApiResponse;
+import 'package:caisse_dz/Services/Produits.dart' hide ApiResponse;
+import 'package:caisse_dz/data/constant.dart';
+import 'package:caisse_dz/data/models/client.dart';
+import 'package:caisse_dz/data/models/gestion_caisse.dart';
+import 'package:caisse_dz/data/models/histore.dart';
+import 'package:caisse_dz/data/models/mouvement.dart';
+import 'package:caisse_dz/data/models/pannier.dart';
+import 'package:caisse_dz/data/models/pannier_produit.dart';
+import 'package:caisse_dz/data/models/produit.dart';
+import 'package:caisse_dz/l10n/app_localizations.dart';
+import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+
+import 'package:caisse_dz/data/models/caisse.dart';
+import 'package:caisse_dz/core/Auth/auth_state.dart';
+import 'package:caisse_dz/core/dialog/base_dialog.dart';
+import 'package:caisse_dz/core/theme/app_style.dart';
+import 'package:caisse_dz/core/widget/button/main_button.dart';
+import 'package:caisse_dz/core/widget/title/titre_avec_ligne.dart';
+import 'package:caisse_dz/core/tableau/caisse/tableau_encaisserEnreget.dart';
+import 'package:caisse_dz/core/widget/code_generateur.dart';
+
+import '../../../Services/MagasinDetail.dart';
+import '../../../Services/Verssement.dart' hide ApiResponse;
+import '../../../data/models/verssement.dart';
+import '../../utilis/api_response.dart';
+import '../information_dialog.dart';
+
+// ✅ Fonction helper pour obtenir le prochain ID (simplifiée)
+Future<int> _getNextId(String tableName) async {
+  final db = await DbCreator.openDb();
+  final result = await db.rawQuery('SELECT MAX(id) as maxId FROM $tableName');
+  final maxId = result.first['maxId'] as int? ?? 0;
+  return maxId + 1;
+}
+
+// ✅ Fonction _SavePannier - Version SIMPLE sans transaction (identique à EncaissementTicketDialog)
+Future<ApiResponse<int>> _SavePannier({
+  required Pannier pannier,
+  required CaisseState caisse,
+  required String userName,
+  required String userCode,
+  required Client client,
+  required double montant,
+  required String magasinCode,
+}) async {
+  print("🚀 _SavePannier: DEBUT");
+
+  final db = await DbCreator.openDb();
+  final serviceh = HistoriqueServices(db);
+  final servicem = MouvementsServices(db);
+  final services = PannierServices(db);
+  final serviceP = ProduitServices(db);
+  final servicep = PPServices(db);
+  final serviceC = ClientServices(db);
+  final versementService = VerssementServices(db);
+  final pmdService = ProduitMagasinDetailServices(db);
+
+  final Produitse = await ProduitServices.getAllProduits();
+  print("📦 Produits récupérés: ${Produitse.length}");
+
+  // 1️⃣ Déstocker du magasin
+  print("🏪 Déstockage...");
+  for (var produit in caisse.produits) {
+    final quantiteReelle = produit.qte * (produit.piecesParEmballage ?? 1);
+    print("   - ${produit.nom}: qte=$quantiteReelle");
+
+    final magasinDetail = await pmdService.getSingleByProduitAndMagasin(
+      produit.code,
+      magasinCode,
+    );
+
+    if (magasinDetail != null && magasinDetail.quantite >= quantiteReelle) {
+      await pmdService.decrementQuantite(magasinDetail.id, quantiteReelle);
+      print("      ✅ Déstocké: ${magasinDetail.id}");
+    } else if (magasinDetail != null && magasinDetail.quantite < quantiteReelle) {
+      await pmdService.decrementQuantite(magasinDetail.id, magasinDetail.quantite);
+      print("      ⚠️ Déstockage partiel: ${magasinDetail.quantite}");
+    }
+  }
+
+  // 2️⃣ Ajouter le pannier
+  print("💾 Sauvegarde du pannier...");
+  final response = await services.addPannier(pannier);
+  if (!response.success) {
+    print("❌ Erreur addPannier: ${response.message}");
+    return response;
+  }
+  print("✅ Pannier ajouté, id=${response.data}");
+
+  // 3️⃣ Historique du pannier
+  final idh = await _getNextId('Historique');
+  Historique histo = Historique(
+    id: idh,
+    code: CodeGenerator.generateCodeWithTimestamp(
+      prefix: CodePrefix.historique,
+      id: idh,
+    ),
+    type: "panniers",
+    desc: "L'utilisateur $userName a Ajoutee le Pannier ${pannier.code}",
+    oper: ListsConst.typeHisto[0],
+    creePar: userName,
+    dateCree: DateTime.now(),
+    creeParCode: userCode,
+  );
+  await serviceh.addHistorique(histo);
+  print("✅ Historique pannier ajouté");
+
+  // 4️⃣ Produits du pannier
+  for (var produit in caisse.produits) {
+    final idpp = await _getNextId('pannierProduit');
+    final quantiteReelle = produit.qte * (produit.piecesParEmballage ?? 1);
+
+    // Chercher le produit original
+    Produit? produitOriginal;
+    try {
+      produitOriginal = Produitse.firstWhere((p) => p.nom == produit.nom);
+    } catch (e) {
+      print("⚠️ Produit non trouvé: ${produit.nom}");
+    }
+
+    final prixAchat = produit.prixachat ?? 0.0;
+    final totalAchat = prixAchat * quantiteReelle;
+
+    PannierProduit prod = PannierProduit(
+      id: idpp,
+      prix: produit.prix,
+      etat: true,
+      total: produit.prix * produit.qte,
+      creeLe: DateTime.now(),
+      creePar: userName,
+      quantite: quantiteReelle,
+      nomProduit: produit.nom,
+      codeProduit: produit.code,
+      codePannier: pannier.code,
+      creeParCode: userCode,
+      prixAchat: prixAchat,
+      totalAchat: totalAchat,
+    );
+
+    await servicep.addPP(prod);
+    print("✅ PannierProduit ajouté: ${produit.nom}");
+
+    // Historique produit
+    final idh2 = await _getNextId('Historique');
+    Historique histo2 = Historique(
+      id: idh2,
+      code: CodeGenerator.generateCodeWithTimestamp(
+        prefix: CodePrefix.historique,
+        id: idh2,
+      ),
+      type: "pannierProduit",
+      desc: "L'utilisateur $userName a Ajoutee le Produit ${prod.nomProduit} au Pannier ${pannier.code}",
+      oper: ListsConst.typeHisto[0],
+      creePar: userName,
+      dateCree: DateTime.now(),
+      creeParCode: userCode,
+    );
+    await serviceh.addHistorique(histo2);
+
+    // Mouvement
+    final idm = await _getNextId('mouvements');
+    Mouvement Mouv = Mouvement(
+      id: idm,
+      code: CodeGenerator.generateCodeWithTimestamp(
+        prefix: CodePrefix.mouvement,
+        id: idm,
+      ),
+      date: pannier.date,
+      type: ListsConst.typeMouvement[0],
+      etat: true,
+      creePar: userName,
+      dateCree: DateTime.now(),
+      quantite: quantiteReelle,
+      prixAchat: produitOriginal?.prixAchat ?? prixAchat,
+      prixVente: prod.prix,
+      nomProduit: prod.nomProduit,
+      codeProduit: prod.codeProduit,
+      creeParCode: userCode,
+      codeOperation: pannier.code,
+    );
+    await servicem.addMouvement(Mouv);
+    print("✅ Mouvement ajouté: ${produit.nom}");
+
+    // Mise à jour du produit (quantité globale)
+    if (produitOriginal != null) {
+      produitOriginal.quantite = produitOriginal.quantite - quantiteReelle;
+      produitOriginal.dateModif = DateTime.now();
+      produitOriginal.modifPar = userName;
+      await serviceP.updateProduit(produitOriginal);
+      print("✅ Produit mis à jour: nouvelle quantite=${produitOriginal.quantite}");
+
+      // Historique mise à jour produit
+      final idh3 = await _getNextId('Historique');
+      Historique histo3 = Historique(
+        id: idh3,
+        code: CodeGenerator.generateCodeWithTimestamp(
+          prefix: CodePrefix.historique,
+          id: idh3,
+        ),
+        type: "produits",
+        desc: "La Quantite de Produit ${produitOriginal.nom} est mis a jour automatiquement Apres le Vente dans le Pannier ${pannier.code}",
+        oper: ListsConst.typeHisto[0],
+        creePar: userName,
+        dateCree: DateTime.now(),
+        creeParCode: userCode,
+      );
+      await serviceh.addHistorique(histo3);
+    }
+  }
+
+  // 5️⃣ Mise à jour du client
+  print("👤 Mise à jour du client: ${client.nom}");
+  client.dernierAchat = DateTime.now();
+  client.modifPar = userName;
+  await serviceC.updateClient(client);
+  print("✅ Client mis à jour");
+
+  // 6️⃣ Versement
+  if (montant > 0) {
+    print("💰 Ajout versement: $montant");
+    final nextVerssementId = await _getNextId('verssements');
+    Verssement versement = Verssement(
+      id: nextVerssementId,
+      code: CodeGenerator.generateCode(
+        prefix: CodePrefix.verssement,
+        id: nextVerssementId,
+        digitCount: 6,
+      ),
+      date: DateTime.now(),
+      typebeneficiare: "Client",
+      beneficiare: client.nom,
+      montant: montant,
+      etat: true,
+      mode_paiement: pannier.modePaiement!,
+      sense: 'Entrée',
+      type: "Pannier",
+      dateCree: DateTime.now(),
+      creePar: userName,
+      creeParCode: userCode,
+      caisse: pannier.caisse,
+    );
+    await versementService.addverssement(versement);
+    print("✅ Versement ajouté");
+  }
+
+  print("✅ _SavePannier: SUCCÈS");
+  return ApiResponse(success: true, message: "Succès", data: pannier.id);
+}
+
+Future<void> EnregistrerTicketDialog({
+  required Map<String, dynamic> clientInfo,
+  required BuildContext context,
+  required CaisseState caisse,
+  required Client client,
+  required int pannier,
+  required String selectedMagasinCode,
+  required VoidCallback onSuccess,
+}) async {
+  print("🎫 EnregistrerTicketDialog: DEBUT");
+
+  final TextEditingController payeController = TextEditingController();
+  final TextEditingController resteController = TextEditingController(
+    text: caisse.total.toStringAsFixed(2),
+  );
+
+  // Récupérer les caisses
+  List<CaisseGestion> CaisseTest = await GCServices.getAllCaisses();
+
+  // Vérifier que la caisse existe
+  final matchingCaisse = CaisseTest.where((e) => e.nomCaisse == caisse.caisse);
+  if (matchingCaisse.isEmpty) {
+    print("❌ ERREUR: Caisse '${caisse.caisse}' non trouvée!");
+    await InformationDialog(
+      context: context,
+      titre_type_message: "Erreur",
+      titre_concerne: "Caisse",
+      message: "Caisse '${caisse.caisse}' non trouvée.",
+    );
+    return;
+  }
+
+  final auth = Provider.of<AuthState>(context, listen: false);
+  final userName = auth.username;
+  final userCode = auth.userCode;
+  final l10n = AppLocalizations.of(context)!;
+
+  if (!auth.isAuthenticated || auth.username == null || auth.userCode == null) {
+    await InformationDialog(
+      context: context,
+      titre_type_message: l10n.authentication,
+      titre_concerne: l10n.user,
+      message: l10n.loginRequiredCreate,
+    );
+    return;
+  }
+
+  bool paiementTotal = true;
+  payeController.text = caisse.total.toStringAsFixed(2);
+  resteController.text = "0.00";
+
+  void updateReste() {
+    final paye = double.tryParse(payeController.text) ?? 0;
+    resteController.text = (caisse.total - paye).toStringAsFixed(2);
+  }
+
+  int nombreProduits = caisse.produits.length;
+  int nombreArticles = caisse.produits.fold(0, (s, p) => s + p.qte.toInt());
+
+  return showDialog(
+    context: context,
+    barrierDismissible: false,
+    barrierColor: Appstyle.gris.withOpacity(0.2),
+    builder: (_) {
+      return StatefulBuilder(
+        builder: (context, setState) {
+          final l10n = AppLocalizations.of(context)!;
+
+          return BaseDialog(
+            width: 1100,
+            header: TitreAvecLigne(
+              imagePath: 'assets/icons/sidebar/pannier_icon.png',
+              text: l10n.ticketRegistration,
+            ),
+            content: SingleChildScrollView(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Wrap(
+                    spacing: 10,
+                    runSpacing: 12,
+                    children: [
+                      _info("${l10n.cartNumber}", pannier, l10n),
+                      _info(l10n.client, caisse.client, l10n),
+
+                      // ✅ TOTAL (avant remise)
+                      if (caisse.remiseActive && caisse.remise > 0)
+                        _info(
+                          l10n.totalBeforeDiscount,
+                          "${caisse.totalAchat.toStringAsFixed(2)} ${l10n.currency}",
+                          l10n,
+                          valueColor: Appstyle.TgrisF,
+                        ),
+
+                      // ✅ Remise
+                      if (caisse.remiseActive && caisse.remise > 0)
+                        _info(
+                          l10n.discount,
+                          "${caisse.remise.toStringAsFixed(2)} ${l10n.currency}",
+                          l10n,
+                          valueColor: Colors.green,
+                        ),
+
+                      // ✅ TOTAL FINAL
+                      _info(
+                        l10n.totalFinal,
+                        "${(caisse.total-caisse.remise).toStringAsFixed(2)} ${l10n.currency}",
+                        l10n,
+                        valueColor: caisse.remiseActive && caisse.remise > 0
+                            ? Colors.green
+                            : Appstyle.violet,
+                      ),
+
+                      _info(l10n.paid, payeController.text.isEmpty ? "0" : payeController.text, l10n),
+                      _info(l10n.remaining, resteController.text, l10n),
+                      _info(l10n.products, nombreProduits, l10n),
+                      _info(l10n.articles, nombreArticles, l10n),
+                    ],
+                  ),
+                  const SizedBox(height: 20),
+                  TableauEncaissementEnreg(
+                    produits: caisse.produits,
+                    height: 500,
+                    remiseValue: caisse.remise,           // ✅ Valeur de la remise
+                    remiseActive: caisse.remiseActive,    // ✅ Si la remise est active
+                    remiseNom: caisse.remisenom,          // ✅ Nom de la remise
+                  ),
+                ],
+              ),
+            ),
+            footer: Row(
+              children: [
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Checkbox(
+                          value: paiementTotal,
+                          onChanged: (value) {
+                            setState(() {
+                              paiementTotal = value ?? true;
+                              if (paiementTotal) {
+                                payeController.text = caisse.total.toStringAsFixed(2);
+                                resteController.text = "0.00";
+                              } else {
+                                payeController.text = "";
+                                resteController.text = caisse.total.toStringAsFixed(2);
+                              }
+                            });
+                          },
+                          activeColor: Appstyle.violet,
+                        ),
+                        const SizedBox(width: 4),
+                        Text(l10n.fullPayment, style: Appstyle.textSB),
+                      ],
+                    ),
+                    const SizedBox(width: 15),
+                    SizedBox(
+                      width: 150,
+                      child: TextField(
+                        controller: payeController,
+                        enabled: !paiementTotal,
+                        keyboardType: TextInputType.number,
+                        decoration: InputDecoration(
+                          labelText: l10n.paid,
+                          labelStyle: TextStyle(color: Appstyle.Tnoir),
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(8),
+                            borderSide: BorderSide(color: Appstyle.indigo),
+                          ),
+                          contentPadding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                        ),
+                        onChanged: (value) => setState(updateReste),
+                      ),
+                    ),
+                  ],
+                ),
+                const Spacer(),
+                MainButton(
+                  text: l10n.cancel,
+                  color: Appstyle.gris,
+                  icon: Icons.cancel,
+                  onPressed: () {
+                    print("❌ Annulation");
+                    Navigator.pop(context);
+                  },
+                ),
+                const SizedBox(width: 10),
+                MainButton(
+                  text: l10n.save,
+                  color: Appstyle.crevete,
+                  icon: Icons.save,
+                  onPressed: () async {
+                    print("💾 Enregistrement du ticket...");
+
+                    // Afficher un indicateur de chargement
+                    showDialog(
+                      context: context,
+                      barrierDismissible: false,
+                      builder: (loadingContext) => const Center(
+                        child: CircularProgressIndicator(),
+                      ),
+                    );
+
+                    try {
+                      final nextPannierId = await _getNextId('panniers');
+                      final codePannier = CodeGenerator.generateCode(
+                        prefix: CodePrefix.pannier,
+                        id: nextPannierId,
+                        digitCount: 7,
+                      );
+
+                      final Ccode = matchingCaisse.first.code;
+
+                      Pannier pannierObj = Pannier(
+                        id: nextPannierId,
+                        code: codePannier,
+                        etat: true,
+                        date: caisse.date,
+                        verse: caisse.total - (double.parse(resteController.text)),
+                        reste: double.parse(resteController.text),
+                        client: caisse.client,
+                        client_code: client.code,
+                        creePar: userName!,
+                        montant: caisse.total,
+                        caissier: userName,
+                        dateCree: DateTime.now(),
+                        caisse_code: Ccode,
+                        typepannier: ListsConst.typePannier[2],
+                        modePaiement: caisse.modePaiement,
+                        caissier_code: userCode!,
+                        nombreArticle: caisse.nombreArticles,
+                        quantiteProduit: caisse.nombreProduits,
+                        caisse: caisse.caisse,
+                        montantAchat: caisse.totalAchat,
+                        marge: caisse.marge,
+                      );
+
+                      final montant = double.parse(payeController.text);
+                      final response = await _SavePannier(
+                        pannier: pannierObj,
+                        caisse: caisse,
+                        userCode: userCode,
+                        userName: userName,
+                        montant: montant,
+                        client: client,
+                        magasinCode: selectedMagasinCode,
+                      );
+
+                      // Fermer l'indicateur de chargement
+                      if (Navigator.canPop(context)) {
+                        Navigator.pop(context);
+                      }
+
+                      if (!response.success) {
+                        await InformationDialog(
+                          context: context,
+                          titre_type_message: l10n.error,
+                          titre_concerne: l10n.ticket,
+                          message: response.message,
+                        );
+                        return;
+                      }
+
+                      // ✅ Afficher le message de succès
+                      await InformationDialog(
+                        context: context,
+                        titre_type_message: l10n.success,
+                        titre_concerne: l10n.ticket,
+                        message: l10n.ticketSavedSuccess,
+                      );
+
+                      // Fermer le dialogue principal
+                      if (context.mounted) {
+                        Navigator.pop(context, true);
+                      }
+                      onSuccess();
+                    } catch (e) {
+                      // Fermer l'indicateur de chargement
+                      if (Navigator.canPop(context)) {
+                        Navigator.pop(context);
+                      }
+
+                      await InformationDialog(
+                        context: context,
+                        titre_type_message: l10n.error,
+                        titre_concerne: l10n.ticket,
+                        message: "Erreur: ${e.toString()}",
+                      );
+                    }
+                  },
+                ),
+              ],
+            ),
+          );
+        },
+      );
+    },
+  );
+}
+
+Widget _info(String label, dynamic value, AppLocalizations l10n, {Color? valueColor}) {
+  return SizedBox(
+    width: 220,
+    child: Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(label, style: Appstyle.textSB.copyWith(color: Appstyle.Tnoir)),
+        const SizedBox(height: 4),
+        Text(
+          value?.toString() ?? "-",
+          style: Appstyle.textXSB.copyWith(
+            color: valueColor ?? Appstyle.violet,
+          ),
+        ),
+      ],
+    ),
+  );
+}

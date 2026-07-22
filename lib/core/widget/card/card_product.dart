@@ -1,0 +1,247 @@
+import 'dart:io';
+import 'package:caisse_dz/core/theme/app_style.dart';
+import 'package:caisse_dz/l10n/app_localizations.dart';
+import 'package:flutter/material.dart';
+import '../../../Services/Photos.dart';
+
+class CardProduct extends StatelessWidget {
+  final bool selected;
+  final Color couleur;
+  final String iconPath;
+  final String text1;
+  final String text2;
+  final double quantite;
+  final double seuil;
+  final bool actif;
+  final bool rupture;
+
+  final String? remise;
+  final String? photo;
+
+  final VoidCallback? onTap;
+  final VoidCallback? onDoubleTap;
+
+  const CardProduct({
+    super.key,
+    required this.couleur,
+    required this.iconPath,
+    required this.text1,
+    required this.text2,
+    required this.quantite,
+    required this.seuil,
+    this.remise,
+    this.photo,
+    this.selected = false,
+    this.actif = true,
+    this.rupture = false,
+    this.onTap,
+    this.onDoubleTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+
+    final bool hasRemise = remise != null && remise!.isNotEmpty;
+    final bool isRupture = quantite <= 0;
+
+    final Color backgroundColor = (quantite <= seuil && quantite > 0)
+        ? Colors.red.shade400
+        : selected
+        ? Appstyle.Tblanc
+        : Appstyle.Tnoir;
+
+    return Opacity(
+      opacity: actif ? 1.0 : 0.5,
+      child: GestureDetector(
+        onTap: onTap,
+        onDoubleTap: onDoubleTap,
+        child: Stack(
+          children: [
+            Container(
+              width: 200, // ✅ Augmenté de 200 à 220
+              decoration: BoxDecoration(
+                color: selected
+                    ? Appstyle.violet.withOpacity(0.3)
+                    : couleur,
+                borderRadius: BorderRadius.circular(18),
+                border: selected
+                    ? Border.all(
+                  color: Appstyle.violet,
+                  width: 2,
+                )
+                    : Border.all(
+                  color: Appstyle.grisC,
+                  width: 1,
+                ),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.08),
+                    blurRadius: 2,
+                    offset: const Offset(0, 1),
+                  ),
+                ],
+              ),
+              child: Padding(
+                padding: const EdgeInsets.all(8.0),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    /// ✅ PHOTO DU PRODUIT À GAUCHE (TAILLE AUGMENTÉE)
+                    _buildProductPhoto(),
+
+                    const SizedBox(width: 12),
+
+                    /// ✅ INFOS À DROITE
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Text(
+                            text1,
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
+                            style: Appstyle.textpop_XS.copyWith(
+                              color: selected
+                                  ? Appstyle.Tblanc
+                                  : Appstyle.Tnoir,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            text2,
+                            style: Appstyle.textXSB.copyWith(
+                              color: Appstyle.Tblue,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                          const SizedBox(height: 4),
+                          Row(
+                            children: [
+                              Text(
+                                "${l10n.inStock}: ",
+                                style: Appstyle.textpop_S.copyWith(
+                                  color: backgroundColor,
+                                ),
+                              ),
+                              Text(
+                                quantite.toString(),
+                                style: Appstyle.textpop_SB.copyWith(
+                                  color: backgroundColor,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+
+            /// BADGE RUPTURE
+            if (isRupture)
+              Positioned(
+                top: 6,
+                left: 6,
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: Colors.red,
+                    borderRadius: BorderRadius.circular(12),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withOpacity(0.2),
+                        blurRadius: 4,
+                        offset: const Offset(0, 2),
+                      ),
+                    ],
+                  ),
+                  child: Text(
+                    l10n.outOfStock,
+                    style: Appstyle.textXSB.copyWith(
+                      color: Colors.white,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ),
+              ),
+
+            /// BADGE REMISE
+            if (hasRemise && !isRupture)
+              Positioned(
+                bottom: 6,
+                right: 6,
+                child: Container(
+                  padding: const EdgeInsets.all(4),
+                  decoration: BoxDecoration(
+                    color: Colors.amber,
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Image.asset(
+                    'assets/icons/cardwidget/remise_icon.png',
+                    width: 14,
+                    height: 14,
+                    fit: BoxFit.contain,
+                  ),
+                ),
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  /// ✅ Widget pour afficher la photo (TAILLE AUGMENTÉE)
+  Widget _buildProductPhoto() {
+    if (photo == null || photo!.isEmpty) {
+      return Container(
+        width: 70,  // ✅ Augmenté de 50 à 70
+        height: 70, // ✅ Augmenté de 50 à 70
+        decoration: BoxDecoration(
+          color: Appstyle.violet.withOpacity(0.1),
+          borderRadius: BorderRadius.circular(12),
+        ),
+        child: Icon(
+          Icons.inventory_2,
+          size: 40, // ✅ Augmenté de 30 à 40
+          color: Appstyle.violet.withOpacity(0.6),
+        ),
+      );
+    }
+
+    return FutureBuilder<File?>(
+      future: PhotoService.getPhotoFile(photo),
+      builder: (context, snapshot) {
+        if (snapshot.hasData && snapshot.data != null) {
+          return ClipRRect(
+            borderRadius: BorderRadius.circular(12),
+            child: Image.file(
+              snapshot.data!,
+              width: 70,  // ✅ Augmenté de 50 à 70
+              height: 70, // ✅ Augmenté de 50 à 70
+              fit: BoxFit.cover,
+            ),
+          );
+        }
+
+        return Container(
+          width: 70,  // ✅ Augmenté de 50 à 70
+          height: 70, // ✅ Augmenté de 50 à 70
+          decoration: BoxDecoration(
+            color: Colors.grey[200],
+            borderRadius: BorderRadius.circular(12),
+          ),
+          child: const Icon(
+            Icons.broken_image,
+            size: 40, // ✅ Augmenté de 30 à 40
+            color: Colors.grey,
+          ),
+        );
+      },
+    );
+  }
+}

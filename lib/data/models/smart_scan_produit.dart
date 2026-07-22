@@ -1,0 +1,123 @@
+class SmartScanProduit {
+  int     id;
+  String  codeSmartScan;
+  String  codeProduit;
+  String  nomProduit;
+
+  double  quantite;
+  double  prix;
+  double  prixVente;
+  double  total;
+
+  bool  etat; // "actif" ou "inactif"
+
+  String    creePar;
+  String    creeParCode;
+  DateTime  creeLe;
+
+  String? modifPar;
+  DateTime? modifLe;
+  String? annulPar;
+  DateTime? annulLe;
+  String? motifAnnul;
+
+  SmartScanProduit({
+    required this.id,
+    required this.codeSmartScan,
+    required this.codeProduit,
+    required this.nomProduit,
+    required this.quantite,
+    required this.prix,
+    required this.prixVente,
+    required this.total,
+    required this.etat,
+    required this.creeParCode,
+    required this.creeLe,
+    required this.creePar,
+    
+    this.motifAnnul,
+    this.annulPar,
+    this.annulLe,
+    this.modifPar,
+    this.modifLe
+  });
+
+  // ------------------------------
+  // map → Objet
+  // ------------------------------
+  factory SmartScanProduit.fromMap(Map<String, dynamic> map) {
+    return SmartScanProduit(
+      id            : map['id'],
+      etat          : map['etat'] == 1,
+      prix          : map['prix'],
+      prixVente          : map['prixVente'],
+      total         : map['total'],
+      creeLe        : DateTime.parse(map['date_cree']),
+      creePar       : map['cree_par'],
+      quantite      : map['quantite'],
+      nomProduit    : map['nom_produit'],
+      creeParCode   : map['cree_par_code'],
+      codeProduit   : map['code_produit'],
+      codeSmartScan : map['code_SmartScan'],
+
+      motifAnnul    : map['motif_annul'],
+      modifPar      : map['modif_par'],
+      annulPar      : map['annul_par'],
+      modifLe       : map['modif_le'] != null
+          ? DateTime.parse(map['modif_le'])
+          : null,
+      annulLe       : map['annul_le'] != null
+          ? DateTime.parse(map['annul_le'])
+          : null,
+    );
+  }
+
+  // ------------------------------
+  // Objet → map
+  // ------------------------------
+  Map<String, dynamic> toMap() {
+    return {
+      'id'              : id,
+      'code_SmartScan'  : codeSmartScan,
+      'code_produit'    : codeProduit,
+      'nom_produit'     : nomProduit,
+      'quantite'        : quantite,
+      'prix'            : prix,
+      'prixVente'       : prixVente,
+      'total'           : total,
+      'etat'            : etat ? 1 : 0,
+
+      'cree_par'        : creePar,
+      'cree_par_code'   : creeParCode,
+      'date_cree'       : creeLe.toIso8601String(),
+
+      'modif_par'       : modifPar,
+      'date_modif'      : modifLe?.toIso8601String(),
+      'annul_par'       : annulPar,
+      'date_annul'      : annulLe?.toIso8601String(),
+      'motif_annul'     : motifAnnul,
+    };
+  }
+  String get searchableText {
+    return toMap()
+        .values
+        .map((e) => e?.toString().toLowerCase() ?? '')
+        .join(' ');
+  }
+  SmartScanProduit copy() => SmartScanProduit(
+    id: id,
+    codeSmartScan: codeSmartScan,
+    codeProduit: codeProduit,
+    nomProduit: nomProduit,
+    quantite: quantite,
+    prix: prix,
+    prixVente: prixVente,
+    total: total,
+    etat: etat,
+    creePar: creePar,
+    creeParCode: creeParCode,
+    creeLe: creeLe,
+    modifPar: modifPar,
+    modifLe: modifLe,
+  );
+}
