@@ -37,7 +37,7 @@ class SousCategorieInsertionDataSource extends DataGridSource {
         DataGridCell(columnName: 'code', value: s.code),
         DataGridCell(columnName: 'nom', value: s.nom),
         DataGridCell(columnName: 'observation', value: s.observation),
-        DataGridCell(columnName: 'categorieNom', value: s.categorieNom),
+        DataGridCell(columnName: 'categorieNom', value: s.categorieCode),
         DataGridCell(columnName: 'etat', value: s.etat ? l10n.active : l10n.inactive),
       ]);
     });

@@ -272,7 +272,7 @@ class ExcelGenerator {
           .value = TextCellValue(_formatDate(pannier.date));
       // Client
       sheet.cell(CellIndex.indexByColumnRow(columnIndex: 3, rowIndex: rowIndex))
-          .value = TextCellValue(pannier.client);
+          .value = TextCellValue(pannier.client_code ?? '-');
       // Amount
       sheet.cell(CellIndex.indexByColumnRow(columnIndex: 4, rowIndex: rowIndex))
           .value = TextCellValue(pannier.montant.toStringAsFixed(2));
@@ -293,7 +293,7 @@ class ExcelGenerator {
           .value = TextCellValue(translator.translateModePaiement(pannier.modePaiement!));
       // Cashier
       sheet.cell(CellIndex.indexByColumnRow(columnIndex: 10, rowIndex: rowIndex))
-          .value = TextCellValue(pannier.caissier);
+          .value = TextCellValue(pannier.caissier_code);
       // Type Pannier (translated)
       sheet.cell(CellIndex.indexByColumnRow(columnIndex: 11, rowIndex: rowIndex))
           .value = TextCellValue(translator.translateTypePannier(pannier.typepannier));
@@ -412,6 +412,9 @@ class ExcelGenerator {
 
   static Future<File> generateProduitsExcel({
     required List<Produit> produits,
+    required List<Categorie> categories,
+    required List<SousCategorie> sousCategories,
+    required List<Remise> remises,
     required AppLocalizations l10n,
     required ListsConstTranslator translator,
   }) async
@@ -419,6 +422,13 @@ class ExcelGenerator {
     var excel = Excel.createExcel();
 
     var sheet = excel['Produits'];
+
+    String nomCategorie(int id) =>
+        categories.where((c) => c.id == id).firstOrNull?.nom ?? '-';
+    String nomSousCategorie(int id) =>
+        sousCategories.where((sc) => sc.id == id).firstOrNull?.nom ?? '-';
+    String nomRemise(int? id) =>
+        id == null ? '-' : (remises.where((r) => r.id == id).firstOrNull?.nom ?? '-');
 
     // All product fields - EXPORT EVERYTHING
     List<TextCellValue> headers = [
@@ -496,11 +506,11 @@ class ExcelGenerator {
       sheet.cell(CellIndex.indexByColumnRow(columnIndex: 9, rowIndex: rowIndex))
           .value = TextCellValue(produit.prixVente.toStringAsFixed(2));
       sheet.cell(CellIndex.indexByColumnRow(columnIndex: 10, rowIndex: rowIndex))
-          .value = TextCellValue(produit.categorie ?? '-');
+          .value = TextCellValue(nomCategorie(produit.categorieId));
       sheet.cell(CellIndex.indexByColumnRow(columnIndex: 11, rowIndex: rowIndex))
-          .value = TextCellValue(produit.sousCategorie ?? '-');
+          .value = TextCellValue(nomSousCategorie(produit.sousCategorieId));
       sheet.cell(CellIndex.indexByColumnRow(columnIndex: 12, rowIndex: rowIndex))
-          .value = TextCellValue(produit.remise ?? '-');
+          .value = TextCellValue(nomRemise(produit.remiseId));
       sheet.cell(CellIndex.indexByColumnRow(columnIndex: 13, rowIndex: rowIndex))
           .value = TextCellValue(produit.service ? l10n.yes : l10n.no);
       sheet.cell(CellIndex.indexByColumnRow(columnIndex: 14, rowIndex: rowIndex))
@@ -1102,7 +1112,7 @@ class ExcelGenerator {
           .value = TextCellValue(sousCategorie.nom);
       // Category Name
       sheet.cell(CellIndex.indexByColumnRow(columnIndex: 3, rowIndex: rowIndex))
-          .value = TextCellValue(sousCategorie.categorieNom ?? '-');
+          .value = TextCellValue(sousCategorie.categorieCode);
       // Description/Observation
       sheet.cell(CellIndex.indexByColumnRow(columnIndex: 4, rowIndex: rowIndex))
           .value = TextCellValue(sousCategorie.observation ?? '-');
@@ -1405,7 +1415,7 @@ class ExcelGenerator {
           .value = TextCellValue(versement.typebeneficiare);
       // Beneficiary Name
       sheet.cell(CellIndex.indexByColumnRow(columnIndex: 5, rowIndex: rowIndex))
-          .value = TextCellValue(versement.beneficiare);
+          .value = TextCellValue(versement.beneficiareCode);
       // Cash Register
       sheet.cell(CellIndex.indexByColumnRow(columnIndex: 6, rowIndex: rowIndex))
           .value = TextCellValue(versement.caisse ?? '-');
@@ -1531,6 +1541,8 @@ class ExcelGenerator {
 
   static Future<File> generateEntreesExcel({
     required List<Entree> entrees,
+    required List<Produit> produits,
+    required List<Fournisseur> fournisseurs,
     required AppLocalizations l10n,
     required ListsConstTranslator translator,
   }) async
@@ -1538,6 +1550,11 @@ class ExcelGenerator {
     var excel = Excel.createExcel();
 
     var sheet = excel['Entrees'];
+
+    String nomProduit(String code) =>
+        produits.where((p) => p.code == code).firstOrNull?.nom ?? code;
+    String nomFournisseur(String code) =>
+        fournisseurs.where((f) => f.code == code).firstOrNull?.nom ?? code;
 
     // ALL entry fields - Export everything from the Entree model
     List<TextCellValue> headers = [
@@ -1589,16 +1606,16 @@ class ExcelGenerator {
           .value = TextCellValue(_formatDate(entree.date));
       // Product Name
       sheet.cell(CellIndex.indexByColumnRow(columnIndex: 3, rowIndex: rowIndex))
-          .value = TextCellValue(entree.produit);
+          .value = TextCellValue(nomProduit(entree.produitcode));
       // Product Code
       sheet.cell(CellIndex.indexByColumnRow(columnIndex: 4, rowIndex: rowIndex))
-          .value = TextCellValue(entree.produitcode ?? '-');
+          .value = TextCellValue(entree.produitcode);
       // Supplier Name
       sheet.cell(CellIndex.indexByColumnRow(columnIndex: 5, rowIndex: rowIndex))
-          .value = TextCellValue(entree.fournisseur ?? '-');
+          .value = TextCellValue(nomFournisseur(entree.fournisseurCode));
       // Supplier Code
       sheet.cell(CellIndex.indexByColumnRow(columnIndex: 6, rowIndex: rowIndex))
-          .value = TextCellValue(entree.fournisseurCode ?? '-');
+          .value = TextCellValue(entree.fournisseurCode);
       // Quantity
       sheet.cell(CellIndex.indexByColumnRow(columnIndex: 7, rowIndex: rowIndex))
           .value = TextCellValue(entree.quantite.toString());
@@ -1776,7 +1793,7 @@ class ExcelGenerator {
           .value = TextCellValue(scan.activity ?? '-');
       // Supplier
       sheet.cell(CellIndex.indexByColumnRow(columnIndex: 4, rowIndex: rowIndex))
-          .value = TextCellValue(scan.fournisseur ?? '-');
+          .value = TextCellValue(scan.fournisseurCode);
       // Number of Products (actual)
       sheet.cell(CellIndex.indexByColumnRow(columnIndex: 5, rowIndex: rowIndex))
           .value = TextCellValue(scan.nbrProduit?.toString() ?? '0');
@@ -1925,6 +1942,9 @@ class ExcelGenerator {
 
   static Future<File> generateSortiesExcel({
     required List<Sortie> sorties,
+    required List<Produit> produits,
+    required List<Categorie> categories,
+    required List<SousCategorie> sousCategories,
     required AppLocalizations l10n,
     required ListsConstTranslator translator,
   }) async
@@ -1932,6 +1952,13 @@ class ExcelGenerator {
     var excel = Excel.createExcel();
 
     var sheet = excel['Sorties'];
+
+    String nomProduit(String code) =>
+        produits.where((p) => p.code == code).firstOrNull?.nom ?? code;
+    String? nomCategorie(String? code) =>
+        code == null ? null : (categories.where((c) => c.code == code).firstOrNull?.nom ?? code);
+    String? nomSousCategorie(String? code) =>
+        code == null ? null : (sousCategories.where((sc) => sc.code == code).firstOrNull?.nom ?? code);
 
     // ALL sortie fields - Export everything from the Sortie model
     List<TextCellValue> headers = [
@@ -1982,13 +2009,13 @@ class ExcelGenerator {
           .value = TextCellValue(_formatDate(sortie.dateCree));
       // Product Name
       sheet.cell(CellIndex.indexByColumnRow(columnIndex: 3, rowIndex: rowIndex))
-          .value = TextCellValue(sortie.produit);
+          .value = TextCellValue(nomProduit(sortie.produitCode));
       // Category
       sheet.cell(CellIndex.indexByColumnRow(columnIndex: 4, rowIndex: rowIndex))
-          .value = TextCellValue(sortie.categorie ?? '-');
+          .value = TextCellValue(nomCategorie(sortie.categorieCode) ?? '-');
       // Subcategory
       sheet.cell(CellIndex.indexByColumnRow(columnIndex: 5, rowIndex: rowIndex))
-          .value = TextCellValue(sortie.souscategorie ?? '-');
+          .value = TextCellValue(nomSousCategorie(sortie.sousCategorieCode) ?? '-');
       // Quantity
       sheet.cell(CellIndex.indexByColumnRow(columnIndex: 6, rowIndex: rowIndex))
           .value = TextCellValue(sortie.quantite.toString());
@@ -2202,7 +2229,7 @@ class ExcelGenerator {
           .value = TextCellValue(_formatDate(retour.dateCree));
       // Product Name
       sheet.cell(CellIndex.indexByColumnRow(columnIndex: 3, rowIndex: rowIndex))
-          .value = TextCellValue(retour.nomProduit ?? '-');
+          .value = TextCellValue(retour.codeProduit ?? '-');
       // Quantity
       sheet.cell(CellIndex.indexByColumnRow(columnIndex: 4, rowIndex: rowIndex))
           .value = TextCellValue(retour.quantite.toString());
@@ -2219,10 +2246,10 @@ class ExcelGenerator {
       );
       // Client
       sheet.cell(CellIndex.indexByColumnRow(columnIndex: 8, rowIndex: rowIndex))
-          .value = TextCellValue(retour.client ?? '-');
+          .value = TextCellValue(retour.client_code ?? '-');
       // Supplier
       sheet.cell(CellIndex.indexByColumnRow(columnIndex: 9, rowIndex: rowIndex))
-          .value = TextCellValue(retour.fournisseur ?? '-');
+          .value = TextCellValue(retour.fournisseur_code ?? '-');
       // Observation
       sheet.cell(CellIndex.indexByColumnRow(columnIndex: 10, rowIndex: rowIndex))
           .value = TextCellValue(retour.observation ?? '-');
@@ -2265,8 +2292,8 @@ class ExcelGenerator {
     double totalSaleValue     = retours.fold(0.0, (sum, r) => sum + (r.prixVente! * r.quantite));
     int activeRetours = retours.where((r) => r.etat).length;
     int inactiveRetours = retours.where((r) => !r.etat).length;
-    int clientRetours = retours.where((r) => r.client != null && r.client!.isNotEmpty).length;
-    int supplierRetours = retours.where((r) => r.fournisseur != null && r.fournisseur!.isNotEmpty).length;
+    int clientRetours = retours.where((r) => r.client_code != null && r.client_code!.isNotEmpty).length;
+    int supplierRetours = retours.where((r) => r.fournisseur_code != null && r.fournisseur_code!.isNotEmpty).length;
     double avgQuantity = retours.isEmpty ? 0 : totalQuantity / retours.length;
 
     var titleCell = summarySheet.cell(CellIndex.indexByColumnRow(columnIndex: 0, rowIndex: 0));
@@ -2396,7 +2423,7 @@ class ExcelGenerator {
           .value = TextCellValue(_formatDate(besoinList.date));
       // Supplier
       sheet.cell(CellIndex.indexByColumnRow(columnIndex: 4, rowIndex: rowIndex))
-          .value = TextCellValue(besoinList.fournisseur ?? '-');
+          .value = TextCellValue(besoinList.fournisseurCode);
       // Amount
       sheet.cell(CellIndex.indexByColumnRow(columnIndex: 5, rowIndex: rowIndex))
           .value = TextCellValue(besoinList.montant?.toString() ?? '0');
@@ -2448,7 +2475,7 @@ class ExcelGenerator {
     double totalQuantity = besoinLists.fold(0.0, (sum, l) => (l.quantite) + sum);
     int activeLists = besoinLists.where((l) => l.etat).length;
     int inactiveLists = besoinLists.where((l) => !l.etat).length;
-    int supplierCount = besoinLists.where((l) =>  l.fournisseur.isNotEmpty).length;
+    int supplierCount = besoinLists.where((l) =>  l.fournisseurCode.isNotEmpty).length;
     double avgAmount = besoinLists.isEmpty ? 0 : totalAmount / besoinLists.length;
     double avgItems = besoinLists.isEmpty ? 0 : totalItems / besoinLists.length;
     double avgQuantity = besoinLists.isEmpty ? 0 : totalQuantity / besoinLists.length;
@@ -2527,6 +2554,9 @@ class ExcelGenerator {
 
   static Future<File> generateMouvementsExcel({
     required List<Mouvement> mouvements,
+    required List<Produit> produits,
+    required List<Client> clients,
+    required List<Fournisseur> fournisseurs,
     required AppLocalizations l10n,
     required ListsConstTranslator translator,
   }) async
@@ -2534,6 +2564,13 @@ class ExcelGenerator {
     var excel = Excel.createExcel();
 
     var sheet = excel['Mouvements'];
+
+    String nomProduit(String code) =>
+        produits.where((p) => p.code == code).firstOrNull?.nom ?? code;
+    String? nomClient(String? code) =>
+        code == null ? null : (clients.where((c) => c.code == code).firstOrNull?.nom ?? code);
+    String? nomFournisseur(String? code) =>
+        code == null ? null : (fournisseurs.where((f) => f.code == code).firstOrNull?.nom ?? code);
 
     // ALL movement fields - Export everything from the Mouvement model
     List<TextCellValue> headers = [
@@ -2587,13 +2624,13 @@ class ExcelGenerator {
           .value = TextCellValue(_getTranslatedMovementType(mouvement.type, l10n));
       // Client
       sheet.cell(CellIndex.indexByColumnRow(columnIndex: 4, rowIndex: rowIndex))
-          .value = TextCellValue(mouvement.client ?? '-');
+          .value = TextCellValue(nomClient(mouvement.clientCode) ?? '-');
       // Supplier
       sheet.cell(CellIndex.indexByColumnRow(columnIndex: 5, rowIndex: rowIndex))
-          .value = TextCellValue(mouvement.fournisseur ?? '-');
+          .value = TextCellValue(nomFournisseur(mouvement.fournisseurCode) ?? '-');
       // Product Name
       sheet.cell(CellIndex.indexByColumnRow(columnIndex: 6, rowIndex: rowIndex))
-          .value = TextCellValue(mouvement.nomProduit ?? '-');
+          .value = TextCellValue(nomProduit(mouvement.codeProduit));
       // Quantity
       sheet.cell(CellIndex.indexByColumnRow(columnIndex: 7, rowIndex: rowIndex))
           .value = TextCellValue(mouvement.quantite.toString());
@@ -2645,8 +2682,8 @@ class ExcelGenerator {
     double totalPurchaseValue = mouvements.fold(0.0, (sum, m) => sum + (m.quantite * (m.prixAchat ?? 0)));
     int activeMouvements      = mouvements.where((m)  => m.etat).length;
     int inactiveMouvements    = mouvements.where((m)  => !m.etat).length;
-    int clientMouvements      = mouvements.where((m)  => m.client != null && m.client!.isNotEmpty).length;
-    int supplierMouvements    = mouvements.where((m)  => m.fournisseur != null && m.fournisseur!.isNotEmpty).length;
+    int clientMouvements      = mouvements.where((m)  => m.clientCode != null && m.clientCode!.isNotEmpty).length;
+    int supplierMouvements    = mouvements.where((m)  => m.fournisseurCode != null && m.fournisseurCode!.isNotEmpty).length;
     double avgQuantity        = mouvements.isEmpty ? 0 : totalQuantity / mouvements.length;
     double avgAmount          = mouvements.isEmpty ? 0 : totalAmount / mouvements.length;
 
@@ -3237,7 +3274,7 @@ class ExcelGenerator {
           .value = TextCellValue(caisse.nomCaisse);
       // Store
       sheet.cell(CellIndex.indexByColumnRow(columnIndex: 3, rowIndex: rowIndex))
-          .value = TextCellValue(caisse.magasin ?? '-');
+          .value = TextCellValue(caisse.magasinCode);
       // Type
       sheet.cell(CellIndex.indexByColumnRow(columnIndex: 4, rowIndex: rowIndex))
           .value = TextCellValue(caisse.typecaisse ?? '-');
@@ -3284,7 +3321,7 @@ class ExcelGenerator {
     double totalBalance = caisses.fold(0.0, (sum, c) => sum + c.soldeInitial);
     int activeCaisses = caisses.where((c) => c.etat).length;
     int inactiveCaisses = caisses.where((c) => !c.etat).length;
-    int storeCount = caisses.map((c) => c.magasin).where((m) => m != null && m!.isNotEmpty).toSet().length;
+    int storeCount = caisses.map((c) => c.magasinCode).where((m) => m != null && m!.isNotEmpty).toSet().length;
 
     var titleCell = summarySheet.cell(CellIndex.indexByColumnRow(columnIndex: 0, rowIndex: 0));
     titleCell.value = TextCellValue(l10n.summary);

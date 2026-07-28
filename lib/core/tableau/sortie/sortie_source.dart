@@ -3,6 +3,9 @@
 import 'package:flutter/material.dart';
 import 'package:syncfusion_flutter_datagrid/datagrid.dart';
 import '../../../../data/models/sortie.dart';
+import '../../../../data/models/produit.dart';
+import '../../../../data/models/categorie.dart';
+import '../../../../data/models/sous_categorie.dart';
 import '../../../data/constant.dart';
 import '../../../l10n/app_localizations.dart';
 import '../../widget/status_badge.dart';
@@ -10,13 +13,32 @@ import '../base_table_data_source.dart';
 
 class SortieDataSource extends BaseTableDataSource<Sortie> {
   final AppLocalizations l10n;
+  final List<Produit> produits;
+  final List<Categorie> categories;
+  final List<SousCategorie> sousCategories;
   late final ListsConstTranslator _translator = ListsConstTranslator(l10n);
 
   SortieDataSource({
     required List<Sortie> sorties,
     required super.columnConfig,
     required this.l10n,
+    required this.produits,
+    required this.categories,
+    required this.sousCategories,
   }) : super(items: sorties);
+
+  String _nomProduit(String code) =>
+      produits.where((p) => p.code == code).firstOrNull?.nom ?? code;
+
+  String? _nomCategorie(String? code) {
+    if (code == null) return null;
+    return categories.where((c) => c.code == code).firstOrNull?.nom ?? code;
+  }
+
+  String? _nomSousCategorie(String? code) {
+    if (code == null) return null;
+    return sousCategories.where((sc) => sc.code == code).firstOrNull?.nom ?? code;
+  }
 
   String formatDate(DateTime? date) {
     if (date == null) return '';
@@ -34,11 +56,11 @@ class SortieDataSource extends BaseTableDataSource<Sortie> {
       case 'code':
         return sortie.code;
       case 'produit':
-        return sortie.produit;
+        return _nomProduit(sortie.produitCode);
       case 'categorie':
-        return sortie.categorie;
+        return _nomCategorie(sortie.categorieCode);
       case 'souscategorie':
-        return sortie.souscategorie;
+        return _nomSousCategorie(sortie.sousCategorieCode);
       case 'quantite':
         return sortie.quantite;
       case 'prix':

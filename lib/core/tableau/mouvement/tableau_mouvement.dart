@@ -3,6 +3,9 @@ import 'package:caisse_dz/core/dialog/mouvement/mouvement_detail.dart';
 import 'package:caisse_dz/core/theme/app_style.dart';
 import 'package:caisse_dz/core/widget/button/main_button.dart';
 import 'package:caisse_dz/data/models/mouvement.dart';
+import 'package:caisse_dz/data/models/produit.dart';
+import 'package:caisse_dz/data/models/client.dart';
+import 'package:caisse_dz/data/models/fournisseur.dart';
 import 'package:caisse_dz/l10n/app_localizations.dart';
 import 'package:flutter/material.dart';
 import 'package:syncfusion_flutter_core/theme.dart';
@@ -12,11 +15,17 @@ import 'mouvement_source.dart';
 
 class TableauMouvementAdvanced extends StatefulWidget {
   final List<Mouvement> mouvements;
+  final List<Produit> produits;
+  final List<Client> clients;
+  final List<Fournisseur> fournisseurs;
   final void Function(List<Mouvement>)? onSelectionChanged;
 
   const TableauMouvementAdvanced({
     super.key,
     required this.mouvements,
+    required this.produits,
+    required this.clients,
+    required this.fournisseurs,
     this.onSelectionChanged,
   });
 
@@ -93,6 +102,9 @@ class _TableauMouvementAdvancedState extends State<TableauMouvementAdvanced> {
       mouvements: paginatedData,
       columnConfig: columnVisibility,
       l10n: l10n,
+      produits: widget.produits,
+      clients: widget.clients,
+      fournisseurs: widget.fournisseurs,
     );
 
     dataSource.addListener(() {
@@ -163,7 +175,13 @@ class _TableauMouvementAdvancedState extends State<TableauMouvementAdvanced> {
               if (details.rowColumnIndex.rowIndex <= 0) return;
               final rowIndex = details.rowColumnIndex.rowIndex - 1;
               final Mouvement mouvement = paginatedData[rowIndex];
-              MouvementDetail(context, mouvement);
+              MouvementDetail(
+                context,
+                mouvement,
+                produits: widget.produits,
+                clients: widget.clients,
+                fournisseurs: widget.fournisseurs,
+              );
             },
             onColumnResizeUpdate: (details) {
               double w = details.width;

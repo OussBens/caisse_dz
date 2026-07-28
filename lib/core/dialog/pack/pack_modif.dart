@@ -111,7 +111,7 @@ Widget _tableProduitsPackComplet(void Function(void Function()) setState, AppLoc
         child: Row(
           children: [
             Expanded(flex: 2, child: Text(detail.produitCode, style: Appstyle.textSB)),
-            Expanded(flex: 3, child: Text(detail.produitNom, style: Appstyle.textSB)),
+            Expanded(flex: 3, child: Text(detail.produitCode, style: Appstyle.textSB)),
             Expanded(
               flex: 2,
               child: SizedBox(
@@ -211,9 +211,7 @@ void _ajouterProduitPackComplet(
             produitsPackSelectionnes.add(
               ProduitPackDetail(
                 id: id,
-                packNom: pack.nom,
                 packCode: pack.code,
-                produitNom: produit.nom,
                 produitCode: produit.code,
                 prixUnitaire: produit.prixVente,
                 quantite: 1,
@@ -257,13 +255,13 @@ Future<void> _UpdatePackDetailComplet({
     );
 
     if (!existeToujours) {
-      await service.deleteDetailes(produit.produitNom, pack.nom);
+      await service.deleteDetailes(produit.produitCode, pack.code);
 
       final int idH = await _GetNextHistoriqueId();
       final Historique histo = Historique(
         id: idH,
         code: "HS$idH ${DateTime.now().microsecondsSinceEpoch}",
-        desc: "Suppression de ${produit.produitNom} du pack ${pack.nom} par $userName",
+        desc: "Suppression de ${produit.produitCode} du pack ${pack.nom} par $userName",
         type: "ProduitPackDetail",
         oper: ListsConst.typeHisto[1],
         dateCree: DateTime.now(),
@@ -287,7 +285,7 @@ Future<void> _UpdatePackDetailComplet({
         final Historique histo = Historique(
           id: idH,
           code: "HS$idH ${DateTime.now().microsecondsSinceEpoch}",
-          desc: "Ajout de ${produit.produitNom} au pack ${pack.nom} par $userName",
+          desc: "Ajout de ${produit.produitCode} au pack ${pack.nom} par $userName",
           type: "ProduitPackDetail",
           oper: ListsConst.typeHisto[0],
           dateCree: DateTime.now(),
@@ -323,7 +321,7 @@ Future<ApiResponse<int>> _savePack({required Pack pack}) async {
 
 Future<void> _loadProduits({required int id}) async {
   Pack? result = await PackServices.getPackById(id);
-  final produit = await ProduitPackDetailServices.getDetailsByPackNom(result!.nom);
+  final produit = await ProduitPackDetailServices.getDetailsByPackNom(result!.code);
   final prd = await ProduitServices.getAllProduits();
 
   produitsTest = prd;
@@ -522,7 +520,7 @@ Future<void> PackModif(BuildContext context, Pack pack) async {
                                 quantiteTotale: quantiteTotale,
                                 prixVente: prixTotal,
                                 modifLe: DateTime.now(),
-                                modifParCode: userName,
+                                modifParCode: userCode,
                                 creeParCode: pack.creeParCode,
                                 creeLe: pack.creeLe,
                               );

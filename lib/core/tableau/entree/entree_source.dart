@@ -3,17 +3,29 @@ import 'package:syncfusion_flutter_datagrid/datagrid.dart';
 import 'package:caisse_dz/l10n/app_localizations.dart';
 
 import '../../../../data/models/entree.dart';
+import '../../../../data/models/produit.dart';
+import '../../../../data/models/fournisseur.dart';
 import '../../widget/status_badge.dart';
 import '../base_table_data_source.dart';
 
 class EntreeDataSource extends BaseTableDataSource<Entree> {
   final AppLocalizations l10n;
+  final List<Produit> produits;
+  final List<Fournisseur> fournisseurs;
 
   EntreeDataSource({
     required List<Entree> entrees,
     required super.columnConfig,
     required this.l10n,
+    required this.produits,
+    required this.fournisseurs,
   }) : super(items: entrees);
+
+  String _nomProduit(String code) =>
+      produits.where((p) => p.code == code).firstOrNull?.nom ?? code;
+
+  String _nomFournisseur(String code) =>
+      fournisseurs.where((f) => f.code == code).firstOrNull?.nom ?? code;
 
   String formatDate(DateTime? date) {
     if (date == null) return '';
@@ -33,7 +45,7 @@ class EntreeDataSource extends BaseTableDataSource<Entree> {
       case 'date':
         return formatDate(entree.date);
       case 'produit':
-        return entree.produit;
+        return _nomProduit(entree.produitcode);
       case 'produitcode':
         return entree.produitcode;
       case 'prix':
@@ -43,7 +55,7 @@ class EntreeDataSource extends BaseTableDataSource<Entree> {
       case 'montant':
         return "${entree.montant.toStringAsFixed(2)} ${l10n.currency}";
       case 'fournisseur':
-        return entree.fournisseur;
+        return _nomFournisseur(entree.fournisseurCode);
       case 'fournisseurcode':
         return entree.fournisseurCode;
       case 'etat':

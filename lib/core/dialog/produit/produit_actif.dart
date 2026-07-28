@@ -35,7 +35,7 @@ Future<int> _GetNextHistoriqueId() async {
 Future<List<String>?> havemovment({required List<Produit> produits}) async {
   List<String> produitHaveMouvement = [];
   for (var produit in produits) {
-    if (await MouvementsServices.isProduitHaveMouvement(produit.nom)) {
+    if (await MouvementsServices.isProduitHaveMouvement(produit.code)) {
       produitHaveMouvement.add(produit.nom);
     }
   }
@@ -95,7 +95,7 @@ Future<void> DeleteProduit({
         creeParCode: userCode);
     await serviceh.addHistorique(histM);
 
-    await servicep.deleteAllDetailes2(produit.nom);
+    await servicep.deleteAllDetailes2(produit.code);
     await services.deleteProduitt(produit.id);
 
     final int idH = await _GetNextHistoriqueId();

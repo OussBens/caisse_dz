@@ -148,7 +148,7 @@ Map<String, double> caParCaissier(List<Pannier> list, DateTime start, DateTime e
   final Map<String, double> data = {};
   for (var p in list) {
     if (!p.date.isBefore(s) && !p.date.isAfter(e)) {
-      final caissier = p.caissier;
+      final caissier = p.caissier_code;
       data[caissier] = (data[caissier] ?? 0) + p.montant;
     }
   }
@@ -1085,7 +1085,7 @@ class DashboardProduitBarChart extends StatelessWidget {
 
     final Map<String, double> totals = {};
     for (var p in produits) {
-      totals[p.nomProduit] = (totals[p.nomProduit] ?? 0) + p.total;
+      totals[p.codeProduit] = (totals[p.codeProduit] ?? 0) + p.total;
     }
 
     final sortedEntries = totals.entries.toList()

@@ -50,33 +50,33 @@ class ProduitPackDetailServices {
 
     final List<Map<String, dynamic>> result = await db.query(
       'produit_pack_detail',
-      orderBy: 'pack_nom ASC',
+      orderBy: 'pack_code ASC',
     );
 
     return result.map((e) => ProduitPackDetail.fromMap(e)).toList();
   }
 
-  /// Get ProduitPackDetail by Nom produit
-  static Future<List<ProduitPackDetail>> getDetailsByNom(String nom) async {
+  /// Get ProduitPackDetail by code produit
+  static Future<List<ProduitPackDetail>> getDetailsByNom(String code) async {
     final db = await DbCreator.openDb();
 
     final maps = await db.query(
       'produit_pack_detail',
-      where: 'produit_nom = ?',
-      whereArgs: [nom],
+      where: 'produit_code = ?',
+      whereArgs: [code],
     );
 
     return maps.map((e) => ProduitPackDetail.fromMap(e)).toList();
   }
 
-  /// Get ProduitPackDetail by Pack Nom
-  static Future<List<ProduitPackDetail>> getDetailsByPackNom(String nom) async {
+  /// Get ProduitPackDetail by code pack
+  static Future<List<ProduitPackDetail>> getDetailsByPackNom(String code) async {
     final db = await DbCreator.openDb();
 
     final maps = await db.query(
       'produit_pack_detail',
-      where: 'pack_nom = ?',
-      whereArgs: [nom],
+      where: 'pack_code = ?',
+      whereArgs: [code],
     );
 
     return maps.map((e) => ProduitPackDetail.fromMap(e)).toList();
@@ -117,7 +117,7 @@ class ProduitPackDetailServices {
 
     await db.delete(
       'produit_pack_detail',
-      where: 'produit_nom = ?',
+      where: 'produit_code = ?',
       whereArgs: [produit],
     );
   }
@@ -132,13 +132,13 @@ class ProduitPackDetailServices {
     );
   }
 
-  Future<void> deleteDetailes(String ProduitNom, String PackNom) async {
+  Future<void> deleteDetailes(String produitCode, String packCode) async {
     final db = await DbCreator.openDb();
 
     await db.delete(
       'produit_pack_detail',
-      where: 'produit_nom = ? AND pack_nom = ?',
-      whereArgs: [ProduitNom, PackNom],
+      where: 'produit_code = ? AND pack_code = ?',
+      whereArgs: [produitCode, packCode],
     );
   }
 
@@ -170,14 +170,14 @@ class ProduitPackDetailServices {
     return result.isNotEmpty;
   }
 
-  /// Get ProduitPackDetail by Pack name
-  static Future<List<ProduitPackDetail>> getDetailsByPack(String nom) async {
+  /// Get ProduitPackDetail by Pack code
+  static Future<List<ProduitPackDetail>> getDetailsByPack(String code) async {
     final db = await DbCreator.openDb();
 
     final maps = await db.query(
       'produit_pack_detail',
-      where: 'pack_nom = ?',
-      whereArgs: [nom],
+      where: 'pack_code = ?',
+      whereArgs: [code],
     );
 
     return maps.map((e) => ProduitPackDetail.fromMap(e)).toList();

@@ -1,4 +1,5 @@
 import 'package:caisse_dz/Services/Fournisseur.dart' hide ApiResponse;
+import 'package:collection/collection.dart';
 import 'package:caisse_dz/data/constant.dart';
 import 'package:caisse_dz/data/models/histore.dart';
 import 'package:caisse_dz/l10n/app_localizations.dart';
@@ -193,7 +194,7 @@ Future<void> BesoinListModifier(BuildContext context, BesoinList header,) async 
 
   // ===== Charger Header =====
   selectedEtatR               = header.etat ? "Actif" : 'Inactif';
-  fournisseurSelected         = header.fournisseur;
+  fournisseurSelected         = fournisseursList.where((f) => f.code == header.fournisseurCode).firstOrNull?.nom;
 
   codeControllerB.text        = header.code;
   dateControllerB.text        = "${header.date.day}/${header.date.month}/${header.date.year}";
@@ -283,7 +284,7 @@ Future<void> BesoinListModifier(BuildContext context, BesoinList header,) async 
                           message: "Êtes-vous sûr de vouloir modifier cette Besoin Liste ?",
                           onConfirmer: () async {
                             header.date = DateFormat('dd/MM/yyyy').parse(dateControllerB.text);
-                            header.fournisseur          =   fournisseurSelected!;
+                            header.fournisseurCode      =   fournisseursList.firstWhere((f) => f.nom == fournisseurSelected!).code;
                             header.observation          =   observationControllerB.text;
                             header.etat = selectedEtatR == "Actif";
 
@@ -292,7 +293,7 @@ Future<void> BesoinListModifier(BuildContext context, BesoinList header,) async 
                             header.nombreArticle  = int.parse(nombreArticleControllerB.text);
 
                             header.dateModif  = DateTime.now();
-                            header.modifParCode   = userName;
+                            header.modifParCode   = userCode;
 
                             final response = await _UpdateBL(
                               details     : produitsBesoin,

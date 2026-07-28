@@ -32,10 +32,10 @@ class TransfertCaisseDataSource extends BaseTableDataSource<TransfertCaisse> {
         return t.code;
       case 'dateTransfert':
         return formatDate(t.dateTransfert);
-      case 'caisseExp':
-        return t.caisseExp;
-      case 'caisseDest':
-        return t.caisseDest;
+      case 'caisseExpCode':
+        return t.caisseExpCode;
+      case 'caisseDestCode':
+        return t.caisseDestCode;
       case 'montant':
         return "${t.montant} ${l10n.currency}";
       case 'etat':

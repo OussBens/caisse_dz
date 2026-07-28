@@ -78,8 +78,8 @@ Future<void> AnnulerTransfertCaisse(
                               child: Text(
                                 "${l10n.transferHash} #${t.id ?? '-'} "
                                     "- ${l10n.code}: ${t.code} "
-                                    "- ${l10n.from}: ${t.caisseExp} "
-                                    "- ${l10n.to}: ${t.caisseDest} "
+                                    "- ${l10n.from}: ${t.caisseExpCode} "
+                                    "- ${l10n.to}: ${t.caisseDestCode} "
                                     "- ${l10n.amount}: ${t.montant.toStringAsFixed(2)} ${l10n.currency} "
                                     "- ${l10n.date}: ${t.dateTransfert.toLocal().toString().split(' ')[0]}",
                                 style: Appstyle.textSB.copyWith(

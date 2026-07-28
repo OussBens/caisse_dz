@@ -35,6 +35,12 @@ Future<int> _GetNextHistoriqueId() async {
 List<Categorie> categoriesTest = [];
 List<SousCategorie> sousCategoriesTest = [];
 
+String _nomCategorie(int? id) =>
+    categoriesTest.where((c) => c.id == id).firstOrNull?.nom ?? '';
+
+String _nomSousCategorie(int? id) =>
+    sousCategoriesTest.where((sc) => sc.id == id).firstOrNull?.nom ?? '';
+
 Future<void> loadAllData() async {
   try {
     final cate = await CategorieServices.getAllCategorie();
@@ -53,7 +59,7 @@ Future<ApiResponse<int>> _updateProduit({
   required String userName,
   required String userCode,
 }) async {
-  if (sous.categorieNom != categorie.nom) {
+  if (sous.categorieCode != categorie.code) {
     return ApiResponse(
       success: false,
       message: "La sous-catégorie ne correspond pas à la catégorie choisie.",
@@ -67,14 +73,10 @@ Future<ApiResponse<int>> _updateProduit({
   ApiResponse<int>? lastResponse;
 
   for (var produit in produits) {
-    final oldSousCategorie = produit.sousCategorie;
-
-    produit.categorie = categorie.nom;
     produit.categorieId = categorie.id;
-    produit.sousCategorie = sous.nom;
     produit.sousCategorieId = sous.id;
     produit.dateModif = DateTime.now();
-    produit.modifParCode = userName;
+    produit.modifParCode = userCode;
     lastResponse = await services.updateProduit(produit);
 
     final db = await DbCreator.openDb();
@@ -115,7 +117,7 @@ Future<void> CategorieSousCategorieProduit(
   String? selectedSousCategorie = sousCategoriesTest.isNotEmpty ? sousCategoriesTest.first.nom : null;
   Categorie selectedcate = categoriesTest.first;
   SousCategorie selectedsous = sousCategoriesTest.firstWhere(
-        (sc) => sc.categorieNom == selectedcate.nom,
+        (sc) => sc.categorieCode == selectedcate.code,
     orElse: () => sousCategoriesTest.first,
   );
 
@@ -165,16 +167,16 @@ Future<void> CategorieSousCategorieProduit(
                                       style: Appstyle.textSB.copyWith(color: Appstyle.Tnoir),
                                     ),
                                   ),
-                                  if (p.categorie.toString().isNotEmpty)
+                                  if (_nomCategorie(p.categorieId).isNotEmpty)
                                     Text(
-                                      p.categorie,
+                                      _nomCategorie(p.categorieId),
                                       style: Appstyle.textSB.copyWith(color: Appstyle.violet),
                                     ),
-                                  if (p.categorie.toString().isNotEmpty)
+                                  if (_nomCategorie(p.categorieId).isNotEmpty)
                                     const SizedBox(width: 40),
-                                  if (p.sousCategorie.toString().isNotEmpty)
+                                  if (_nomSousCategorie(p.sousCategorieId).isNotEmpty)
                                     Text(
-                                      p.sousCategorie,
+                                      _nomSousCategorie(p.sousCategorieId),
                                       style: Appstyle.textSB.copyWith(color: Appstyle.violet),
                                     ),
                                 ],
@@ -196,7 +198,7 @@ Future<void> CategorieSousCategorieProduit(
                             selectedCategorie = v;
                             selectedcate = categoriesTest.firstWhere((r) => r.nom == v);
                             final sousPourCategorie = sousCategoriesTest
-                                .where((sc) => sc.categorieNom == v)
+                                .where((sc) => sc.categorieCode == selectedcate.code)
                                 .toList();
                             if (sousPourCategorie.isNotEmpty) {
                               selectedSousCategorie = sousPourCategorie.first.nom;
@@ -207,7 +209,7 @@ Future<void> CategorieSousCategorieProduit(
                                   nom: "",
                                   code: "",
                                   etat: false,
-                                  categorieNom: "",
+                                  categorieCode: "",
                                   id: 0,
                                   dateCree: DateTime.now(),
                                   creeParCode: '',
@@ -223,7 +225,7 @@ Future<void> CategorieSousCategorieProduit(
                       child: TextListe(
                         value: selectedSousCategorie,
                         items: sousCategoriesTest
-                            .where((sc) => sc.categorieNom == selectedCategorie)
+                            .where((sc) => sc.categorieCode == selectedcate.code)
                             .map((sc) => sc.nom)
                             .toList(),
                         onChanged: (v) {

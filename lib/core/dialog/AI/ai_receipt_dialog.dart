@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'package:collection/collection.dart';
 import 'package:caisse_dz/DBCreate.dart';
 import 'package:caisse_dz/Services/Fournisseur.dart';
 import 'package:caisse_dz/Services/Historique.dart';
@@ -82,6 +83,9 @@ class _AISmartScanDialogState extends State<AISmartScanDialog> {
   List<SmartScanProduit> validatedProducts = [];
   List<Produit> databaseProducts = [];
   List<Fournisseur> fournisseurs = [];
+
+  String _nomProduit(String code) =>
+      databaseProducts.firstWhereOrNull((p) => p.code == code)?.nom ?? code;
   String selectedSupplier = '';
   String selectedSupplierCode = '';
   DateTime? selectedDate;
@@ -258,7 +262,6 @@ class _AISmartScanDialogState extends State<AISmartScanDialog> {
           id: 0,
           codeSmartScan: '',
           codeProduit: product.code,
-          nomProduit: product.nom,
           quantite: item.quantity,
           prix: item.unitPrice,
           prixVente: prixVente, // ✅ Ajout du prix de vente
@@ -299,8 +302,6 @@ class _AISmartScanDialogState extends State<AISmartScanDialog> {
       dateCree: DateTime.now(),
       creeParcode: '',
       marque: '',
-      categorie: '',
-      sousCategorie: '',
       multicodebar: false,
       uniteMesure: '',
       seuilBool: false,
@@ -312,7 +313,6 @@ class _AISmartScanDialogState extends State<AISmartScanDialog> {
       categorieId: _getDefaultCategoryId(),
       sousCategorieId: 1,
       margeTaux: 0,
-      fournisseur: '',
     );
   }
 
@@ -1055,7 +1055,7 @@ class _AISmartScanDialogState extends State<AISmartScanDialog> {
     // ✅ Vérifier que le prix de vente est supérieur au prix d'achat pour chaque produit
     for (var produit in validatedProducts) {
       if (produit.prixVente <= produit.prix) {
-        _showError('Le prix de vente doit être supérieur au prix d\'achat pour ${produit.nomProduit}');
+        _showError('Le prix de vente doit être supérieur au prix d\'achat pour ${_nomProduit(produit.codeProduit)}');
         return;
       }
     }
@@ -1087,7 +1087,6 @@ class _AISmartScanDialogState extends State<AISmartScanDialog> {
         dateCree: DateTime.now(),
         activity: ListsConst.typeactivitySmartScan[1],
         nbrProduit: validatedProducts.length,
-        fournisseur: selectedSupplier,
         creeParCode: userCode,
         montantCalcul: totalAmount,
         fournisseurCode: selectedSupplierCode,
@@ -1109,7 +1108,7 @@ class _AISmartScanDialogState extends State<AISmartScanDialog> {
         fullProduct.prixAchat = product.prix;
         fullProduct.prixVente = product.prixVente; // ✅ Mettre à jour le prix de vente
         fullProduct.dateModif = DateTime.now();
-        fullProduct.modifParCode = userName;
+        fullProduct.modifParCode = userCode;
 
 
         final services = ProduitServices(db);
@@ -1119,7 +1118,6 @@ class _AISmartScanDialogState extends State<AISmartScanDialog> {
           id: 0,
           code: '',
           date: selectedDate ?? DateTime.now(),
-          nomProduit: product.nomProduit,
           codeProduit: product.codeProduit,
           quantite: product.quantite,
           prixAchat: product.prix,
@@ -1129,7 +1127,7 @@ class _AISmartScanDialogState extends State<AISmartScanDialog> {
           etat: true,
           dateCree: DateTime.now(),
           creeParCode: userCode,
-          fournisseur: selectedSupplier,
+          fournisseurCode: selectedSupplierCode,
         ));
       }
 
@@ -1192,7 +1190,7 @@ class _AISmartScanDialogState extends State<AISmartScanDialog> {
     return Produit(
       id: 0,
       code: product.codeProduit,
-      nom: product.nomProduit,
+      nom: _nomProduit(product.codeProduit),
       prixAchat: product.prix,
       prixVente: product.prixVente > product.prix ? product.prixVente : product.prix * 1.3,
       quantite: product.quantite,
@@ -1200,8 +1198,6 @@ class _AISmartScanDialogState extends State<AISmartScanDialog> {
        dateCree: DateTime.now(),
       creeParcode: '',
       marque: '',
-      categorie: '',
-      sousCategorie: '',
       multicodebar: false,
       uniteMesure: '',
       seuilBool: false,
@@ -1213,7 +1209,6 @@ class _AISmartScanDialogState extends State<AISmartScanDialog> {
       categorieId: _getDefaultCategoryId(),
       sousCategorieId: 1,
       margeTaux: 0,
-      fournisseur: '',
     );
   }
 

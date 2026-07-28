@@ -1,5 +1,6 @@
 import 'dart:io';
 import 'dart:ui';
+import 'package:collection/collection.dart';
 import 'package:caisse_dz/DBCreate.dart';
 import 'package:caisse_dz/Services/Categorie.dart' hide ApiResponse;
 import 'package:caisse_dz/Services/Fournisseur.dart' hide ApiResponse;
@@ -195,9 +196,7 @@ Future<void> _saveProduitPackDetailes({
 
   for (var pack in packs) {
     final ProduitPackDetail detail = ProduitPackDetail(
-      packNom: pack.nom,
       packCode: pack.code,
-      produitNom: produit.nom,
       produitCode: produit.code,
       dateCree: DateTime.now(),
       id: await _GetNextPackDetailId(),
@@ -462,6 +461,9 @@ String code = "";
 List<Fournisseur> fournisseursTest = [];
 List<Categorie> categoriesTest = [];
 List<SousCategorie> sousCategoriesTest = [];
+
+String? _codeCategorieByNom(String? nom) =>
+    nom == null ? null : categoriesTest.where((c) => c.nom == nom).firstOrNull?.code;
 List<Remise> remisesTest = [];
 List<Pack> packsTest = [];
 List<Magasin> magasinsTest = [];
@@ -519,7 +521,7 @@ String? selectedUnite;
 
 Color colorchamp = Appstyle.grisSC;
 Color colorchampenabled = Appstyle.grisC;
-
+String? selectedUniteDisplay;
 final GlobalKey<FormState> produitFormKey = GlobalKey<FormState>();
 void ajouterBarcode(void Function(VoidCallback fn) setState) {
   final code = multicodeController.text.trim();
@@ -729,13 +731,10 @@ Future<void> ProduitNouveau(BuildContext context) async {
                           codeBarre: codeController.text,
                           code: newCode,
                           numeroSerie: numserieController.text,
-                          fournisseur: selectedFournisseur!,
+                          fournisseurCode: fournisseursTest.firstWhereOrNull((f) => f.nom == selectedFournisseur)?.code,
                           categorieId: selectedCategorieid!,
                           sousCategorieId: selectedSousCategorieid!,
                           remiseId: remiseId ?? 0,
-                          categorie: selectedCategorie!,
-                          sousCategorie: selectedSousCategorie!,
-                          remise: selectedRemise,
                           multicodebar: multicodebar,
                           margeBool: merge,
                           margeTaux: toDouble(margeController),
@@ -850,7 +849,9 @@ Widget _buildFormRapide(
     BuildContext context,
     AppLocalizations l10n,
     ListsConstTranslator translator) {
-  selectedUnite = translator.uniteMesureDisplayList.first;
+  selectedUniteDisplay ??= translator.uniteMesureDisplayList.first;
+
+
   return Row(
     crossAxisAlignment: CrossAxisAlignment.start,
     children: [
@@ -965,7 +966,7 @@ Widget _buildFormRapide(
                         selectedSousCategorie = "";
                       } else {
                         final sousCats = sousCategoriesTest
-                            .where((sc) => sc.categorieNom == v)
+                            .where((sc) => sc.categorieCode == _codeCategorieByNom(v))
                             .toList();
 
                         if (sousCats.isNotEmpty) {
@@ -991,7 +992,7 @@ Widget _buildFormRapide(
                     builder: (_) {
                       return InsertionSousCategorieDialog(
                         sousCategories: sousCategoriesTest
-                            .where((sc) => sc.categorieNom == selectedCategorie)
+                            .where((sc) => sc.categorieCode == _codeCategorieByNom(selectedCategorie))
                             .toList(),
                         onSousCategorieSelected: (souscategorie) {
                           setState(() {
@@ -1007,7 +1008,7 @@ Widget _buildFormRapide(
                   obligatoire: true,
                   value: selectedSousCategorie,
                   items: sousCategoriesTest
-                      .where((sc) => sc.categorieNom == selectedCategorie)
+                      .where((sc) => sc.categorieCode == _codeCategorieByNom(selectedCategorie))
                       .map((sc) => sc.nom)
                       .toList(),
                   onChanged: (v) {
@@ -1118,14 +1119,14 @@ Widget _buildFormRapide(
               ChampAvecLabel(
                 label: l10n.unitOfMeasure,
                 obligatoire: true,
-                child: TextListe(
+                child:TextListe(
                   obligatoire: true,
-                  value: selectedUnite,
+                  value: selectedUniteDisplay,  // Changé ici
                   items: translator.uniteMesureDisplayList,
                   clearable: false,
                   onChanged: (v) {
                     setState(() {
-                      selectedUnite       = v;
+                      selectedUniteDisplay = v;  // Changé ici
                       selectedUnitemesure = translator.uniteMesureToFrench(v!);
                     });
                   },
@@ -1429,7 +1430,7 @@ Widget _buildFormDetaille(
                             selectedSousCategorie = "";
                           } else {
                             final sousCats = sousCategoriesTest
-                                .where((sc) => sc.categorieNom == v)
+                                .where((sc) => sc.categorieCode == _codeCategorieByNom(v))
                                 .toList();
 
                             if (sousCats.isNotEmpty) {
@@ -1455,7 +1456,7 @@ Widget _buildFormDetaille(
                         builder: (_) {
                           return InsertionSousCategorieDialog(
                             sousCategories: sousCategoriesTest
-                                .where((sc) => sc.categorieNom == selectedCategorie)
+                                .where((sc) => sc.categorieCode == _codeCategorieByNom(selectedCategorie))
                                 .toList(),
                             onSousCategorieSelected: (souscategorie) {
                               setState(() {
@@ -1471,7 +1472,7 @@ Widget _buildFormDetaille(
                       obligatoire: true,
                       value: selectedSousCategorie,
                       items: sousCategoriesTest
-                          .where((sc) => sc.categorieNom == selectedCategorie)
+                          .where((sc) => sc.categorieCode == _codeCategorieByNom(selectedCategorie))
                           .map((sc) => sc.nom)
                           .toList(),
                       onChanged: (v) {
@@ -1556,11 +1557,12 @@ Widget _buildFormDetaille(
                     obligatoire: true,
                     child: TextListe(
                       obligatoire: true,
-                      clearable: false,
-                      value: selectedUnitemesure,
+                      value: selectedUnite,
                       items: translator.uniteMesureDisplayList,
+                      clearable: false,
                       onChanged: (v) {
                         setState(() {
+                          selectedUnite       = v;
                           selectedUnitemesure = translator.uniteMesureToFrench(v!);
                         });
                       },

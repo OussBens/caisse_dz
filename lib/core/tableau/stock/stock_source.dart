@@ -3,6 +3,10 @@
 import 'package:flutter/material.dart';
 import 'package:syncfusion_flutter_datagrid/datagrid.dart';
 import '../../../../data/models/produit.dart';
+import '../../../../data/models/categorie.dart';
+import '../../../../data/models/sous_categorie.dart';
+import '../../../../data/models/remise.dart';
+import '../../../../data/models/fournisseur.dart';
 import '../../../data/constant.dart';
 import '../../../l10n/app_localizations.dart';
 import '../../widget/status_badge.dart';
@@ -10,12 +14,32 @@ import '../base_table_data_source.dart';
 
 class ProduitDataSource extends BaseTableDataSource<Produit> {
   final AppLocalizations l10n;
+  final List<Categorie> categories;
+  final List<SousCategorie> sousCategories;
+  final List<Remise> remises;
+  final List<Fournisseur> fournisseurs;
 
   ProduitDataSource({
     required List<Produit> produits,
     required super.columnConfig,
     required this.l10n,
+    required this.categories,
+    required this.sousCategories,
+    required this.remises,
+    required this.fournisseurs,
   }) : super(items: produits);
+
+  String _nomCategorie(int? id) =>
+      categories.where((c) => c.id == id).firstOrNull?.nom ?? '';
+
+  String _nomSousCategorie(int? id) =>
+      sousCategories.where((sc) => sc.id == id).firstOrNull?.nom ?? '';
+
+  String _nomRemise(int? id) =>
+      remises.where((r) => r.id == id).firstOrNull?.nom ?? '';
+
+  String _nomFournisseur(String? code) =>
+      fournisseurs.where((f) => f.code == code).firstOrNull?.nom ?? '';
 
   String formatDate(DateTime? date) {
     if (date == null) return '';
@@ -45,15 +69,15 @@ class ProduitDataSource extends BaseTableDataSource<Produit> {
       case 'numeroSerie':
         return produit.numeroSerie ?? '';
       case 'fournisseur':
-        return produit.fournisseur ?? '';
+        return _nomFournisseur(produit.fournisseurCode);
 
       // --- Catégorie ---
       case 'categorie':
-        return produit.categorie;
+        return _nomCategorie(produit.categorieId);
       case 'sousCategorie':
-        return produit.sousCategorie;
+        return _nomSousCategorie(produit.sousCategorieId);
       case 'remise':
-        return produit.remise ?? '';
+        return _nomRemise(produit.remiseId);
 
       // --- Bool ---
       case 'service':

@@ -1,4 +1,6 @@
+import 'package:caisse_dz/Services/Magasin.dart';
 import 'package:caisse_dz/l10n/app_localizations.dart';
+import 'package:collection/collection.dart';
 import 'package:flutter/material.dart';
 import '../../../data/models/gestion_caisse.dart';
 import 'package:caisse_dz/core/theme/app_style.dart';
@@ -11,6 +13,9 @@ Future<void> CaisseGestionDetail(
     CaisseGestion caisse,
     ) async {
   final l10n = AppLocalizations.of(context)!;
+  final magasins = await MagasinServices.getAllMagasins();
+  final nomMagasin = magasins.firstWhereOrNull((m) => m.code == caisse.magasinCode)?.nom
+      ?? caisse.magasinCode;
 
   return showDialog(
     context: context,
@@ -63,7 +68,7 @@ Future<void> CaisseGestionDetail(
 
             const SizedBox(height: 16),
 
-            _resumeCaisse(caisse, l10n),
+            _resumeCaisse(caisse, nomMagasin, l10n),
           ],
         ),
 
@@ -76,7 +81,7 @@ Future<void> CaisseGestionDetail(
               detailwrap([
                 detailinfo(l10n.cashRegisterName, caisse.nomCaisse),
                 detailinfo(l10n.code, caisse.code),
-                detailinfo(l10n.store, caisse.magasin),
+                detailinfo(l10n.store, nomMagasin),
                 detailinfo(l10n.type, caisse.typecaisse == "physique" ? l10n.physical : l10n.account),
                 detailinfo(l10n.status, caisse.etat ? l10n.active : l10n.inactive),
               ]),
@@ -138,7 +143,7 @@ Future<void> CaisseGestionDetail(
   );
 }
 
-Widget _resumeCaisse(CaisseGestion c, AppLocalizations l10n) {
+Widget _resumeCaisse(CaisseGestion c, String nomMagasin, AppLocalizations l10n) {
   return Container(
     decoration: BoxDecoration(
       color: Appstyle.violet.withOpacity(0.6),
@@ -152,7 +157,7 @@ Widget _resumeCaisse(CaisseGestion c, AppLocalizations l10n) {
           l10n.initialBalance,
           "${c.soldeInitial.toStringAsFixed(2)} ${l10n.currency}",
         ),
-        detailbadge(l10n.store, c.magasin),
+        detailbadge(l10n.store, nomMagasin),
         detailbadge(l10n.status, c.etat ? l10n.active : l10n.inactive),
       ],
     ),

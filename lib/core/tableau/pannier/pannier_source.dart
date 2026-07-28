@@ -45,7 +45,7 @@ class PannierDataSource extends BaseTableDataSource<Pannier> {
       case 'reste':
         return "${p.reste} ${l10n.currency}";
       case 'client':
-        return p.client;
+        return p.client_code;
       case 'modePaiement':
         return p.modePaiement ?? '';
       case 'montantAchat':
@@ -54,7 +54,7 @@ class PannierDataSource extends BaseTableDataSource<Pannier> {
         return "${p.marge} ${l10n.currency}";
 
       case 'caissier':
-        return p.caissier;
+        return p.caissier_code;
       case 'etat':
         return p.etat ? l10n.active : l10n.inactive;
       case 'observation':

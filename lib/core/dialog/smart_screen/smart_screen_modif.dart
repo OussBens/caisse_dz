@@ -1,4 +1,5 @@
 import 'dart:ui';
+import 'package:collection/collection.dart';
 import 'package:caisse_dz/Services/Mouvement.dart' hide ApiResponse;
 import 'package:caisse_dz/Services/Produits.dart' hide ApiResponse;
 import 'package:caisse_dz/core/dialog/confirmation_dialog.dart';
@@ -81,7 +82,7 @@ Future<ApiResponse<int>> UpdateSS({
     id: idh,
     code: 'HS$idh${DateTime.now().millisecondsSinceEpoch}',
     type: 'SmartScan',
-    desc: "l'utilisateur $userName a modife les information de Smart Scan de fournisseur ${smartscan.fournisseur}",
+    desc: "l'utilisateur $userName a modife les information de Smart Scan de fournisseur ${fournisseursTest.where((f) => f.code == smartscan.fournisseurCode).firstOrNull?.nom ?? smartscan.fournisseurCode}",
     oper: ListsConst.typeHisto[1],
     dateCree: DateTime.now(),
     creeParCode: userCode,
@@ -93,19 +94,19 @@ Future<ApiResponse<int>> UpdateSS({
 
     if (!exists) {
       await servicep.deleteSmartScanProduit(oldProd.id);
-      Produit prod = Produitse.where((e) => e.nom == oldProd.nomProduit).first;
+      Produit prod = Produitse.where((e) => e.code == oldProd.codeProduit).first;
       prod.quantite = prod.quantite - oldProd.quantite;
       prod.dateModif = DateTime.now();
-      prod.modifParCode = userName;
+      prod.modifParCode = userCode;
       await serviceP.updateProduit(prod);
-      await MouvementsServices.deleteMouvement(mouv.where((e) => e.nomProduit == oldProd.nomProduit).first.id);
+      await MouvementsServices.deleteMouvement(mouv.where((e) => e.codeProduit == oldProd.codeProduit).first.id);
       int idh = await _GetNextHistoriqueId();
       await serviceh.addHistorique(
         Historique(
           id: idh,
           code: 'HS$idh${DateTime.now().millisecondsSinceEpoch}',
           type: 'SmartScanProduit',
-          desc: "l'utilisateur $userName a supprimé le SmartScanProduit ${oldProd.nomProduit} de SmartScan ${oldProd.codeSmartScan}",
+          desc: "l'utilisateur $userName a supprimé le SmartScanProduit ${Produitse.where((e) => e.code == oldProd.codeProduit).firstOrNull?.nom ?? oldProd.codeProduit} de SmartScan ${oldProd.codeSmartScan}",
           oper: ListsConst.typeHisto[1],
           dateCree: DateTime.now(),
           creeParCode: userCode,
@@ -123,7 +124,6 @@ Future<ApiResponse<int>> UpdateSS({
           id: id,
           code: "MV$id${DateTime.now().millisecondsSinceEpoch}",
           date: smartscan.date,
-          nomProduit: newProd.nomProduit,
           codeProduit: newProd.codeProduit,
           quantite: newProd.quantite,
           prixAchat: newProd.prix,
@@ -142,7 +142,7 @@ Future<ApiResponse<int>> UpdateSS({
           id: idh,
           code: 'HS$idh${DateTime.now().millisecondsSinceEpoch}',
           type: 'SmartScanProduit',
-          desc: "l'utilisateur $userName a ajouté le SmartScanProduit ${newProd.nomProduit} de SmartScan ${newProd.codeSmartScan}",
+          desc: "l'utilisateur $userName a ajouté le SmartScanProduit ${Produitse.where((e) => e.code == newProd.codeProduit).firstOrNull?.nom ?? newProd.codeProduit} de SmartScan ${newProd.codeSmartScan}",
           oper: ListsConst.typeHisto[0],
           dateCree: DateTime.now(),
           creeParCode: userCode,
@@ -160,16 +160,16 @@ Future<ApiResponse<int>> UpdateSS({
         oldProd.total != newProd.total;
 
     if (isModified) {
-      Mouvement mouve = mouv.where((f) => f.nomProduit == newProd.nomProduit).first;
+      Mouvement mouve = mouv.where((f) => f.codeProduit == newProd.codeProduit).first;
       mouve.prixAchat = newProd.prix;
       mouve.quantite = newProd.quantite;
-      mouve.modifParCode = userName;
+      mouve.modifParCode = userCode;
       mouve.dateModif = DateTime.now();
 
       if (oldProd.prix != newProd.prix) {
-        Produit prod = Produitse.where((e) => e.nom == newProd.nomProduit).first;
+        Produit prod = Produitse.where((e) => e.code == newProd.codeProduit).first;
         prod.prixAchat = newProd.prix;
-        prod.modifParCode = userName;
+        prod.modifParCode = userCode;
         prod.dateModif = DateTime.now();
         await serviceP.updateProduit(prod);
 
@@ -187,9 +187,9 @@ Future<ApiResponse<int>> UpdateSS({
         );
       }
       if (oldProd.quantite != newProd.quantite) {
-        Produit prod = Produitse.where((e) => e.nom == newProd.nomProduit).first;
+        Produit prod = Produitse.where((e) => e.code == newProd.codeProduit).first;
         prod.quantite = (newProd.quantite - oldProd.quantite) + prod.quantite;
-        prod.modifParCode = userName;
+        prod.modifParCode = userCode;
         prod.dateModif = DateTime.now();
         await serviceP.updateProduit(prod);
 
@@ -214,7 +214,7 @@ Future<ApiResponse<int>> UpdateSS({
           id: idh,
           code: 'HS$idh${DateTime.now().millisecondsSinceEpoch}',
           type: 'SmartScanProduit',
-          desc: "l'utilisateur $userName a modifié Le SmartScanProduit ${newProd.nomProduit} de SmartScan ${newProd.codeSmartScan} "
+          desc: "l'utilisateur $userName a modifié Le SmartScanProduit ${Produitse.where((e) => e.code == newProd.codeProduit).firstOrNull?.nom ?? newProd.codeProduit} de SmartScan ${newProd.codeSmartScan} "
               "(Qté: ${oldProd.quantite} → ${newProd.quantite}, "
               "Prix: ${oldProd.prix} → ${newProd.prix})",
           oper: ListsConst.typeHisto[1],
@@ -249,10 +249,16 @@ bool hasEcart(SmartScan scan, List<SmartScanProduit> produits) {
       scan.montant != montantCalcul;
 }
 
+List<Produit> produitsCatalogue = [];
+
+String _nomProduitCatalogue(String code) =>
+    produitsCatalogue.where((p) => p.code == code).firstOrNull?.nom ?? code;
+
 Future<void> _LoadAllData({required SmartScan smartscan}) async {
   smartscanProduitsTest = await SmartScanProduitServices.getSmartScanProduitByCode(smartscan.code);
   fournisseursTest = await FournisseurServices.getAllFournisseurs();
   Mouvments = await MouvementsServices.getAllMouvementsByCodeOper(smartscan.code);
+  produitsCatalogue = await ProduitServices.getAllProduits();
 }
 
 String? selectedEtat;
@@ -280,7 +286,7 @@ Future<void> SmartScanModif(
 
   selectedEtat = scan.etat ? l10n.active : l10n.inactive;
   String fourCode = scan.fournisseurCode;
-  selectedFournisseur = scan.fournisseur;
+  selectedFournisseur = fournisseursTest.where((f) => f.code == fourCode).firstOrNull?.nom;
 
   return showDialog(
     context: context,
@@ -494,7 +500,7 @@ Future<void> SmartScanModif(
 
                                     return DataRow(cells: [
                                       DataCell(Text(p.codeProduit)),
-                                      DataCell(Text(p.nomProduit)),
+                                      DataCell(Text(_nomProduitCatalogue(p.codeProduit))),
                                       DataCell(
                                         SizedBox(
                                           width: 60,
@@ -565,7 +571,6 @@ Future<void> SmartScanModif(
 
                           scan.date = DateTime.parse(smartDateController.text);
                           scan.observation = observationController.text;
-                          scan.fournisseur = selectedFournisseur!;
                           scan.etat = selectedEtat == l10n.active;
                           scan.fournisseurCode = fourCode;
 

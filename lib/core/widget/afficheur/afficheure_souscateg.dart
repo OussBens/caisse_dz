@@ -83,26 +83,24 @@ class AfficheurSousCategorie extends StatelessWidget {
                     style: TextStyle(color: Colors.grey.shade600),
                   ),
                 ],
-                if (sousCategorie.categorieNom != null) ...[
-                  const SizedBox(height: 4),
-                  Row(
-                    children: [
-                      const Icon(
-                        Icons.category,
-                        size: 14,
-                        color: Colors.grey,
+                const SizedBox(height: 4),
+                Row(
+                  children: [
+                    const Icon(
+                      Icons.category,
+                      size: 14,
+                      color: Colors.grey,
+                    ),
+                    const SizedBox(width: 6),
+                    Text(
+                      sousCategorie.categorieCode,
+                      style: TextStyle(
+                        color: Appstyle.blueF,
+                        fontWeight: FontWeight.w500,
                       ),
-                      const SizedBox(width: 6),
-                      Text(
-                        sousCategorie.categorieNom!,
-                        style: TextStyle(
-                          color: Appstyle.blueF,
-                          fontWeight: FontWeight.w500,
-                        ),
-                      ),
-                    ],
-                  ),
-                ],
+                    ),
+                  ],
+                ),
               ],
             ),
           ),
@@ -209,7 +207,7 @@ class AfficheurSousCategorie extends StatelessWidget {
       final service = ProduitServices(db);
 
       // Récupérer les produits par sous-catégorie
-      final products = await service.getProduitsBySousCategorie(sousCategorie.nom);
+      final products = await service.getProduitsBySousCategorieId(sousCategorie.id);
 
       if (products.isEmpty) {
         showDialog(

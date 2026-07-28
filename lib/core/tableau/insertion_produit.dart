@@ -38,7 +38,6 @@ class _InsertionProduitDialogState extends State<InsertionProduitDialog> {
   bool affichageCard = true;
   String searchText = "";
   final TextEditingController _searchController = TextEditingController();
-  String selectedSousCategorie = "";
   final ScrollController _scrollController = ScrollController();
 
   // Liste locale des produits
@@ -68,13 +67,10 @@ class _InsertionProduitDialogState extends State<InsertionProduitDialog> {
     final l10n = AppLocalizations.of(context)!;
 
     final produitsFiltres = produitsLocale.where((p) {
-      final sousCategorieOk = selectedSousCategorie.isEmpty
-          ? true
-          : p.sousCategorie == selectedSousCategorie;
       final rechercheOk = searchText.isEmpty
           ? true
           : p.nom != null && p.nom!.toLowerCase().contains(searchText);
-      return sousCategorieOk && rechercheOk;
+      return rechercheOk;
     }).toList();
 
     return BaseDialog(
@@ -181,7 +177,7 @@ class _InsertionProduitDialogState extends State<InsertionProduitDialog> {
                       return CardProduct(
                         couleur: Appstyle.Tblanc,
                         iconPath: 'assets/icons/sidebar/produit_icon.png',
-                        remise: p.remise,
+                        hasRemise: p.remiseId != null,
                         text1: p.nom ?? "",
                         text2: "${p.prixAchat} ${l10n.currency}",
                         quantite: p.quantite ?? 0,

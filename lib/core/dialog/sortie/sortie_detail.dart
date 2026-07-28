@@ -3,11 +3,29 @@ import 'package:caisse_dz/l10n/app_localizations.dart';
 import 'package:flutter/material.dart';
 import 'package:caisse_dz/core/theme/app_style.dart';
 import '../../../data/models/sortie.dart';
+import '../../../data/models/produit.dart';
+import '../../../data/models/categorie.dart';
+import '../../../data/models/sous_categorie.dart';
 import '../../widget/detail_widget.dart';
 import '../../widget/section_decoration.dart';
 import '../base_dialog.dart';
 
-Future<void> SortieDetail(BuildContext context, Sortie sortie) async {
+Future<void> SortieDetail(
+    BuildContext context,
+    Sortie sortie, {
+      required List<Produit> produits,
+      required List<Categorie> categories,
+      required List<SousCategorie> sousCategories,
+    }) async {
+  final nomProduit = produits.where((p) => p.code == sortie.produitCode).firstOrNull?.nom
+      ?? sortie.produitCode;
+  final nomCategorie = sortie.categorieCode == null
+      ? null
+      : categories.where((c) => c.code == sortie.categorieCode).firstOrNull?.nom ?? sortie.categorieCode;
+  final nomSousCategorie = sortie.sousCategorieCode == null
+      ? null
+      : sousCategories.where((sc) => sc.code == sortie.sousCategorieCode).firstOrNull?.nom ?? sortie.sousCategorieCode;
+
   return showDialog(
     context: context,
     barrierDismissible: true,
@@ -35,7 +53,7 @@ Future<void> SortieDetail(BuildContext context, Sortie sortie) async {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      sortie.produit,
+                      nomProduit,
                       style: Appstyle.textLB.copyWith(fontSize: 20),
                     ),
                     Text(
@@ -72,8 +90,8 @@ Future<void> SortieDetail(BuildContext context, Sortie sortie) async {
                 icon: Icons.info_outline,
                 child: detailwrap([
                   detailinfo(l10n.type, sortie.type),
-                  detailinfo(l10n.category, sortie.categorie),
-                  detailinfo(l10n.subcategory, sortie.souscategorie),
+                  detailinfo(l10n.category, nomCategorie),
+                  detailinfo(l10n.subcategory, nomSousCategorie),
                   detailinfo(l10n.status, sortie.etat ? l10n.active : l10n.inactive),
                 ]),
               ),
@@ -82,7 +100,7 @@ Future<void> SortieDetail(BuildContext context, Sortie sortie) async {
                 title: l10n.product,
                 icon: Icons.image,
                 child: detailwrap([
-                  detailinfo(l10n.productName, sortie.produit),
+                  detailinfo(l10n.productName, nomProduit),
                   detailinfo(l10n.quantity, sortie.quantite),
                   detailinfo(l10n.unitPrice, "${sortie.prix.toStringAsFixed(2)} ${l10n.currency}"),
                   detailinfo(l10n.amount, "${sortie.montant.toStringAsFixed(2)} ${l10n.currency}"),

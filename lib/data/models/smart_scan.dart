@@ -11,7 +11,6 @@ class SmartScan {
   double quantiteArticle;
   double quantiteArticleCalcul;
   bool ecart;
-  String fournisseur;
   String fournisseurCode;
   bool etat;
   String activity;
@@ -36,7 +35,6 @@ class SmartScan {
     required this.montantCalcul,
     required this.quantiteArticleCalcul,
     required this.nbrProduitCalcul,
-    required this.fournisseur,
     required this.etat,
     required this.dateCree,
     required this.activity,
@@ -68,7 +66,6 @@ class SmartScan {
       quantiteArticleCalcul: _toDouble(map['quantite_article_calcul']),
       dateCree: DateTime.parse(map['date_cree']),
       activity: map['activity'],
-      fournisseur: map['fournisseur'],
       creeParCode: map['cree_par_code'],
       observation: map['observation'],
       fournisseurCode: map['fournisseur_code'],
@@ -97,7 +94,6 @@ class SmartScan {
       'quantite_article_calcul': quantiteArticleCalcul,
       'activity': activity,
       'date_cree': dateCree.toIso8601String(),
-      'fournisseur': fournisseur,
       'observation': observation,
       'cree_par_code': creeParCode,
       'fournisseur_code': fournisseurCode,

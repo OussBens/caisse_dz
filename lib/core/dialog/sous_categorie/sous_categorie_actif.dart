@@ -45,7 +45,7 @@ Future<void> DeleteSousCategorie({
   final serviceh = HistoriqueServices(db);
 
   for (var sous in souscategorie) {
-    produits = await servicep.getProduitsBySousCategorie(sous.nom);
+    produits = await servicep.getProduitsBySousCategorieId(sous.id);
 
     final int idH = await _GetNextHistoriqueId();
 
@@ -61,11 +61,9 @@ Future<void> DeleteSousCategorie({
     await serviceh.addHistorique(histo);
 
     for (var produit in produits) {
-      produit.sousCategorie = defaultSousCategorie;
       produit.sousCategorieId = defaultSousCategorieId;
-      produit.categorie = defaultCategorie;
       produit.categorieId = defaultCategorieId;
-      produit.modifParCode = userName;
+      produit.modifParCode = userCode;
       produit.dateModif = DateTime.now();
 
       await servicep.updateProduit(produit);
@@ -148,7 +146,7 @@ Future<void> AnnulerSousCategorie(
                                 borderRadius: BorderRadius.circular(8),
                               ),
                               child: Text(
-                                  "${sc.nom} (${l10n.category}: ${sc.categorieNom})",
+                                  "${sc.nom} (${l10n.category}: ${sc.categorieCode})",
                                   style: Appstyle.textSB.copyWith(color: Appstyle.Tnoir)
                               ),
                             ),

@@ -88,7 +88,9 @@ Future<void> VersementModifRetour(
   smartDateController.text = "${versement.date.day}-${versement.date.month}-${versement.date.year}";
   selectedCaisse = versement.caisse;
   selectedTypeV = typeInitial ?? versement.typebeneficiare;
-  selectedBeneficiaireV = versement.beneficiare;
+  selectedBeneficiaireV = selectedTypeV == "Client"
+      ? _clientsTest.firstWhere((c) => c.code == versement.beneficiareCode, orElse: () => _clientsTest.first).nom
+      : _fournisseursTest.firstWhere((f) => f.code == versement.beneficiareCode, orElse: () => _fournisseursTest.first).nom;
   selectedEtatV = versement.etat ? l10n.validated : l10n.cancelled;
   selectedModePaiement = versement.mode_paiement;
   selectedType = versement.type ?? "";
@@ -356,10 +358,12 @@ Future<void> VersementModifRetour(
                             Verssement updatedVerssement = Verssement(
                               typebeneficiare: selectedTypeV!,
                               mode_paiement: selectedModePaiement,
-                              beneficiare: selectedBeneficiaireV!,
+                              beneficiareCode: selectedTypeV == "Client"
+                                  ? _clientsTest.firstWhere((c) => c.nom == selectedBeneficiaireV!).code
+                                  : _fournisseursTest.firstWhere((f) => f.nom == selectedBeneficiaireV!).code,
                               dateModif: DateTime.now(),
                               dateCree: versement.dateCree,
-                              modifParCode: userName,
+                              modifParCode: userCode,
                               montant: double.parse(montantControllerV.text),
                               sense: versement.sense,
                               etat: selectedEtatV == l10n.validated,

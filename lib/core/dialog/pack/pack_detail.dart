@@ -1,4 +1,7 @@
 import 'package:caisse_dz/Services/PackDetailes.dart';
+import 'package:caisse_dz/Services/Produits.dart';
+import 'package:collection/collection.dart';
+import 'package:caisse_dz/data/models/produit.dart';
 import 'package:caisse_dz/data/models/produit_pack_detail.dart';
 import 'package:caisse_dz/l10n/app_localizations.dart';
 import 'package:flutter/material.dart';
@@ -9,11 +12,16 @@ import '../../widget/section_decoration.dart';
 import '../base_dialog.dart';
 
 List<ProduitPackDetail> produitPackDetailsTest = [];
+List<Produit> produitsTest = [];
 
 Future<void> _LoadAllData({required Pack pack}) async {
-  final result = await ProduitPackDetailServices.getDetailsByPackNom(pack.nom);
+  final result = await ProduitPackDetailServices.getDetailsByPackNom(pack.code);
   produitPackDetailsTest = result;
+  produitsTest = await ProduitServices.getAllProduits();
 }
+
+String _nomProduit(String code) =>
+    produitsTest.firstWhereOrNull((p) => p.code == code)?.nom ?? code;
 
 Future<void> PackDetail(BuildContext context, Pack pack) async {
   await _LoadAllData(pack: pack);
@@ -319,7 +327,7 @@ Widget _dialogListeProduitsPack(BuildContext context, Pack pack, AppLocalization
                 return DataRow(
                   cells: [
                     DataCell(Text(p.produitCode, style: Appstyle.textSB)),
-                    DataCell(Text(p.produitNom, style: Appstyle.textSB)),
+                    DataCell(Text(_nomProduit(p.produitCode), style: Appstyle.textSB)),
                     DataCell(
                       Container(
                         padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
@@ -496,7 +504,7 @@ Future<void> showPackProductsListDialog(BuildContext context, Pack pack, AppLoca
                     return DataRow(
                       cells: [
                         DataCell(Text(p.produitCode, style: Appstyle.textSB)),
-                        DataCell(Text(p.produitNom, style: Appstyle.textSB)),
+                        DataCell(Text(p.produitCode, style: Appstyle.textSB)),
                         DataCell(
                           Container(
                             padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),

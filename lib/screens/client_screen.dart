@@ -1,6 +1,7 @@
 
 import 'dart:io';
 
+import 'package:collection/collection.dart';
 import 'package:caisse_dz/Services/Client.dart';
 import 'package:caisse_dz/Services/ExcelPreviewDialog.dart';
 import 'package:caisse_dz/Services/Pannier.dart';
@@ -271,7 +272,7 @@ class _ClientScreenState extends State<ClientScreen> with TickerProviderStateMix
       final search = _searchControllerVers.text.toLowerCase();
       final clientOk = clientFilterVersment == null ||
           clientFilterVersment!.isEmpty ||
-          c.beneficiare == clientFilterVersment;
+          clientsTest.any((cl) => cl.code == c.beneficiareCode && cl.nom == clientFilterVersment);
       final modeOk = modepaiementFilter == null ||
           modepaiementFilter!.isEmpty ||
           c.mode_paiement == modepaiementFilter;
@@ -1168,7 +1169,7 @@ class _ClientScreenState extends State<ClientScreen> with TickerProviderStateMix
                                             ),
                                             SizedBox(height: 8),
                                             Text(
-                                              "${l10n.client}: ${verssementClientsSelectionnes.first.beneficiare}",
+                                              "${l10n.client}: ${clientsTest.where((cl) => cl.code == verssementClientsSelectionnes.first.beneficiareCode).firstOrNull?.nom ?? verssementClientsSelectionnes.first.beneficiareCode}",
                                               style: Appstyle.textS.copyWith(color: Appstyle.TgrisC),
                                             ),
                                             Text(

@@ -399,7 +399,7 @@ class _ZakatScreenState extends State<ZakatScreen> with TickerProviderStateMixin
       Taux: double.parse(tauxZakatController.text),
       creeParCode: paramZakat.creeParCode,
       dateCree: paramZakat.dateCree,
-      modifParCode: UserName,
+      modifParCode: UserCode,
       dateModif: DateTime.now(),
     );
 

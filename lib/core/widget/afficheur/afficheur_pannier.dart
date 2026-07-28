@@ -60,7 +60,7 @@ class AfficheurPanier extends StatelessWidget {
                   style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                 ),
                 const SizedBox(height: 4),
-                Text("${l10n.client} : ${pannier.client}",
+                Text("${l10n.client} : ${pannier.client_code ?? ""}",
                     style: TextStyle(color: Colors.grey.shade700)),
                 const SizedBox(height: 6),
                 _etatBadge(l10n),
@@ -89,7 +89,7 @@ class AfficheurPanier extends StatelessWidget {
               children: [
                 _infoLine(Icons.calendar_today, "${l10n.date} : $date"),
                 _infoLine(Icons.access_time, "${l10n.time} : $heure"),
-                _infoLine(Icons.person, "${l10n.caissier} : ${pannier.caissier ?? ""}"),
+                _infoLine(Icons.person, "${l10n.caissier} : ${pannier.caissier_code}"),
               ],
             ),
           ),

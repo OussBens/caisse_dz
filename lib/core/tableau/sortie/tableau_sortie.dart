@@ -2,6 +2,9 @@ import 'package:caisse_dz/core/dialog/sortie/sortie_detail.dart';
 import 'package:caisse_dz/core/theme/app_style.dart';
 import 'package:caisse_dz/core/widget/button/main_button.dart';
 import 'package:caisse_dz/data/models/sortie.dart';
+import 'package:caisse_dz/data/models/produit.dart';
+import 'package:caisse_dz/data/models/categorie.dart';
+import 'package:caisse_dz/data/models/sous_categorie.dart';
 import 'package:caisse_dz/l10n/app_localizations.dart';
 import 'package:flutter/material.dart';
 import 'package:syncfusion_flutter_core/theme.dart';
@@ -11,11 +14,17 @@ import 'sortie_source.dart';
 
 class TableauSortieAdvanced extends StatefulWidget {
   final List<Sortie> sorties;
+  final List<Produit> produits;
+  final List<Categorie> categories;
+  final List<SousCategorie> sousCategories;
   final void Function(List<Sortie>)? onSelectionChanged;
 
   const TableauSortieAdvanced({
     super.key,
     required this.sorties,
+    required this.produits,
+    required this.categories,
+    required this.sousCategories,
     this.onSelectionChanged,
   });
 
@@ -89,6 +98,9 @@ class _TableauSortieAdvancedState extends State<TableauSortieAdvanced> {
       sorties: paginatedData,
       columnConfig: columnVisibility,
       l10n: l10n,
+      produits: widget.produits,
+      categories: widget.categories,
+      sousCategories: widget.sousCategories,
     );
 
     dataSource.addListener(() {
@@ -158,7 +170,13 @@ class _TableauSortieAdvancedState extends State<TableauSortieAdvanced> {
               if (details.rowColumnIndex.rowIndex <= 0) return;
               final rowIndex = details.rowColumnIndex.rowIndex - 1;
               final Sortie sortie = paginatedData[rowIndex];
-              SortieDetail(context, sortie);
+              SortieDetail(
+                context,
+                sortie,
+                produits: widget.produits,
+                categories: widget.categories,
+                sousCategories: widget.sousCategories,
+              );
             },
             onColumnResizeUpdate: (details) {
               double w = details.width.clamp(120, 800);

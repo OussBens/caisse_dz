@@ -146,11 +146,11 @@ class _GestionCaisseScreenState extends State<GestionCaisseScreen> with TickerPr
       transfertsfiltre = transferts.where((p) {
         final caissesource = selectedCaisseSourceFilter == null ||
             selectedCaisseSourceFilter!.isEmpty ||
-            p.caisseExp == selectedCaisseSourceFilter;
+            caisses.any((c) => c.code == p.caisseExpCode && c.nomCaisse == selectedCaisseSourceFilter);
 
         final caissedestina = selectedCaisseDestinaFilter == null ||
             selectedCaisseDestinaFilter!.isEmpty ||
-            p.caisseDest == selectedCaisseDestinaFilter;
+            caisses.any((c) => c.code == p.caisseDestCode && c.nomCaisse == selectedCaisseDestinaFilter);
 
         final searchOk = searchText.isEmpty || p.searchableText.contains(searchText);
 

@@ -35,7 +35,7 @@ class CaisseGestionDataSource extends BaseTableDataSource<CaisseGestion> {
       case 'nomCaisse':
         return caisse.nomCaisse;
       case 'magasin':
-        return caisse.magasin;
+        return caisse.magasinCode;
       case 'type':
         return caisse.typecaisse;
       case 'soldeInitial':

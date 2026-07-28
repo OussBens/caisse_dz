@@ -1,9 +1,15 @@
 import 'dart:io';
+import 'package:caisse_dz/DBCreate.dart';
+import 'package:caisse_dz/Services/Categorie.dart';
 import 'package:caisse_dz/Services/Magasin.dart';
 import 'package:caisse_dz/Services/MagasinDetail.dart';
+import 'package:caisse_dz/Services/Pack.dart';
 import 'package:caisse_dz/Services/PackDetailes.dart';
 import 'package:caisse_dz/Services/Produits.dart';
+import 'package:caisse_dz/Services/Remise.dart';
+import 'package:caisse_dz/Services/SousCategories.dart';
 import 'package:caisse_dz/data/models/magasin.dart';
+import 'package:caisse_dz/data/models/pack.dart';
 import 'package:caisse_dz/data/models/produit_magasin_detail.dart';
 import 'package:caisse_dz/data/models/produit_pack_detail.dart';
 import 'package:caisse_dz/l10n/app_localizations.dart';
@@ -19,15 +25,27 @@ import '../base_dialog.dart';
 List<ProduitPackDetail> produitPackDetailsTest = [];
 List<ProduitMagasinDetail> produitsMagasinsTest = [];
 List<Magasin> magasinsTest = [];
+List<Pack> packsTest = [];
+String? categorieNomTest;
+String? sousCategorieNomTest;
+String? remiseNomTest;
 
 Future<void> loadAllData({required Produit prd}) async {
   try {
     final magasintest = await ProduitMagasinDetailServices.getDetailsByCode(prd.code);
-    final packtest = await ProduitPackDetailServices.getDetailsByNom(prd.nom);
+    final packtest = await ProduitPackDetailServices.getDetailsByNom(prd.code);
     final magasins = await MagasinServices.getAllMagasins();
     produitsMagasinsTest = magasintest;
     produitPackDetailsTest = packtest;
     magasinsTest = magasins;
+    packsTest = await PackServices.getAllPacks();
+
+    final db = await DbCreator.openDb();
+    categorieNomTest = (await CategorieServices(db).getCategorieById(prd.categorieId))?.nom;
+    sousCategorieNomTest = (await SousCategoriesServices(db).getSousCategorieById(prd.sousCategorieId))?.nom;
+    remiseNomTest = prd.remiseId != null
+        ? (await RemiseServices(db).getRemiseById(prd.remiseId!))?.nom
+        : null;
   } catch (e) {
     debugPrint("Erreur chargement : $e");
   }
@@ -99,13 +117,13 @@ Future<void> ProduitDetail(BuildContext context, Produit produit) async {
                       icon: Icons.info_outline,
                       child: detailwrap([
                         detailinfo(l10n.brand, produit.marque),
-                        detailinfo(l10n.category, produit.categorie),
-                        detailinfo(l10n.subcategory, produit.sousCategorie),
+                        detailinfo(l10n.category, categorieNomTest),
+                        detailinfo(l10n.subcategory, sousCategorieNomTest),
                         detailinfo(l10n.barcode, produit.codeBarre),
                         detailinfo(l10n.serialNumber, produit.numeroSerie),
                         detailinfo(l10n.multicode, produit.multicodebar ? l10n.yes : l10n.no),
                         detailinfo(l10n.service, produit.service ? l10n.yes : l10n.no),
-                        detailinfo(l10n.discount, produit.remise),
+                        detailinfo(l10n.discount, remiseNomTest),
                       ]),
                     ),
                   ),
@@ -500,7 +518,7 @@ Widget _affichagePacks(Produit produit, AppLocalizations l10n) {
     children: packsProduit.map((r) {
       return Chip(
         label: Text(
-          r.packNom,
+          packsTest.firstWhereOrNull((p) => p.code == r.packCode)?.nom ?? r.packCode,
           style: Appstyle.textSB.copyWith(color: Appstyle.Tblanc),
         ),
         backgroundColor: Appstyle.violet.withOpacity(0.8),

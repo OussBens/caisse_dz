@@ -178,7 +178,6 @@ Future<ApiResponse<int>> _SavePannier ({
       total       : produit.montant,
       creeLe      : DateTime.now(),
       quantite    : quantiteReelle,
-      nomProduit  : produit.nom,
       codeProduit : produit.code,
       codePannier : pannier.code,
       creeParCode : userCode,
@@ -194,7 +193,7 @@ Future<ApiResponse<int>> _SavePannier ({
           id: idh,
         ),
         type        : "pannierProduit",
-        desc        : "L'utilisateur $userName a Ajoutee le Produit ${prod.nomProduit} au Pannier ${pannier.code}",
+        desc        : "L'utilisateur $userName a Ajoutee le Produit ${produit.nom} au Pannier ${pannier.code}",
         oper        : ListsConst.typeHisto[0],
         dateCree    : DateTime.now(),
         creeParCode : userCode
@@ -213,9 +212,8 @@ Future<ApiResponse<int>> _SavePannier ({
       etat          : true,
       dateCree      : DateTime.now(),
       quantite      : quantiteReelle,
-      prixAchat     : Produitse.where((e) => e.nom == prod.nomProduit).first.prixAchat,
+      prixAchat     : Produitse.where((e) => e.code == prod.codeProduit).first.prixAchat,
       prixVente     : prod.prix,
-      nomProduit    : prod.nomProduit,
       codeProduit   : prod.codeProduit,
       creeParCode   : userCode,
       codeOperation : pannier.code,
@@ -223,10 +221,10 @@ Future<ApiResponse<int>> _SavePannier ({
 
     await servicem.addMouvement(Mouv);
 
-    Produite = Produitse.where((e) => e.nom == prod.nomProduit).first;
+    Produite = Produitse.where((e) => e.code == prod.codeProduit).first;
     Produite.quantite   = Produite.quantite   - quantiteReelle;
     Produite.dateModif  = DateTime.now();
-    Produite.modifParCode   = userName;
+    Produite.modifParCode   = userCode;
     await serviceP.updateProduit(Produite);
 
     idh = await _GetNextHistoriqueId();
@@ -246,7 +244,7 @@ Future<ApiResponse<int>> _SavePannier ({
   }
 
   client.dernierAchat = DateTime.now();
-  client.modifParCode     = userName;
+  client.modifParCode     = userCode;
 
   await serviceC.updateClient(client);
 
@@ -262,7 +260,7 @@ Future<ApiResponse<int>> _SavePannier ({
       ),
       date: DateTime.now(),
       typebeneficiare: "Client",
-      beneficiare: client.nom,
+      beneficiareCode: client.code,
       montant: montant,
       etat: true,
       mode_paiement: pannier.modePaiement!,
@@ -631,10 +629,8 @@ Future<void> EncaissementBLSCDialog({
                             date: caisse.date,
                             verse: verse,
                             reste: double.parse(resteController.text),
-                            client: caisse.client,
                             client_code: client.code,
                             montant: caisse.total,
-                            caissier: userName,
                             dateCree: DateTime.now(),
                             caisse_code: Ccode,
                             typepannier: ListsConst.typePannier[1],

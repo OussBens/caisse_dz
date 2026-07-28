@@ -119,7 +119,7 @@ Future<void> AnnulerCaisseGestion(
                                 "${l10n.cashRegisterNumber(c.id)} "
                                     "- ${l10n.code} : ${c.code} "
                                     "- ${l10n.name} : ${c.nomCaisse} "
-                                    "- ${l10n.store} : ${c.magasin}",
+                                    "- ${l10n.store} : ${c.magasinCode}",
                                 style: Appstyle.textSB.copyWith(
                                   color: Appstyle.Tnoir,
                                 ),

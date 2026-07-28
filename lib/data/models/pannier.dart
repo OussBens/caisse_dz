@@ -9,10 +9,8 @@ class Pannier {
   double marge;      // total du panier
   double verse;        // montant payé
   double reste;        // reste à payer
-  String client;
   String? client_code;
   String? modePaiement; // espèce, carte, chèque, etc.
-  String caissier;     // personne qui a enregistré le panier
   String caisse_code;
   String caissier_code;
   String caisse;
@@ -39,12 +37,10 @@ class Pannier {
     required this.marge,
     required this.verse,
     required this.reste,
-    required this.client,
     required this.typepannier,
     required this.date,
     required this.dateCree,
     required this.etat,
-    required this.caissier,
     required this.caissier_code,
     required this.caisse_code,
     required this.caisse,
@@ -73,10 +69,8 @@ class Pannier {
       marge           : map['marge']?? 0.0,
       verse           : map['verse']?? 0.0,
       reste           : map['reste']?? 0.0,
-      client          : map['client'],
       client_code     : map['client_code'],
       modePaiement    : map['mode_paiement'],
-      caissier        : map['caisser'],
       caissier_code   : map['caisser_code'],
       caisse          : map['caisse'],
       caisse_code     : map['caisse_code'],
@@ -110,10 +104,8 @@ class Pannier {
       'marge'             : marge,
       'verse'             : verse,
       'reste'             : reste,
-      'client'            : client,
       'client_code'       : client_code,
       'mode_paiement'     : modePaiement,
-      'caisser'           : caissier,
       'caisser_code'      : caissier_code,
       'caisse'            : caisse,
       'caisse_code'       : caisse_code,

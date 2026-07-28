@@ -1,13 +1,31 @@
 import 'package:flutter/material.dart';
 import 'package:caisse_dz/core/theme/app_style.dart';
 import '../../../data/models/mouvement.dart';
+import '../../../data/models/produit.dart';
+import '../../../data/models/client.dart';
+import '../../../data/models/fournisseur.dart';
 import '../../../l10n/app_localizations.dart';
 import '../../widget/detail_widget.dart';
 import '../../widget/section_decoration.dart';
 import '../base_dialog.dart';
 
-Future<void> MouvementDetail(BuildContext context, Mouvement mouvement) async {
+Future<void> MouvementDetail(
+    BuildContext context,
+    Mouvement mouvement, {
+      required List<Produit> produits,
+      required List<Client> clients,
+      required List<Fournisseur> fournisseurs,
+    }) async {
   final l10n = AppLocalizations.of(context)!;
+
+  final nomProduit = produits.where((p) => p.code == mouvement.codeProduit).firstOrNull?.nom
+      ?? mouvement.codeProduit;
+  final nomClient = mouvement.clientCode == null
+      ? null
+      : clients.where((c) => c.code == mouvement.clientCode).firstOrNull?.nom ?? mouvement.clientCode;
+  final nomFournisseur = mouvement.fournisseurCode == null
+      ? null
+      : fournisseurs.where((f) => f.code == mouvement.fournisseurCode).firstOrNull?.nom ?? mouvement.fournisseurCode;
 
   return showDialog(
     context: context,
@@ -35,7 +53,7 @@ Future<void> MouvementDetail(BuildContext context, Mouvement mouvement) async {
                   crossAxisAlignment  : CrossAxisAlignment.start,
                   children: [
                     Text(
-                      mouvement.nomProduit,
+                      nomProduit,
                       style: Appstyle.textLB.copyWith(fontSize: 20),
                     ),
                     Text(
@@ -73,8 +91,8 @@ Future<void> MouvementDetail(BuildContext context, Mouvement mouvement) async {
                 icon: Icons.info_outline,
                 child: detailwrap([
                   detailinfo(l10n.type, _getTranslatedType(mouvement.type, l10n)),
-                  detailinfo(l10n.client, mouvement.client),
-                  detailinfo(l10n.supplier, mouvement.fournisseur),
+                  detailinfo(l10n.client, nomClient),
+                  detailinfo(l10n.supplier, nomFournisseur),
                   detailinfo(l10n.status, mouvement.etat ? l10n.active : l10n.inactive),
                   detailinfo(l10n.date, _formatDate(mouvement.date)),
                 ]),
@@ -84,7 +102,7 @@ Future<void> MouvementDetail(BuildContext context, Mouvement mouvement) async {
                 title: l10n.product,
                 icon: Icons.image,
                 child: detailwrap([
-                  detailinfo(l10n.productName, mouvement.nomProduit),
+                  detailinfo(l10n.productName, nomProduit),
                   detailinfo(l10n.quantity, mouvement.quantite.toString()),
                   detailinfo(l10n.purchasePrice, "${mouvement.prixAchat} ${l10n.currency}"),
                   detailinfo(l10n.salePrice, "${mouvement.prixVente} ${l10n.currency}"),

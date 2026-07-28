@@ -3,18 +3,40 @@
 import 'package:flutter/material.dart';
 import 'package:syncfusion_flutter_datagrid/datagrid.dart';
 import '../../../../data/models/mouvement.dart';
+import '../../../../data/models/produit.dart';
+import '../../../../data/models/client.dart';
+import '../../../../data/models/fournisseur.dart';
 import '../../../l10n/app_localizations.dart';
 import '../../widget/status_badge.dart';
 import '../base_table_data_source.dart';
 
 class MouvementDataSource extends BaseTableDataSource<Mouvement> {
   final AppLocalizations l10n;
+  final List<Produit> produits;
+  final List<Client> clients;
+  final List<Fournisseur> fournisseurs;
 
   MouvementDataSource({
     required List<Mouvement> mouvements,
     required super.columnConfig,
     required this.l10n,
+    required this.produits,
+    required this.clients,
+    required this.fournisseurs,
   }) : super(items: mouvements);
+
+  String _nomProduit(String code) =>
+      produits.where((p) => p.code == code).firstOrNull?.nom ?? code;
+
+  String? _nomClient(String? code) {
+    if (code == null) return null;
+    return clients.where((c) => c.code == code).firstOrNull?.nom ?? code;
+  }
+
+  String? _nomFournisseur(String? code) {
+    if (code == null) return null;
+    return fournisseurs.where((f) => f.code == code).firstOrNull?.nom ?? code;
+  }
 
   String formatDate(DateTime? date) {
     if (date == null) return '';
@@ -51,7 +73,7 @@ class MouvementDataSource extends BaseTableDataSource<Mouvement> {
       case 'date':
         return formatDate(mouvement.date);
       case 'nomProduit':
-        return mouvement.nomProduit;
+        return _nomProduit(mouvement.codeProduit);
       case 'quantite':
         return mouvement.quantite;
       case 'prixAchat':
@@ -59,9 +81,9 @@ class MouvementDataSource extends BaseTableDataSource<Mouvement> {
       case 'prixVente':
         return mouvement.prixVente;
       case 'client':
-        return mouvement.client;
+        return _nomClient(mouvement.clientCode);
       case 'fournisseur':
-        return mouvement.fournisseur;
+        return _nomFournisseur(mouvement.fournisseurCode);
       case 'type':
         return _getTranslatedType(mouvement.type);
       case 'etat':

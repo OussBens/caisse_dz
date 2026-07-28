@@ -68,25 +68,23 @@ Future<ApiResponse<int>> _UpdateEntree({
   if (selectedFournisseurE != null) {
     final fournisseur = fournisseursTestE.firstWhere((f) => f.nom == selectedFournisseurE);
     entree.fournisseurCode = fournisseur.code;
-    entree.fournisseur = fournisseur.nom;
   }
 
   final response = await serviceE.updateEntree(entree);
 
   mouv.quantite = entree.quantite;
   mouv.prixVente = entree.prix;
-  mouv.nomProduit = entree.produit;
   mouv.codeProduit = entree.produitcode;
   mouv.date = entree.date;
   mouv.dateModif = DateTime.now();
-  mouv.modifParCode = userName;
+  mouv.modifParCode = userCode;
   mouv.type = "Entrée";
   await serviceM.updateMouvement(mouv);
 
   final produits = await ProduitServices.getAllProduits();
-  final prod = produits.where((p) => p.nom == entree.produit).first;
+  final prod = produits.where((p) => p.code == entree.produitcode).first;
   prod.quantite += (entree.quantite - originalQte);
-  prod.modifParCode = userName;
+  prod.modifParCode = userCode;
   prod.dateModif = DateTime.now();
   await serviceP.updateProduit(prod);
 
@@ -95,7 +93,7 @@ Future<ApiResponse<int>> _UpdateEntree({
     id: idh,
     code: "HE$idh${DateTime.now().millisecondsSinceEpoch}",
     type: "entree",
-    desc: "L'utilisateur $userName a modifié l'entrée du produit ${entree.produit}",
+    desc: "L'utilisateur $userName a modifié l'entrée du produit ${prod.nom}",
     oper: ListsConst.typeHisto[0],
     dateCree: DateTime.now(),
     creeParCode: userCode,
@@ -132,11 +130,11 @@ Future<void> EntreeModif(BuildContext context, Entree entree) async {
   TextEditingController quantiteControllerE = TextEditingController();
   TextEditingController observationControllerE = TextEditingController();
   TextEditingController dateControllerE = TextEditingController();
-  Produit? prod = produitsTestE.where((p) => p.nom == entree.produit).cast<Produit?>().firstWhere((p) => true, orElse: () => null);
+  Produit? prod = produitsTestE.where((p) => p.code == entree.produitcode).cast<Produit?>().firstWhere((p) => true, orElse: () => null);
 
   selectedProduitE = prod?.nom;
   // Récupérer le fournisseur actuel de l'entrée
-  selectedFournisseurE = entree.fournisseur;
+  selectedFournisseurE = fournisseursTestE.where((f) => f.code == entree.fournisseurCode).firstOrNull?.nom;
 
   void calculerMontantE() {
     final double qte = double.tryParse(quantiteControllerE.text.replaceAll(',', '.')) ?? 0;
@@ -410,21 +408,18 @@ Future<void> EntreeModif(BuildContext context, Entree entree) async {
                       }
 
                       entree.date = DateTime.parse(dateControllerE.text);
-                      entree.produit = selectedProduitE!;
                       entree.produitcode = prod!.code;
                       entree.quantite = double.parse(quantiteControllerE.text);
                       entree.prix = double.parse(prixControllerE.text);
                       entree.montant = double.parse(montantControllerE.text);
                       entree.observation = observationControllerE.text;
-                      entree.modifParCode = userName;
+                      entree.modifParCode = userCode;
                       entree.dateModif = DateTime.now();
-                      entree.fournisseur = selectedFournisseurE!;
 
                       Mouvement mouv = Mouvement(
                         id: entree.id,
                         code: "MV${entree.id}${DateTime.now().millisecondsSinceEpoch}",
                         date: entree.date,
-                        nomProduit: entree.produit,
                         codeProduit: entree.produitcode,
                         quantite: entree.quantite,
                         prixVente: entree.prix,

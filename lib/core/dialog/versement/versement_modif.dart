@@ -87,7 +87,6 @@ Future<void> VersementModif(
   _observationControllerV.text = versement.observation.toString();
   _smartDateController.text    = "${versement.date.day}-${versement.date.month}-${versement.date.year}";
   selectedCaisse = versement.caisse;
-  _selectedBeneficiaireV = versement.beneficiare;
   _selectedTypeV               = typeInitial ?? versement.typebeneficiare;
   _selectedEtatV               = versement.etat ? l10n.validated : l10n.cancelled;
   _selectedModePaiement        = versement.mode_paiement;
@@ -95,15 +94,19 @@ Future<void> VersementModif(
 
   bool isInitiallyClient = versement.typebeneficiare == "Client";
 
+  final beneficiaireNomInitial = isInitiallyClient
+      ? _clientsTest.firstWhere((c) => c.code == versement.beneficiareCode, orElse: () => _clientsTest.first).nom
+      : _fournisseursTest.firstWhere((f) => f.code == versement.beneficiareCode, orElse: () => _fournisseursTest.first).nom;
+
   if (isInitiallyClient) {
     final clientNames = _clientsTest.map((e) => e.nom).toSet().toList();
-    _selectedBeneficiaireV = clientNames.contains(versement.beneficiare)
-        ? versement.beneficiare
+    _selectedBeneficiaireV = clientNames.contains(beneficiaireNomInitial)
+        ? beneficiaireNomInitial
         : (clientNames.isNotEmpty ? clientNames.first : null);
   } else {
     final fournisseurNames = _fournisseursTest.map((e) => e.nom).toSet().toList();
-    _selectedBeneficiaireV = fournisseurNames.contains(versement.beneficiare)
-        ? versement.beneficiare
+    _selectedBeneficiaireV = fournisseurNames.contains(beneficiaireNomInitial)
+        ? beneficiaireNomInitial
         : (fournisseurNames.isNotEmpty ? fournisseurNames.first : null);
   }
 
@@ -390,10 +393,12 @@ Future<void> VersementModif(
                             Verssement updatedVerssement = Verssement(
                               typebeneficiare: _selectedTypeV!,
                               mode_paiement: _selectedModePaiement,
-                              beneficiare: _selectedBeneficiaireV!,
+                              beneficiareCode: _selectedTypeV == "Client"
+                                  ? _clientsTest.firstWhere((c) => c.nom == _selectedBeneficiaireV!).code
+                                  : _fournisseursTest.firstWhere((f) => f.nom == _selectedBeneficiaireV!).code,
                               dateModif: DateTime.now(),
                               dateCree: versement.dateCree,
-                              modifParCode: userName,
+                              modifParCode: userCode,
                               montant: double.parse(_montantControllerV.text),
                               sense: versement.sense,
                               etat: _selectedEtatV == l10n.validated,

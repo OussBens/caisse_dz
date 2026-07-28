@@ -38,11 +38,10 @@ Future<void> DeleteRemise({
   final serviceh = await HistoriqueServices(db);
   for (var remise in remises) {
     await RemiseServices.deleteRemise(remise);
-    produits = await services.getProduitsByRemise(remise.nom);
+    produits = await services.getProduitsByRemiseId(remise.id);
     for (var produit in produits) {
-      produit.remise = "";
       produit.remiseId = 0;
-      produit.modifParCode = userName;
+      produit.modifParCode = userCode;
       produit.dateModif = DateTime.now();
       await services.updateProduit(produit);
       final int idN = await _GetNextHistoriqueId();

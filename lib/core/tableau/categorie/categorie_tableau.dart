@@ -156,7 +156,7 @@ class _TableauCategorieAdvancedState extends State<TableauCategorieAdvanced> {
                               context,
                               categorie,
                               nombreSousCategories: widget.sousCategories
-                                  .where((sc) => sc.categorieNom == categorie.nom)
+                                  .where((sc) => sc.categorieCode == categorie.code)
                                   .length,
                             );
                           },

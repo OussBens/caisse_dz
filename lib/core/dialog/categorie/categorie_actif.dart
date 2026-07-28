@@ -40,17 +40,15 @@ Future<void> DeleteCategorie({
   final services = await CategorieServices(db);
 
   for(var cate in categories){
-    produits = await servicep.getProduitsByCategorie(cate.nom);
+    produits = await servicep.getProduitsByCategorieId(cate.id);
     if (produits.isNotEmpty) {
       throw Exception("CategorieNonVide:${cate.nom}");
     }
     await services.deleteCategorie(cate.id);
     for(var produit in produits){
-      produit.categorie       = "";
       produit.categorieId     = 0;
-      produit.sousCategorie   = "";
       produit.sousCategorieId = 0;
-      produit.modifParCode        = userName;
+      produit.modifParCode        = userCode;
       produit.dateModif       = DateTime.now();
       await servicep.updateProduit(produit);
 

@@ -35,7 +35,7 @@ class AfficheurBesoinList extends StatelessWidget {
                 _info(l10n.articles, list.nombreArticle.toString()),  // 🔥 Translated
                 _info(l10n.quantity, list.quantite.toString()),      // 🔥 Translated
                 _info(l10n.amount, "${list.montant} DA"),      // 🔥 Translated
-                _info(l10n.supplier, list.fournisseur),        // 🔥 Translated
+                _info(l10n.supplier, list.fournisseurCode),        // 🔥 Translated
                 _info(l10n.state, list.etat ? l10n.active : l10n.inactive),  // 🔥 Translated
               ],
             ),

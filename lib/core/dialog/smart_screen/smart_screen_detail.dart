@@ -1,3 +1,5 @@
+import 'package:caisse_dz/Services/Fournisseur.dart';
+import 'package:caisse_dz/Services/Produits.dart';
 import 'package:caisse_dz/Services/SmartScanProduit.dart';
 import 'package:caisse_dz/core/dialog/base_dialog.dart';
 import 'package:caisse_dz/core/theme/app_style.dart';
@@ -5,6 +7,7 @@ import 'package:caisse_dz/core/widget/detail_widget.dart';
 import 'package:caisse_dz/l10n/app_localizations.dart';
 import 'package:caisse_dz/data/models/smart_scan.dart';
 import 'package:caisse_dz/data/models/smart_scan_produit.dart';
+import 'package:collection/collection.dart';
 import 'package:flutter/material.dart';
 import '../../widget/section_decoration.dart';
 
@@ -18,6 +21,12 @@ Future<void> SmartScanDetail(
     BuildContext context,
     SmartScan scan,) async {
   await _LoadAllData();
+  final fournisseurs = await FournisseurServices.getAllFournisseurs();
+  final nomFournisseur = fournisseurs.firstWhereOrNull((f) => f.code == scan.fournisseurCode)?.nom
+      ?? scan.fournisseurCode;
+  final produitsCatalogue = await ProduitServices.getAllProduits();
+  String nomProduit(String code) =>
+      produitsCatalogue.firstWhereOrNull((p) => p.code == code)?.nom ?? code;
 
   return showDialog(
     context: context,
@@ -50,7 +59,7 @@ Future<void> SmartScanDetail(
                       style: Appstyle.textLB.copyWith(fontSize: 20),
                     ),
                     Text(
-                      "${l10n.supplier}: ${scan.fournisseur}",
+                      "${l10n.supplier}: $nomFournisseur",
                       style: Appstyle.textSB,
                     ),
                   ],
@@ -84,7 +93,7 @@ Future<void> SmartScanDetail(
                   detailinfo(l10n.code, scan.code),
                   detailinfo(l10n.date, scan.date.toString().split(" ").first),
                   detailinfo(l10n.activity, scan.activity),
-                  detailinfo(l10n.supplier, scan.fournisseur),
+                  detailinfo(l10n.supplier, nomFournisseur),
                   detailinfo(l10n.status, scan.etat ? l10n.active : l10n.inactive),
                 ]),
               ),
@@ -163,7 +172,7 @@ Future<void> SmartScanDetail(
                   barrierColor: Appstyle.gris.withOpacity(0.4),
                   context: context,
                   builder: (_) =>
-                      _dialogListeProduitsSmartScan(context, scan, l10n),
+                      _dialogListeProduitsSmartScan(context, scan, nomFournisseur, nomProduit, l10n),
                 );
               },
             ),
@@ -209,6 +218,8 @@ Widget _resumeChiffreSmartScan(SmartScan s, AppLocalizations l10n) {
 Widget _dialogListeProduitsSmartScan(
     BuildContext context,
     SmartScan scan,
+    String nomFournisseur,
+    String Function(String) nomProduit,
     AppLocalizations l10n,
     ) {
   final produits = smartscanProduitsTest
@@ -230,7 +241,7 @@ Widget _dialogListeProduitsSmartScan(
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            Text("${l10n.supplier}: ${scan.fournisseur}",
+            Text("${l10n.supplier}: $nomFournisseur",
                 style: Appstyle.textSB),
             Text("${l10n.date}: ${scan.date}", style: Appstyle.textSB),
             Text("${l10n.total}: ${scan.montant} ${l10n.currency}",
@@ -252,7 +263,7 @@ Widget _dialogListeProduitsSmartScan(
         rows: produits.map((p) {
           return DataRow(cells: [
             DataCell(Text(p.codeProduit)),
-            DataCell(Text(p.nomProduit)),
+            DataCell(Text(nomProduit(p.codeProduit))),
             DataCell(Text("${p.quantite}")),
             DataCell(Text("${p.prix.toStringAsFixed(2)}")),
             DataCell(Text("${p.total.toStringAsFixed(2)}")),

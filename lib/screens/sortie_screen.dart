@@ -6,6 +6,10 @@ import 'package:caisse_dz/Services/Produits.dart';
 import 'package:caisse_dz/Services/Pannier.dart';
 import 'package:caisse_dz/Services/Client.dart';
 import 'package:caisse_dz/Services/Sortie.dart';
+import 'package:caisse_dz/Services/Categorie.dart';
+import 'package:caisse_dz/Services/SousCategories.dart';
+import 'package:caisse_dz/data/models/categorie.dart';
+import 'package:caisse_dz/data/models/sous_categorie.dart';
 import 'package:caisse_dz/core/dialog/pannier/pannier_detail.dart';
 import 'package:caisse_dz/core/dialog/sortie/sortie_detail.dart';
 
@@ -71,6 +75,8 @@ List<Client>  clientsTest   = [];
 List<Produit> produitsTest  = [];
 List<Pannier> paniersTest   = [];
 List<Sortie>  sortieTest    = [];
+List<Categorie> categoriesTest = [];
+List<SousCategorie> sousCategoriesTest = [];
 
 List<Sortie> sortiesSelectionnes    = [];
 List<Pannier> panniersSelectionnes  = [];
@@ -112,12 +118,16 @@ class _SortieScreenState extends State<SortieScreen> with TickerProviderStateMix
     final paniers   = await PannierServices .getAllPanniers();
     final clients   = await ClientServices  .getAllClients();
     final sorties   = await SortieServices  .getAllSortie();
+    final categories       = await CategorieServices.getAllCategorie();
+    final sousCategories   = await SousCategoriesServices.getAllSousCategorie();
 
     setState(() {
       produitsTest = produits;
       paniersTest = paniers;
       clientsTest = clients;
       sortieTest = sorties;
+      categoriesTest = categories;
+      sousCategoriesTest = sousCategories;
       pannierFiltres = paniersTest;
       sortielistFiltres = sortieTest;
 
@@ -352,6 +362,9 @@ class _SortieScreenState extends State<SortieScreen> with TickerProviderStateMix
 
         final excelFile = await ExcelGenerator.generateSortiesExcel(
           sorties: sortiesToExport,
+          produits: produitsTest,
+          categories: categoriesTest,
+          sousCategories: sousCategoriesTest,
           l10n: l10n,
           translator: translator,
         );
@@ -500,6 +513,9 @@ class _SortieScreenState extends State<SortieScreen> with TickerProviderStateMix
 
         excelFile = await ExcelGenerator.generateSortiesExcel(
           sorties: sortiesSelectionnes,
+          produits: produitsTest,
+          categories: categoriesTest,
+          sousCategories: sousCategoriesTest,
           l10n: l10n,
           translator: translator,
         );
@@ -630,9 +646,10 @@ class _SortieScreenState extends State<SortieScreen> with TickerProviderStateMix
   void appliquerFiltreSortie() {
     sortielistFiltres = sortieTest.where((p) {
       final searchText = _searchControllerSortie.text.toLowerCase();
+      final nomProduitSortie = produitsTest.where((pr) => pr.code == p.produitCode).firstOrNull?.nom ?? '';
       final typesortieOk = selectedTypeSortieFilter == null || selectedTypeSortieFilter!.isEmpty || p.type == selectedTypeSortieFilter;
-      final produitmoveOk = selectedProduitSortieFilter == null || selectedProduitSortieFilter!.isEmpty || p.produit == selectedProduitSortieFilter;
-      final searchOk = searchText.isEmpty || p.searchableText.contains(searchText);
+      final produitmoveOk = selectedProduitSortieFilter == null || selectedProduitSortieFilter!.isEmpty || nomProduitSortie == selectedProduitSortieFilter;
+      final searchOk = searchText.isEmpty || '${p.searchableText} $nomProduitSortie'.toLowerCase().contains(searchText);
       final etatOk = selectedEtatFilterSrt == null ||
           selectedEtatFilterSrt == "" ||
           (selectedEtatFilterSrt == "Actif" && p.etat) ||
@@ -666,7 +683,7 @@ class _SortieScreenState extends State<SortieScreen> with TickerProviderStateMix
   void appliquerFiltreSCsortie() {
     pannierFiltres = paniersTest.where((p) {
       final searchText = _searchControllerSCSortie.text.toLowerCase();
-      final clientOk = selectedClientFilterSCsortie == null || selectedClientFilterSCsortie!.isEmpty || p.client == selectedClientFilterSCsortie;
+      final clientOk = selectedClientFilterSCsortie == null || selectedClientFilterSCsortie!.isEmpty || clientsTest.any((c) => c.code == p.client_code && c.nom == selectedClientFilterSCsortie);
       final modeOk = modepaiementFilterSCsortie == null || modepaiementFilterSCsortie!.isEmpty || p.modePaiement == modepaiementFilterSCsortie;
       final typeOk = typepannierFilterSCsortie == null || typepannierFilterSCsortie!.isEmpty || p.typepannier == typepannierFilterSCsortie;
       final searchOk = searchText.isEmpty || p.searchableText.contains(searchText);
@@ -1294,8 +1311,15 @@ class _SortieScreenState extends State<SortieScreen> with TickerProviderStateMix
                                         if (sortiesSelectionnes.length == 1)
                                           AfficheurSortie(
                                             sortie: sortiesSelectionnes.first,
+                                            nomProduit: produitsTest.where((pr) => pr.code == sortiesSelectionnes.first.produitCode).firstOrNull?.nom ?? sortiesSelectionnes.first.produitCode,
                                             onDetails: () {
-                                              SortieDetail(context, sortiesSelectionnes.first);
+                                              SortieDetail(
+                                                context,
+                                                sortiesSelectionnes.first,
+                                                produits: produitsTest,
+                                                categories: categoriesTest,
+                                                sousCategories: sousCategoriesTest,
+                                              );
                                             },
                                           )
                                         else
@@ -1383,7 +1407,13 @@ class _SortieScreenState extends State<SortieScreen> with TickerProviderStateMix
                                                     color: Appstyle.violet,
                                                     onPressed: () async {
                                                       if (sortiesSelectionnes.length == 1) {
-                                                        SortieDetail(context, sortiesSelectionnes.first);
+                                                        SortieDetail(
+                                                          context,
+                                                          sortiesSelectionnes.first,
+                                                          produits: produitsTest,
+                                                          categories: categoriesTest,
+                                                          sousCategories: sousCategoriesTest,
+                                                        );
                                                       } else if (sortiesSelectionnes.isEmpty) {
                                                         await InformationDialog(
                                                           context: context,
@@ -1484,6 +1514,9 @@ class _SortieScreenState extends State<SortieScreen> with TickerProviderStateMix
                                           child: TableauSortieAdvanced(
                                             key: ValueKey(sortielistFiltres),
                                             sorties: sortielistFiltres,
+                                            produits: produitsTest,
+                                            categories: categoriesTest,
+                                            sousCategories: sousCategoriesTest,
                                             onSelectionChanged: (selection) {
                                               setState(() {
                                                 sortiesSelectionnes = selection;

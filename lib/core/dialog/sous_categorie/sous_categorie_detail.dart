@@ -1,4 +1,6 @@
+import 'package:caisse_dz/Services/Categorie.dart';
 import 'package:caisse_dz/l10n/app_localizations.dart';
+import 'package:collection/collection.dart';
 import 'package:flutter/material.dart';
 import 'package:caisse_dz/core/theme/app_style.dart';
 import '../../../data/models/sous_categorie.dart';
@@ -11,6 +13,10 @@ Future<void> SousCategorieDetail(
   SousCategorie sousCategorie, {
   int nombreProduits = 0,
 }) async {
+  final categories = await CategorieServices.getAllCategorie();
+  final nomCategorie = categories.firstWhereOrNull((c) => c.code == sousCategorie.categorieCode)?.nom
+      ?? sousCategorie.categorieCode;
+
   return showDialog(
     context: context,
     barrierDismissible: true,
@@ -72,7 +78,7 @@ Future<void> SousCategorieDetail(
                   detailinfo(l10n.name, sousCategorie.nom),
                   detailinfo(l10n.code, sousCategorie.code),
                   detailinfo(l10n.status, sousCategorie.etat ? l10n.active : l10n.inactive),
-                  detailinfo(l10n.parentCategory, sousCategorie.categorieNom),
+                  detailinfo(l10n.parentCategory, nomCategorie),
                   detailinfo(l10n.productCount, nombreProduits),
                 ]),
               ),

@@ -154,7 +154,6 @@ Future<ApiResponse<int>> _SavePannier({
       total: produit.prix * produit.qte,
       creeLe: DateTime.now(),
       quantite: quantiteReelle,
-      nomProduit: produit.nom,
       codeProduit: produit.code,
       codePannier: pannier.code,
       creeParCode: userCode,
@@ -173,7 +172,7 @@ Future<ApiResponse<int>> _SavePannier({
         id: idh2,
       ),
       type: "pannierProduit",
-      desc: "L'utilisateur $userName a Ajoutee le Produit ${prod.nomProduit} au Pannier ${pannier.code}",
+      desc: "L'utilisateur $userName a Ajoutee le Produit ${produit.nom} au Pannier ${pannier.code}",
       oper: ListsConst.typeHisto[0],
       dateCree: DateTime.now(),
       creeParCode: userCode,
@@ -195,7 +194,6 @@ Future<ApiResponse<int>> _SavePannier({
       quantite: quantiteReelle,
       prixAchat: produitOriginal.prixAchat,
       prixVente: prod.prix,
-      nomProduit: prod.nomProduit,
       codeProduit: prod.codeProduit,
       creeParCode: userCode,
       codeOperation: pannier.code,
@@ -205,7 +203,7 @@ Future<ApiResponse<int>> _SavePannier({
     // Mise à jour du produit (quantité globale)
     produitOriginal.quantite = produitOriginal.quantite - quantiteReelle;
     produitOriginal.dateModif = DateTime.now();
-    produitOriginal.modifParCode = userName;
+    produitOriginal.modifParCode = userCode;
     await serviceP.updateProduit(produitOriginal);
 
     // Historique mise à jour produit
@@ -227,7 +225,7 @@ Future<ApiResponse<int>> _SavePannier({
 
   // 5. Mise à jour du client
   client.dernierAchat = DateTime.now();
-  client.modifParCode = userName;
+  client.modifParCode = userCode;
   await serviceC.updateClient(client);
 
   // 6. Ajout du versement
@@ -242,7 +240,7 @@ Future<ApiResponse<int>> _SavePannier({
       ),
       date: DateTime.now(),
       typebeneficiare: "Client",
-      beneficiare: client.nom,
+      beneficiareCode: client.code,
       montant: montant,
       etat: true,
       mode_paiement: pannier.modePaiement!,
@@ -397,8 +395,6 @@ Future<void> EncaissementTicketDialog({
   await _LoadAllData();
 
   final auth = Provider.of<AuthState>(context, listen: false);
-  final userName = auth.username;
-  final userCode = auth.userCode;
   final l10n = AppLocalizations.of(context)!;
 
   if (!auth.isAuthenticated || auth.username == null || auth.userCode == null) {
@@ -410,6 +406,9 @@ Future<void> EncaissementTicketDialog({
     );
     return;
   }
+
+  final String userName = auth.username!;
+  final String userCode = auth.userCode!;
 
   /// Calculs
   int nombreProduits = caisse.produits.length;
@@ -626,15 +625,13 @@ Future<void> EncaissementTicketDialog({
                             verse: caisse.total -
                                 (double.parse(resteController.text)),
                             reste: double.parse(resteController.text),
-                            client: caisse.client,
                             client_code: client.code,
                             montant: caisse.total,
-                            caissier: userName,
                             dateCree: DateTime.now(),
                             caisse_code: Ccode,
                             typepannier: ListsConst.typePannier[2],
                             modePaiement: caisse.modePaiement,
-                            caissier_code: userCode!,
+                            caissier_code: userCode,
                             nombreArticle: caisse.nombreArticles,
                             quantiteProduit: caisse.nombreProduits,
                             caisse: caisse.caisse,

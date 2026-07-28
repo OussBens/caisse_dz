@@ -6,11 +6,15 @@ import '../../../../data/models/entree.dart';
 
 class AfficheurEntreeMouvement extends StatelessWidget {
   final Entree entree;
+  final String nomProduit;
+  final String nomFournisseur;
   final VoidCallback? onDetails;
 
   const AfficheurEntreeMouvement({
     super.key,
     required this.entree,
+    required this.nomProduit,
+    required this.nomFournisseur,
     this.onDetails,
   });
 
@@ -51,7 +55,7 @@ class AfficheurEntreeMouvement extends StatelessWidget {
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
                       Text(
-                        entree.produit,
+                        nomProduit,
                         style: Appstyle.textLB.copyWith(fontSize: 16),
                         overflow: TextOverflow.ellipsis,
                       ),
@@ -77,7 +81,7 @@ class AfficheurEntreeMouvement extends StatelessWidget {
                 _stat("Quantité", quantite.toString(), Colors.blue),
                 _stat("Prix achat", prix.toStringAsFixed(2), Colors.green),
                 _stat("Montant", montant.toStringAsFixed(2), Colors.deepPurple),
-                _stat("Fournisseur", entree.fournisseur, Colors.orange),
+                _stat("Fournisseur", nomFournisseur, Colors.orange),
                 _stat("Etat", entree.etat ? "Validé" : "Annulé",
                     entree.etat ? Colors.green : Colors.red),
               ],

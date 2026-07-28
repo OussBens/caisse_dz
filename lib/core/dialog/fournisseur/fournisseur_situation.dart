@@ -61,13 +61,13 @@ Future<void> SituationFournisseurDialog(
 
           final operations = SituationFournisseurService.build(
             smartScans: smartScans
-                .where((s) => s.fournisseur == fournisseur.nom)
+                .where((s) => s.fournisseurCode == fournisseur.code)
                 .toList(),
             retours: retours
-                .where((r) => r.fournisseur == fournisseur.nom)
+                .where((r) => r.fournisseur_code == fournisseur.code)
                 .toList(),
             versements: versements
-                .where((v) => v.beneficiare == fournisseur.nom && v.typebeneficiare=='Fournisseur')
+                .where((v) => v.beneficiareCode == fournisseur.code && v.typebeneficiare=='Fournisseur')
                 .toList(),
             debut: dateDebut,
             fin: dateFin,

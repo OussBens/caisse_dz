@@ -355,7 +355,7 @@ class _CaisseScreenState extends State<CaisseScreen> {
           context: context,
           titre_type_message: l10n.error,
           titre_concerne: l10n.pack,
-          message: "Le produit '${detail.produitNom}' n'existe pas dans la base de données",
+          message: "Le produit '${detail.produitCode}' n'existe pas dans la base de données",
         );
         return false;
       }
@@ -369,7 +369,7 @@ class _CaisseScreenState extends State<CaisseScreen> {
           context: context,
           titre_type_message: l10n.error,
           titre_concerne: l10n.pack,
-          message: "Stock insuffisant pour le produit '${detail.produitNom}'\n"
+          message: "Stock insuffisant pour le produit '${detail.produitCode}'\n"
               "Disponible: ${stockDisponible.toInt()} pièce(s)\n"
               "Nécessaire: ${quantiteNecessaire.toInt()} pièce(s)",
         );
@@ -407,7 +407,7 @@ class _CaisseScreenState extends State<CaisseScreen> {
           context: context,
           titre_type_message: l10n.error,
           titre_concerne: l10n.pack,
-          message: "Le produit '${detail.produitNom}' n'existe pas",
+          message: "Le produit '${detail.produitCode}' n'existe pas",
         );
         continue;
       }
@@ -419,7 +419,6 @@ class _CaisseScreenState extends State<CaisseScreen> {
         prixUnitaire: detail.prixUnitaire,
         colisType: pack.nom,           // ← Clé : regroupe les produits du pack
         packNom: pack.nom,             // ← Pour l'affichage
-        packCode: pack.code,           // ← Pour l'affichage
       );
     }
 
@@ -911,8 +910,7 @@ class _CaisseScreenState extends State<CaisseScreen> {
         double quantite = 1,
         String? colisType,
         double? prixUnitaire,
-        String? packNom,    // ✅ Nouveau paramètre
-        String? packCode,   // ✅ Nouveau paramètre
+        String? packNom,   // ✅ Nouveau paramètre
       }) async {
     int? piecesParEmballage;
     if (colisType != null) {
@@ -1340,7 +1338,7 @@ class _CaisseScreenState extends State<CaisseScreen> {
     final produitsFiltres = produitsTest.where((p) {
       final bool sousCategorieOk = activeSousCategorie.isEmpty
           ? true
-          : p.sousCategorie == activeSousCategorie;
+          : sousCategoriesTest.where((sc) => sc.id == p.sousCategorieId).firstOrNull?.nom == activeSousCategorie;
       final bool rechercheOk = searchText.isEmpty
           ? true
           : p.nom.toLowerCase().contains(searchText);
@@ -1939,7 +1937,7 @@ class _CaisseScreenState extends State<CaisseScreen> {
                                                                             setState(() => produitsSelectionnes = p);
                                                                             ouvrirDialogProduit(p);
                                                                           },
-                                                                          remise: p.remise,
+                                                                          hasRemise: p.remiseId != null,
                                                                         );
                                                                       }).toList(),
                                                                     ),

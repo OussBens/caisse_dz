@@ -3,10 +3,13 @@ import 'package:intl/intl.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:caisse_dz/DBCreate.dart';
+import 'package:caisse_dz/Services/Client.dart';
+import 'package:caisse_dz/Services/Fournisseur.dart';
 import 'package:caisse_dz/Services/Historique.dart';
 import 'package:caisse_dz/Services/Mouvement.dart';
 import 'package:caisse_dz/Services/Produits.dart';
 import 'package:caisse_dz/Services/Retour.dart';
+import 'package:collection/collection.dart';
 import 'package:caisse_dz/core/Auth/auth_state.dart';
 import 'package:caisse_dz/core/dialog/base_dialog.dart';
 import 'package:caisse_dz/core/theme/app_style.dart';
@@ -40,14 +43,14 @@ Future<void> _DeleteR({
   final produits = await ProduitServices.getAllProduits();
 
   for (var retour in Retours) {
-    Produit Prod = produits.where((e) => e.nom == retour.nomProduit).first;
-    if (retour.fournisseur != null) {
+    Produit Prod = produits.where((e) => e.code == retour.codeProduit).first;
+    if (retour.fournisseur_code != null) {
       Prod.quantite = Prod.quantite + retour.quantite;
     }
-    if (retour.client != null) {
+    if (retour.client_code != null) {
       Prod.quantite = Prod.quantite - retour.quantite;
     }
-    Prod.modifParCode = userName;
+    Prod.modifParCode = userCode;
     Prod.dateModif = DateTime.now();
 
     await serviceP.updateProduit(Prod);
@@ -64,7 +67,7 @@ Future<void> _DeleteR({
       id: idh,
       code: "HS$idh${DateTime.now().millisecondsSinceEpoch}",
       type: "Retours",
-      desc: "L'utilisateur $userName a supprimer le Retour ${retour.code} de Produit ${retour.nomProduit}",
+      desc: "L'utilisateur $userName a supprimer le Retour ${retour.code} de Produit ${Prod.nom}",
       oper: ListsConst.typeHisto[3],
       dateCree: DateTime.now(),
       creeParCode: userCode,
@@ -79,6 +82,16 @@ Future<void> AnnulerRetour(BuildContext context, List<Retour> retoursSelectionne
   final userName = auth.username!;
   final userCode = auth.userCode!;
   final l10n = AppLocalizations.of(context)!;
+
+  final produitsCatalogue = await ProduitServices.getAllProduits();
+  final clientsCatalogue = await ClientServices.getAllClients();
+  final fournisseursCatalogue = await FournisseurServices.getAllFournisseurs();
+  String nomProduit(String code) =>
+      produitsCatalogue.where((p) => p.code == code).firstOrNull?.nom ?? code;
+  String? nomClient(String? code) =>
+      code == null ? null : clientsCatalogue.where((c) => c.code == code).firstOrNull?.nom;
+  String? nomFournisseur(String? code) =>
+      code == null ? null : fournisseursCatalogue.where((f) => f.code == code).firstOrNull?.nom;
 
   return showDialog(
     context: context,
@@ -135,7 +148,7 @@ Future<void> AnnulerRetour(BuildContext context, List<Retour> retoursSelectionne
                                   ),
                                   const SizedBox(height: 4),
                                   Text(
-                                    "${l10n.product}: ${r.nomProduit} | ${l10n.quantity}: ${r.quantite}",
+                                    "${l10n.product}: ${nomProduit(r.codeProduit)} | ${l10n.quantity}: ${r.quantite}",
                                     style: Appstyle.textS,
                                   ),
                                   Text(
@@ -144,8 +157,8 @@ Future<void> AnnulerRetour(BuildContext context, List<Retour> retoursSelectionne
                                   ),
                                   Text(
                                     r.type == "Client"
-                                        ? "${l10n.type}: ${l10n.client} | ${l10n.client}: ${r.client ?? '-'}"
-                                        : "${l10n.type}: ${l10n.supplier} | ${l10n.supplier}: ${r.fournisseur ?? '-'}",
+                                        ? "${l10n.type}: ${l10n.client} | ${l10n.client}: ${nomClient(r.client_code) ?? '-'}"
+                                        : "${l10n.type}: ${l10n.supplier} | ${l10n.supplier}: ${nomFournisseur(r.fournisseur_code) ?? '-'}",
                                     style: Appstyle.textS,
                                   ),
                                   Text(

@@ -7,11 +7,17 @@ import 'package:intl/intl.dart';
 
 class AfficheurMouvement extends StatelessWidget {
   final Mouvement mouvement;
+  final String nomProduit;
+  final String? nomClient;
+  final String? nomFournisseur;
   final VoidCallback? onDetails;
 
   const AfficheurMouvement({
     super.key,
     required this.mouvement,
+    required this.nomProduit,
+    this.nomClient,
+    this.nomFournisseur,
     this.onDetails,
   });
 
@@ -60,7 +66,7 @@ class AfficheurMouvement extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  mouvement.nomProduit,
+                  nomProduit,
                   style: const TextStyle(
                     fontWeight: FontWeight.bold,
                     fontSize: 16,
@@ -100,10 +106,10 @@ class AfficheurMouvement extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                if (mouvement.client != null && mouvement.client!.isNotEmpty)
-                  _infoLine(Icons.person, "${l10n.client} : ${mouvement.client}"),
-                if (mouvement.fournisseur != null && mouvement.fournisseur!.isNotEmpty)
-                  _infoLine(Icons.local_shipping, "${l10n.supplier} : ${mouvement.fournisseur}"),
+                if (nomClient != null && nomClient!.isNotEmpty)
+                  _infoLine(Icons.person, "${l10n.client} : $nomClient"),
+                if (nomFournisseur != null && nomFournisseur!.isNotEmpty)
+                  _infoLine(Icons.local_shipping, "${l10n.supplier} : $nomFournisseur"),
               ],
             ),
           ),

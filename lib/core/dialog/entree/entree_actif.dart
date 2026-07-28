@@ -44,11 +44,11 @@ Future<void> _DeleteEs({
   Produit prod;
 
   for (var entree in entrees) {
-    prod = produits.where((e) => e.nom == entree.produit).first;
+    prod = produits.where((e) => e.code == entree.produitcode).first;
 
     prod.quantite = prod.quantite - entree.quantite;
     prod.dateModif = DateTime.now();
-    prod.modifParCode = userName;
+    prod.modifParCode = userCode;
 
     await servicep.updateProduit(prod);
 
@@ -60,7 +60,7 @@ Future<void> _DeleteEs({
       id: idh,
       code: "HE$idh${DateTime.now().millisecondsSinceEpoch}",
       type: "entree",
-      desc: "L'utilisateur $userName a Supprimer l'Entrée du Produit ${entree.produit}",
+      desc: "L'utilisateur $userName a Supprimer l'Entrée du Produit ${prod.nom}",
       oper: ListsConst.typeHisto[2],
       dateCree: DateTime.now(),
       creeParCode: userCode,
@@ -85,6 +85,7 @@ Future<void> AnnulerEntree(
   final userName = auth.username!;
   final userCode = auth.userCode!;
   final l10n = AppLocalizations.of(context)!;
+  final produitsA = await ProduitServices.getAllProduits();
 
   if (!auth.isAuthenticated) {
     await InformationDialog(
@@ -152,7 +153,7 @@ Future<void> AnnulerEntree(
                                   const SizedBox(width: 10),
                                   Expanded(
                                     child: Text(
-                                      "${e.produit}  |  ${l10n.quantity}: ${e.quantite}",
+                                      "${produitsA.where((p) => p.code == e.produitcode).firstOrNull?.nom ?? e.produitcode}  |  ${l10n.quantity}: ${e.quantite}",
                                       style: Appstyle.textSB.copyWith(
                                         color: Appstyle.Tnoir,
                                       ),

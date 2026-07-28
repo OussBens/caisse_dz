@@ -6,7 +6,6 @@ class Mouvement {
 
   String    code;
   String    codeOperation;
-  String    nomProduit;
   String    codeProduit;
   String    type; // SmartScan
 
@@ -14,8 +13,8 @@ class Mouvement {
   double    prixAchat;
   double    prixVente;
 
-  String?   fournisseur;
-  String?   client;
+  String?   fournisseurCode;
+  String?   clientCode;
 
   DateTime  date;
 
@@ -34,7 +33,6 @@ class Mouvement {
     required this.id,
     required this.code,
     required this.date,
-    required this.nomProduit,
     required this.codeProduit,
     required this.quantite,
     required this.prixAchat,
@@ -46,8 +44,8 @@ class Mouvement {
     required this.dateCree,
     required this.creeParCode,
 
-    this.fournisseur,
-    this.client,
+    this.fournisseurCode,
+    this.clientCode,
 
     this.dateModif,
     this.modifParCode,
@@ -61,13 +59,12 @@ class Mouvement {
     return Mouvement(
         id            : map['id'],
         code          : map['code'],
-        nomProduit    : map['nom_produit'],
         codeProduit   : map['code_produit'],
         quantite      : map['quantite'],
         prixAchat     : map['prix_achat'],
         prixVente     : map['prix_vente'],
-        client        : map['client'],
-        fournisseur   : map['fournisseur'],
+        clientCode        : map['client_code'],
+        fournisseurCode   : map['fournisseur_code'],
         type          : map['type'],
         etat          : map['etat'] == 1 ,
         date          : DateTime.parse(map['date']),
@@ -87,14 +84,13 @@ class Mouvement {
     return{
       'id'              : id,
       'code'            : code,
-      'nom_produit'     : nomProduit,
       'code_produit'    : codeProduit,
       'quantite'        : quantite,
       'prix_achat'      : prixAchat,
       'prix_vente'      : prixVente,
-      'client'          : client,
+      'client_code'     : clientCode,
       'code_operation'  : codeOperation,
-      'fournisseur'     : fournisseur,
+      'fournisseur_code': fournisseurCode,
       'type'            : type,
       'etat'            : etat ? 1 : 0,
       'date'            : date.toIso8601String(),

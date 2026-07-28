@@ -1,4 +1,5 @@
 import 'dart:ui';
+import 'package:collection/collection.dart';
 import 'package:caisse_dz/DBCreate.dart';
 import 'package:caisse_dz/Services/Fournisseur.dart';
 import 'package:caisse_dz/Services/Verssement.dart';
@@ -27,7 +28,7 @@ Future<void> DeleteVerssements({required List<Verssement> verssements}) async {
   for (var verssement in verssements) {
     if (verssement.typebeneficiare == "Client") {
       final client = clients.firstWhere(
-            (c) => c.nom == verssement.beneficiare,
+            (c) => c.code == verssement.beneficiareCode,
         orElse: () => throw Exception("Client introuvable"),
       );
 
@@ -45,7 +46,7 @@ Future<void> DeleteVerssements({required List<Verssement> verssements}) async {
     }
     if (verssement.typebeneficiare == "Fournisseur") {
       final fournisseur = fournisseurs.firstWhere(
-            (c) => c.nom == verssement.beneficiare,
+            (c) => c.code == verssement.beneficiareCode,
         orElse: () => throw Exception("Fournisseur introuvable"),
       );
 
@@ -83,6 +84,12 @@ Future<void> ActiverVersements(
     );
     return;
   }
+
+  final clientsCatalogue = await ClientServices.getAllClients();
+  final fournisseursCatalogue = await FournisseurServices.getAllFournisseurs();
+  String nomBeneficiaire(Verssement v) => v.typebeneficiare == "Client"
+      ? (clientsCatalogue.where((c) => c.code == v.beneficiareCode).firstOrNull?.nom ?? v.beneficiareCode)
+      : (fournisseursCatalogue.where((f) => f.code == v.beneficiareCode).firstOrNull?.nom ?? v.beneficiareCode);
 
   return showDialog(
     context: context,
@@ -148,8 +155,8 @@ Future<void> ActiverVersements(
 
                                   Text(
                                     v.typebeneficiare == "Client"
-                                        ? "${l10n.type}: ${l10n.client} | ${l10n.beneficiary}: ${v.beneficiare}"
-                                        : "${l10n.type}: ${l10n.supplier} | ${l10n.beneficiary}: ${v.beneficiare}",
+                                        ? "${l10n.type}: ${l10n.client} | ${l10n.beneficiary}: ${nomBeneficiaire(v)}"
+                                        : "${l10n.type}: ${l10n.supplier} | ${l10n.beneficiary}: ${nomBeneficiaire(v)}",
                                     style: Appstyle.textS,
                                   ),
 

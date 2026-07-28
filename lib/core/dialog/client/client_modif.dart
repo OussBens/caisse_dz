@@ -422,7 +422,7 @@ Future<void> ClientModif(BuildContext context, Client client) async {
                               dateCree      : client.dateCree,
                               creeParCode   : client.creeParCode,
                               dateModif     : DateTime.now(),
-                              modifParCode      : userName,
+                              modifParCode      : userCode,
                             );
 
                             // ✅ Appel avec historique

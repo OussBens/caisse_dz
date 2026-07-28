@@ -2,6 +2,8 @@ import 'dart:ui';
 import 'package:caisse_dz/DBCreate.dart';
 import 'package:caisse_dz/Services/Pannier.dart';
 import 'package:caisse_dz/Services/PannierProduit.dart';
+import 'package:caisse_dz/Services/Produits.dart';
+import 'package:collection/collection.dart';
 import 'package:caisse_dz/core/Auth/auth_state.dart';
 import 'package:caisse_dz/core/dialog/base_dialog.dart';
 import 'package:caisse_dz/core/dialog/pannier/pannier_detail.dart';
@@ -81,7 +83,7 @@ Future<void> DialogPannierVendu({
           // Appliquer les filtres
           List<Pannier> panniersFiltres = panniersCaisse.where((p) {
             final dateOk = !p.date.isBefore(dateDebut) && !p.date.isAfter(dateFin);
-            final clientOk = selectedClientFilter == null || selectedClientFilter!.isEmpty || p.client == selectedClientFilter;
+            final clientOk = selectedClientFilter == null || selectedClientFilter!.isEmpty || clients.any((c) => c.code == p.client_code && c.nom == selectedClientFilter);
             final modeOk = selectedModePaiementFilter == null || selectedModePaiementFilter!.isEmpty || p.modePaiement == selectedModePaiementFilter;
             final typeOk = selectedTypePannierFilter == null || selectedTypePannierFilter!.isEmpty || p.typepannier == selectedTypePannierFilter;
             final etatOk = selectedEtatFilter == null || selectedEtatFilter!.isEmpty ||
@@ -93,7 +95,7 @@ Future<void> DialogPannierVendu({
                 (resteMax == null || p.reste <= resteMax!);
             final searchOk = searchText.isEmpty ||
                 p.code!.toLowerCase().contains(searchText.toLowerCase()) ||
-                p.client!.toLowerCase().contains(searchText.toLowerCase());
+                (clients.firstWhereOrNull((c) => c.code == p.client_code)?.nom ?? '').toLowerCase().contains(searchText.toLowerCase());
 
             return dateOk && clientOk && modeOk && typeOk && etatOk && montantOk && resteOk && searchOk;
           }).toList();
@@ -326,6 +328,7 @@ Future<void> DialogPannierVendu({
                             return _pannierTile(
                               context: context,
                               pannier: p,
+                              nomClient: clients.firstWhereOrNull((c) => c.code == p.client_code)?.nom ?? '',
                               l10n: l10n,
                               onDetail: () async {
                                 await PannierDetail(context, p);
@@ -364,6 +367,7 @@ Future<void> DialogPannierVendu({
 Widget _pannierTile({
   required BuildContext context,
   required Pannier pannier,
+  required String nomClient,
   required AppLocalizations l10n,
   required VoidCallback onDetail,
   required VoidCallback onShowProducts,
@@ -406,7 +410,7 @@ Widget _pannierTile({
         Expanded(
           flex: 2,
           child: Text(
-            pannier.client ?? "",
+            nomClient,
             style: Appstyle.textS,
           ),
         ),
@@ -478,6 +482,11 @@ Future<void> _showProductsListDialog(BuildContext context, Pannier pannier, AppL
   final db = await DbCreator.openDb();
   final ppService = PPServices(db);
   final produits = await ppService.getPPByCodePannier(pannier.code!);
+  final catalogueProduits = await ProduitServices.getAllProduits();
+  String nomProduit(String code) =>
+      catalogueProduits.firstWhereOrNull((p) => p.code == code)?.nom ?? code;
+  final catalogueClients = await ClientServices.getAllClients();
+  final nomClientPannier = catalogueClients.firstWhereOrNull((c) => c.code == pannier.client_code)?.nom ?? '';
 
   showDialog(
     context: context,
@@ -497,7 +506,7 @@ Future<void> _showProductsListDialog(BuildContext context, Pannier pannier, AppL
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Text("${l10n.client} : ${pannier.client}", style: Appstyle.textSB),
+                Text("${l10n.client} : $nomClientPannier", style: Appstyle.textSB),
                 Text("${l10n.date} : ${pannier.date.toString().split(" ").first}", style: Appstyle.textSB),
               ],
             ),
@@ -532,7 +541,7 @@ Future<void> _showProductsListDialog(BuildContext context, Pannier pannier, AppL
                     return DataRow(
                       cells: [
                         DataCell(Text(p.codeProduit ?? "")),
-                        DataCell(Text(p.nomProduit ?? "")),
+                        DataCell(Text(nomProduit(p.codeProduit))),
                         DataCell(
                           Container(
                             padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),

@@ -4,13 +4,11 @@ class Entree {
   DateTime date; //ok
 
   String produitcode;
-  String produit; //ok
 
   double prix; //ok
   double quantite; //ok
   double montant;
 
-  String fournisseur; //ok
   String fournisseurCode;
 
   bool etat; //ok
@@ -31,11 +29,9 @@ class Entree {
     required this.code,
     required this.date,
     required this.produitcode,
-    required this.produit,
     required this.prix,
     required this.quantite,
     required this.montant,
-    required this.fournisseur,
     required this.fournisseurCode,
     required this.etat,
     required this.creeParCode,
@@ -56,13 +52,11 @@ class Entree {
       date: DateTime.parse(map['date']),
 
       produitcode: map['produit_code'],
-      produit: map['produit'],
 
       prix: (map['prix'] as num).toDouble(),
       quantite: (map['quantite'] as num).toDouble(),
       montant: (map['montant'] as num).toDouble(),
 
-      fournisseur: map['fournisseur'],
       fournisseurCode: map['fournisseur_code'],
 
       etat: map['etat'] == 1,
@@ -94,13 +88,11 @@ class Entree {
       'date': date.toIso8601String(),
 
       'produit_code': produitcode,
-      'produit': produit,
 
       'prix': prix,
       'quantite': quantite,
       'montant': montant,
 
-      'fournisseur': fournisseur,
       'fournisseur_code': fournisseurCode,
 
       'etat': etat ? 1 : 0,

@@ -105,20 +105,20 @@ Future<void> _UpdatePackDetail({
   for (var produit in orignal) {
     i = 0;
     for (var prd in produitsPack) {
-      if (prd.nom == produit.packNom) {
+      if (prd.nom == produit.packCode) {
         break;
       }
       i++;
     }
     if (i == produitsPack.length) {
-      await service.deleteDetailes(produit.produitNom, produit.packNom);
+      await service.deleteDetailes(produit.produitCode, produit.packCode);
       final int idH = await _GetNextHistoriqueId();
       final db = await DbCreator.openDb();
       final serviceh = await HistoriqueServices(db);
       final Historique histo = Historique(
           id: idH,
           code: "HS$idH ${DateTime.now().microsecondsSinceEpoch}",
-          desc: "l'utilisateur $userName a supprimer le ProduitPackDetail ${produit.produitNom} de Pack ${produit.packNom}}",
+          desc: "l'utilisateur $userName a supprimer le ProduitPackDetail ${produit.produitCode} de Pack ${produit.packCode}}",
           type: "ProduitPackDetail",
           oper: ListsConst.typeHisto[3],
           dateCree: DateTime.now(),
@@ -129,9 +129,7 @@ Future<void> _UpdatePackDetail({
 
   for (var produit in produitsPack) {
     final detail = ProduitPackDetail(
-      packNom: produit.nom,
       packCode: produit.code,
-      produitNom: produite.nom,
       produitCode: produite.code,
       dateCree: DateTime.now(),
       id: await _GetNextPackDetailId(),
@@ -355,8 +353,6 @@ Future<ApiResponse<int>> _updateProduit({
   required String? oldPhoto,
   required String userName,
   required String userCode,
-  String? oldSousCategorie,
-  String? oldRemise,
 }) async {
   final db = await DbCreator.openDb();
   final services = ProduitServices(db);
@@ -394,7 +390,7 @@ Future<void> loadAllData({required Produit produite}) async {
     final fournisseur = await FournisseurServices.getAllFournisseurs();
     final magasin = await MagasinServices.getAllMagasins();
     final Param = await ParamServices.getParam();
-    final packdetail = await ProduitPackDetailServices.getDetailsByNom(produite.nom);
+    final packdetail = await ProduitPackDetailServices.getDetailsByNom(produite.code);
     final magasindetail = await ProduitMagasinDetailServices.getDetailsByCode(produite.code);
     final codedetail = await ProduitServices.getAllCodeDetailsByCode(produite.code);
 
@@ -503,6 +499,9 @@ String code = "";
 List<Fournisseur> fournisseursTest = [];
 List<Categorie> categoriesTest = [];
 List<SousCategorie> sousCategoriesTest = [];
+
+String? _codeCategorieByNom(String? nom) =>
+    nom == null ? null : categoriesTest.where((c) => c.nom == nom).firstOrNull?.code;
 List<Remise> remisesTest = [];
 List<Pack> packsTest = [];
 List<String> codesTest = [];
@@ -595,8 +594,6 @@ Future<void> ProduitModif(BuildContext context, Produit produit) async {
   final auth = Provider.of<AuthState>(context, listen: false);
   final userName = auth.username!;
   final userCode = auth.userCode!;
-  final oldSousCategorie = produit.sousCategorie;
-  final oldRemise = produit.remise;
   final l10n = AppLocalizations.of(context)!;
 
   if (!auth.isAuthenticated || auth.username == null || auth.userCode == null) {
@@ -611,10 +608,13 @@ Future<void> ProduitModif(BuildContext context, Produit produit) async {
 
   await loadAllData(produite: produit);
   final oldPhoto = productPhoto;
-  String selectedCategorie = produit.categorie;
+  selectedCategorie = categoriesTest.firstWhereOrNull((c) => c.id == produit.categorieId)?.nom;
   selectedCategorieid = produit.categorieId;
   selectedSousCategorieid = produit.sousCategorieId;
+  selectedSousCategorie = sousCategoriesTest.firstWhereOrNull((sc) => sc.id == produit.sousCategorieId)?.nom;
   remiseId = produit.remiseId ?? 0;
+  selectedRemise = remisesTest.firstWhereOrNull((r) => r.id == produit.remiseId)?.nom;
+  selectedFournisseur = fournisseursTest.firstWhereOrNull((f) => f.code == produit.fournisseurCode)?.nom;
   selectedetat = produit.etat ? l10n.active : l10n.inactive;
 
   seuil = produit.seuilBool;
@@ -632,7 +632,7 @@ Future<void> ProduitModif(BuildContext context, Produit produit) async {
       .where((p) => p.produitCode == produit.code)
       .toList();
   packsSelectionnes = packsProduit
-      .map((d) => packsTest.firstWhereOrNull((p) => p.nom == d.packNom))
+      .map((d) => packsTest.firstWhereOrNull((p) => p.code == d.packCode))
       .whereType<Pack>()
       .toList();
 
@@ -693,7 +693,7 @@ Future<void> ProduitModif(BuildContext context, Produit produit) async {
             margePController.text = produit.margeTauxPrct.toString();
             couleurController.text = produit.couleur ?? "";
             tailleController.text = produit.taille ?? "";
-            fournController.text = produit.fournisseur ?? "";
+            fournController.text = selectedFournisseur ?? "";
             codeController.text = produit.codeBarre ?? "";
             numserieController.text = produit.numeroSerie ?? "";
             jeu1Controller.text = produit.emballage1.toString();
@@ -838,13 +838,11 @@ Future<void> ProduitModif(BuildContext context, Produit produit) async {
                               codeBarre: codeController.text.trim(),
                               code: produits.code,
                               numeroSerie: numserieController.text.trim(),
-                              fournisseur: produits.fournisseur,
+                              fournisseurCode: fournisseursTest.firstWhereOrNull((f) => f.nom == selectedFournisseur)?.code
+                                  ?? produits.fournisseurCode,
                               categorieId: selectedCategorieid,
                               sousCategorieId: selectedSousCategorieid,
                               remiseId: remiseId,
-                              categorie: selectedCategorie.trim(),
-                              sousCategorie: produits.sousCategorie.trim(),
-                              remise: produits.remise?.trim(),
                               multicodebar: multicodebar,
                               prixAchat: double.tryParse(prixController.text) ?? 0,
                               margeBool: merge,
@@ -868,7 +866,7 @@ Future<void> ProduitModif(BuildContext context, Produit produit) async {
                               service: produits.service,
                               taille: tailleController.text.trim(),
                               couleur: couleurController.text.trim(),
-                              modifParCode: userName,
+                              modifParCode: userCode,
                               creeParcode: produits.creeParcode,
                               photo: productPhoto != null ? productPhoto : null,
 
@@ -880,8 +878,6 @@ Future<void> ProduitModif(BuildContext context, Produit produit) async {
                               oldPhoto: oldPhoto,          // Photos originales (avant modifications)
                               userName: userName,
                               userCode: userCode,
-                              oldSousCategorie: oldSousCategorie,
-                              oldRemise: oldRemise,
                             );
 
                             if (!response.success) {
@@ -1023,7 +1019,7 @@ Widget _buildFormRapideDetail(
                         fournisseurs: fournisseursTest,
                         onFournisseurSelected: (fournisseur) {
                           setState(() {
-                            produit.fournisseur = fournisseur.nom;
+                            selectedFournisseur = fournisseur.nom;
                           });
                         },
                       );
@@ -1033,11 +1029,11 @@ Widget _buildFormRapideDetail(
                 child: TextListe(
                   obligatoire: true,  // ✅ Ajouter obligatoire
                   clearable: false,
-                  value: produit.fournisseur ?? "",
+                  value: selectedFournisseur ?? "",
                   items: fournisseursTest.map((c) => c.nom).toList(),
                   onChanged: (v) {
                     setState(() {
-                      produit.fournisseur = v!;
+                      selectedFournisseur = v!;
                     });
                   },
                 ),
@@ -1058,18 +1054,16 @@ Widget _buildFormRapideDetail(
                           setState(() {
                             selectedCategorie = categorie.nom;
                             selectedCategorieid = categorie.id;
-                            produit.categorie = categorie.nom;
                             produit.categorieId = categorie.id;
                             selectedSousCategorie = null;
 
                             final sousCats = sousCategoriesTest
-                                .where((sc) => sc.categorieNom == produit.categorie)
+                                .where((sc) => sc.categorieCode == _codeCategorieByNom(selectedCategorie))
                                 .toList();
 
                             if (sousCats.isNotEmpty) {
                               selectedSousCategorie = sousCats.first.nom;
                               selectedSousCategorieid = sousCats.first.id;
-                              produit.sousCategorie = sousCats.first.nom;
                               produit.sousCategorieId = sousCats.first.id;
                             }
                           });
@@ -1081,25 +1075,23 @@ Widget _buildFormRapideDetail(
                 child: TextListe(
                   obligatoire: true,
                   clearable: false,
-                  value: produit.categorie,
+                  value: selectedCategorie,
                   items: categoriesTest.map((c) => c.nom).toList(),
                   onChanged: (v) {
                     setState(() {
-                      produit.categorie = v!;
-                      selectedCategorie = v;
+                      selectedCategorie = v!;
                       selectedCategorieid = categoriesTest.where((sc) => sc.nom == v).first.id;
                       produit.categorieId = categoriesTest.where((sc) => sc.nom == v).first.id;
                       if (v.isEmpty) {
                         selectedSousCategorie = null;
                       } else {
                         final sousCats = sousCategoriesTest
-                            .where((sc) => sc.categorieNom == v)
+                            .where((sc) => sc.categorieCode == _codeCategorieByNom(v))
                             .toList();
 
                         if (sousCats.isNotEmpty) {
                           selectedSousCategorie = sousCats.first.nom;
                           selectedSousCategorieid = sousCats.first.id;
-                          produit.sousCategorie = sousCats.first.nom;
                           produit.sousCategorieId = sousCats.first.id;
                         } else {
                           selectedSousCategorie = "";
@@ -1121,13 +1113,12 @@ Widget _buildFormRapideDetail(
                     builder: (_) {
                       return InsertionSousCategorieDialog(
                         sousCategories: sousCategoriesTest
-                            .where((sc) => sc.categorieNom == selectedCategorie)
+                            .where((sc) => sc.categorieCode == _codeCategorieByNom(selectedCategorie))
                             .toList(),
                         onSousCategorieSelected: (souscategorie) {
                           setState(() {
                             selectedSousCategorie = souscategorie.nom;
                             selectedSousCategorieid = souscategorie.id;
-                            produit.sousCategorie = souscategorie.nom;
                             produit.sousCategorieId = souscategorie.id;
                           });
                         },
@@ -1138,16 +1129,15 @@ Widget _buildFormRapideDetail(
                 child: TextListe(
                   clearable: false,
                   obligatoire: true,
-                  value: produit.sousCategorie,
+                  value: selectedSousCategorie,
                   items: sousCategoriesTest
-                      .where((sc) => sc.categorieNom == produit.categorie)
+                      .where((sc) => sc.categorieCode == _codeCategorieByNom(selectedCategorie))
                       .map((sc) => sc.nom)
                       .toList(),
                   onChanged: (v) {
                     setState(() {
                       selectedSousCategorie = v;
                       selectedSousCategorieid = sousCategoriesTest.where((s) => s.nom == v).first.id;
-                      produit.sousCategorie = v!;
                       produit.sousCategorieId = sousCategoriesTest.where((s) => s.nom == v).first.id;
                     });
                   },
@@ -1385,7 +1375,7 @@ Widget _buildFormDetailleDetail(
                             fournisseurs: fournisseursTest,
                             onFournisseurSelected: (fournisseur) {
                               setState(() {
-                                produit.fournisseur = fournisseur.nom;
+                                selectedFournisseur = fournisseur.nom;
                               });
                             },
                           );
@@ -1395,11 +1385,11 @@ Widget _buildFormDetailleDetail(
                     child: TextListe(
                       clearable: false,
                       obligatoire: true,  // ✅ Ajouter obligatoire
-                      value: produit.fournisseur ?? "",
+                      value: selectedFournisseur ?? "",
                       items: fournisseursTest.map((c) => c.nom).toList(),
                       onChanged: (v) {
                         setState(() {
-                          produit.fournisseur = v!;
+                          selectedFournisseur = v!;
                         });
                       },
                     ),
@@ -1498,18 +1488,16 @@ Widget _buildFormDetailleDetail(
                               setState(() {
                                 selectedCategorie = categorie.nom;
                                 selectedCategorieid = categorie.id;
-                                produit.categorie = categorie.nom;
                                 produit.categorieId = categorie.id;
 
                                 selectedSousCategorie = null;
                                 final sousCats = sousCategoriesTest
-                                    .where((sc) => sc.categorieNom == selectedCategorie)
+                                    .where((sc) => sc.categorieCode == _codeCategorieByNom(selectedCategorie))
                                     .toList();
 
                                 if (sousCats.isNotEmpty) {
                                   selectedSousCategorie = sousCats.first.nom;
                                   selectedSousCategorieid = sousCats.first.id;
-                                  produit.sousCategorie = sousCats.first.nom;
                                   produit.sousCategorieId = sousCats.first.id;
                                 }
                               });
@@ -1521,25 +1509,23 @@ Widget _buildFormDetailleDetail(
                     child: TextListe(
                       obligatoire: true,
                       clearable: false,
-                      value: produit.categorie,
+                      value: selectedCategorie,
                       items: categoriesTest.map((c) => c.nom).toList(),
                       onChanged: (v) {
                         setState(() {
-                          produit.categorie = v!;
-                          selectedCategorie = v;
+                          selectedCategorie = v!;
                           selectedCategorieid = categoriesTest.where((sc) => sc.nom == v).first.id;
                           produit.categorieId = categoriesTest.where((sc) => sc.nom == v).first.id;
                           if (v.isEmpty) {
                             selectedSousCategorie = null;
                           } else {
                             final sousCats = sousCategoriesTest
-                                .where((sc) => sc.categorieNom == v)
+                                .where((sc) => sc.categorieCode == _codeCategorieByNom(v))
                                 .toList();
 
                             if (sousCats.isNotEmpty) {
                               selectedSousCategorie = sousCats.first.nom;
                               selectedSousCategorieid = sousCats.first.id;
-                              produit.sousCategorie = sousCats.first.nom;
                               produit.sousCategorieId = sousCats.first.id;
                             } else {
                               selectedSousCategorie = "";
@@ -1561,12 +1547,13 @@ Widget _buildFormDetailleDetail(
                         builder: (_) {
                           return InsertionSousCategorieDialog(
                             sousCategories: sousCategoriesTest
-                                .where((sc) => sc.categorieNom == selectedCategorie)
+                                .where((sc) => sc.categorieCode == _codeCategorieByNom(selectedCategorie))
                                 .toList(),
                             onSousCategorieSelected: (souscategorie) {
                               setState(() {
                                 selectedSousCategorie = souscategorie.nom;
-                                produit.sousCategorie = souscategorie.nom;
+                                selectedSousCategorieid = souscategorie.id;
+                                produit.sousCategorieId = souscategorie.id;
                               });
                             },
                           );
@@ -1576,15 +1563,14 @@ Widget _buildFormDetailleDetail(
                     child: TextListe(
                       obligatoire: true,
                       clearable: false,
-                      value: produit.sousCategorie,
+                      value: selectedSousCategorie,
                       items: sousCategoriesTest
-                          .where((sc) => sc.categorieNom == produit.categorie)
+                          .where((sc) => sc.categorieCode == _codeCategorieByNom(selectedCategorie))
                           .map((sc) => sc.nom)
                           .toList(),
                       onChanged: (v) {
                         setState(() {
                           selectedSousCategorie = v;
-                          produit.sousCategorie = v!;
                           selectedSousCategorieid = sousCategoriesTest.where((sc) => sc.nom == v).first.id;
                           produit.sousCategorieId = sousCategoriesTest.where((sc) => sc.nom == v).first.id;
                         });
@@ -1607,7 +1593,7 @@ Widget _buildFormDetailleDetail(
                                 .toList(),
                             onRemiseSelected: (remise) {
                               setState(() {
-                                produit.remise = remise.nom.trim();
+                                selectedRemise = remise.nom.trim();
                                 produit.remiseId = remise.id;
                                 remiseId = remise.id;
                               });
@@ -1624,8 +1610,8 @@ Widget _buildFormDetailleDetail(
                             .toSet()
                             .toList();
 
-                        final safeValue = remiseItems.contains(produit.remise?.trim())
-                            ? produit.remise!.trim()
+                        final safeValue = remiseItems.contains(selectedRemise?.trim())
+                            ? selectedRemise!.trim()
                             : null;
 
                         return TextListe(
@@ -1634,7 +1620,7 @@ Widget _buildFormDetailleDetail(
                           onChanged: (v) {
                             setState(() {
                               if (v == null || v.isEmpty) {
-                                produit.remise = null;
+                                selectedRemise = null;
                                 produit.remiseId = 0;
                                 remiseId = 0;
                                 return;
@@ -1644,7 +1630,7 @@ Widget _buildFormDetailleDetail(
                                     (r) => r.nom.trim() == v.trim(),
                               );
 
-                              produit.remise = v;
+                              selectedRemise = v;
                               produit.remiseId = remise?.id;
                               remiseId = remise?.id ?? 0;
                             });
@@ -2100,6 +2086,7 @@ Widget _buildFormDetailleDetail(
                 ],
               ),
             ),
+            const SizedBox(height: 30),
             Container(
               padding: const EdgeInsets.symmetric(vertical: 15, horizontal: 10),
               decoration: BoxDecoration(
@@ -2210,6 +2197,7 @@ Widget _buildFormDetailleDetail(
                 ],
               ),
             ),
+            const SizedBox(height: 30),
             Container(
               padding: const EdgeInsets.symmetric(vertical: 15, horizontal: 10),
               decoration: BoxDecoration(

@@ -4,11 +4,9 @@ class TransfertCaisse {
   DateTime  dateTransfert;
 
   /// Caisse source (expéditrice)
-  String caisseExp;
   String caisseExpCode;
 
   /// Caisse destination
-  String caisseDest;
   String caisseDestCode;
 
   double  montant;
@@ -34,8 +32,6 @@ class TransfertCaisse {
     required this.id,
     required this.code,
     required this.dateTransfert,
-    required this.caisseExp,
-    required this.caisseDest,
     required this.montant,
     required this.etat,
     required this.dateCree,
@@ -59,8 +55,6 @@ class TransfertCaisse {
       id              : map['id'],
       code            : map['code'],
       dateTransfert   : DateTime.parse(map['date_transfert']),
-      caisseExp       : map['caisse_exp'],
-      caisseDest      : map['caisse_dest'],
       caisseDestCode  : map['caisse_dest_code'],
       caisseExpCode   : map['caisse_exp_code'],
       montant         : map['montant'],
@@ -89,8 +83,6 @@ class TransfertCaisse {
       'id'                : id,
       'code'              : code,
       'date_transfert'    : dateTransfert.toIso8601String(),
-      'caisse_exp'        : caisseExp,
-      'caisse_dest'       : caisseDest,
       'montant'           : montant,
       'etat'              : etat ? 1 : 0,
       'date_cree'         : dateCree.toIso8601String(),

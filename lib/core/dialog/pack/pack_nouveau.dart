@@ -107,7 +107,6 @@ Future<ApiResponse<int>> _savePack({required Pack pack}) async {
 
 Future<void> _savePackDetails({
   required List<ProduitPackDetail> produitsPackDetails,
-  required String packNom,
   required String packCode,
   required String userName,
   required String userCode,
@@ -132,7 +131,6 @@ Future<void> _savePackDetails({
 
   for (var detail in produitsPackDetails) {
     // Mettre à jour les informations du détail
-    detail.packNom = packNom;
     detail.packCode = packCode;
     detail.creeParCode = userCode;
 
@@ -157,7 +155,7 @@ Future<void> _savePackDetails({
         prefix: CodePrefix.historique,
         id: idH,
       ),
-      desc: "Ajout de produit ${detail.produitNom} au pack $packNom par $userName",
+      desc: "Ajout de produit ${detail.produitCode} au pack $packCode par $userName",
       type: "Pack",
       oper: ListsConst.typeHisto[0],
       dateCree: DateTime.now(),
@@ -168,7 +166,7 @@ Future<void> _savePackDetails({
 
     final result = await service.addProduitPackDetail(detail);
     if (result == 0) {
-      print("Erreur lors de l'insertion du détail pour ${detail.produitNom}");
+      print("Erreur lors de l'insertion du détail pour ${detail.produitCode}");
     }
   }
 }
@@ -413,7 +411,6 @@ Future<void> PackNouveau(BuildContext context) async {
                       try {
                         await _savePackDetails(
                           produitsPackDetails: produitsPackDetails,
-                          packNom: packN.nom,
                           packCode: packN.code,
                           userName: userName,
                           userCode: userCode,
@@ -493,7 +490,7 @@ Widget _tableProduitsPackNouveau(void Function(VoidCallback fn) setState, AppLoc
         child: Row(
           children: [
             Expanded(flex: 2, child: Text(detail.produitCode, style: Appstyle.textSB)),
-            Expanded(flex: 3, child: Text(detail.produitNom, style: Appstyle.textSB)),
+            Expanded(flex: 3, child: Text(detail.produitCode, style: Appstyle.textSB)),
             Expanded(
               flex: 2,
               child: SizedBox(
@@ -585,9 +582,7 @@ void _ouvrirInsertionProduitPackNouveau(
             produitsPackDetails.add(
               ProduitPackDetail(
                 id: 0,  // Mettre 0, ne sera pas utilisé
-                packNom: '',      // Sera mis à jour dans _savePackDetails
                 packCode: cd,     // Le code du pack
-                produitNom: produit.nom,
                 produitCode: produit.code,
                 prixUnitaire: produit.prixVente,
                 quantite: 1,

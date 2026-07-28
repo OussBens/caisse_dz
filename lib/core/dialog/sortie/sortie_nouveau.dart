@@ -6,6 +6,10 @@ import 'package:caisse_dz/l10n/app_localizations.dart';
 import 'package:caisse_dz/Services/Produits.dart' hide ApiResponse;
 import 'package:caisse_dz/Services/Mouvement.dart' hide ApiResponse;
 import 'package:caisse_dz/Services/Historique.dart' hide ApiResponse;
+import 'package:caisse_dz/Services/Categorie.dart' hide ApiResponse;
+import 'package:caisse_dz/Services/SousCategories.dart' hide ApiResponse;
+import 'package:caisse_dz/data/models/categorie.dart';
+import 'package:caisse_dz/data/models/sous_categorie.dart';
 import 'package:caisse_dz/core/dialog/insertion_produit.dart';
 import 'package:caisse_dz/core/dialog/base_dialog.dart';
 import 'package:caisse_dz/core/theme/app_style.dart';
@@ -70,9 +74,9 @@ Future<ApiResponse<int>> _SaveSortie({
   final response = await services.addSortie(sortie);
   await serviceM.addMouvement(mouv);
 
-  final prod = produits.where((e) => e.nom == sortie.produit).first;
+  final prod = produits.where((e) => e.code == sortie.produitCode).first;
   prod.quantite = prod.quantite - sortie.quantite;
-  prod.modifParCode = userName;
+  prod.modifParCode = userCode;
   prod.dateModif = DateTime.now();
   await servicep.updateProduit(prod);
 
@@ -84,7 +88,7 @@ Future<ApiResponse<int>> _SaveSortie({
         id: idh,
       ), // ✅ Utilisation du générateur
       type: "sortie",
-      desc: "L'utilisateur $userName a Ajoutee le Retour de Produit ${sortie.produit} de Type ${sortie.type}",
+      desc: "L'utilisateur $userName a Ajoutee le Retour de Produit ${prod.nom} de Type ${sortie.type}",
       oper: ListsConst.typeHisto[0],
       dateCree: DateTime.now(),
       creeParCode: userCode
@@ -94,6 +98,8 @@ Future<ApiResponse<int>> _SaveSortie({
 }
 
 List<Produit> produitsTest = [];
+List<Categorie> categoriesTestS = [];
+List<SousCategorie> sousCategoriesTestS = [];
 
 final TextEditingController observationControllerS = TextEditingController();
 final TextEditingController quantiteControllerS = TextEditingController();
@@ -108,6 +114,8 @@ String? selectedType;
 
 Future<void> _LoadData() async {
   produitsTest = await ProduitServices.getAllProduits();
+  categoriesTestS = await CategorieServices.getAllCategorie();
+  sousCategoriesTestS = await SousCategoriesServices.getAllSousCategorie();
 }
 
 void calculerMontant() {
@@ -383,6 +391,13 @@ Future<void> SortieNouveau(BuildContext context) async {
                           );
                           return;
                         }
+                        final categorieCodeS = categoriesTestS
+                            .where((c) => c.id == prod!.categorieId)
+                            .firstOrNull?.code;
+                        final sousCategorieCodeS = sousCategoriesTestS
+                            .where((sc) => sc.id == prod!.sousCategorieId)
+                            .firstOrNull?.code;
+
                         Sortie sortie = Sortie(
                           id: id,
                           code: code, // ✅ Code généré automatiquement
@@ -390,15 +405,14 @@ Future<void> SortieNouveau(BuildContext context) async {
                           type: selectedTypeS!,
                           etat: true,
                           date: DateTime.parse(dateControllerS.text),
-                          produit: selectedProduitS!,
                           montant: double.parse(montantControllerS.text),
                           quantite: double.parse(quantiteControllerS.text),
                           dateCree: DateTime.now(),
-                          categorie: prod!.categorie,
+                          categorieCode: categorieCodeS,
                           produitCode: prod!.code,
                           creeParCode: userCode,
                           observation: observationControllerS.text,
-                          souscategorie: prod!.sousCategorie,
+                          sousCategorieCode: sousCategorieCodeS,
                         );
 
                         int idm = await _GetNextMouvementId();
@@ -409,7 +423,6 @@ Future<void> SortieNouveau(BuildContext context) async {
                             id: idm,
                           ), // ✅ Utilisation du générateur
                           date: DateTime.parse(dateControllerS.text),
-                          nomProduit: selectedProduitS!,
                           codeProduit: prod!.code,
                           quantite: double.parse(quantiteControllerS.text),
                           prixAchat: prod!.prixAchat,

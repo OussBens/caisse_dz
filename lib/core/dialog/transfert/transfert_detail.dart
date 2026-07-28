@@ -76,8 +76,8 @@ Future<void> TransfertCaisseDetail(
                 child: detailwrap([
                   detailinfo(l10n.code, transfert.code),
                   detailinfo(l10n.transferDate, transfert.dateTransfert.toString().split(" ").first),
-                  detailinfo(l10n.sourceCashRegister, transfert.caisseExp),
-                  detailinfo(l10n.destinationCashRegister, transfert.caisseDest),
+                  detailinfo(l10n.sourceCashRegister, transfert.caisseExpCode),
+                  detailinfo(l10n.destinationCashRegister, transfert.caisseDestCode),
                   detailinfo(l10n.status, transfert.etat ? l10n.active : l10n.inactive),
                 ]),
               ),
@@ -155,8 +155,8 @@ Widget _resumeTransfert(TransfertCaisse t, AppLocalizations l10n) {
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
         detailbadge(l10n.amount, "${t.montant.toStringAsFixed(2)} ${l10n.currency}"),
-        detailbadge(l10n.sourceCashRegister, t.caisseExp),
-        detailbadge(l10n.destinationCashRegister, t.caisseDest),
+        detailbadge(l10n.sourceCashRegister, t.caisseExpCode),
+        detailbadge(l10n.destinationCashRegister, t.caisseDestCode),
         detailbadge(l10n.status, t.etat ? l10n.active : l10n.inactive),
       ],
     ),

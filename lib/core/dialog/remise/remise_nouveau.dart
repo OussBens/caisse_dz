@@ -85,6 +85,7 @@ class _RemiseDialogState extends State<RemiseDialog> {
   // State variables
   List<Produit> produitsRemise = [];
   List<Produit> produitsTest = [];
+  List<Remise> remisesTest = [];
   String? remisetype;
   String? selectedRemiseType;
   String cd = '';
@@ -133,10 +134,17 @@ class _RemiseDialogState extends State<RemiseDialog> {
 
   Future<void> _LoadAllData() async {
     final result = await ProduitServices.getAllProduits();
+    final remises = await RemiseServices.getAllRemise();
     if (mounted) {
-      setState(() => produitsTest = result);
+      setState(() {
+        produitsTest = result;
+        remisesTest = remises;
+      });
     }
   }
+
+  String _nomRemise(int? id) =>
+      remisesTest.where((r) => r.id == id).firstOrNull?.nom ?? "-";
 
   Future<int> _GetNextId() async {
     final db = await DbCreator.openDb();
@@ -235,9 +243,8 @@ class _RemiseDialogState extends State<RemiseDialog> {
     await serviceh.addHistorique(histo);
 
     for (var produit in produits) {
-      produit.remise = remise.nom;
       produit.remiseId = remise.id;
-      produit.modifParCode = widget.userName;
+      produit.modifParCode = widget.userCode;
       produit.dateModif = DateTime.now();
 
       await service.updateProduit(produit);
@@ -901,7 +908,7 @@ class _RemiseDialogState extends State<RemiseDialog> {
               Expanded(
                 flex: 4,
                 child: Text(
-                  produit.remise ?? "-",
+                  _nomRemise(produit.remiseId),
                   style: Appstyle.textSB,
                   overflow: TextOverflow.ellipsis,
                 ),

@@ -44,6 +44,9 @@ List<PannierProduit> pannierProduitsTest = [];
 List<Client> clientsTest = [];
 List<Produit> produitsTest = [];
 
+String _nomProduit(String code) =>
+    produitsTest.where((p) => p.code == code).firstOrNull?.nom ?? code;
+
 // ✅ Obtenir l'ID d'historique sans transaction
 Future<int> _GetNextHistoriqueId() async {
   final db = await DbCreator.openDb();
@@ -223,7 +226,7 @@ Future<ApiResponse<int>> _UpdatePannier({
     final servicep = PPServices(db);
 
     final clients = await ClientServices.getAllClients();
-    final client = clients.where((e) => e.nom == panniere.client).first;
+    final client = clients.where((e) => e.code == panniere.client_code).first;
 
     final mouvements = await MouvementsServices.getAllMouvementsByCodeOper(panniere.code);
 
@@ -252,7 +255,7 @@ Future<ApiResponse<int>> _UpdatePannier({
           nouveauMontant: 0,
         );
 
-        final mouv = mouvements.where((e) => e.nomProduit == prodO.nomProduit).firstOrNull;
+        final mouv = mouvements.where((e) => e.codeProduit == prodO.codeProduit).firstOrNull;
         if (mouv != null) {
           await MouvementsServices.deleteMouvement(mouv.id);
         }
@@ -261,7 +264,7 @@ Future<ApiResponse<int>> _UpdatePannier({
 
         await _addHistorique(
           type: 'pannierProduit',
-          desc: "L'utilisateur $userName a supprimé le produit ${prodO.nomProduit} du panier ${panniere.code}",
+          desc: "L'utilisateur $userName a supprimé le produit ${_nomProduit(prodO.codeProduit)} du panier ${panniere.code}",
           userName: userName,
           userCode: userCode,
         );
@@ -284,13 +287,13 @@ Future<ApiResponse<int>> _UpdatePannier({
             nouveauMontant: prod.total,
           );
 
-          final mouv = mouvements.where((e) => e.nomProduit == prod.nomProduit).firstOrNull;
+          final mouv = mouvements.where((e) => e.codeProduit == prod.codeProduit).firstOrNull;
           if (mouv != null) {
             mouv.dateModif = DateTime.now();
             mouv.prixVente = prod.prix;
             mouv.quantite = prod.quantite;
-            mouv.modifParCode = userName;
-            mouv.client = panniere.client;
+            mouv.modifParCode = userCode;
+            mouv.clientCode = panniere.client_code;
             mouv.date = panniere.date;
             await servicem.updateMouvement(mouv);
           }
@@ -299,7 +302,7 @@ Future<ApiResponse<int>> _UpdatePannier({
 
           await _addHistorique(
             type: 'pannierProduit',
-            desc: "L'utilisateur $userName a modifié ${prod.nomProduit}: qté ${prodO.quantite}->${prod.quantite}",
+            desc: "L'utilisateur $userName a modifié ${_nomProduit(prod.codeProduit)}: qté ${prodO.quantite}->${prod.quantite}",
             userName: userName,
             userCode: userCode,
           );
@@ -332,7 +335,7 @@ Future<ApiResponse<int>> _UpdatePannier({
     if (diffMontant != 0) {
       client.dernierAchat = DateTime.now();
       client.dateModif = DateTime.now();
-      client.modifParCode = userName;
+      client.modifParCode = userCode;
       await serviceC.updateClient(client);
 
       await _addHistorique(
@@ -384,7 +387,7 @@ Future<void> PannierModif(BuildContext context, Pannier panier) async {
   verseController.text = panier.verse.toStringAsFixed(2);
   resteController.text = ((panier.montant) - (panier.verse)).toStringAsFixed(2);
   selectedModePaiement = panier.modePaiement ?? "Espèce";
-  selectedClient = panier.client;
+  selectedClient = clientsTest.where((c) => c.code == panier.client_code).firstOrNull?.nom;
   selectedEtatR = panier.etat ? 'Actif' : 'Inactif';
 
   List<PannierProduit> produitsDuPanier = pannierProduitsTest
@@ -604,7 +607,7 @@ Future<void> PannierModif(BuildContext context, Pannier panier) async {
 
                                   return DataRow(cells: [
                                     DataCell(Text(p.codeProduit)),
-                                    DataCell(Text(p.nomProduit)),
+                                    DataCell(Text(_nomProduit(p.codeProduit))),
                                     DataCell(
                                       SizedBox(
                                         width: 60,
@@ -668,8 +671,7 @@ Future<void> PannierModif(BuildContext context, Pannier panier) async {
                         // Mise à jour du panier
                         panier.modePaiement = selectedModePaiement;
                         panier.dateModif = DateTime.now();
-                        panier.modifParCode = userName;
-                        panier.client = selectedClient!;
+                        panier.modifParCode = userCode;
                         panier.client_code = clientsTest
                             .where((c) => c.nom == selectedClient)
                             .firstOrNull

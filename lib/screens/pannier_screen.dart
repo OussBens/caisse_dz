@@ -113,10 +113,10 @@ class _PannierScreenState extends State<PannierScreen> {
     for (final l in lignes) {
       if (l.etat != "actif") continue;
 
-      final nom = l.nomProduit;
+      final code = l.codeProduit;
       final qte = l.quantite;
 
-      ventes[nom] = (ventes[nom] ?? 0) + qte;
+      ventes[code] = (ventes[code] ?? 0) + qte;
     }
 
     return ventes;
@@ -165,7 +165,7 @@ class _PannierScreenState extends State<PannierScreen> {
       final searchText = _searchController.text.toLowerCase();
       final clientOk = selectedClientFilter == null ||
           selectedClientFilter!.isEmpty ||
-          p.client == selectedClientFilter;
+          clientsTest.any((c) => c.code == p.client_code && c.nom == selectedClientFilter);
       final modeOk = modepaiementFilter == null ||
           modepaiementFilter!.isEmpty ||
           p.modePaiement == modepaiementFilter;

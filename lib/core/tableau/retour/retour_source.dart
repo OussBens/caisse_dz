@@ -28,7 +28,7 @@ class RetourDataSource extends BaseTableDataSource<Retour> {
       case 'code':
         return retour.code;
       case 'nomProduit':
-        return retour.nomProduit;
+        return retour.codeProduit;
       case 'quantite':
         return retour.quantite;
 
@@ -42,9 +42,9 @@ class RetourDataSource extends BaseTableDataSource<Retour> {
       case 'type':
         return retour.type == "Client" ? l10n.clientType : l10n.supplierType;
       case 'client':
-        return retour.client;
+        return retour.client_code;
       case 'fournisseur':
-        return retour.fournisseur;
+        return retour.fournisseur_code;
 
       case 'etat':
         return retour.etat ? l10n.active : l10n.inactive;

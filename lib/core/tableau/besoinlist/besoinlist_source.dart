@@ -40,7 +40,7 @@ class BesoinListDataSource extends BaseTableDataSource<BesoinList> {
       case 'quantite':
         return besoin.quantite;
       case 'fournisseur':
-        return besoin.fournisseur;
+        return besoin.fournisseurCode;
       case 'etat':
         return besoin.etat ? l10n.actif : l10n.inactif;
       case 'dateCree':

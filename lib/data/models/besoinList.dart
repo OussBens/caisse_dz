@@ -9,7 +9,7 @@ class BesoinList {
 
   String    code;
   String    numero;
-  String    fournisseur;
+  String    fournisseurCode;
 
   DateTime  date;
 
@@ -32,7 +32,7 @@ class BesoinList {
     required this.montant,
     required this.nombreArticle,
     required this.quantite,
-    required this.fournisseur,
+    required this.fournisseurCode,
     required this.etat,
     required this.dateCree,
     required this.creeParCode,
@@ -54,7 +54,7 @@ class BesoinList {
       montant       : map['montant'],
       nombreArticle : map['nomber_article'],
       quantite      : map['quantite'],
-      fournisseur   : map['fournisseur'],
+      fournisseurCode : map['fournisseur_code'],
       etat          : map['etat'] == 1 ,
       observation   : map['observation'],
       dateCree      : DateTime.parse(map['date_cree']),
@@ -81,7 +81,7 @@ class BesoinList {
       'montant'         : montant,
       'nomber_article'  : nombreArticle,
       'quantite'        : quantite,
-      'fournisseur'     : fournisseur,
+      'fournisseur_code' : fournisseurCode,
       'etat'            : etat ? 1 : 0,
       'observation'     : observation,
       'date_cree'       : dateCree.toIso8601String(),

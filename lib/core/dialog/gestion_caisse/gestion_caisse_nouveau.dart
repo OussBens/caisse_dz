@@ -340,7 +340,6 @@ Future<void> CaisseGestionNouveau(BuildContext context) async {
                           id: id,
                           etat: true,
                           code: code, // ✅ Code généré automatiquement
-                          magasin: selectedMagasinC!,
                           dateCree: DateTime.now(),
                           nomCaisse: nomCaisseController.text,
                           typecaisse: selectedTypeC == "physique" ? "physique" : "compte",

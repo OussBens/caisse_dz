@@ -49,22 +49,6 @@ class ProduitServices{
     return result.map((e) => Produit.fromMap(e)).toList();
 
   }
-  Future<void> updateCategorieNomInProducts(String oldCategorieNom, String newCategorieNom) async {
-    try {
-      final db = await DbCreator.openDb();
-      await db.transaction((txn) async {
-        await txn.rawUpdate(
-          'UPDATE produits SET categorie = ? WHERE categorie = ?',
-          [newCategorieNom, oldCategorieNom],
-        );
-      });
-      print('✅ Catégorie nom mis à jour dans les produits: $oldCategorieNom -> $newCategorieNom');
-    } catch (e) {
-      print('❌ Erreur updateCategorieNomInProducts: $e');
-    }
-  }
-
-
 // Ajoutez ces méthodes dans ProduitServices.dart
 
   // ✅ Méthode avec transaction pour updateProduit
@@ -317,24 +301,24 @@ class ProduitServices{
   }
 
 
-  Future<List<Produit>> getProduitsByRemise(String remise) async {
+  Future<List<Produit>> getProduitsByRemiseId(int remiseId) async {
 
-    final List<Map<String, dynamic>> result = await db.query('produits' , where: 'remise = ?' , whereArgs: [remise],);
-
-    return result.map((e) => Produit.fromMap(e)).toList();
-
-  }
-
-  Future<List<Produit>> getProduitsByCategorie(String categorie) async {
-
-    final List<Map<String, dynamic>> result = await db.query('produits' , where: 'categorie = ?' , whereArgs: [categorie],);
+    final List<Map<String, dynamic>> result = await db.query('produits' , where: 'remise_id = ?' , whereArgs: [remiseId],);
 
     return result.map((e) => Produit.fromMap(e)).toList();
 
   }
-  Future<List<Produit>> getProduitsBySousCategorie(String sous) async {
 
-    final List<Map<String, dynamic>> result = await db.query('produits' , where: 'sous_categorie = ?' , whereArgs: [sous],);
+  Future<List<Produit>> getProduitsByCategorieId(int categorieId) async {
+
+    final List<Map<String, dynamic>> result = await db.query('produits' , where: 'categorie_id = ?' , whereArgs: [categorieId],);
+
+    return result.map((e) => Produit.fromMap(e)).toList();
+
+  }
+  Future<List<Produit>> getProduitsBySousCategorieId(int sousCategorieId) async {
+
+    final List<Map<String, dynamic>> result = await db.query('produits' , where: 'sous_categorie_id = ?' , whereArgs: [sousCategorieId],);
 
     return result.map((e) => Produit.fromMap(e)).toList();
 

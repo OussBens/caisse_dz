@@ -42,7 +42,7 @@ class SmartScanDataSource extends BaseTableDataSource<SmartScan> {
       case 'nbrProduitCalcul':
         return scan.nbrProduitCalcul;
       case 'fournisseur':
-        return scan.fournisseur;
+        return scan.fournisseurCode;
       case 'quantiteArticle':
         return scan.quantiteArticle;
       case 'quantiteArticleCalcul':

@@ -1,5 +1,6 @@
 import 'dart:io';
 
+import 'package:collection/collection.dart';
 import 'package:caisse_dz/Services/excel_generator.dart';
 import 'package:caisse_dz/Services/ExcelPreviewDialog.dart';
 import 'package:caisse_dz/core/Auth/auth_state.dart';
@@ -10,6 +11,8 @@ import 'package:caisse_dz/Services/Categorie.dart';
 import 'package:caisse_dz/Services/Mouvement.dart';
 import 'package:caisse_dz/Services/Produits.dart';
 import 'package:caisse_dz/Services/Magasin.dart';
+import 'package:caisse_dz/Services/Remise.dart';
+import 'package:caisse_dz/data/models/remise.dart';
 
 import 'package:caisse_dz/core/dialog/mouvement/mouvement_detail.dart';
 import 'package:caisse_dz/core/dialog/produit/produit_detail.dart';
@@ -81,6 +84,7 @@ List<Fournisseur>       fournisseursTest      = [];
 List<Produit>           produitsTest          = [];
 List<Categorie>         categoriesTest        = [];
 List<Magasin>           magasinsTest          = [];
+List<Remise>            remisesTest           = [];
 
 List<Produit>     produitsSelectionnes    = [];
 List<Mouvement>   mouvementsSelectionnes  = [];
@@ -133,6 +137,7 @@ class _StockScreenState extends State<StockScreen> with TickerProviderStateMixin
     final categories        = await CategorieServices.getAllCategorie();
     final produits          = await ProduitServices.getAllProduits();
     final magasins          = await MagasinServices.getAllMagasins();
+    final remises           = await RemiseServices.getAllRemise();
 
     setState(() {
       sousCategoriesTest    = sousCategories;
@@ -141,6 +146,7 @@ class _StockScreenState extends State<StockScreen> with TickerProviderStateMixin
       categoriesTest        = categories;
       produitsTest          = produits;
       magasinsTest          = magasins;
+      remisesTest           = remises;
       produitsFiltres   = produitsTest;
       mouvementsFiltres = mouvementsTest;
 
@@ -198,6 +204,9 @@ class _StockScreenState extends State<StockScreen> with TickerProviderStateMixin
         moduleName = l10n.stock;
         excelFile = await ExcelGenerator.generateProduitsExcel(
           produits: produitsToExport,
+          categories: categoriesTest,
+          sousCategories: sousCategoriesTest,
+          remises: remisesTest,
           l10n: l10n,
           translator: translator,
         );
@@ -219,6 +228,9 @@ class _StockScreenState extends State<StockScreen> with TickerProviderStateMixin
         moduleName = l10n.entree;
         excelFile = await ExcelGenerator.generateMouvementsExcel(
           mouvements: mouvementsToExport,
+          produits: produitsTest,
+          clients: clientsTest,
+          fournisseurs: fournisseursTest,
           l10n: l10n,
           translator: translator,
         );
@@ -366,6 +378,9 @@ class _StockScreenState extends State<StockScreen> with TickerProviderStateMixin
         moduleName = l10n.stock;
         excelFile = await ExcelGenerator.generateProduitsExcel(
           produits: produitsSelectionnes,
+          categories: categoriesTest,
+          sousCategories: sousCategoriesTest,
+          remises: remisesTest,
           l10n: l10n,
           translator: translator,
         );
@@ -385,6 +400,9 @@ class _StockScreenState extends State<StockScreen> with TickerProviderStateMixin
         moduleName = l10n.entree;
         excelFile = await ExcelGenerator.generateMouvementsExcel(
           mouvements: mouvementsSelectionnes,
+          produits: produitsTest,
+          clients: clientsTest,
+          fournisseurs: fournisseursTest,
           l10n: l10n,
           translator: translator,
         );
@@ -557,10 +575,13 @@ class _StockScreenState extends State<StockScreen> with TickerProviderStateMixin
   void appliquerFiltre() {
     produitsFiltres = produitsTest.where((p) {
       final searchText = _searchController.text.toLowerCase();
-      final catOk = selectedCategorieFilter == null || selectedCategorieFilter!.isEmpty || p.categorie == selectedCategorieFilter;
-      final sousCatOk = selectedSousCategorieFilter == null || selectedSousCategorieFilter!.isEmpty || p.sousCategorie == selectedSousCategorieFilter;
+      final nomCategorieP = categoriesTest.where((c) => c.id == p.categorieId).firstOrNull?.nom ?? '';
+      final nomSousCategorieP = sousCategoriesTest.where((sc) => sc.id == p.sousCategorieId).firstOrNull?.nom ?? '';
+      final catOk = selectedCategorieFilter == null || selectedCategorieFilter!.isEmpty || nomCategorieP == selectedCategorieFilter;
+      final sousCatOk = selectedSousCategorieFilter == null || selectedSousCategorieFilter!.isEmpty || nomSousCategorieP == selectedSousCategorieFilter;
       final marqueOk = selectedMarqueFilter == null || selectedMarqueFilter!.isEmpty || p.marque == selectedMarqueFilter;
-      final searchOk = searchText.isEmpty || p.searchableText.contains(searchText);
+      final searchOk = searchText.isEmpty ||
+          '${p.searchableText} $nomCategorieP $nomSousCategorieP'.toLowerCase().contains(searchText);
 
       final prixAchatOk = (prixAchatMin == null || p.prixAchat >= prixAchatMin!) &&
           (prixAchatMax == null || p.prixAchat <= prixAchatMax!);
@@ -595,12 +616,16 @@ class _StockScreenState extends State<StockScreen> with TickerProviderStateMixin
   void appliquerFiltreMouvement() {
     mouvementsFiltres = mouvementsTest.where((p) {
       final searchText      = _searchControllerMouvement.text.toLowerCase();
+      final produitNom      = produitsTest.where((pr) => pr.code == p.codeProduit).firstOrNull?.nom ?? '';
+      final clientNom       = clientsTest.where((c) => c.code == p.clientCode).firstOrNull?.nom ?? '';
+      final fournisseurNom  = fournisseursTest.where((f) => f.code == p.fournisseurCode).firstOrNull?.nom ?? '';
       final typemooveOk     = selectedTypeMouvementFilter == null || selectedTypeMouvementFilter!.isEmpty || p.type == selectedTypeMouvementFilter;
-      final clientmoveOk    = selectedClientFilter        == null || selectedClientFilter!.isEmpty || p.client == selectedClientFilter;
-      final fournissemoveOk = selectedFournisseurFilter   == null || selectedFournisseurFilter!.isEmpty || p.fournisseur == selectedFournisseurFilter;
-      final produitmoveOk   = selectedProduitFilter       == null || selectedProduitFilter!.isEmpty || p.nomProduit == selectedProduitFilter;
+      final clientmoveOk    = selectedClientFilter        == null || selectedClientFilter!.isEmpty || clientNom == selectedClientFilter;
+      final fournissemoveOk = selectedFournisseurFilter   == null || selectedFournisseurFilter!.isEmpty || fournisseurNom == selectedFournisseurFilter;
+      final produitmoveOk   = selectedProduitFilter       == null || selectedProduitFilter!.isEmpty || produitNom == selectedProduitFilter;
 
-      final searchOk = searchText.isEmpty || p.searchableText.toLowerCase().contains(searchText);
+      final searchOk = searchText.isEmpty ||
+          '${p.searchableText} $produitNom $clientNom $fournisseurNom'.toLowerCase().contains(searchText);
 
       final etatOk = selectedEtatFilterM == null ||
           selectedEtatFilterM == "" ||
@@ -1140,6 +1165,10 @@ class _StockScreenState extends State<StockScreen> with TickerProviderStateMixin
                                         child: TableauStockAdvanced(
                                           key: ValueKey(produitsFiltres),
                                           produits: produitsFiltres,
+                                          categories: categoriesTest,
+                                          sousCategories: sousCategoriesTest,
+                                          remises: remisesTest,
+                                          fournisseurs: fournisseursTest,
                                           onSelectionChanged: (selection) {
                                             setState(() {
                                               produitsSelectionnes = selection;
@@ -1161,8 +1190,17 @@ class _StockScreenState extends State<StockScreen> with TickerProviderStateMixin
                                       if (mouvementsSelectionnes.length == 1)
                                         AfficheurMouvement(
                                           mouvement: mouvementsSelectionnes.first,
+                                          nomProduit: produitsTest.where((pr) => pr.code == mouvementsSelectionnes.first.codeProduit).firstOrNull?.nom ?? mouvementsSelectionnes.first.codeProduit,
+                                          nomClient: clientsTest.where((c) => c.code == mouvementsSelectionnes.first.clientCode).firstOrNull?.nom,
+                                          nomFournisseur: fournisseursTest.where((f) => f.code == mouvementsSelectionnes.first.fournisseurCode).firstOrNull?.nom,
                                           onDetails: () {
-                                            MouvementDetail(context, mouvementsSelectionnes.first);
+                                            MouvementDetail(
+                                              context,
+                                              mouvementsSelectionnes.first,
+                                              produits: produitsTest,
+                                              clients: clientsTest,
+                                              fournisseurs: fournisseursTest,
+                                            );
                                           },
                                         )
                                       else
@@ -1250,7 +1288,13 @@ class _StockScreenState extends State<StockScreen> with TickerProviderStateMixin
                                                   color: Appstyle.violet,
                                                   onPressed: () async {
                                                     if (mouvementsSelectionnes.length == 1) {
-                                                      MouvementDetail(context, mouvementsSelectionnes.first);
+                                                      MouvementDetail(
+                                                        context,
+                                                        mouvementsSelectionnes.first,
+                                                        produits: produitsTest,
+                                                        clients: clientsTest,
+                                                        fournisseurs: fournisseursTest,
+                                                      );
                                                     } else if (mouvementsSelectionnes.isEmpty) {
                                                       await InformationDialog(
                                                         context: context,
@@ -1293,6 +1337,9 @@ class _StockScreenState extends State<StockScreen> with TickerProviderStateMixin
                                         child: TableauMouvementAdvanced(
                                           key: ValueKey(mouvementsFiltres),
                                           mouvements: mouvementsFiltres,
+                                          produits: produitsTest,
+                                          clients: clientsTest,
+                                          fournisseurs: fournisseursTest,
                                           onSelectionChanged: (selection) {
                                             setState(() {
                                               mouvementsSelectionnes = selection;
@@ -1359,9 +1406,13 @@ class _StockScreenState extends State<StockScreen> with TickerProviderStateMixin
                       items: sousCategorieFilterOptions
                           .where((sc) {
                         if (selectedCategorieFilter == null) return true;
-                        return sousCategoriesTest
+                        final categorieCode = sousCategoriesTest
                             .firstWhere((s) => s.nom == sc)
-                            .categorieNom == selectedCategorieFilter;
+                            .categorieCode;
+                        return categoriesTest
+                            .where((c) => c.code == categorieCode)
+                            .firstOrNull
+                            ?.nom == selectedCategorieFilter;
                       })
                           .toList(),
                       onChanged: (v) {

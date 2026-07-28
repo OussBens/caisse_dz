@@ -1,7 +1,6 @@
 class Retour {
   int id;
   String code;
-  String nomProduit;
   String codeProduit;
   double quantite;
   DateTime date;
@@ -10,9 +9,7 @@ class Retour {
   double? prixVente;
 
   String type; // client / fournisseur
-  String? client;
   String? client_code;
-  String? fournisseur;
   String? fournisseur_code;
   bool    etat;
   String? observation;
@@ -28,7 +25,6 @@ class Retour {
   String? motifAnnul;
 
   Retour({
-    required this.nomProduit,
     required this.codeProduit,
     required this.creeParCode,
     required this.quantite,
@@ -41,7 +37,6 @@ class Retour {
 
     this.client_code,
     this.fournisseur_code,
-    this.fournisseur,
     this.observation,
     this.motifAnnul,
     this.prixVente,
@@ -50,7 +45,6 @@ class Retour {
     this.prixAchat,
     this.modifParCode,
     this.annulParCode,
-    this.client,
   });
 
   factory Retour.fromMap(Map<String, dynamic> map)
@@ -59,14 +53,11 @@ class Retour {
 
       id                : map['id'],
       code              : map['code'],
-      nomProduit        : map['nom_produit'],
       codeProduit       : map['code_produit'],
       quantite          : map['quantite'],
       prixAchat         : map['prix_achat'],
       prixVente         : map['prix_vente'],
       type              : map['type'],
-      client            : map['client'],
-      fournisseur       : map['fournisseur'],
       fournisseur_code  : map['fournisseur_code'],
       etat              : map['etat'] == 1,
       observation       : map['observation'],
@@ -92,15 +83,12 @@ class Retour {
     return{
       'id'                : id,
       'code'              : code,
-      'nom_produit'       : nomProduit,
       'code_produit'      : codeProduit,
       'quantite'          : quantite,
       'prix_achat'        : prixAchat,
       'prix_vente'        : prixVente,
       'type'              : type,
-      'client'            : client,
       'client_code'       : client_code,
-      'fournisseur'       : fournisseur,
       'fournisseur_code'  : fournisseur_code,
       'etat'              : etat ? 1 : 0,
       'observation'       : observation,

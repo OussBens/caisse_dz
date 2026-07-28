@@ -1,6 +1,10 @@
 import 'package:caisse_dz/core/dialog/stock/stock_detail.dart';
 import 'package:caisse_dz/core/tableau/Produit/produit_date_source.dart';
 import 'package:caisse_dz/core/theme/app_style.dart';
+import 'package:caisse_dz/data/models/categorie.dart';
+import 'package:caisse_dz/data/models/sous_categorie.dart';
+import 'package:caisse_dz/data/models/remise.dart';
+import 'package:caisse_dz/data/models/fournisseur.dart';
 import 'package:caisse_dz/data/models/produit.dart';
 import 'package:caisse_dz/l10n/app_localizations.dart';
 import 'package:flutter/material.dart';
@@ -10,11 +14,19 @@ import 'package:caisse_dz/core/widget/tableau/paginated.dart';
 
 class TableauStockAdvanced extends StatefulWidget {
   final List<Produit> produits;
+  final List<Categorie> categories;
+  final List<SousCategorie> sousCategories;
+  final List<Remise> remises;
+  final List<Fournisseur> fournisseurs;
   final void Function(List<Produit>)? onSelectionChanged;
 
   const TableauStockAdvanced({
     super.key,
     required this.produits,
+    required this.categories,
+    required this.sousCategories,
+    required this.remises,
+    required this.fournisseurs,
     this.onSelectionChanged,
   });
 
@@ -113,6 +125,10 @@ class _TableauStockAdvancedState extends State<TableauStockAdvanced> {
         'field': v['field'],
       })),
       l10n: l10n,
+      categories: widget.categories,
+      sousCategories: widget.sousCategories,
+      remises: widget.remises,
+      fournisseurs: widget.fournisseurs,
     );
 
     dataSource.addListener(() {

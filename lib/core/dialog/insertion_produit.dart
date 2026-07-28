@@ -80,15 +80,11 @@ class _InsertionProduitDialogState extends State<InsertionProduitDialog> {
           ? ((p.quantite) <= (p.seuilMin))
           : true;
 
-      final sousCategorieOk = selectedSousCategorie.isEmpty
-          ? true
-          : p.sousCategorie == selectedSousCategorie;
-
       final rechercheOk = searchText.isEmpty
           ? true
           : p.nom != null && p.nom.toLowerCase().contains(searchText);
 
-      return besoinOk && sousCategorieOk && rechercheOk;
+      return besoinOk && rechercheOk;
     }).toList();
 
     return BaseDialog(
@@ -219,7 +215,7 @@ class _InsertionProduitDialogState extends State<InsertionProduitDialog> {
                           return CardProduct(
                             couleur: Appstyle.Tblanc,
                             iconPath: 'assets/icons/sidebar/produit_icon.png',
-                            remise: p.remise,
+                            hasRemise: p.remiseId != null,
                             text1: p.nom,
                             text2: "${p.prixAchat} ${l10n.currency}",
                             quantite: p.quantite,

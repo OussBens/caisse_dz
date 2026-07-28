@@ -281,7 +281,7 @@ Future<void> UtilisateurModif(BuildContext context, Utilisateur user) async {
                               etat: selectedEtat == l10n.active,
                               id: user.id,
                               observation: observationController.text,
-                              modifParCode: userName,
+                              modifParCode: userCode,
                               dateModif: DateTime.now(),
                               creeParCode: user.creeParCode,
                               role_code: rolecode!, // ✅ Maintenant non-null

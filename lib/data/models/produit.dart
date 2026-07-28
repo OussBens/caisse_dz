@@ -10,17 +10,12 @@ class Produit {
   String? description;
   String? codeBarre;
   String? numeroSerie;
-  String fournisseur;
+  String? fournisseurCode;
 
   // --- Foreign keys ---
   int categorieId;
   int sousCategorieId;
   int? remiseId;
-
-  // --- Catégorie ---
-  String categorie;
-  String sousCategorie;
-  String? remise;
 
   bool multicodebar;
 
@@ -76,8 +71,6 @@ class Produit {
     required this.nom,
     required this.code,
     required this.marque,
-    required this.categorie,
-    required this.sousCategorie,
     required this.multicodebar,
     required this.prixVente,
     required this.uniteMesure,
@@ -101,7 +94,7 @@ class Produit {
     this.dateEmpreint,
     this.description,
     this.numeroSerie,
-    required this.fournisseur,
+    this.fournisseurCode,
     this.observation,
     this.emballage1,
     this.emballage2,
@@ -115,7 +108,6 @@ class Produit {
     this.modifParCode,
     this.couleur,
      this.photo,
-    this.remise,
     this.taille,
   });
 
@@ -142,12 +134,10 @@ class Produit {
       nom                   : map['nom'],
       code                  : map['code'],
       marque                : map['marque'],
-      categorie             : map['categorie'],
       remiseId              : map['remise_id'],
       description           : map['description'],
       categorieId           : map['categorie_id'],
       uniteMesure           : map['unite_mesure'],
-      sousCategorie         : map['sous_categorie'],
       seuilBool             : map['seuil_bool']   == 1,
       margeBool             : map['marge_bool']   == 1,
       multicodebar          : map['multicodebar'] == 1,
@@ -165,10 +155,9 @@ class Produit {
       margeTaux             : double.parse(map['marge_taux'].toString()),
       margeTauxPrct         : double.parse(map['marge_tauxPrct'].toString()),
       photo                 : _parsePhoto(map['photos']),
-       remise                : map['remise'],
       numeroSerie           : map['numero_serie'],
       codeBarre             : map['code_barre'],
-      fournisseur           : map['fournisseur'],
+      fournisseurCode       : map['fournisseur_code'],
       emballage1            : map['emballage1'],
       emballage2            : map['emballage2'],
       emballageP1            : map['emballagep1'],
@@ -218,15 +207,11 @@ class Produit {
      'code_barre'           : codeBarre,
      'code'                 : code,
      'numero_serie'         : numeroSerie,
-     'fournisseur'          : fournisseur,
+     'fournisseur_code'     : fournisseurCode,
 
      'categorie_id'         : categorieId,
      'sous_categorie_id'    : sousCategorieId,
      'remise_id'            : remiseId,
-
-     'categorie'            : categorie,
-     'sous_categorie'       : sousCategorie,
-     'remise'               : remise,
 
      'multicodebar'         : multicodebar ? 1 : 0,
       'photos': photo != null ? jsonEncode([photo]) : null,

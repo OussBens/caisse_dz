@@ -23,6 +23,9 @@ import '../information_dialog.dart';
 
 List<Remise> remisesTest = [];
 
+String? _nomRemise(int? id) =>
+    remisesTest.where((r) => r.id == id).firstOrNull?.nom;
+
 Future<void> loadAllData() async {
   try {
     final packtest = await RemiseServices.getAllRemise();
@@ -55,9 +58,8 @@ Future<ApiResponse<int>> _updateProduit({
   ApiResponse<int>? lastResponse;
 
   for (var produit in produits) {
-    produit.remise = remise.nom;
     produit.remiseId = remise.id;
-    produit.modifParCode = userName;
+    produit.modifParCode = userCode;
     produit.dateModif = DateTime.now();
     lastResponse = await services.updateProduit(produit);
 
@@ -152,9 +154,9 @@ Future<void> RemiseProduit(BuildContext context, List<Produit> produitsSelection
                                       style: Appstyle.textSB.copyWith(color: Appstyle.Tnoir),
                                     ),
                                   ),
-                                  if (p.remise != null && p.remise.toString().isNotEmpty)
+                                  if (_nomRemise(p.remiseId) != null && _nomRemise(p.remiseId)!.isNotEmpty)
                                     Text(
-                                      "${p.remise}",
+                                      "${_nomRemise(p.remiseId)}",
                                       style: Appstyle.textSB.copyWith(color: Appstyle.violet),
                                     ),
                                 ],

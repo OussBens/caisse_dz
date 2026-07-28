@@ -46,7 +46,7 @@ class VerssementDataSource extends BaseTableDataSource<Verssement> {
       case 'typebeneficiare':
         return v.typebeneficiare;
       case 'beneficiare':
-        return v.beneficiare;
+        return v.beneficiareCode;
       case 'montant':
         return "${v.montant} ${l10n.currency}";
       case 'caisse':

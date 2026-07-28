@@ -1,6 +1,7 @@
 
 import 'dart:io';
 
+import 'package:collection/collection.dart';
 import 'package:caisse_dz/DBCreate.dart';
 import 'package:caisse_dz/Services/excel_generator.dart';
 import 'package:caisse_dz/Services/ExcelPreviewDialog.dart';
@@ -19,6 +20,8 @@ import 'package:caisse_dz/Services/Pannier.dart';
 import 'package:caisse_dz/Services/Client.dart';
 import 'package:caisse_dz/Services/Retour.dart';
 import 'package:caisse_dz/Services/Sortie.dart';
+import 'package:caisse_dz/Services/Remise.dart';
+import 'package:caisse_dz/data/models/remise.dart';
 
 import 'package:caisse_dz/core/dialog/besionlist/besoinlist_nouveau.dart';
 import 'package:caisse_dz/core/dialog/besionlist/besoinlist_actif.dart';
@@ -124,6 +127,7 @@ List<Produit>           besoinsTest           = [];
 List<SousCategorie>     sousCategoriesTest    = [];
 List<Fournisseur>       fournisseursTest      = [];
 List<Categorie>         categoriesTest        = [];
+List<Remise>            remisesTest           = [];
 List<BesoinList>        BesoinListsTest       = [];
 List<BesoinListDetail>  besoinListDetailsTest = [];
 
@@ -172,6 +176,7 @@ class _BesionScreenState extends State<BesionScreen> with TickerProviderStateMix
     final fournisseurs      = await FournisseurServices.getAllFournisseurs();
     final besoinLists       = await BesoinListServices.getAllBesoinList();
     final categories        = await CategorieServices.getAllCategorie();
+    final remises           = await RemiseServices.getAllRemise();
     besoinsTest = test.where((e) => e.quantite <= e.seuilMin).toList();
 
     setState(() {
@@ -180,6 +185,7 @@ class _BesionScreenState extends State<BesionScreen> with TickerProviderStateMix
       fournisseursTest      = fournisseurs;
       BesoinListsTest       = besoinLists;
       categoriesTest        = categories;
+      remisesTest           = remises;
       besionFiltres     = besoinsTest;
       besionlistFiltres = BesoinListsTest;
 
@@ -254,6 +260,9 @@ class _BesionScreenState extends State<BesionScreen> with TickerProviderStateMix
         moduleName = l10n.outOfStockProducts;
         excelFile = await ExcelGenerator.generateProduitsExcel(
           produits: produitsToExport,
+          categories: categoriesTest,
+          sousCategories: sousCategoriesTest,
+          remises: remisesTest,
           l10n: l10n,
           translator: translator,
         );
@@ -420,6 +429,9 @@ class _BesionScreenState extends State<BesionScreen> with TickerProviderStateMix
         moduleName = l10n.outOfStockProducts;
         excelFile = await ExcelGenerator.generateProduitsExcel(
           produits: besionsSelectionnes,
+          categories: categoriesTest,
+          sousCategories: sousCategoriesTest,
+          remises: remisesTest,
           l10n: l10n,
           translator: translator,
         );
@@ -595,9 +607,12 @@ class _BesionScreenState extends State<BesionScreen> with TickerProviderStateMix
   void appliquerFiltreBesion() {
     besionFiltres = besoinsTest.where((p) {
       final searchText  = _searchControllerBesion.text.toLowerCase();
-      final catOk       = selectedCategorieFilterBesion     == null || selectedCategorieFilterBesion!.isEmpty     || p.categorie      == selectedCategorieFilterBesion;
-      final sousCatOk   = selectedSousCategorieFilterBesion == null || selectedSousCategorieFilterBesion!.isEmpty || p.sousCategorie  == selectedSousCategorieFilterBesion;
-      final searchOk = searchText.isEmpty || p.searchableText.contains(searchText);
+      final nomCategorieB = categoriesTest.where((c) => c.id == p.categorieId).firstOrNull?.nom ?? '';
+      final nomSousCategorieB = sousCategoriesTest.where((sc) => sc.id == p.sousCategorieId).firstOrNull?.nom ?? '';
+      final catOk       = selectedCategorieFilterBesion     == null || selectedCategorieFilterBesion!.isEmpty     || nomCategorieB      == selectedCategorieFilterBesion;
+      final sousCatOk   = selectedSousCategorieFilterBesion == null || selectedSousCategorieFilterBesion!.isEmpty || nomSousCategorieB  == selectedSousCategorieFilterBesion;
+      final searchOk = searchText.isEmpty ||
+          '${p.searchableText} $nomCategorieB $nomSousCategorieB'.toLowerCase().contains(searchText);
 
       final quantiteOk = (quantiteMinBesion == null || p.quantite >= quantiteMinBesion!) &&
           (quantiteMaxBesion == null || p.quantite <= quantiteMaxBesion!);
@@ -623,7 +638,7 @@ class _BesionScreenState extends State<BesionScreen> with TickerProviderStateMix
   void appliquerFiltreBesoinList() {
     besionlistFiltres = BesoinListsTest.where((p) {
       final searchText = _searchControllerBesionList.text.toLowerCase();
-      final fournissemoveOk = selectedFournisseurFilterBesoinList == null || selectedFournisseurFilterBesoinList!.isEmpty || p.fournisseur == selectedFournisseurFilterBesoinList;
+      final fournissemoveOk = selectedFournisseurFilterBesoinList == null || selectedFournisseurFilterBesoinList!.isEmpty || fournisseursTest.any((f) => f.code == p.fournisseurCode && f.nom == selectedFournisseurFilterBesoinList);
       final searchOk = searchText.isEmpty || p.searchableText.contains(searchText);
 
       final etatOk = selectedEtatFilterRp == null ||
@@ -1333,6 +1348,10 @@ class _BesionScreenState extends State<BesionScreen> with TickerProviderStateMix
                                         child: TableauProduitAdvanced(
                                           key: ValueKey(besionFiltres),
                                           produits: besionFiltres,
+                                          categories: categoriesTest,
+                                          sousCategories: sousCategoriesTest,
+                                          remises: remisesTest,
+                                          fournisseurs: fournisseursTest,
                                           onSelectionChanged: (selection) {
                                             setState(() {
                                               besionsSelectionnes = selection;
@@ -1396,9 +1415,13 @@ class _BesionScreenState extends State<BesionScreen> with TickerProviderStateMix
                       items: sousCategorieFilterOptions
                           .where((sc) {
                         if (selectedCategorieFilterBesion == null) return true;
-                        return sousCategoriesTest
+                        final categorieCode = sousCategoriesTest
                             .firstWhere((s) => s.nom == sc)
-                            .categorieNom == selectedCategorieFilterBesion;
+                            .categorieCode;
+                        return categoriesTest
+                            .where((c) => c.code == categorieCode)
+                            .firstOrNull
+                            ?.nom == selectedCategorieFilterBesion;
                       })
                           .toList(),
                       onChanged: (v) {

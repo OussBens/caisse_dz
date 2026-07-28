@@ -154,7 +154,7 @@ class _TableauSousCategorieAdvancedState extends State<TableauSousCategorieAdvan
                               context,
                               souscategorie,
                               nombreProduits: widget.produits
-                                  .where((p) => p.sousCategorie == souscategorie.nom)
+                                  .where((p) => p.sousCategorieId == souscategorie.id)
                                   .length,
                             );
                           },

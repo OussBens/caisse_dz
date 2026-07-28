@@ -60,7 +60,7 @@ Future<void> loadProduitPackMap() async {
     if (!produitPacksMap.containsKey(d.produitCode)) {
       produitPacksMap[d.produitCode] = [];
     }
-    produitPacksMap[d.produitCode]!.add(d.packNom);
+    produitPacksMap[d.produitCode]!.add(d.packCode);
   }
 }
 
@@ -74,9 +74,7 @@ Future<void> _saveProduitPackDetailes({
   final service = await ProduitPackDetailServices(db);
 
   final ProduitPackDetail detail = ProduitPackDetail(
-    packNom: pack.nom,
     packCode: pack.code,
-    produitNom: produit.nom,
     produitCode: produit.code,
     dateCree: DateTime.now(),
     id: await _GetNextPackDetailId(),

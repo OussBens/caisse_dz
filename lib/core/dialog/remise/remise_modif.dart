@@ -47,9 +47,9 @@ Future<int> _GetNextHistoriqueId() async {
   return id;
 }
 
-Future<void> _LoadData({required String packnom}) async {
+Future<void> _LoadData({required int remiseId}) async {
   produitsTest = await ProduitServices.getAllProduits();
-  produitsRemise = produitsTest.where((e) => e.remise == packnom).toList();
+  produitsRemise = produitsTest.where((e) => e.remiseId == remiseId).toList();
 }
 
 Future<void> pickDate(
@@ -104,7 +104,6 @@ Future<ApiResponse<int>> _saveRemise({
   required Remise remised,
   required String userName,
   required String userCode,
-  required String orignal,
 }) async {
   final db = await DbCreator.openDb();
   final services = RemiseServices(db);
@@ -124,13 +123,13 @@ Future<ApiResponse<int>> _saveRemise({
       );
     }
 
-    final anciensProduits = await service.getProduitsByRemise(orignal);
+    final anciensProduits = await service.getProduitsByRemiseId(remised.id);
 
     for (var p in anciensProduits) {
       if (!produitsRemise.any((pr) => pr.id == p.id)) {
-        p.remise = null;
+        p.remiseId = null;
         p.dateModif = DateTime.now();
-        p.modifParCode = userName;
+        p.modifParCode = userCode;
         await service.updateProduit(p);
 
         final int idN = await _GetNextHistoriqueId();
@@ -148,10 +147,10 @@ Future<ApiResponse<int>> _saveRemise({
     }
 
     for (var p in produitsRemise) {
-      if (p.remise != remised.nom) {
-        p.remise = remised.nom;
+      if (p.remiseId != remised.id) {
+        p.remiseId = remised.id;
         p.dateModif = DateTime.now();
-        p.modifParCode = userName;
+        p.modifParCode = userCode;
         await service.updateProduit(p);
 
         final int idN = await _GetNextHistoriqueId();
@@ -213,8 +212,6 @@ Future<void> RemiseModif(BuildContext context, Remise remise) async {
     return;
   }
 
-  Remise Orignal = remise;
-  String orignal = remise.nom;
   nomRemiseController.text = remise.nom;
   observRemiseController.text = remise.observation ?? '';
   tauxController.text = remise.taux.toString();
@@ -224,7 +221,7 @@ Future<void> RemiseModif(BuildContext context, Remise remise) async {
 
   selectedTypeCalcul = remise.tauxType;
 
-  await _LoadData(packnom: remise.nom);
+  await _LoadData(remiseId: remise.id);
 
   return showDialog(
     context: context,
@@ -307,7 +304,7 @@ Future<void> RemiseModif(BuildContext context, Remise remise) async {
                                 tauxType: selectedTypeCalcul!,
                                 montant: double.tryParse(montantRemiseController.text),
                                 modifLe: DateTime.now(),
-                                modifParCode: userName,
+                                modifParCode: userCode,
                                 creeLe: remise.creeLe,
                                 creeParCode: remise.creeParCode,
                                 etat: true,
@@ -317,7 +314,6 @@ Future<void> RemiseModif(BuildContext context, Remise remise) async {
                                 remised: remised,
                                 userName: userName,
                                 userCode: userCode,
-                                orignal: orignal,
                               );
 
                               if (!response.success) {
@@ -511,7 +507,7 @@ Widget _buildRemiseParProduitModif(
       const SizedBox(height: 6),
       Container(
         constraints: const BoxConstraints(maxHeight: 200),
-        child: _tableProduitsRemise(setState, l10n),
+        child: _tableProduitsRemise(setState, l10n, remise),
       ),
       const SizedBox(height: 10),
       GestureDetector(
@@ -698,7 +694,8 @@ Widget _headerTableProduitsRemise(AppLocalizations l10n) {
 
 Widget _tableProduitsRemise(
     void Function(VoidCallback fn) setState,
-    AppLocalizations l10n) {
+    AppLocalizations l10n,
+    Remise remise) {
   if (produitsRemise.isEmpty) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 12),
@@ -738,7 +735,7 @@ Widget _tableProduitsRemise(
             Expanded(
               flex: 4,
               child: Text(
-                p.remise ?? "-",
+                p.remiseId == remise.id ? remise.nom : "-",
                 style: Appstyle.textSB,
                 overflow: TextOverflow.ellipsis,
               ),

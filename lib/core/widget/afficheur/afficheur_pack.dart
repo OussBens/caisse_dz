@@ -108,7 +108,7 @@ class AfficheurPack extends StatelessWidget {
                 ),
                 const SizedBox(width: 16),
                 FutureBuilder<int>(
-                  future: ProduitPackDetailServices.getDetailsByPackNom(pack.nom)
+                  future: ProduitPackDetailServices.getDetailsByPackNom(pack.code)
                       .then((details) => details.length),
                   builder: (context, snapshot) {
                     return _statCard(

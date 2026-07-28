@@ -20,7 +20,7 @@ Future<void> _loadData({required Remise remis}) async {
 Future<void> RemiseDetail(BuildContext context, Remise remise) async {
   await _loadData(remis: remise);
 
-  final int nombreProduits = ProduitTest.where((p) => p.remise == remise.nom).length;
+  final int nombreProduits = ProduitTest.where((p) => p.remiseId == remise.id).length;
 
   return showDialog(
     context: context,
@@ -199,7 +199,7 @@ Widget _resumeRemise(Remise r, AppLocalizations l10n, int nombreProduits) {
 
 // ================= Dialogue Liste des produits de la remise =================
 Widget _dialogListeProduitsRemise(BuildContext context, Remise remise, AppLocalizations l10n) {
-  final produits = ProduitTest.where((e) => e.remise == remise.nom).toList();
+  final produits = ProduitTest.where((e) => e.remiseId == remise.id).toList();
 
   // Calcul du nombre de produits
   int nombreProduits = produits.length;
@@ -340,7 +340,7 @@ Widget _dialogListeProduitsRemise(BuildContext context, Remise remise, AppLocali
 Future<void> showRemiseProductsListDialog(BuildContext context, Remise remise, AppLocalizations l10n) async {
   await _loadData(remis: remise);
 
-  final produits = ProduitTest.where((e) => e.remise == remise.nom).toList();
+  final produits = ProduitTest.where((e) => e.remiseId == remise.id).toList();
 
   // Calcul du nombre de produits
   int nombreProduits = produits.length;

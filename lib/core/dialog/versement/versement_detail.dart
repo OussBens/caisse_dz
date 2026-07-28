@@ -1,4 +1,7 @@
+import 'package:caisse_dz/Services/Client.dart';
+import 'package:caisse_dz/Services/Fournisseur.dart';
 import 'package:caisse_dz/l10n/app_localizations.dart';
+import 'package:collection/collection.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import '../../../data/models/verssement.dart';
@@ -8,6 +11,12 @@ import '../../widget/section_decoration.dart';
 import '../base_dialog.dart';
 
 Future<void> VersementDetail(BuildContext context, Verssement versement) async {
+  final clients = await ClientServices.getAllClients();
+  final fournisseurs = await FournisseurServices.getAllFournisseurs();
+  final nomBeneficiaire = versement.typebeneficiare == "Client"
+      ? (clients.firstWhereOrNull((c) => c.code == versement.beneficiareCode)?.nom ?? versement.beneficiareCode)
+      : (fournisseurs.firstWhereOrNull((f) => f.code == versement.beneficiareCode)?.nom ?? versement.beneficiareCode);
+
   return showDialog(
     context: context,
     barrierDismissible: true,
@@ -60,7 +69,7 @@ Future<void> VersementDetail(BuildContext context, Verssement versement) async {
 
             const SizedBox(height: 16),
 
-            _resumeVersement(versement, l10n),
+            _resumeVersement(versement, nomBeneficiaire, l10n),
           ],
         ),
 
@@ -73,7 +82,7 @@ Future<void> VersementDetail(BuildContext context, Verssement versement) async {
                 icon: Icons.info_outline,
                 child: detailwrap([
                   detailinfo(l10n.type, versement.typebeneficiare),
-                  detailinfo(l10n.beneficiary, versement.beneficiare),
+                  detailinfo(l10n.beneficiary, nomBeneficiaire),
                   detailinfo(l10n.status, versement.etat ? l10n.validated : l10n.cancelled),
                   detailinfo(l10n.date, versement.date),
                   detailinfo(l10n.sense, versement.sense),
@@ -140,7 +149,7 @@ Future<void> VersementDetail(BuildContext context, Verssement versement) async {
   );
 }
 
-Widget _resumeVersement(Verssement r, AppLocalizations l10n) {
+Widget _resumeVersement(Verssement r, String nomBeneficiaire, AppLocalizations l10n) {
   return Container(
     decoration: BoxDecoration(
       color: Appstyle.violet.withOpacity(0.6),
@@ -152,7 +161,7 @@ Widget _resumeVersement(Verssement r, AppLocalizations l10n) {
       children: [
         detailbadge(l10n.amount, r.montant),
         detailbadge(l10n.type, "${r.typebeneficiare} "),
-        detailbadge(l10n.beneficiary, "${r.beneficiare} "),
+        detailbadge(l10n.beneficiary, "$nomBeneficiaire "),
         detailbadge(l10n.paymentMethod, r.mode_paiement),
       ],
     ),

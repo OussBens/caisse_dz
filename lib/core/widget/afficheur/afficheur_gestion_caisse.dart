@@ -87,7 +87,7 @@ class AfficheurCaisseGestion extends StatelessWidget {
                 const SizedBox(height: 4),
 
                 Text(
-                  "${l10n.store} : ${caisse.magasin}",  // 🔥 Translated
+                  "${l10n.store} : ${caisse.magasinCode}",  // 🔥 Translated
                   style: TextStyle(color: Colors.grey.shade700),
                 ),
 
@@ -135,7 +135,7 @@ class AfficheurCaisseGestion extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
 
-                _infoLine(Icons.store, caisse.magasin),
+                _infoLine(Icons.store, caisse.magasinCode),
 
                 _infoLine(Icons.badge, caisse.code),
 

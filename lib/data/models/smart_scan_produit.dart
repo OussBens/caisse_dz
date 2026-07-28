@@ -2,7 +2,6 @@ class SmartScanProduit {
   int     id;
   String  codeSmartScan;
   String  codeProduit;
-  String  nomProduit;
 
   double  quantite;
   double  prix;
@@ -24,7 +23,6 @@ class SmartScanProduit {
     required this.id,
     required this.codeSmartScan,
     required this.codeProduit,
-    required this.nomProduit,
     required this.quantite,
     required this.prix,
     required this.prixVente,
@@ -52,7 +50,6 @@ class SmartScanProduit {
       total         : map['total'],
       creeLe        : DateTime.parse(map['date_cree']),
       quantite      : map['quantite'],
-      nomProduit    : map['nom_produit'],
       creeParCode   : map['cree_par_code'],
       codeProduit   : map['code_produit'],
       codeSmartScan : map['code_SmartScan'],
@@ -77,7 +74,6 @@ class SmartScanProduit {
       'id'              : id,
       'code_SmartScan'  : codeSmartScan,
       'code_produit'    : codeProduit,
-      'nom_produit'     : nomProduit,
       'quantite'        : quantite,
       'prix'            : prix,
       'prixVente'       : prixVente,
@@ -104,7 +100,6 @@ class SmartScanProduit {
     id: id,
     codeSmartScan: codeSmartScan,
     codeProduit: codeProduit,
-    nomProduit: nomProduit,
     quantite: quantite,
     prix: prix,
     prixVente: prixVente,

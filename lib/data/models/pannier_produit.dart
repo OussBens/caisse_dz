@@ -2,7 +2,6 @@ class PannierProduit {
   int     id;
   String  codePannier;
   String  codeProduit;
-  String  nomProduit;
 
   double  quantite;
   double  prix;
@@ -24,7 +23,6 @@ class PannierProduit {
     required this.id,
     required this.codePannier,
     required this.codeProduit,
-    required this.nomProduit,
     required this.quantite,
     required this.prix,
     required this.total,
@@ -54,7 +52,6 @@ class PannierProduit {
       totalAchat       : map['total_achat']?? 0.0,
       creeLe      : DateTime.parse(map['date_cree']),
       quantite    : map['quantite'],
-      nomProduit  : map['nom_produit'],
       codeProduit : map['code_produit'],
       codePannier : map['code_pannier'],
       creeParCode : map['cree_par_code'],
@@ -85,7 +82,6 @@ class PannierProduit {
       'quantite'      : quantite,
       'date_cree'     : creeLe.toIso8601String(),
       'code_pannier'   : codePannier,
-      'nom_produit'   : nomProduit,
       'code_produit'  : codeProduit,
       'cree_par_code' : creeParCode,
 

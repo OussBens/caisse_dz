@@ -1,11 +1,15 @@
 import 'package:caisse_dz/DBCreate.dart';
+import 'package:caisse_dz/Services/Client.dart';
 import 'package:caisse_dz/Services/PannierProduit.dart';
+import 'package:caisse_dz/Services/Produits.dart';
+import 'package:caisse_dz/Services/Utilisateur.dart';
 import 'package:caisse_dz/core/dialog/base_dialog.dart';
 import 'package:caisse_dz/core/theme/app_style.dart';
 import 'package:caisse_dz/core/widget/detail_widget.dart';
 import 'package:caisse_dz/data/models/pannier.dart';
 import 'package:caisse_dz/data/models/pannier_produit.dart';
 import 'package:caisse_dz/l10n/app_localizations.dart';
+import 'package:collection/collection.dart';
 import 'package:flutter/material.dart';
 
 import '../../widget/section_decoration.dart';
@@ -20,6 +24,10 @@ import '../../widget/section_decoration.dart';
 
 Future<void> PannierDetail(BuildContext context, Pannier pannier) async {
   final l10n = AppLocalizations.of(context)!;
+  final clients = await ClientServices.getAllClients();
+  final utilisateurs = await UtilisateurServices.getAllUtilisateurs();
+  final nomClient = clients.firstWhereOrNull((c) => c.code == pannier.client_code)?.nom ?? '';
+  final nomCaissier = utilisateurs.firstWhereOrNull((u) => u.code == pannier.caissier_code)?.username ?? pannier.caissier_code;
 
   return showDialog(
     context: context,
@@ -51,7 +59,7 @@ Future<void> PannierDetail(BuildContext context, Pannier pannier) async {
                       style: Appstyle.textLB.copyWith(fontSize: 20),
                     ),
                     Text(
-                      "${l10n.client} : ${pannier.client}",
+                      "${l10n.client} : $nomClient",
                       style: Appstyle.textSB,
                     ),
                   ],
@@ -85,8 +93,8 @@ Future<void> PannierDetail(BuildContext context, Pannier pannier) async {
                 child: detailwrap([
                   detailinfo(l10n.code, pannier.code),
                   detailinfo(l10n.date, pannier.date.toString().split(" ").first),
-                  detailinfo(l10n.client, pannier.client),
-                  detailinfo(l10n.cashier, pannier.caissier),
+                  detailinfo(l10n.client, nomClient),
+                  detailinfo(l10n.cashier, nomCaissier),
                   detailinfo(l10n.cartType, pannier.typepannier),
                   detailinfo(l10n.status, pannier.etat ? l10n.active : l10n.inactive),
                 ]),
@@ -129,7 +137,7 @@ Future<void> PannierDetail(BuildContext context, Pannier pannier) async {
                 title: l10n.audit,
                 icon: Icons.history,
                 child: detailwrap([
-                  detailinfo(l10n.createdBy, pannier.caissier),
+                  detailinfo(l10n.createdBy, nomCaissier),
                   detailinfo(l10n.createdAt, pannier.dateCree.toString().split(" ").first),
                   detailinfo(l10n.modifiedBy, pannier.modifParCode),
                   detailinfo(l10n.modifiedAt, pannier.dateModif?.toString().split(" ").first),
@@ -208,6 +216,11 @@ Future<void> showProductsListDialog(
   final db = await DbCreator.openDb();
   final ppService = PPServices(db);
   final produits = await ppService.getPPByCodePannier(pannier.code!);
+  final catalogueProduits = await ProduitServices.getAllProduits();
+  String nomProduit(String code) =>
+      catalogueProduits.firstWhereOrNull((p) => p.code == code)?.nom ?? code;
+  final catalogueClients = await ClientServices.getAllClients();
+  final nomClient = catalogueClients.firstWhereOrNull((c) => c.code == pannier.client_code)?.nom ?? '';
 
   showDialog(
     context: context,
@@ -228,7 +241,7 @@ Future<void> showProductsListDialog(
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Text("${l10n.client} : ${pannier.client}", style: Appstyle.textSB),
+                Text("${l10n.client} : $nomClient", style: Appstyle.textSB),
                 Text("${l10n.date} : ${pannier.date.toString().split(" ").first}", style: Appstyle.textSB),
               ],
             ),
@@ -264,7 +277,7 @@ Future<void> showProductsListDialog(
                     return DataRow(
                       cells: [
                         DataCell(Text(p.codeProduit ?? "")),
-                        DataCell(Text(p.nomProduit ?? "")),
+                        DataCell(Text(nomProduit(p.codeProduit))),
                         DataCell(
                           Container(
                             padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),

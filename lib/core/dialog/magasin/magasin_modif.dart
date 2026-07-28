@@ -363,7 +363,7 @@ Future<void> MagasinModif(BuildContext context, Magasin magasin) async {
                               observation: observatoinControllerM.text,
                               adresse: adresseControllerM.text,
                               dateModif: DateTime.now(),
-                              modifParCode: userName,
+                              modifParCode: userCode,
                               dateCree: magasin.dateCree,
                               etat: selectedEtatM == l10n.active,
                               code: magasin.code,

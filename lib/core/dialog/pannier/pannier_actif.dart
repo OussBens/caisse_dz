@@ -5,6 +5,8 @@ import 'package:caisse_dz/Services/Historique.dart';
 import 'package:caisse_dz/Services/Mouvement.dart';
 import 'package:caisse_dz/Services/Pannier.dart';
 import 'package:caisse_dz/Services/PannierProduit.dart';
+import 'package:caisse_dz/Services/Produits.dart';
+import 'package:collection/collection.dart';
 import 'package:caisse_dz/core/Auth/auth_state.dart';
 import 'package:caisse_dz/core/dialog/base_dialog.dart';
 import 'package:caisse_dz/core/theme/app_style.dart';
@@ -40,11 +42,14 @@ Future<void> _DeletePannier ({
 
   final clients   = await ClientServices.getAllClients();
   final produits  = await PPServices.getAllPP();
+  final catalogueProduits = await ProduitServices.getAllProduits();
+  String nomProduit(String code) =>
+      catalogueProduits.firstWhereOrNull((p) => p.code == code)?.nom ?? code;
 
   for(var pannier in panniers){
     final mouvs   = await MouvementsServices.getAllMouvementsByCodeOper(pannier.code);
     final prods   = produits.where((e) => e.codePannier == pannier.code).toList();
-    final client  = clients.where((e) => e.nom == pannier.client).first;
+    final client  = clients.where((e) => e.code == pannier.client_code).first;
     for(var prod in prods){
       await servicep.deletePP(prod.id);
       int idh = await _GetNextHistoriqueId();
@@ -52,13 +57,13 @@ Future<void> _DeletePannier ({
         id          : idh,
         code        : 'HS$idh${DateTime.now().millisecondsSinceEpoch}',
         type        : 'pannierProduit',
-        desc        : "l'utilisateur $userName a supprimer le Produit ${prod.nomProduit} de Pannier ${pannier.code}",
+        desc        : "l'utilisateur $userName a supprimer le Produit ${nomProduit(prod.codeProduit)} de Pannier ${pannier.code}",
         oper        : ListsConst.typeHisto[2],
         dateCree    : DateTime.now(),
         creeParCode : userCode,
       );
       await serviceh.addHistorique(histo);
-      final mouv  = mouvs.where((e) => e.nomProduit == prod.nomProduit).first;
+      final mouv  = mouvs.where((e) => e.codeProduit == prod.codeProduit).first;
       await MouvementsServices.deleteMouvement(mouv.id);
     }
     await services.deletePannier(pannier.id);
@@ -75,7 +80,7 @@ Future<void> _DeletePannier ({
     await serviceh.addHistorique(histo);
 
     client.dateModif  = DateTime.now();
-    client.modifParCode   = userName;
+    client.modifParCode   = userCode;
     await serviceC.updateClient(client);
   }
 }
@@ -84,6 +89,9 @@ Future<void> AnnulerPannier(BuildContext context, List<Pannier> paniersSelection
   final auth = Provider.of<AuthState>(context, listen: false);
   final userName = auth.username!;
   final userCode = auth.userCode!;
+  final clientsCatalogue = await ClientServices.getAllClients();
+  String nomClient(String? code) =>
+      clientsCatalogue.firstWhereOrNull((c) => c.code == code)?.nom ?? '';
 
   if (!auth.isAuthenticated || auth.username == null || auth.userCode == null) {
     ScaffoldMessenger.of(context).showSnackBar(
@@ -139,7 +147,7 @@ Future<void> AnnulerPannier(BuildContext context, List<Pannier> paniersSelection
                                 borderRadius: BorderRadius.circular(8),
                               ),
                               child: Text(
-                                "${l10n.cartId(p.code)} - ${l10n.client}: ${p.client} - ${l10n.totalAmount}: ${p.montant.toStringAsFixed(2)} ${l10n.currency}",
+                                "${l10n.cartId(p.code)} - ${l10n.client}: ${nomClient(p.client_code)} - ${l10n.totalAmount}: ${p.montant.toStringAsFixed(2)} ${l10n.currency}",
                                 style: Appstyle.textSB
                                     .copyWith(color: Appstyle.Tnoir),
                               ),

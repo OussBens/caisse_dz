@@ -1,4 +1,5 @@
 import 'dart:ui';
+import 'package:collection/collection.dart';
 import 'package:caisse_dz/DBCreate.dart';
 import 'package:caisse_dz/Services/Categorie.dart' hide ApiResponse;
 import 'package:caisse_dz/Services/Historique.dart' hide ApiResponse;
@@ -53,6 +54,10 @@ void resetSousCategorieForm() {
 }
 
 List<Categorie> categoriesTest = [];
+List<SousCategorie> sousCategoriesTest = [];
+
+String? _nomSousCategorie(int? id) =>
+    sousCategoriesTest.where((sc) => sc.id == id).firstOrNull?.nom;
 
 Future<void> _SaveSousCategorieData({
   required SousCategorie sousCategorie,
@@ -83,11 +88,9 @@ Future<void> _SaveSousCategorieData({
   ));
 
   for (var produit in produits) {
-    produit.sousCategorie = sousCategorie.nom;
     produit.sousCategorieId = sousCategorie.id;
-    produit.categorie = sousCategorie.categorieNom;
     produit.categorieId = sousCategorie.categorieId;
-    produit.modifParCode = userName;
+    produit.modifParCode = userCode;
     produit.dateModif = DateTime.now();
 
     await produitService.updateProduit(produit);
@@ -111,6 +114,7 @@ Future<void> _SaveSousCategorieData({
 Future<void> _loadData() async {
   categoriesTest = await CategorieServices.getAllCategorie();
   categoriesTest.removeWhere((c) => c.code == "CATE0000");
+  sousCategoriesTest = await SousCategoriesServices.getAllSousCategorie();
   final result = await ProduitServices.getAllProduits();
   produitsTest = result;
 }
@@ -300,7 +304,7 @@ Future<void> SousCategorieNouveau(BuildContext context) async {
                           id: id,
                           nom: sousCategorieNomController.text,
                           observation: sousCategorieDescController.text,
-                          categorieNom: selectedCategorie ?? '',
+                          categorieCode: categoriesTest.where((c) => c.id == categorieid).firstOrNull?.code ?? '',
                           code: code, // ✅ Code généré automatiquement
                           etat: true,
                           dateCree: DateTime.now(),
@@ -391,7 +395,7 @@ Widget _tableProduits(
           children: [
             Expanded(flex: 2, child: Text(p.code, style: Appstyle.textSB)),
             Expanded(flex: 4, child: Text(p.nom, style: Appstyle.textSB)),
-            Expanded(flex: 4, child: Text(p.sousCategorie ?? "-", style: Appstyle.textSB)),
+            Expanded(flex: 4, child: Text(_nomSousCategorie(p.sousCategorieId) ?? "-", style: Appstyle.textSB)),
             IconButton(
               icon: const Icon(Icons.delete, color: Colors.red),
               onPressed: () {

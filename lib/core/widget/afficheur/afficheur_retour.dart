@@ -29,11 +29,11 @@ class AfficheurRetour extends StatelessWidget {
             flex: 7,
             child: Row(
               children: [
-                _info(l10n.product, retour.nomProduit, l10n),
+                _info(l10n.product, retour.codeProduit, l10n),
                 _info(l10n.quantity, retour.quantite.toString(), l10n),
                 _info(l10n.type, retour.type, l10n),
-                _info(l10n.client, retour.client ?? "-", l10n),
-                _info(l10n.supplier, retour.fournisseur ?? "-", l10n),
+                _info(l10n.client, retour.client_code ?? "-", l10n),
+                _info(l10n.supplier, retour.fournisseur_code ?? "-", l10n),
                 _info(l10n.code, retour.code, l10n),
               ],
             ),

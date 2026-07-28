@@ -1,4 +1,5 @@
 import 'dart:ui';
+import 'package:collection/collection.dart';
 import 'package:caisse_dz/l10n/app_localizations.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
@@ -111,8 +112,9 @@ Future<void> CaisseGestionModif(BuildContext context, CaisseGestion caisse) asyn
     return;
   }
 
-  selectedMagasinM = magasinsTest.any((m) => m.nom == caisse.magasin)
-      ? caisse.magasin
+  final nomMagasinInitial = magasinsTest.where((m) => m.code == caisse.magasinCode).firstOrNull?.nom;
+  selectedMagasinM = nomMagasinInitial != null && magasinsTest.any((m) => m.nom == nomMagasinInitial)
+      ? nomMagasinInitial
       : magasinsTest.first.nom;
 
   // Pré-remplissage
@@ -195,6 +197,7 @@ Future<void> CaisseGestionModif(BuildContext context, CaisseGestion caisse) asyn
                                         onMagasinSelected: (magasin) {
                                           setState(() {
                                             selectedMagasinM = magasin.nom;
+                                            magasinCode = magasin.code;
                                           });
                                         },
                                         multiselection: false,
@@ -210,6 +213,7 @@ Future<void> CaisseGestionModif(BuildContext context, CaisseGestion caisse) asyn
                                   onChanged: (v) {
                                     setState(() {
                                       selectedMagasinM = v;
+                                      magasinCode = magasinsTest.firstWhere((m) => m.nom == v).code;
                                     });
                                   },
                                 ),
@@ -324,8 +328,7 @@ Future<void> CaisseGestionModif(BuildContext context, CaisseGestion caisse) asyn
                               id: caisse.id,
                               etat: selectedEtatM == l10n.active,
                               code: caisse.code,
-                              magasin: selectedMagasinM!,
-                              modifParCode: userName,
+                              modifParCode: userCode,
                               dateCree: caisse.dateCree,
                               dateModif: DateTime.now(),
                               nomCaisse: nomCaisseControllerM.text,

@@ -60,9 +60,9 @@ Future<void> SituationClientDialog(
         builder: (context, setState) {
           final l10n = AppLocalizations.of(context)!;
 
-          List<Pannier>    pannierF     = panniers.where( (sc) => sc.client == client.nom).toList();
-          List<Retour>     retourF      = retours.where( (sc) => sc.client == client.nom).toList();
-          List<Verssement> verssementF  = versements.where((sc) => sc.beneficiare == client.nom && sc.typebeneficiare == 'Client').toList();
+          List<Pannier>    pannierF     = panniers.where( (sc) => sc.client_code == client.code).toList();
+          List<Retour>     retourF      = retours.where( (sc) => sc.client_code == client.code).toList();
+          List<Verssement> verssementF  = versements.where((sc) => sc.beneficiareCode == client.code && sc.typebeneficiare == 'Client').toList();
 
           // ================= DATA =================
           final operations = SituationClientService.build(

@@ -8,6 +8,9 @@ import '../../../../l10n/app_localizations.dart';
 
 // Dans afficheur_produit.dart
 
+import '../../../DBCreate.dart';
+import '../../../Services/Categorie.dart';
+import '../../../Services/Fournisseur.dart';
 import '../../../Services/Photos.dart';
 import '../../../Services/Produits.dart';
 
@@ -131,8 +134,20 @@ class AfficheurProduit extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                _infoLine(Icons.category, "${l10n.categorie} : ${produit.categorie ?? "—"}"),
-                _infoLine(Icons.local_shipping, "${l10n.fournisseur} : ${produit.fournisseur ?? "—"}"),
+                FutureBuilder<String?>(
+                  future: _nomCategorie(produit.categorieId),
+                  builder: (context, snapshot) => _infoLine(
+                    Icons.category,
+                    "${l10n.categorie} : ${snapshot.data ?? "—"}",
+                  ),
+                ),
+                FutureBuilder<String?>(
+                  future: _nomFournisseur(produit.fournisseurCode),
+                  builder: (context, snapshot) => _infoLine(
+                    Icons.local_shipping,
+                    "${l10n.fournisseur} : ${snapshot.data ?? "—"}",
+                  ),
+                ),
                 _infoLine(Icons.straighten, "${l10n.unit} : ${produit.uniteMesure}"),
               ],
             ),
@@ -161,6 +176,16 @@ class AfficheurProduit extends StatelessWidget {
         ],
       ),
     );
+  }
+
+  Future<String?> _nomCategorie(int categorieId) async {
+    final db = await DbCreator.openDb();
+    return (await CategorieServices(db).getCategorieById(categorieId))?.nom;
+  }
+
+  Future<String?> _nomFournisseur(String? fournisseurCode) async {
+    if (fournisseurCode == null) return null;
+    return (await FournisseurServices.getFournisseurByCode(fournisseurCode))?.nom;
   }
 
   // 🆕 Widget pour afficher la photo

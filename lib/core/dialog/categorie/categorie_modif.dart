@@ -55,121 +55,11 @@ Future<ApiResponse<int>> _saveCategorie({
   // 1. Mettre à jour la catégorie
   final response = await service.updateCategorie(categorie);
 
-  // 2. Mettre à jour les sous-catégories si le nom a changé
-  if (oldNom != categorie.nom) {
-    try {
-      // Récupérer toutes les sous-catégories de cette catégorie
-      final sousCate = await serviceS.getSousCategorieByCategorie(oldNom);
+  // Les sous-catégories et produits référencent la catégorie par id
+  // (categorie_id/categorie_code), qui ne change pas lors d'un renommage :
+  // aucune cascade de mise à jour n'est nécessaire ici.
 
-      for (var sous in sousCate) {
-        // Mettre à jour le nom de la catégorie dans la sous-catégorie
-        final sousUpdate = SousCategorie(
-          id: sous.id,
-          nom: sous.nom,
-          code: sous.code,
-          etat: sous.etat,
-          categorieId: sous.categorieId,
-          categorieNom: categorie.nom, // ✅ Nouveau nom
-          creeParCode: sous.creeParCode,
-          dateCree: sous.dateCree,
-          observation: sous.observation,
-          modifParCode: userName,
-          dateModif: DateTime.now(),
-        );
-
-        await serviceS.updateSousCategorie(sousUpdate);
-
-        // Historique
-        final int idS = await _GetNextHistoriqueId();
-        final Historique histo = Historique(
-          id: idS,
-          code: "HS$idS ${DateTime.now().microsecondsSinceEpoch}",
-          desc: "L'utilisateur $userName a modifié la catégorie de la sous-catégorie ${sous.nom} de '$oldNom' vers '${categorie.nom}'",
-          type: "SousCategorie",
-          oper: ListsConst.typeHisto[1],
-          dateCree: DateTime.now(),
-          creeParCode: userCode,
-        );
-        await serviceh.addHistorique(histo);
-      }
-    } catch (e) {
-      print('⚠️ Erreur mise à jour sous-catégories: $e');
-    }
-
-    // 3. Mettre à jour les produits
-    try {
-      final produits = await serviceP.getProduitsByCategorie(oldNom);
-
-      for (var produit in produits) {
-        // Mettre à jour le nom de la catégorie dans le produit
-        final produitUpdate = Produit(
-          id: produit.id,
-          nom: produit.nom,
-          code: produit.code,
-          marque: produit.marque,
-          description: produit.description,
-          codeBarre: produit.codeBarre,
-          numeroSerie: produit.numeroSerie,
-          fournisseur: produit.fournisseur,
-          categorieId: produit.categorieId,
-          sousCategorieId: produit.sousCategorieId,
-          remiseId: produit.remiseId,
-          categorie: categorie.nom, // ✅ Nouveau nom
-          sousCategorie: produit.sousCategorie,
-          remise: produit.remise,
-          multicodebar: produit.multicodebar,
-          prixAchat: produit.prixAchat,
-          prixVente: produit.prixVente,
-          margeBool: produit.margeBool,
-          margeTaux: produit.margeTaux,
-          margeTauxPrct: produit.margeTauxPrct,
-          tva: produit.tva,
-          photo: produit.photo,
-          seuilBool: produit.seuilBool,
-          quantite: produit.quantite,
-          seuilMin: produit.seuilMin,
-          seuilMax: produit.seuilMax,
-          uniteMesure: produit.uniteMesure,
-          observation: produit.observation,
-          dateEmpreint: produit.dateEmpreint,
-          emballage1: produit.emballage1,
-          emballageP1: produit.emballageP1,
-          emballageP2: produit.emballageP2,
-          emballage2: produit.emballage2,
-          creeParcode: produit.creeParcode,
-          dateCree: produit.dateCree,
-          etat: produit.etat,
-          dateModif: DateTime.now(),
-          modifParCode: userName,
-          annulerParCode: produit.annulerParCode,
-          annulerLe: produit.annulerLe,
-          motifAnnul: produit.motifAnnul,
-          service: produit.service,
-          taille: produit.taille,
-          couleur: produit.couleur,
-        );
-
-        await serviceP.updateProduit(produitUpdate);
-
-        // Historique
-        final int idP = await _GetNextHistoriqueId();
-        final Historique histo = Historique(
-          id: idP,
-          code: "HS$idP ${DateTime.now().microsecondsSinceEpoch}",
-          desc: "L'utilisateur $userName a modifié la catégorie du produit ${produit.nom} de '$oldNom' vers '${categorie.nom}'",
-          type: "Produit",
-          oper: ListsConst.typeHisto[1],
-          dateCree: DateTime.now(),
-          creeParCode: userCode,
-        );
-        await serviceh.addHistorique(histo);
-      }
-    } catch (e) {
-      print('⚠️ Erreur mise à jour produits: $e');
-    }
-  }
-
-  // 4. Historique principal de la catégorie
+  // 2. Historique principal de la catégorie
   final int idH = await _GetNextHistoriqueId();
   final Historique histo = Historique(
     id: idH,
@@ -312,7 +202,7 @@ Future<void> CategorieModif(BuildContext context, Categorie categorie) async {
                                 creeParCode: categorie.creeParCode,
                                 dateCree: categorie.dateCree,
                                 dateModif: DateTime.now(),
-                                modifParCode: userName,
+                                modifParCode: userCode,
                               );
 
                               final response = await _saveCategorie(

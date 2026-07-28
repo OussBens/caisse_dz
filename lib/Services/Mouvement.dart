@@ -89,12 +89,12 @@ class MouvementsServices {
     return result.map((e) => Mouvement.fromMap(e)).toList();
   }
 
-  static Future<bool> isProduitHaveMouvement(String nom) async {
+  static Future<bool> isProduitHaveMouvement(String code) async {
     final db = await DbCreator.openDb();
     final result = await db.query(
       'mouvements',
-      where: 'nom_produit = ?',
-      whereArgs: [nom],
+      where: 'code_produit = ?',
+      whereArgs: [code],
       limit: 1,
     );
     return result.isNotEmpty;

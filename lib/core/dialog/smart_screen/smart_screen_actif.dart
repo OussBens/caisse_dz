@@ -4,9 +4,11 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:caisse_dz/DBCreate.dart';
 import 'package:caisse_dz/Services/SmartScanProduit.dart';
+import 'package:caisse_dz/Services/Fournisseur.dart';
 import 'package:caisse_dz/Services/Historique.dart';
 import 'package:caisse_dz/Services/SmartScan.dart';
 import 'package:caisse_dz/Services/Produits.dart';
+import 'package:collection/collection.dart';
 import 'package:caisse_dz/core/Auth/auth_state.dart';
 import 'package:caisse_dz/core/dialog/base_dialog.dart';
 import 'package:caisse_dz/core/theme/app_style.dart';
@@ -57,7 +59,7 @@ Future<void> _DeleteSS({
 
     produits = await SmartScanProduitServices.getSmartScanProduitByCode(ss.code);
     for (var produit in produits) {
-      final prod = Produs.where((e) => e.nom == produit.nomProduit).first;
+      final prod = Produs.where((e) => e.code == produit.codeProduit).first;
       if (prod.quantite < produit.quantite) {
         SnackBar(
           content: Text("Produit Quantite < Smart Scan Produit Quantite"),
@@ -65,7 +67,7 @@ Future<void> _DeleteSS({
         );
       }
       prod.quantite = prod.quantite - produit.quantite;
-      prod.modifParCode = userName;
+      prod.modifParCode = userCode;
       prod.dateModif = DateTime.now();
       await serviceP.updateProduit(prod);
 
@@ -75,7 +77,7 @@ Future<void> _DeleteSS({
           id: idh,
           code: "HS$idh${DateTime.now().millisecondsSinceEpoch}",
           type: "SmartScanProduit",
-          desc: "l'utilisateur $userName a supprimer le SmartScanProduit ${produit.nomProduit} de SmartScan ${produit.codeSmartScan}",
+          desc: "l'utilisateur $userName a supprimer le SmartScanProduit ${prod.nom} de SmartScan ${produit.codeSmartScan}",
           oper: ListsConst.typeHisto[2],
           dateCree: DateTime.now(),
           creeParCode: userCode
@@ -92,6 +94,10 @@ Future<void> AnnulerSmartScan(
   final userName = auth.username!;
   final userCode = auth.userCode!;
   final l10n = AppLocalizations.of(context)!;
+
+  final fournisseurs = await FournisseurServices.getAllFournisseurs();
+  String nomFournisseur(String code) =>
+      fournisseurs.firstWhereOrNull((f) => f.code == code)?.nom ?? code;
 
   return showDialog(
     context: context,
@@ -138,7 +144,7 @@ Future<void> AnnulerSmartScan(
                                 borderRadius: BorderRadius.circular(8),
                               ),
                               child: Text(
-                                "${l10n.smartScanHash} #${s.id} - ${l10n.amount}: ${s.montant} - ${l10n.supplier}: ${s.fournisseur} - ${l10n.quantity}: ${s.nbrProduit}",
+                                "${l10n.smartScanHash} #${s.id} - ${l10n.amount}: ${s.montant} - ${l10n.supplier}: ${nomFournisseur(s.fournisseurCode)} - ${l10n.quantity}: ${s.nbrProduit}",
                                 style: Appstyle.textSB.copyWith(
                                   color: Appstyle.Tnoir,
                                 ),

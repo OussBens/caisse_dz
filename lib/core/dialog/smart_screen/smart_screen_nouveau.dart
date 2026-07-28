@@ -1,4 +1,5 @@
 import 'dart:math';
+import 'package:collection/collection.dart';
 import 'package:caisse_dz/core/dialog/confirmation_dialog.dart';
 import 'package:intl/intl.dart';
 import 'package:flutter/material.dart';
@@ -56,7 +57,7 @@ async {
 
   // ✅ Récupérer le fournisseur
   final fournisseur = fournisseursTest.firstWhere(
-        (f) => f.nom == SmartScan.fournisseur,
+        (f) => f.code == SmartScan.fournisseurCode,
     orElse: () => throw Exception("Fournisseur introuvable"),
   );
 
@@ -77,7 +78,7 @@ async {
         prefix: CodePrefix.historique,
         id: idH,
       ),
-      desc: "l'utilisateur $userName a ajoutee un nouveau Smart Scan de Fournisseur de ${SmartScan.fournisseur}",
+      desc: "l'utilisateur $userName a ajoutee un nouveau Smart Scan de Fournisseur de ${fournisseur.nom}",
       oper: ListsConst.typeHisto[0],
       type: "SmartScan",
       dateCree: DateTime.now(),
@@ -86,14 +87,14 @@ async {
   await serviceh.addHistorique(histo);
 
   for (var produit in Produits) {
-    Produit prod = Produites.where((e) => e.nom == produit.nomProduit).first;
+    Produit prod = Produites.where((e) => e.code == produit.codeProduit).first;
 
     // ✅ Mettre à jour les champs du produit
     prod.quantite = (produit.quantite + prod.quantite).toDouble();
     prod.prixAchat = produit.prix;
     prod.prixVente = produit.prixVente; // ✅ Mettre à jour le prix de vente
     prod.dateModif = DateTime.now();
-    prod.modifParCode = userName;
+    prod.modifParCode = userCode;
 
 
 
@@ -112,7 +113,7 @@ async {
           prefix: CodePrefix.historique,
           id: idp,
         ),
-        desc: "l'utilisateur $userName a ajoutee un nouveau Smart Scan Produit de Produit de ${produit.nomProduit} de Smart Scan ${SmartScan.code}",
+        desc: "l'utilisateur $userName a ajoutee un nouveau Smart Scan Produit de Produit de ${prod.nom} de Smart Scan ${SmartScan.code}",
         oper: ListsConst.typeHisto[0],
         type: "SmartScanProduit",
         dateCree: DateTime.now(),
@@ -130,7 +131,7 @@ async {
       prefix: CodePrefix.mouvement,
       id: idm,
     );
-    mouvemnt.fournisseur = SmartScan.fournisseur;
+    mouvemnt.fournisseurCode = SmartScan.fournisseurCode;
     mouvemnt.date = SmartScan.date;
     mouvemnt.codeOperation = SmartScan.code;
     await serviceM.addMouvement(mouvemnt);
@@ -228,6 +229,9 @@ DateTime? selectedDate;
 
 List<Produit> produitsTest = [];
 List<Fournisseur> fournisseursTest = [];
+
+String _nomProduitCatalogue(String code) =>
+    produitsTest.where((p) => p.code == code).firstOrNull?.nom ?? code;
 
 Future<void> _LoadAllData() async {
   produitsTest = await ProduitServices.getAllProduits();
@@ -481,8 +485,8 @@ class _SmartScanDialogState extends State<SmartScanDialog> {
           InformationDialog(
             context: context,
             titre_type_message: l10n.error,
-            titre_concerne: produit.nomProduit,
-            message: "Le prix de vente doit être supérieur au prix d'achat pour ${produit.nomProduit}",
+            titre_concerne: _nomProduitCatalogue(produit.codeProduit),
+            message: "Le prix de vente doit être supérieur au prix d'achat pour ${_nomProduitCatalogue(produit.codeProduit)}",
           );
           return false;
         }
@@ -586,7 +590,6 @@ class _SmartScanDialogState extends State<SmartScanDialog> {
       ecart: ecart,
       dateCree: DateTime.now(),
       activity: ListsConst.typeactivitySmartScan[1],
-      fournisseur: fournisseurController.text,
       creeParCode: userCode,
       fournisseurCode: codeController.text,
       nbrProduit: int.parse(nombreController.text),
@@ -945,7 +948,7 @@ class _SmartScanDialogState extends State<SmartScanDialog> {
                     Expanded(flex: 2, child: Text(p.codeProduit,
                         textAlign: TextAlign.center,
                         style: Appstyle.textSB)),
-                    Expanded(flex: 3, child: Text(p.nomProduit,
+                    Expanded(flex: 3, child: Text(_nomProduitCatalogue(p.codeProduit),
                         textAlign: TextAlign.center,
                         style: Appstyle.textSB)),
                     Expanded(flex: 2, child: Text(p.quantite.toStringAsFixed(0),
@@ -1023,7 +1026,7 @@ class _SmartScanDialogState extends State<SmartScanDialog> {
             children: [
               Expanded(
                 flex: 3,
-                child: Text("${p.codeProduit}-${p.nomProduit}",
+                child: Text("${p.codeProduit}-${_nomProduitCatalogue(p.codeProduit)}",
                     style: Appstyle.textSB),
               ),
 
@@ -1081,7 +1084,7 @@ class _SmartScanDialogState extends State<SmartScanDialog> {
                     final prixVente = double.tryParse(v) ?? 0;
                     if (prixVente <= prixAchat && prixVente > 0) {
                       // Afficher un warning mais ne pas bloquer
-                      print("⚠️ Prix de vente doit être supérieur au prix d'achat pour ${p.nomProduit}");
+                      print("⚠️ Prix de vente doit être supérieur au prix d'achat pour ${_nomProduitCatalogue(p.codeProduit)}");
                     }
                     _updateTotal();
                   },
@@ -1151,7 +1154,6 @@ class _SmartScanDialogState extends State<SmartScanDialog> {
                 id: 0,
               ),
               date: DateTime.now(),
-              nomProduit: produit.nom,
               codeProduit: produit.code,
               quantite: produit.quantite,
               prixAchat: produit.prixAchat,
@@ -1169,7 +1171,6 @@ class _SmartScanDialogState extends State<SmartScanDialog> {
               codeSmartScan: "SMC-PRD",
               codeProduit: produit.code,
               creeParCode: userCode,
-              nomProduit: produit.nom,
               quantite: produit.quantite.toDouble(),
               creeLe: DateTime.now(),
               total: produit.quantite.toDouble() * produit.prixAchat.toDouble(),

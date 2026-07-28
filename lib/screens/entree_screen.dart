@@ -247,9 +247,11 @@ class _EntreeScreenState extends State<EntreeScreen> with TickerProviderStateMix
   void appliquerFiltre() {
     entreesFiltres = entreeTest.where((p) {
       final searchText = _searchControllerE.text.toLowerCase();
-      final ProdOk = selectedProduitFilter == null || selectedProduitFilter!.isEmpty || p.produit == selectedProduitFilter;
-      final FournOk = selectedFournisseurFilter == null || selectedFournisseurFilter!.isEmpty || p.fournisseur == selectedFournisseurFilter;
-      final searchOk = searchText.isEmpty || p.searchableText.contains(searchText);
+      final nomProduitE = produitsTest.where((pr) => pr.code == p.produitcode).firstOrNull?.nom ?? '';
+      final nomFournisseurE = fournisseursTest.where((f) => f.code == p.fournisseurCode).firstOrNull?.nom ?? '';
+      final ProdOk = selectedProduitFilter == null || selectedProduitFilter!.isEmpty || nomProduitE == selectedProduitFilter;
+      final FournOk = selectedFournisseurFilter == null || selectedFournisseurFilter!.isEmpty || nomFournisseurE == selectedFournisseurFilter;
+      final searchOk = searchText.isEmpty || '${p.searchableText} $nomProduitE $nomFournisseurE'.toLowerCase().contains(searchText);
 
       final prixAchatOk = (prixAchatMin == null || p.prix >= prixAchatMin!) &&
           (prixAchatMax == null || p.prix <= prixAchatMax!);
@@ -300,7 +302,7 @@ class _EntreeScreenState extends State<EntreeScreen> with TickerProviderStateMix
   void appliquerFiltreSmartScan() {
     smartscansFiltres = smartScansTest.where((p) {
       final searchText = _searchControllerSC.text.toLowerCase();
-      final fournissemoveOk = selectedFournisseurSCFilter == null || selectedFournisseurSCFilter!.isEmpty || p.fournisseur == selectedFournisseurSCFilter;
+      final fournissemoveOk = selectedFournisseurSCFilter == null || selectedFournisseurSCFilter!.isEmpty || fournisseursTest.any((f) => f.code == p.fournisseurCode && f.nom == selectedFournisseurSCFilter);
       final searchOk = searchText.isEmpty || p.searchableText.contains(searchText);
 
       final montantOk = (montantMin == null || p.montant >= montantMin!) &&
@@ -767,8 +769,15 @@ class _EntreeScreenState extends State<EntreeScreen> with TickerProviderStateMix
                                       if (entreesSelectionnes.length == 1)
                                         AfficheurEntreeMouvement(
                                           entree: entreesSelectionnes.first,
+                                          nomProduit: produitsTest.where((pr) => pr.code == entreesSelectionnes.first.produitcode).firstOrNull?.nom ?? entreesSelectionnes.first.produitcode,
+                                          nomFournisseur: fournisseursTest.where((f) => f.code == entreesSelectionnes.first.fournisseurCode).firstOrNull?.nom ?? entreesSelectionnes.first.fournisseurCode,
                                           onDetails: () {
-                                            EntreeDetail(context, entreesSelectionnes.first);
+                                            EntreeDetail(
+                                              context,
+                                              entreesSelectionnes.first,
+                                              produits: produitsTest,
+                                              fournisseurs: fournisseursTest,
+                                            );
                                           },
                                         )
                                       else
@@ -851,7 +860,12 @@ class _EntreeScreenState extends State<EntreeScreen> with TickerProviderStateMix
                                                   color: Appstyle.violet,
                                                   onPressed: () async {
                                                     if (entreesSelectionnes.length == 1) {
-                                                      EntreeDetail(context, entreesSelectionnes.first);
+                                                      EntreeDetail(
+                                                        context,
+                                                        entreesSelectionnes.first,
+                                                        produits: produitsTest,
+                                                        fournisseurs: fournisseursTest,
+                                                      );
                                                     } else if (entreesSelectionnes.isEmpty) {
                                                       await InformationDialog(
                                                         context: context,
@@ -961,6 +975,8 @@ class _EntreeScreenState extends State<EntreeScreen> with TickerProviderStateMix
                                         child: TableauEntreeAdvanced(
                                           key: ValueKey(entreesFiltres),
                                           entrees: entreesFiltres,
+                                          produits: produitsTest,
+                                          fournisseurs: fournisseursTest,
                                           onSelectionChanged: (selection) {
                                             setState(() {
                                               entreesSelectionnes = selection;

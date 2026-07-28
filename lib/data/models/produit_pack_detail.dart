@@ -2,9 +2,7 @@ class ProduitPackDetail {
   int? id;  // Rendre l'id optionnel (int? au lieu de int)
 
   // --- Relation ---
-  String packNom;
   String packCode;
-  String produitNom;
   String produitCode;
 
   // --- Nouveaux champs ---
@@ -18,9 +16,7 @@ class ProduitPackDetail {
 
   ProduitPackDetail({
     this.id,  // Optionnel
-    required this.packNom,
     required this.packCode,
-    required this.produitNom,
     required this.produitCode,
     required this.prixUnitaire,
     required this.quantite,
@@ -35,9 +31,7 @@ class ProduitPackDetail {
   factory ProduitPackDetail.fromMap(Map<String, dynamic> map) {
     return ProduitPackDetail(
         id:           map['id'],
-        packNom:      map['pack_nom'],
         packCode:     map['pack_code'],
-        produitNom:   map['produit_nom'],
         produitCode:  map['produit_code'],
         prixUnitaire: (map['prix_unitaire'] ?? 0).toDouble(),
         quantite:     map['quantite'] ?? 1,
@@ -52,9 +46,7 @@ class ProduitPackDetail {
   // ----------------------------------------------------
   Map<String, dynamic> toMap() {
     final map = {
-      'pack_nom': packNom,
       'pack_code': packCode,
-      'produit_nom': produitNom,
       'produit_code': produitCode,
       'prix_unitaire': prixUnitaire,
       'quantite': quantite,

@@ -3,7 +3,6 @@ class CaisseGestion {
   bool    etat;
   String  nomCaisse;
   String  code;
-  String  magasin;
   String  magasinCode;
   String  typecaisse;
   double  soldeInitial;
@@ -28,7 +27,6 @@ class CaisseGestion {
     required this.id,
     required this.etat,
     required this.code,
-    required this.magasin,
     required this.dateCree,
     required this.nomCaisse,
     required this.typecaisse,
@@ -52,7 +50,6 @@ class CaisseGestion {
       id            : map['id'],
       code          : map['code'],
       etat          : map['etat'] == 1,
-      magasin       : map['magasin'],
       dateCree      : DateTime.parse(map['date_cree']),
       nomCaisse     : map['nom_caisse'],
       typecaisse    : map['typecaisse'],
@@ -81,7 +78,6 @@ class CaisseGestion {
       'id'            : id,
       'code'          : code,
       'etat'          : etat ? 1 : 0,
-      'magasin'       : magasin,
       'magasin_code'  : magasinCode,
       'date_cree'     : dateCree.toIso8601String(),
       'typecaisse'    : typecaisse,

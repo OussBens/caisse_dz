@@ -438,10 +438,10 @@ class _RetourScreenState extends State<RetourScreen> {
   void appliquerFiltreRetour() {
     retourFiltres = retoursTest.where((p) {
       final searchText      = _searchControllerRetour.text.toLowerCase();
-      final clientOk        = selectedClientFilterRetour      == null || selectedClientFilterRetour!.isEmpty      || p.client       == selectedClientFilterRetour;
-      final fournissemoveOk = selectedFournisseurFilterRetour == null || selectedFournisseurFilterRetour!.isEmpty || p.fournisseur  == selectedFournisseurFilterRetour;
+      final clientOk        = selectedClientFilterRetour      == null || selectedClientFilterRetour!.isEmpty      || clientsTest.any((c) => c.code == p.client_code && c.nom == selectedClientFilterRetour);
+      final fournissemoveOk = selectedFournisseurFilterRetour == null || selectedFournisseurFilterRetour!.isEmpty || fournisseursTest.any((f) => f.code == p.fournisseur_code && f.nom == selectedFournisseurFilterRetour);
       final typeOk          = selectedTypeFilterRetour        == null || selectedTypeFilterRetour!.isEmpty        || p.type         == selectedTypeFilterRetour;
-      final produitmoveOk   = selectedProduitFilterRetour     == null || selectedProduitFilterRetour!.isEmpty     || p.nomProduit   == selectedProduitFilterRetour;
+      final produitmoveOk   = selectedProduitFilterRetour     == null || selectedProduitFilterRetour!.isEmpty     || produitsTest.any((pr) => pr.code == p.codeProduit && pr.nom == selectedProduitFilterRetour);
 
       final searchOk =
           searchText.isEmpty ||

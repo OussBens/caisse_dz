@@ -1,4 +1,5 @@
 import 'dart:ui';
+import 'package:collection/collection.dart';
 import 'package:caisse_dz/DBCreate.dart';
 import 'package:caisse_dz/Services/Categorie.dart' hide ApiResponse;
 import 'package:caisse_dz/Services/Historique.dart' hide ApiResponse;
@@ -53,11 +54,11 @@ List<Produit> produitsTest = [];
 String? selectedEtatR;
 List<Categorie> categoriesTest = [];
 
-Future<void> _loadData({required String sousacat}) async {
+Future<void> _loadData({required int sousCategorieId}) async {
   categoriesTest = await CategorieServices.getAllCategorie();
   categoriesTest.removeWhere((c) => c.code == "CATE0000");
   produitsTest = await ProduitServices.getAllProduits();
-  produitsSouscategorie = produitsTest.where((e) => e.sousCategorie == sousacat).toList();
+  produitsSouscategorie = produitsTest.where((e) => e.sousCategorieId == sousCategorieId).toList();
   produitsSouscategorieOriginal = List.from(produitsSouscategorie);
 }
 
@@ -65,8 +66,6 @@ Future<ApiResponse<int>> _saveSousCategorie({
   required SousCategorie sousCategorie,
   required String userName,
   required String userCode,
-  required String orignal,
-  required int oldCategorieId,
 }) async {
   final db = await DbCreator.openDb();
   final sousCatService = await SousCategoriesServices(db);
@@ -78,12 +77,10 @@ Future<ApiResponse<int>> _saveSousCategorie({
       .toList();
 
   for (var produit in produitsSupprimes) {
-    produit.sousCategorie = defaultSousCategorie;
     produit.sousCategorieId = defaultSousCategorieId;
-    produit.categorie = defaultCategorie;
     produit.categorieId = defaultCategorieId;
     produit.dateModif = DateTime.now();
-    produit.modifParCode = userName;
+    produit.modifParCode = userCode;
 
     await produitService.updateProduit(produit);
   }
@@ -97,18 +94,11 @@ Future<ApiResponse<int>> _saveSousCategorie({
     return ApiResponse(success: false, message: "Un SousCategorie avec ce nom existe déjà");
   }
 
-  Map<int, String> produitAncienneSousCat = {};
   for (var produit in produitsSouscategorie) {
-    final ancienNom = (await produitService.getProduitById(produit.id))?.sousCategorie ?? produit.sousCategorie;
-    produitAncienneSousCat[produit.id] = ancienNom;
-  }
-
-  for (var produit in produitsSouscategorie) {
-    produit.sousCategorie = sousCategorie.nom;
-    produit.categorie = sousCategorie.categorieNom;
+    produit.sousCategorieId = sousCategorie.id;
     produit.categorieId = sousCategorie.categorieId;
     produit.dateModif = DateTime.now();
-    produit.modifParCode = userName;
+    produit.modifParCode = userCode;
 
     await produitService.updateProduit(produit);
 
@@ -162,13 +152,11 @@ Future<void> SousCategorieModif(BuildContext context, SousCategorie sousCategori
 
   nomSousCategorieController.text = sousCategorie.nom;
   descSousCategorieController.text = sousCategorie.observation ?? '';
-  selectedCategorieNom = sousCategorie.categorieNom;
   newCategorieId = sousCategorie.categorieId;
   selectedEtatR = sousCategorie.etat ? l10n.active : l10n.inactive;
-  int oldCategorieId = sousCategorie.categorieId;
-  String oldCategorie = sousCategorie.categorieNom;
 
-  await _loadData(sousacat: sousCategorie.nom);
+  await _loadData(sousCategorieId: sousCategorie.id);
+  selectedCategorieNom = categoriesTest.where((c) => c.code == sousCategorie.categorieCode).firstOrNull?.nom;
 
   return showDialog(
     context: context,
@@ -277,7 +265,7 @@ Future<void> SousCategorieModif(BuildContext context, SousCategorie sousCategori
 
                       const SizedBox(height: 6),
 
-                      _tableProduits(setState, l10n),
+                      _tableProduits(setState, l10n, sousCategorie),
 
                       const SizedBox(height: 10),
 
@@ -318,10 +306,10 @@ Future<void> SousCategorieModif(BuildContext context, SousCategorie sousCategori
                                   etat: selectedEtatR == l10n.active,
                                   dateCree: sousCategorie.dateCree,
                                   creeParCode: sousCategorie.creeParCode,
-                                  modifParCode: userName,
+                                  modifParCode: userCode,
                                   dateModif: DateTime.now(),
                                   categorieId: newCategorieId!,
-                                  categorieNom: selectedCategorieNom ?? "",
+                                  categorieCode: categoriesTest.where((c) => c.id == newCategorieId).firstOrNull?.code ?? "",
                                   observation: descSousCategorieController.text.trim(),
                                 );
 
@@ -329,8 +317,6 @@ Future<void> SousCategorieModif(BuildContext context, SousCategorie sousCategori
                                   sousCategorie: updated,
                                   userName: userName,
                                   userCode: userCode,
-                                  orignal: sousCategorie.nom,
-                                  oldCategorieId: oldCategorieId,
                                 );
 
                                 if (!response.success) {
@@ -406,6 +392,7 @@ Widget _headerTableProduits(AppLocalizations l10n) {
 Widget _tableProduits(
     void Function(VoidCallback fn) setState,
     AppLocalizations l10n,
+    SousCategorie sousCategorie,
     ) {
   if (produitsSouscategorie.isEmpty) {
     return Padding(
@@ -433,7 +420,10 @@ Widget _tableProduits(
             ),
             Expanded(
               flex: 4,
-              child: Text(p.sousCategorie, style: Appstyle.textSB),
+              child: Text(
+                p.sousCategorieId == sousCategorie.id ? sousCategorie.nom : "-",
+                style: Appstyle.textSB,
+              ),
             ),
             IconButton(
               icon: const Icon(Icons.delete, color: Colors.red),

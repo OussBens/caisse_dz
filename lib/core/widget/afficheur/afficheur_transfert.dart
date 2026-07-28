@@ -74,12 +74,12 @@ class AfficheurTransfert extends StatelessWidget {
                 ),
                 const SizedBox(height: 4),
                 Text(
-                  "${l10n.from} : ${transfert.caisseExp}",
+                  "${l10n.from} : ${transfert.caisseExpCode}",
                   style: TextStyle(color: Colors.grey.shade700),
                 ),
                 const SizedBox(height: 4),
                 Text(
-                  "${l10n.to} : ${transfert.caisseDest}",
+                  "${l10n.to} : ${transfert.caisseDestCode}",
                   style: TextStyle(color: Colors.grey.shade700),
                 ),
               ],

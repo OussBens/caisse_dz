@@ -49,7 +49,7 @@ Future<ApiResponse<int>> _SaveData({
     id: id,
     code: "HS$id${DateTime.now().microsecondsSinceEpoch}",
     type: "transfert",
-    desc: "l'utilisateur ${userName} A Transferee le Montant ${transfert.montant} de La Caisse ${transfert.caisseExp} a La Caisse ${transfert.caisseDest}",
+    desc: "l'utilisateur ${userName} A Transferee le Montant ${transfert.montant} de La Caisse ${transfert.caisseExpCode} a La Caisse ${transfert.caisseDestCode}",
     oper: ListsConst.typeHisto[1],
     dateCree: DateTime.now(),
     creeParCode: userCode,
@@ -101,8 +101,8 @@ Future<void> TransfertCaisseModif(
   montantControllerM.text = transfert.montant.toString();
   observationTransfertControllerM.text = transfert.observation ?? "";
 
-  selectedCaisseSourceM = transfert.caisseExp;
-  selectedCaisseDestinationM = transfert.caisseDest;
+  selectedCaisseSourceM = transfert.caisseExpCode;
+  selectedCaisseDestinationM = transfert.caisseDestCode;
   selectedEtatTransfertM = transfert.etat ? l10n.active : l10n.inactive;
 
   return showDialog(
@@ -316,8 +316,6 @@ Future<void> TransfertCaisseModif(
                               montant: double.tryParse(montantControllerM.text) ?? 0,
                               observation: observationTransfertControllerM.text,
                               etat: selectedEtatTransfertM == l10n.active,
-                              caisseDest: selectedCaisseDestinationM!,
-                              caisseExp: selectedCaisseSourceM!,
                               creeParCode: transfert.creeParCode,
                               code: transfert.code,
                               dateCree: transfert.dateCree,
@@ -325,7 +323,7 @@ Future<void> TransfertCaisseModif(
                               caisseDestCode: caissedestcode,
                               dateModif: DateTime.now(),
                               caisseExpCode: caisseexpcode,
-                              modifParCode: userName,
+                              modifParCode: userCode,
                             );
 
                             final response = await _SaveData(

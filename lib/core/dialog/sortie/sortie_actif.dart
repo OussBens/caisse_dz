@@ -41,11 +41,11 @@ Future<void> _DeleteSs({
   Produit prod;
 
   for (var sortie in sorties) {
-    prod = produits.where((e) => e.nom == sortie.produit).first;
+    prod = produits.where((e) => e.code == sortie.produitCode).first;
 
     prod.quantite = prod.quantite + sortie.quantite;
     prod.dateModif = DateTime.now();
-    prod.modifParCode = userName;
+    prod.modifParCode = userCode;
 
     await servicep.updateProduit(prod);
 
@@ -56,7 +56,7 @@ Future<void> _DeleteSs({
         id: idh,
         code: "HS$idh${DateTime.now().millisecondsSinceEpoch}",
         type: "sortie",
-        desc: "L'utilisateur $userName a Supprimer la Sortie de Produit ${sortie.produit} de Type ${sortie.type}",
+        desc: "L'utilisateur $userName a Supprimer la Sortie de Produit ${prod.nom} de Type ${sortie.type}",
         oper: ListsConst.typeHisto[2],
         dateCree: DateTime.now(),
         creeParCode: userCode
@@ -77,6 +77,7 @@ Future<void> AnnulerSortie(
   final userName = auth.username!;
   final userCode = auth.userCode!;
   final l10n = AppLocalizations.of(context)!;
+  final produitsA = await ProduitServices.getAllProduits();
 
   if (!auth.isAuthenticated || auth.username == null || auth.userCode == null) {
     ScaffoldMessenger.of(context).showSnackBar(
@@ -139,7 +140,7 @@ Future<void> AnnulerSortie(
                                   const SizedBox(width: 10),
                                   Expanded(
                                     child: Text(
-                                      "${s.produit}  |  ${l10n.quantity}: ${s.quantite}",
+                                      "${produitsA.where((p) => p.code == s.produitCode).firstOrNull?.nom ?? s.produitCode}  |  ${l10n.quantity}: ${s.quantite}",
                                       style: Appstyle.textSB.copyWith(
                                         color: Appstyle.Tnoir,
                                       ),

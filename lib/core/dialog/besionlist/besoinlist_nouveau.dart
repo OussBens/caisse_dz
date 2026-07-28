@@ -158,9 +158,7 @@ Future<void> BesoinListNouveau(BuildContext context, List<Fournisseur> fournisse
   dateControllerB.text  = "";
   fournisseurSelected   = fournisseursTest.first.nom;
 
-  final auth      = Provider.of<AuthState>(context, listen: false);
-  final userName  = auth.username;
-  final userCode  = auth.userCode;
+  final auth = Provider.of<AuthState>(context, listen: false);
 
   if (!auth.isAuthenticated || auth.username == null || auth.userCode == null) {
     ScaffoldMessenger.of(context).showSnackBar(
@@ -172,6 +170,9 @@ Future<void> BesoinListNouveau(BuildContext context, List<Fournisseur> fournisse
     );
     return;
   }
+
+  final String userName = auth.username!;
+  final String userCode = auth.userCode!;
 
   return showDialog(
     context: context,
@@ -370,10 +371,10 @@ Future<void> BesoinListNouveau(BuildContext context, List<Fournisseur> fournisse
                       montant       : double.parse(montantControllerB.text),
                       nombreArticle : int.parse(nombreArticleControllerB.text),
                       quantite      : double.parse(quantiteControllerB.text),
-                      fournisseur   : fournisseurSelected!,
+                      fournisseurCode : fournisseursTest.firstWhere((f) => f.nom == fournisseurSelected!).code,
                       etat          : true,
                       dateCree      : DateTime.now(),
-                      creeParCode   : userCode!,
+                      creeParCode   : userCode,
                       observation   : observationControllerB.text,
                     );
 

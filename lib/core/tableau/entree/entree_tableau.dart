@@ -5,17 +5,23 @@ import 'package:flutter/material.dart';
 import 'package:syncfusion_flutter_core/theme.dart';
 import 'package:syncfusion_flutter_datagrid/datagrid.dart';
 import '../../../../data/models/entree.dart';
+import '../../../../data/models/produit.dart';
+import '../../../../data/models/fournisseur.dart';
 import 'package:caisse_dz/core/theme/app_style.dart';
 import 'package:caisse_dz/core/widget/tableau/paginated.dart';
 import 'entree_source.dart';
 
 class TableauEntreeAdvanced extends StatefulWidget {
   final List<Entree> entrees;
+  final List<Produit> produits;
+  final List<Fournisseur> fournisseurs;
   final void Function(List<Entree>)? onSelectionChanged;
 
   const TableauEntreeAdvanced({
     super.key,
     required this.entrees,
+    required this.produits,
+    required this.fournisseurs,
     this.onSelectionChanged,
   });
 
@@ -89,6 +95,8 @@ class _TableauEntreeAdvancedState extends State<TableauEntreeAdvanced> {
       entrees: paginatedData,
       columnConfig: columnVisibility,
       l10n: l10n,
+      produits: widget.produits,
+      fournisseurs: widget.fournisseurs,
     );
 
     dataSource.addListener(() {
@@ -159,7 +167,12 @@ class _TableauEntreeAdvancedState extends State<TableauEntreeAdvanced> {
                             if (details.rowColumnIndex.rowIndex <= 0) return;
                             final rowIndex = details.rowColumnIndex.rowIndex - 1;
                             final Entree entree = paginatedData[rowIndex];
-                            EntreeDetail(context, entree);
+                            EntreeDetail(
+                              context,
+                              entree,
+                              produits: widget.produits,
+                              fournisseurs: widget.fournisseurs,
+                            );
                           },
                           onColumnResizeUpdate: (details) {
                             double newWidth = details.width;

@@ -57,8 +57,8 @@ class _TableauTransfertCaisseAdvancedState
       'etat': {'visible': true, 'label': 'status', 'field': 'etat'},
       'code': {'visible': true, 'label': 'code', 'field': 'code'},
       'dateTransfert': {'visible': true, 'label': 'date', 'field': 'dateTransfert'},
-      'caisseExp': {'visible': true, 'label': 'sourceCashRegister', 'field': 'caisseExp'},
-      'caisseDest': {'visible': true, 'label': 'destinationCashRegister', 'field': 'caisseDest'},
+      'caisseExpCode': {'visible': true, 'label': 'sourceCashRegister', 'field': 'caisseExpCode'},
+      'caisseDestCode': {'visible': true, 'label': 'destinationCashRegister', 'field': 'caisseDestCode'},
       'montant': {'visible': true, 'label': 'amount', 'field': 'montant'},
       'observation': {'visible': true, 'label': 'observation', 'field': 'observation'},
 

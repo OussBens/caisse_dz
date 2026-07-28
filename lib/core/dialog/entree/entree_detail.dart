@@ -3,11 +3,23 @@ import 'package:caisse_dz/l10n/app_localizations.dart';
 import 'package:flutter/material.dart';
 import 'package:caisse_dz/core/theme/app_style.dart';
 import '../../../data/models/entree.dart';
+import '../../../data/models/produit.dart';
+import '../../../data/models/fournisseur.dart';
 import '../../widget/detail_widget.dart';
 import '../../widget/section_decoration.dart';
 import '../base_dialog.dart';
 
-Future<void> EntreeDetail(BuildContext context, Entree entree) async {
+Future<void> EntreeDetail(
+    BuildContext context,
+    Entree entree, {
+      required List<Produit> produits,
+      required List<Fournisseur> fournisseurs,
+    }) async {
+  final nomProduit = produits.where((p) => p.code == entree.produitcode).firstOrNull?.nom
+      ?? entree.produitcode;
+  final nomFournisseur = fournisseurs.where((f) => f.code == entree.fournisseurCode).firstOrNull?.nom
+      ?? entree.fournisseurCode;
+
   return showDialog(
     context: context,
     barrierDismissible: true,
@@ -35,7 +47,7 @@ Future<void> EntreeDetail(BuildContext context, Entree entree) async {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      entree.produit,
+                      nomProduit,
                       style: Appstyle.textLB.copyWith(fontSize: 20),
                     ),
                     Text(
@@ -61,7 +73,7 @@ Future<void> EntreeDetail(BuildContext context, Entree entree) async {
 
             const SizedBox(height: 16),
 
-            _resumeEntree(entree, l10n),
+            _resumeEntree(entree, l10n, nomFournisseur),
           ],
         ),
 
@@ -83,7 +95,7 @@ Future<void> EntreeDetail(BuildContext context, Entree entree) async {
                 title: l10n.product,
                 icon: Icons.inventory_2_outlined,
                 child: detailwrap([
-                  detailinfo(l10n.productName, entree.produit),
+                  detailinfo(l10n.productName, nomProduit),
                   detailinfo(l10n.productCode, entree.produitcode),
                   detailinfo(l10n.quantity, entree.quantite),
                   detailinfo(l10n.unitPrice, "${entree.prix.toStringAsFixed(2)} ${l10n.currency}"),
@@ -95,7 +107,7 @@ Future<void> EntreeDetail(BuildContext context, Entree entree) async {
                 title: l10n.supplier,
                 icon: Icons.local_shipping_outlined,
                 child: detailwrap([
-                  detailinfo(l10n.supplier, entree.fournisseur),
+                  detailinfo(l10n.supplier, nomFournisseur),
                   detailinfo(l10n.supplierCode, entree.fournisseurCode),
                 ]),
               ),
@@ -149,7 +161,7 @@ Future<void> EntreeDetail(BuildContext context, Entree entree) async {
   );
 }
 
-Widget _resumeEntree(Entree e, AppLocalizations l10n) {
+Widget _resumeEntree(Entree e, AppLocalizations l10n, String nomFournisseur) {
   return Container(
     decoration: BoxDecoration(
       color: Appstyle.violet.withOpacity(0.6),
@@ -162,7 +174,7 @@ Widget _resumeEntree(Entree e, AppLocalizations l10n) {
         detailbadge(l10n.quantity, e.quantite),
         detailbadge(l10n.price, "${e.prix.toStringAsFixed(2)} ${l10n.currency}"),
         detailbadge(l10n.amount, "${e.montant.toStringAsFixed(2)} ${l10n.currency}"),
-        detailbadge(l10n.supplier, e.fournisseur),
+        detailbadge(l10n.supplier, nomFournisseur),
       ],
     ),
   );

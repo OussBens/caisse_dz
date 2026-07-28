@@ -144,39 +144,39 @@ Future<ApiResponse<int>> _SaveRetour({
   // ✅ Convertir la quantité en int une seule fois
   final int quantiteInt = retour.quantite.toInt();
 
-  if (retour.fournisseur != null) {
+  Produit produitConcerne = prod.where((e) => e.code == retour.codeProduit).first;
+
+  if (retour.fournisseur_code != null) {
     final montant = retour.quantite * retour.prixVente!;
     caisse.soldeInitial = caisse.soldeInitial + montant;
     await serviceC.updateCaisse(caisse);
 
-    Produit produit = prod.where((e) => e.nom == retour.nomProduit).first;
-    produit.quantite = produit.quantite - retour.quantite;
-    produit.dateModif = DateTime.now();
-    produit.modifParCode = userName;
-    await serviceP.updateProduit(produit);
+    produitConcerne.quantite = produitConcerne.quantite - retour.quantite;
+    produitConcerne.dateModif = DateTime.now();
+    produitConcerne.modifParCode = userCode;
+    await serviceP.updateProduit(produitConcerne);
 
     // ✅ AUGMENTER LE NOMBRE DE RETOURS DU FOURNISSEUR
     final fournisseur = fournisseursTest.firstWhere(
-          (f) => f.nom == retour.fournisseur,
+          (f) => f.code == retour.fournisseur_code,
       orElse: () => throw Exception("Fournisseur introuvable"),
     );
     await serviceFournisseur.ajouterRetour(fournisseur.id, montant);
   }
 
-  if (retour.client != null) {
+  if (retour.client_code != null) {
     final montant = retour.quantite * retour.prixVente!;
     caisse.soldeInitial = caisse.soldeInitial - montant;
     await serviceC.updateCaisse(caisse);
 
-    Produit produit = prod.where((e) => e.nom == retour.nomProduit).first;
-    produit.quantite = produit.quantite + retour.quantite;
-    produit.dateModif = DateTime.now();
-    produit.modifParCode = userName;
-    await serviceP.updateProduit(produit);
+    produitConcerne.quantite = produitConcerne.quantite + retour.quantite;
+    produitConcerne.dateModif = DateTime.now();
+    produitConcerne.modifParCode = userCode;
+    await serviceP.updateProduit(produitConcerne);
 
     // ✅ AUGMENTER LE NOMBRE DE RETOURS DU CLIENT
     final client = clientsTest.firstWhere(
-          (c) => c.nom == retour.client,
+          (c) => c.code == retour.client_code,
       orElse: () => throw Exception("Client introuvable"),
     );
     await serviceClient.ajouterRetour(client.id, montant);
@@ -191,7 +191,7 @@ Future<ApiResponse<int>> _SaveRetour({
       id: idh,
     ),
     type: "Retour",
-    desc: "L'utilisateur $userName a ajouté le Retour de Produit ${retour.nomProduit}",
+    desc: "L'utilisateur $userName a ajouté le Retour de Produit ${produitConcerne.nom}",
     oper: ListsConst.typeHisto[0],
     dateCree: DateTime.now(),
     creeParCode: userCode,
@@ -213,9 +213,9 @@ Future<ApiResponse<int>> _SaveRetour({
     dateCree: DateTime.now(),
     prixAchat: retour.prixAchat!,
     prixVente: retour.prixVente!,
-    nomProduit: retour.nomProduit,
     codeProduit: retour.codeProduit,
-    fournisseur: retour.fournisseur,
+    fournisseurCode: retour.fournisseur_code,
+    clientCode: retour.client_code,
     creeParCode: userCode,
     codeOperation: retour.code,
   );
@@ -563,12 +563,10 @@ Future<void> RetourNouveau(BuildContext context) async {
                             creeParCode: userCode,
                             observation: observationControllerN.text,
                             client_code: codetype,
-                            nomProduit: newSelectedProduitR!,
                             quantite: double.parse(quantiteControllerN.text),
                             dateCree: DateTime.now(),
                             prixAchat: double.parse(prixAchatControllerN.text),
                             prixVente: double.parse(prixVenteControllerN.text),
-                            client: newSelectedClientR,
                             code: cod, // ✅ Code généré automatiquement
                             date: DateTime.parse(dateController.text),
                             type: newSelectedTypeR!,
@@ -607,8 +605,6 @@ Future<void> RetourNouveau(BuildContext context) async {
                             codeProduit: ProdCode,
                             creeParCode: userCode,
                             observation: observationControllerN.text,
-                            nomProduit: newSelectedProduitR!,
-                            fournisseur: newSelectedFournisseurR,
                             fournisseur_code: codetype,
                             quantite: double.parse(quantiteControllerN.text),
                             dateCree: DateTime.now(),

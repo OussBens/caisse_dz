@@ -15,7 +15,7 @@ class CardProduct extends StatelessWidget {
   final bool actif;
   final bool rupture;
 
-  final String? remise;
+  final bool hasRemise;
   final String? photo;
 
   final VoidCallback? onTap;
@@ -29,7 +29,7 @@ class CardProduct extends StatelessWidget {
     required this.text2,
     required this.quantite,
     required this.seuil,
-    this.remise,
+    this.hasRemise = false,
     this.photo,
     this.selected = false,
     this.actif = true,
@@ -42,7 +42,6 @@ class CardProduct extends StatelessWidget {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
 
-    final bool hasRemise = remise != null && remise!.isNotEmpty;
     final bool isRupture = quantite <= 0;
 
     final Color backgroundColor = (quantite <= seuil && quantite > 0)

@@ -1,4 +1,8 @@
+import 'package:caisse_dz/Services/Client.dart';
+import 'package:caisse_dz/Services/Fournisseur.dart';
+import 'package:caisse_dz/Services/Produits.dart';
 import 'package:caisse_dz/data/constant.dart';
+import 'package:collection/collection.dart';
 import 'package:flutter/material.dart';
 import 'package:caisse_dz/core/theme/app_style.dart';
 import '../../../data/models/retour.dart';
@@ -8,6 +12,13 @@ import '../../widget/section_decoration.dart';
 import '../base_dialog.dart';
 
 Future<void> RetourDetail(BuildContext context, Retour retour) async {
+  final produits = await ProduitServices.getAllProduits();
+  final clients = await ClientServices.getAllClients();
+  final fournisseurs = await FournisseurServices.getAllFournisseurs();
+  final nomProduit = produits.firstWhereOrNull((p) => p.code == retour.codeProduit)?.nom ?? retour.codeProduit;
+  final nomClient = clients.firstWhereOrNull((c) => c.code == retour.client_code)?.nom;
+  final nomFournisseur = fournisseurs.firstWhereOrNull((f) => f.code == retour.fournisseur_code)?.nom;
+
   return showDialog(
     context: context,
     barrierDismissible: true,
@@ -36,7 +47,7 @@ Future<void> RetourDetail(BuildContext context, Retour retour) async {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      retour.nomProduit ?? "-",
+                      nomProduit,
                       style: Appstyle.textLB.copyWith(fontSize: 20),
                     ),
                     Text(
@@ -73,8 +84,8 @@ Future<void> RetourDetail(BuildContext context, Retour retour) async {
                 icon: Icons.info_outline,
                 child: detailwrap([
                   detailinfo(l10n.type, translator.translateTypeRetour(retour.type)),
-                  detailinfo(l10n.client, retour.client),
-                  detailinfo(l10n.supplier, retour.fournisseur),
+                  detailinfo(l10n.client, nomClient),
+                  detailinfo(l10n.supplier, nomFournisseur),
                   detailinfo(l10n.status, retour.etat ? l10n.active : l10n.inactive),
                 ]),
               ),
@@ -82,7 +93,7 @@ Future<void> RetourDetail(BuildContext context, Retour retour) async {
                 title: l10n.product,
                 icon: Icons.image,
                 child: detailwrap([
-                  detailinfo(l10n.productName, retour.nomProduit),
+                  detailinfo(l10n.productName, nomProduit),
                   detailinfo(l10n.quantity, retour.quantite),
                   detailinfo(l10n.purchasePrice, "${retour.prixAchat ?? 0} ${l10n.currency}"),
                   detailinfo(l10n.salePrice, "${retour.prixVente ?? 0} ${l10n.currency}"),

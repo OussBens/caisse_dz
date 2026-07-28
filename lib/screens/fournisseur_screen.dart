@@ -1,5 +1,6 @@
 import 'dart:io';
 
+import 'package:collection/collection.dart';
 import 'package:caisse_dz/Services/Fournisseur.dart';
 import 'package:caisse_dz/Services/Retour.dart';
 import 'package:caisse_dz/Services/SmartScan.dart';
@@ -619,7 +620,7 @@ class _FournisseurScreenState extends State<FournisseurScreen> with TickerProvid
       final search = _searchControllerVers.text.toLowerCase();
       final clientOk = fournisseurFilterVersment == null ||
           fournisseurFilterVersment!.isEmpty ||
-          c.beneficiare == fournisseurFilterVersment;
+          fournisseursTest.any((f) => f.code == c.beneficiareCode && f.nom == fournisseurFilterVersment);
       final modeOk = modepaiementFilter == null ||
           modepaiementFilter!.isEmpty ||
           c.mode_paiement == modepaiementFilter;
@@ -1193,7 +1194,7 @@ class _FournisseurScreenState extends State<FournisseurScreen> with TickerProvid
                                             ),
                                             SizedBox(height: 8),
                                             Text(
-                                              "${l10n.fournisseur}: ${verssementFournisseursSelectionnes.first.beneficiare}",
+                                              "${l10n.fournisseur}: ${fournisseursTest.where((f) => f.code == verssementFournisseursSelectionnes.first.beneficiareCode).firstOrNull?.nom ?? verssementFournisseursSelectionnes.first.beneficiareCode}",
                                               style: Appstyle.textS.copyWith(color: Appstyle.TgrisC),
                                             ),
                                             Text(

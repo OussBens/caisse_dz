@@ -31,7 +31,7 @@ Future<ApiResponse<int>> _SaveParam({
   final services = CaisseParamServices(db);
 
   Param.dateModif = DateTime.now();
-  Param.modifParCode = userName;
+  Param.modifParCode = userCode;
   final response = await services.updateCaisseParam(Param);
 
   return response;

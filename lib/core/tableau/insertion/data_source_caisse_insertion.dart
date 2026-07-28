@@ -36,7 +36,7 @@ class CaisseInsertionDataSource extends DataGridSource {
         ),
         DataGridCell(columnName: 'code', value: c.code),
         DataGridCell(columnName: 'nomCaisse', value: c.nomCaisse),
-        DataGridCell(columnName: 'magasin', value: c.magasin),
+        DataGridCell(columnName: 'magasin', value: c.magasinCode),
         DataGridCell(columnName: 'typecaisse', value: c.typecaisse),
         DataGridCell(
             columnName: 'soldeInitial', value: "${c.soldeInitial.toStringAsFixed(2)} ${l10n.currency}"),

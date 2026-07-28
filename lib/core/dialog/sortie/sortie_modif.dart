@@ -4,6 +4,10 @@ import 'package:caisse_dz/Services/Historique.dart' hide ApiResponse;
 import 'package:caisse_dz/Services/Mouvement.dart' hide ApiResponse;
 import 'package:caisse_dz/Services/Produits.dart' hide ApiResponse;
 import 'package:caisse_dz/Services/Sortie.dart';
+import 'package:caisse_dz/Services/Categorie.dart' hide ApiResponse;
+import 'package:caisse_dz/Services/SousCategories.dart' hide ApiResponse;
+import 'package:caisse_dz/data/models/categorie.dart';
+import 'package:caisse_dz/data/models/sous_categorie.dart';
 import 'package:caisse_dz/core/Auth/auth_state.dart';
 import 'package:caisse_dz/core/dialog/base_dialog.dart';
 import 'package:caisse_dz/core/dialog/besionlist/besoinlist_nouveau.dart';
@@ -31,9 +35,13 @@ import '../information_dialog.dart';
 
 String? selectedEtatR;
 List<Produit> produitsTest = [];
+List<Categorie> categoriesTestSM = [];
+List<SousCategorie> sousCategoriesTestSM = [];
 
 Future<void> _LoadAllData() async {
   produitsTest = await ProduitServices.getAllProduits();
+  categoriesTestSM = await CategorieServices.getAllCategorie();
+  sousCategoriesTestSM = await SousCategoriesServices.getAllSousCategorie();
 }
 
 Future<int> _GetNextHistoriqueId() async {
@@ -66,17 +74,16 @@ Future<ApiResponse<int>> _UpdateR({
   mouvement.first.etat = sortie.etat;
   mouvement.first.date = sortie.date;
   mouvement.first.dateModif = DateTime.now();
-  mouvement.first.modifParCode = userName;
+  mouvement.first.modifParCode = userCode;
   mouvement.first.prixVente = sortie.prix;
-  mouvement.first.nomProduit = sortie.produit;
   mouvement.first.codeProduit = sortie.produitCode;
 
   await serviceM.updateMouvement(mouvement.first);
 
-  final prod = produits.where((e) => e.nom == sortie.produit).first;
+  final prod = produits.where((e) => e.code == sortie.produitCode).first;
   prod.quantite = prod.quantite + (orignal - sortie.quantite);
   prod.dateModif = DateTime.now();
-  prod.modifParCode = userName;
+  prod.modifParCode = userCode;
   servicep.updateProduit(prod);
 
   int idh = await _GetNextHistoriqueId();
@@ -84,7 +91,7 @@ Future<ApiResponse<int>> _UpdateR({
       id: idh,
       code: "HS$idh${DateTime.now().millisecondsSinceEpoch}",
       type: "sortie",
-      desc: "L'utilisateur $userName a Modifee les information de Sortie de Produit ${sortie.produit}",
+      desc: "L'utilisateur $userName a Modifee les information de Sortie de Produit ${prod.nom}",
       oper: ListsConst.typeHisto[1],
       dateCree: DateTime.now(),
       creeParCode: userCode
@@ -144,7 +151,7 @@ Future<void> SortieModif(BuildContext context, Sortie sortie) async {
   dateControllerS.text = "${sortie.dateCree}";
   selectedTypeS = sortie.type;
 
-  Produit prods = produitsTest.where((e) => e.nom == sortie.produit).first;
+  Produit prods = produitsTest.where((e) => e.code == sortie.produitCode).first;
 
   quantiteControllerS.removeListener(calculerMontant);
   prixControllerS.removeListener(calculerMontant);
@@ -382,7 +389,7 @@ Future<void> SortieModif(BuildContext context, Sortie sortie) async {
                           titre: l10n.modification,
                           message: l10n.confirmModifyExit,
                           onConfirmer: () async {
-                            sortie.modifParCode = userName;
+                            sortie.modifParCode = userCode;
                             sortie.dateModif = DateTime.now();
                             sortie.etat = selectedEtatR == l10n.active;
                             sortie.observation = observationControllerS.text;
@@ -391,10 +398,13 @@ Future<void> SortieModif(BuildContext context, Sortie sortie) async {
                             sortie.prix = double.parse(prixControllerS.text);
                             sortie.quantite = double.parse(quantiteControllerS.text);
                             sortie.type = selectedTypeS!;
-                            sortie.produit = prods.nom;
-                            sortie.categorie = prods.categorie;
                             sortie.produitCode = prods.code;
-                            sortie.souscategorie = prods.sousCategorie;
+                            sortie.categorieCode = categoriesTestSM
+                                .where((c) => c.id == prods.categorieId)
+                                .firstOrNull?.code;
+                            sortie.sousCategorieCode = sousCategoriesTestSM
+                                .where((sc) => sc.id == prods.sousCategorieId)
+                                .firstOrNull?.code;
 
                             final response = await _UpdateR(
                                 userName: userName,

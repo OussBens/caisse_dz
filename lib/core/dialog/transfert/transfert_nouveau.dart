@@ -53,7 +53,7 @@ Future<ApiResponse<int>> _SaveData({
       id: id,
     ), // ✅ Utilisation du générateur
     type: "transfert",
-    desc: "l'utilisateur ${userName} A Transferee le Montant ${transfert.montant} de La Caisse ${transfert.caisseExp} a La Caisse ${transfert.caisseDest}",
+    desc: "l'utilisateur ${userName} A Transferee le Montant ${transfert.montant} de La Caisse ${transfert.caisseExpCode} a La Caisse ${transfert.caisseDestCode}",
     oper: ListsConst.typeHisto[0],
     dateCree: DateTime.now(),
     creeParCode: userCode,
@@ -312,8 +312,6 @@ Future<void> TransfertCaisseNouveau(BuildContext context,) async {
                           creeParCode: userCode,
                           dateCree: DateTime.now(),
                           dateTransfert: DateTime.now(),
-                          caisseExp: selectedCaisseSource!,
-                          caisseDest: selectedCaisseDestination!,
                           caisseExpCode: caisseexpcode,
                           caisseDestCode: caissedestcode,
                           observation: observationTransfertController.text,

@@ -10,7 +10,7 @@ class Verssement {
 
   bool      etat;
   double    montant;
-  String    beneficiare;
+  String    beneficiareCode;
   String    mode_paiement;
 
   DateTime  date;
@@ -32,7 +32,7 @@ class Verssement {
     required this.typebeneficiare,
     required this.mode_paiement,
     required this.creeParCode,
-    required this.beneficiare,
+    required this.beneficiareCode,
     required this.dateCree,
     required this.montant,
     required this.sense,
@@ -63,7 +63,7 @@ class Verssement {
         etat            : map['etat'] == 1,
         observation     : map['observation'],
         montant         : map['montant'],
-        beneficiare     : map['beneficiare'],
+        beneficiareCode : map['beneficiare_code'],
         mode_paiement   : map['mode_paiement'],
         dateCree        : DateTime.parse(map['date_cree']),
         creeParCode     : map['cree_par_code'],
@@ -91,7 +91,7 @@ class Verssement {
       'etat'            : etat ? 1 : 0,
       'observation'     : observation,
       'montant'         : montant,
-      'beneficiare'     : beneficiare,
+      'beneficiare_code' : beneficiareCode,
       'mode_paiement'   : mode_paiement,
       'date'            : date.toIso8601String(),
       'date_cree'       : dateCree.toIso8601String(),

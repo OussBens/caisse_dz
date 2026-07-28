@@ -1,11 +1,13 @@
 import 'package:caisse_dz/DBCreate.dart';
 import 'package:caisse_dz/Services/BesionListDetail.dart';
+import 'package:caisse_dz/Services/Fournisseur.dart';
 import 'package:caisse_dz/core/dialog/base_dialog.dart';
 import 'package:caisse_dz/core/theme/app_style.dart';
 import 'package:caisse_dz/core/widget/detail_widget.dart';
 import 'package:caisse_dz/data/models/besion_list_detail.dart';
 import 'package:caisse_dz/data/models/besoinList.dart';
 import 'package:caisse_dz/l10n/app_localizations.dart';
+import 'package:collection/collection.dart';
 import 'package:flutter/material.dart';
 
 import '../../widget/section_decoration.dart';
@@ -23,6 +25,9 @@ Future<void> BesoinListDetailDialog(
     ) async {
   await _LoadAllData();
   final l10n = AppLocalizations.of(context)!;
+  final fournisseurs = await FournisseurServices.getAllFournisseurs();
+  final nomFournisseur = fournisseurs.firstWhereOrNull((f) => f.code == besoin.fournisseurCode)?.nom
+      ?? besoin.fournisseurCode;
 
   return showDialog(
     context: context,
@@ -50,7 +55,7 @@ Future<void> BesoinListDetailDialog(
                   children: [
                     Text("${l10n.needDetail} ${besoin.code}",
                         style: Appstyle.textLB.copyWith(fontSize: 20)),
-                    Text("${l10n.supplier} : ${besoin.fournisseur}",
+                    Text("${l10n.supplier} : $nomFournisseur",
                         style: Appstyle.textSB),
                   ],
                 ),
@@ -83,7 +88,7 @@ Future<void> BesoinListDetailDialog(
                   detailinfo(l10n.code, besoin.code),
                   detailinfo("Numéro", besoin.numero),
                   detailinfo(l10n.date, besoin.date.toString().split(" ").first),
-                  detailinfo(l10n.supplier, besoin.fournisseur),
+                  detailinfo(l10n.supplier, nomFournisseur),
                   detailinfo(l10n.status, besoin.etat ? l10n.active : l10n.inactive),
                 ]),
               ),
@@ -147,7 +152,7 @@ Future<void> BesoinListDetailDialog(
                 showDialog(
                   barrierColor: Appstyle.gris.withOpacity(0.4),
                   context: context,
-                  builder: (_) => _dialogListeProduitsBesoin(context, besoin, l10n),
+                  builder: (_) => _dialogListeProduitsBesoin(context, besoin, nomFournisseur, l10n),
                 );
               },
             ),
@@ -191,6 +196,7 @@ Widget _resumeChiffreBesoin(BesoinList b, AppLocalizations l10n) {
 Widget _dialogListeProduitsBesoin(
     BuildContext context,
     BesoinList besoin,
+    String nomFournisseur,
     AppLocalizations l10n,
     ) {
   final produits = besoinListDetailsTest
@@ -207,7 +213,7 @@ Widget _dialogListeProduitsBesoin(
         Text(l10n.productsOfNeed(besoin.code),
             style: Appstyle.textLB),
         const SizedBox(height: 6),
-        Text("${l10n.supplier} : ${besoin.fournisseur}", style: Appstyle.textSB),
+        Text("${l10n.supplier} : $nomFournisseur", style: Appstyle.textSB),
         Text("${l10n.total} : ${besoin.montant} ${l10n.currency}",
             style: Appstyle.textSB.copyWith(color: Appstyle.violet)),
       ],

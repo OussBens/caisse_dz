@@ -5,11 +5,13 @@ import '../../../l10n/app_localizations.dart';
 
 class AfficheurSortie extends StatelessWidget {
   final Sortie sortie;
+  final String nomProduit;
   final VoidCallback? onDetails;
 
   const AfficheurSortie({
     super.key,
     required this.sortie,
+    required this.nomProduit,
     this.onDetails,
   });
 
@@ -29,7 +31,7 @@ class AfficheurSortie extends StatelessWidget {
             flex: 7,
             child: Row(
               children: [
-                _info(l10n.product, sortie.produit, l10n),
+                _info(l10n.product, nomProduit, l10n),
                 _info(l10n.quantity, sortie.quantite.toString(), l10n),
                 _info(l10n.price, sortie.prix.toString(), l10n),
                 _info(l10n.total, sortie.montant.toString(), l10n),

@@ -1,4 +1,5 @@
 import 'dart:ui';
+import 'package:collection/collection.dart';
 import 'package:intl/intl.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
@@ -84,22 +85,22 @@ Future<ApiResponse<int>> _UpdateR({
   final mouv = await MouvementsServices.getAllMouvementsByCodeOper(retour.code);
 
   final prods = await ProduitServices.getAllProduits();
-  Produit prod = prods.where((e) => e.nom == retour.nomProduit).first;
-  if (retour.fournisseur != null) {
+  Produit prod = prods.where((e) => e.code == retour.codeProduit).first;
+  if (retour.fournisseur_code != null) {
     prod.quantite = prod.quantite + (Orignal - retour.quantite);
     prod.dateModif = DateTime.now();
-    prod.modifParCode = userName;
+    prod.modifParCode = userCode;
     await serviceP.updateProduit(prod);
   }
-  if (retour.client != null) {
+  if (retour.client_code != null) {
     prod.quantite = prod.quantite - (Orignal - retour.quantite);
     prod.dateModif = DateTime.now();
-    prod.modifParCode = userName;
+    prod.modifParCode = userCode;
     await serviceP.updateProduit(prod);
   }
-  mouv.first.fournisseur = retour.fournisseur;
+  mouv.first.fournisseurCode = retour.fournisseur_code;
   mouv.first.quantite = retour.quantite;
-  mouv.first.client = retour.client;
+  mouv.first.clientCode = retour.client_code;
   mouv.first.etat = retour.etat;
   mouv.first.date = retour.date;
 
@@ -113,7 +114,7 @@ Future<ApiResponse<int>> _UpdateR({
       id: idh,
       code: "HS$idh${DateTime.now().millisecondsSinceEpoch}",
       type: "Retours",
-      desc: "L'utilisateur $userName modifee le Retour ${retour.code} de Produit ${retour.nomProduit}",
+      desc: "L'utilisateur $userName modifee le Retour ${retour.code} de Produit ${prod.nom}",
       oper: ListsConst.typeHisto[1],
       dateCree: DateTime.now(),
       creeParCode: userCode);
@@ -146,9 +147,9 @@ Future<void> RetourModif(BuildContext context, Retour retour) async {
   quantiteControllerR.text = retour.quantite.toString();
   smartDateController.text = "${retour.date.day}-${retour.date.month}-${retour.date.year}";
 
-  selectedFournisseurR = retour.fournisseur;
-  selectedNomProduitR = retour.nomProduit;
-  selectedClientR = retour.client;
+  selectedFournisseurR = fournisseursTest.where((f) => f.code == retour.fournisseur_code).firstOrNull?.nom;
+  selectedNomProduitR = produitsTest.where((p) => p.code == retour.codeProduit).firstOrNull?.nom;
+  selectedClientR = clientsTest.where((c) => c.code == retour.client_code).firstOrNull?.nom;
   selectedTypeR = retour.type;
   selectedEtatR = retour.etat ? l10n.active : l10n.inactive;
   return showDialog(
@@ -419,12 +420,7 @@ Future<void> RetourModif(BuildContext context, Retour retour) async {
                           onConfirmer: () async {
                             retour.quantite = double.parse(quantiteControllerR.text);
                             retour.type = selectedTypeR!;
-                            if (retour.type == 'Client') {
-                              retour.client = selectedClientR!;
-                            } else {
-                              retour.fournisseur = selectedFournisseurR!;
-                            }
-                            retour.modifParCode = userName;
+                            retour.modifParCode = userCode;
                             retour.dateModif = DateTime.now();
                             retour.etat = selectedEtatR == l10n.active;
                             retour.observation = observationControllerR.text;

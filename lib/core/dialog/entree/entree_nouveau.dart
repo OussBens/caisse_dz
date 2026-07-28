@@ -127,7 +127,6 @@ Future<ApiResponse<int>> _SaveEntree({
   if (selectedFournisseurE != null) {
     final fournisseur = fournisseursTestE.firstWhere((f) => f.nom == selectedFournisseurE);
     entree.fournisseurCode = fournisseur.code;
-    entree.fournisseur = fournisseur.nom;
   }
 
   // 1. Sauvegarder l'entrée
@@ -137,7 +136,7 @@ Future<ApiResponse<int>> _SaveEntree({
   await serviceM.addMouvement(mouv);
 
   // 3. Mettre à jour le produit
-  final prod = produits.where((e) => e.nom == entree.produit).first;
+  final prod = produits.where((e) => e.code == entree.produitcode).first;
 
   final double prixAchat = entree.prix;
 
@@ -153,7 +152,7 @@ Future<ApiResponse<int>> _SaveEntree({
 
 
   // ✅ Audit
-  prod.modifParCode = userName;
+  prod.modifParCode = userCode;
   prod.dateModif = DateTime.now();
 
   // ✅ Mettre à jour le produit
@@ -215,7 +214,7 @@ Future<ApiResponse<int>> _SaveEntree({
         id: idh,
       ),
       type: "entree",
-      desc: "L'utilisateur $userName a ajouté une entrée de produit ${entree.produit}",
+      desc: "L'utilisateur $userName a ajouté une entrée de produit ${prod.nom}",
       oper: ListsConst.typeHisto[0],
       dateCree: DateTime.now(),
       creeParCode: userCode
@@ -577,11 +576,9 @@ Future<void> EntreeNouveau(BuildContext context, {VoidCallback? onSuccess}) asyn
                         code: code,
                         date: DateTime.parse(dateControllerE.text),
                         produitcode: prod!.code,
-                        produit: selectedProduitE!,
                         prix: prixAchat,
                         quantite: quantite,
                         montant: double.parse(montantControllerE.text),
-                        fournisseur: selectedFournisseurE!,
                         fournisseurCode: "N/A",
                         etat: true,
                         creeParCode: userCode,
@@ -597,7 +594,6 @@ Future<void> EntreeNouveau(BuildContext context, {VoidCallback? onSuccess}) asyn
                           id: idm,
                         ),
                         date: DateTime.parse(dateControllerE.text),
-                        nomProduit: selectedProduitE!,
                         codeProduit: prod!.code,
                         quantite: quantite,
                         prixAchat: prod!.prixAchat,

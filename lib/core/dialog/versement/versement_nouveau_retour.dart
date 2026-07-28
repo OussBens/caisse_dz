@@ -51,11 +51,13 @@ Future<ApiResponse<int>> _saveVersement({required Verssement vers, required Stri
   final servicesfournisseur = FournisseurServices(db);
   final serviceh = await HistoriqueServices(db);
 
+  String nomBeneficiaire = vers.beneficiareCode;
   if (vers.typebeneficiare == "Client") {
     final client = _clientsTest.firstWhere(
-          (c) => c.nom == vers.beneficiare,
+          (c) => c.code == vers.beneficiareCode,
       orElse: () => throw Exception("Client introuvable"),
     );
+    nomBeneficiaire = client.nom;
 
     await servicesclient.ajouterVersementSortie(
       client.id,
@@ -63,9 +65,10 @@ Future<ApiResponse<int>> _saveVersement({required Verssement vers, required Stri
     );
   } else if (vers.typebeneficiare == "Fournisseur") {
     final fournisseur = _fournisseursTest.firstWhere(
-          (f) => f.nom == vers.beneficiare,
+          (f) => f.code == vers.beneficiareCode,
       orElse: () => throw Exception("Fournisseur introuvable"),
     );
+    nomBeneficiaire = fournisseur.nom;
 
     await servicesfournisseur.ajouterVersementSortie(
       fournisseur.id,
@@ -85,7 +88,7 @@ Future<ApiResponse<int>> _saveVersement({required Verssement vers, required Stri
         id: idh,
       ),
       type: "Versement Sortie",
-      desc: "L'utilisateur $userName a ajouté un Versement Sortie de ${vers.montant} DZD pour ${vers.beneficiare}",
+      desc: "L'utilisateur $userName a ajouté un Versement Sortie de ${vers.montant} DZD pour $nomBeneficiaire",
       oper: ListsConst.typeHisto[0],
       dateCree: DateTime.now(),
       creeParCode: userCode,
@@ -458,7 +461,9 @@ Future<void> VersementNouveauRetour(
                           code: code, // ✅ Code généré automatiquement
                           date: DateTime.parse(dateController.text),
                           typebeneficiare: selectedTypeV!,
-                          beneficiare: selectedBeneficiaireV!,
+                          beneficiareCode: selectedTypeV == "Client"
+                              ? _clientsTest.firstWhere((c) => c.nom == selectedBeneficiaireV!).code
+                              : _fournisseursTest.firstWhere((f) => f.nom == selectedBeneficiaireV!).code,
                           montant: double.parse(montantControllerV.text),
                           etat: true,
                           mode_paiement: selectedModePaiement,

@@ -33,7 +33,7 @@ class AfficheurSmartScan extends StatelessWidget {
                 _info(l10n.amount, "${scan.montant} ${l10n.currency}", l10n),
                 _info(l10n.products, scan.nbrProduit.toString(), l10n),
                 _info(l10n.quantity, scan.quantiteArticle.toString(), l10n),
-                _info(l10n.supplier, scan.fournisseur, l10n),
+                _info(l10n.supplier, scan.fournisseurCode, l10n),
                 _info(l10n.status, scan.etat ? l10n.active : l10n.inactive, l10n),
               ],
             ),

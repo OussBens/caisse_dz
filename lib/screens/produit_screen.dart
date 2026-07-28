@@ -1,7 +1,9 @@
 import 'dart:io';
+import 'package:collection/collection.dart';
 import 'package:caisse_dz/DBCreate.dart';
 import 'package:caisse_dz/Services/Categorie.dart';
 import 'package:caisse_dz/Services/ExcelPreviewDialog.dart';
+import 'package:caisse_dz/Services/Fournisseur.dart';
 import 'package:caisse_dz/Services/Historique.dart';
 import 'package:caisse_dz/Services/Pack.dart';
 import 'package:caisse_dz/Services/Paramters.dart';
@@ -24,6 +26,7 @@ import 'package:caisse_dz/core/widget/header_module.dart';
 import 'package:caisse_dz/core/widget/section_decoration_filtre.dart';
 import 'package:caisse_dz/core/widget/time_date_widget.dart';
 import 'package:caisse_dz/data/models/categorie.dart';
+import 'package:caisse_dz/data/models/fournisseur.dart';
 import 'package:caisse_dz/data/models/histore.dart';
 import 'package:caisse_dz/data/models/pack.dart';
 import 'package:caisse_dz/data/models/paramters.dart';
@@ -161,6 +164,7 @@ class _ProduitScreenState extends State<ProduitScreen> with TickerProviderStateM
   List<Remise> remisesTest = [];
   List<Produit> produitsTest = [];
   List<SousCategorie> sousCategoriesTest = [];
+  List<Fournisseur> fournisseursTest = [];
   List<Categorie> categoriesTest = [];
   Paramters ParamtersDB = Paramters(
       id: 0,
@@ -217,6 +221,9 @@ class _ProduitScreenState extends State<ProduitScreen> with TickerProviderStateM
           if (dataToExport.isNotEmpty) {
             excelFile = await ExcelGenerator.generateProduitsExcel(
               produits: dataToExport.cast<Produit>(),
+              categories: categoriesTest,
+              sousCategories: sousCategoriesTest,
+              remises: remisesTest,
               l10n: l10n,
               translator: translator,
             );
@@ -429,6 +436,9 @@ class _ProduitScreenState extends State<ProduitScreen> with TickerProviderStateM
         sheetName = 'Produits';
         excelFile = await ExcelGenerator.generateProduitsExcel(
           produits: selectedData.cast<Produit>(),
+          categories: categoriesTest,
+          sousCategories: sousCategoriesTest,
+          remises: remisesTest,
           l10n: l10n,
           translator: translator,
         );
@@ -752,7 +762,7 @@ class _ProduitScreenState extends State<ProduitScreen> with TickerProviderStateM
                 context,
                 categoriesSelectionnes.first,
                 nombreSousCategories: sousCategoriesTest
-                    .where((sc) => sc.categorieNom == categoriesSelectionnes.first.nom)
+                    .where((sc) => sc.categorieCode == categoriesSelectionnes.first.code)
                     .length,
               );
             } else if (categoriesSelectionnes.isEmpty) {
@@ -992,7 +1002,7 @@ class _ProduitScreenState extends State<ProduitScreen> with TickerProviderStateM
                 context,
                 souscategoriesSelectionnes.first,
                 nombreProduits: produitsTest
-                    .where((p) => p.sousCategorie == souscategoriesSelectionnes.first.nom)
+                    .where((p) => p.sousCategorieId == souscategoriesSelectionnes.first.id)
                     .length,
               );
             } else if (souscategoriesSelectionnes.isEmpty) {
@@ -1101,6 +1111,7 @@ class _ProduitScreenState extends State<ProduitScreen> with TickerProviderStateM
       final produit = await ProduitServices.getAllProduits();
       final categorie = await CategorieServices.getAllCategorie();
       final sous = await SousCategoriesServices.getAllSousCategorie();
+      final fournisseur = await FournisseurServices.getAllFournisseurs();
 
       if (!mounted) return;
 
@@ -1133,6 +1144,8 @@ class _ProduitScreenState extends State<ProduitScreen> with TickerProviderStateM
 
         categoriesTest = categorie;
         categoriesFiltres = List.from(categorie); // Créer une nouvelle liste
+
+        fournisseursTest = fournisseur;
 
         produitsTest = produit;
         produitsFiltres = List.from(produit); // Créer une nouvelle liste
@@ -1255,7 +1268,7 @@ class _ProduitScreenState extends State<ProduitScreen> with TickerProviderStateM
       Minimum: minInput ?? ParamtersDB.Minimum,
       Maximum: maxInput ?? ParamtersDB.Maximum,
       Datemodif: DateTime.now(),
-      modifParCode: userName,
+      modifParCode: userCode,
       Datecree: ParamtersDB.Datecree,
       creeParCode: ParamtersDB.creeParCode,
     );
@@ -1285,10 +1298,13 @@ class _ProduitScreenState extends State<ProduitScreen> with TickerProviderStateM
   void appliquerFiltre() {
     produitsFiltres = produitsTest.where((p) {
       final searchText = _searchController.text.toLowerCase();
-      final catOk = selectedCategorieFilter == null || selectedCategorieFilter!.isEmpty || p.categorie == selectedCategorieFilter;
-      final sousCatOk = selectedSousCategorieFilter == null || selectedSousCategorieFilter!.isEmpty || p.sousCategorie == selectedSousCategorieFilter;
+      final nomCategorieP = categoriesTest.where((c) => c.id == p.categorieId).firstOrNull?.nom ?? '';
+      final nomSousCategorieP = sousCategoriesTest.where((sc) => sc.id == p.sousCategorieId).firstOrNull?.nom ?? '';
+      final catOk = selectedCategorieFilter == null || selectedCategorieFilter!.isEmpty || nomCategorieP == selectedCategorieFilter;
+      final sousCatOk = selectedSousCategorieFilter == null || selectedSousCategorieFilter!.isEmpty || nomSousCategorieP == selectedSousCategorieFilter;
       final marqueOk = selectedMarqueFilter == null || selectedMarqueFilter!.isEmpty || p.marque == selectedMarqueFilter;
-      final searchOk = searchText.isEmpty || p.searchableText.contains(searchText);
+      final searchOk = searchText.isEmpty ||
+          '${p.searchableText} $nomCategorieP $nomSousCategorieP'.toLowerCase().contains(searchText);
       final prixAchatOk = (prixAchatMin == null || p.prixAchat >= prixAchatMin!) &&
           (prixAchatMax == null || p.prixAchat <= prixAchatMax!);
       final prixVenteOk = (prixVenteMin == null || p.prixVente >= prixVenteMin!) &&
@@ -1705,6 +1721,10 @@ class _ProduitScreenState extends State<ProduitScreen> with TickerProviderStateM
                                       child: TableauProduitAdvanced(
                                         key: ValueKey(produitsFiltres),
                                         produits: produitsFiltres,
+                                        categories: categoriesTest,
+                                        sousCategories: sousCategoriesTest,
+                                        remises: remisesTest,
+                                        fournisseurs: fournisseursTest,
                                         onSelectionChanged: (selection) {
                                           setState(() {
                                             produitsSelectionnes = selection;
@@ -1726,14 +1746,14 @@ class _ProduitScreenState extends State<ProduitScreen> with TickerProviderStateM
                                       AfficheurCategorie(
                                         categorie: categoriesSelectionnes.first,
                                         nombreSousCategories: sousCategoriesTest
-                                            .where((sc) => sc.categorieNom == categoriesSelectionnes.first.nom)
+                                            .where((sc) => sc.categorieCode == categoriesSelectionnes.first.code)
                                             .length,
                                         onDetails: () {
                                           CategorieDetail(
                                             context,
                                             categoriesSelectionnes.first,
                                             nombreSousCategories: sousCategoriesTest
-                                                .where((sc) => sc.categorieNom == categoriesSelectionnes.first.nom)
+                                                .where((sc) => sc.categorieCode == categoriesSelectionnes.first.code)
                                                 .length,
                                           );
                                         },
@@ -1826,14 +1846,14 @@ class _ProduitScreenState extends State<ProduitScreen> with TickerProviderStateM
                                         AfficheurSousCategorie(
                                           sousCategorie: souscategoriesSelectionnes.first,
                                           nombreProduits: produitsTest
-                                              .where((p) => p.sousCategorie == souscategoriesSelectionnes.first.nom)
+                                              .where((p) => p.sousCategorieId == souscategoriesSelectionnes.first.id)
                                               .length,
                                           onDetails: () {
                                             SousCategorieDetail(
                                               context,
                                               souscategoriesSelectionnes.first,
                                               nombreProduits: produitsTest
-                                                  .where((p) => p.sousCategorie == souscategoriesSelectionnes.first.nom)
+                                                  .where((p) => p.sousCategorieId == souscategoriesSelectionnes.first.id)
                                                   .length,
                                             );
                                           },
@@ -1935,7 +1955,7 @@ class _ProduitScreenState extends State<ProduitScreen> with TickerProviderStateM
                                           AfficheurRemise(
                                             remise: remisesSelectionnes.first,
                                             nombreProduits: produitsTest
-                                                .where((p) => p.remise == remisesSelectionnes.first.nom)
+                                                .where((p) => p.remiseId == remisesSelectionnes.first.id)
                                                 .length,
                                             onDetails: () {
                                               RemiseDetail(context, remisesSelectionnes.first);
@@ -2306,7 +2326,8 @@ class _ProduitScreenState extends State<ProduitScreen> with TickerProviderStateM
                     value: selectedSousCategorieFilter,
                     items: sousCategorieFilterOptions.where((sc) {
                       if (selectedCategorieFilter == null) return true;
-                      return sousCategoriesTest.firstWhere((s) => s.nom == sc).categorieNom == selectedCategorieFilter;
+                      final categorieCode = sousCategoriesTest.firstWhere((s) => s.nom == sc).categorieCode;
+                      return categoriesTest.where((c) => c.code == categorieCode).firstOrNull?.nom == selectedCategorieFilter;
                     }).toList(),
                     onChanged: (v) {
                       setState(() {

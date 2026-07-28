@@ -51,7 +51,7 @@ class DbCreator {
     _db = await databaseFactory.openDatabase(
       dbPath,
       options: OpenDatabaseOptions(
-        version: 8,
+        version: 10,
         onConfigure: (db) async {
           await db.execute("PRAGMA KEY = '$password'");
           await db.execute('PRAGMA foreign_keys = ON');
@@ -263,6 +263,217 @@ class DbCreator {
               print('Skip rename produits.annuler_par: $e');
             }
           }
+
+          if (oldVersion < 9) {
+            // Suite de la normalisation des relations métier (produit, client,
+            // fournisseur, magasin, catégorie/sous-catégorie, caisse) : on
+            // n'identifie plus ces entités par leur nom (dénormalisé, non
+            // stable) mais par leur code/id, même principe que les champs
+            // d'audit cree_par_code/modif_par_code/annul_par_code.
+
+            // mouvements : nom_produit supprimé (code_produit suffit) ;
+            // client/fournisseur (nom) remplacés par client_code/fournisseur_code.
+            try {
+              await db.execute('ALTER TABLE mouvements ADD COLUMN client_code TEXT REFERENCES clients(code)');
+            } catch (e) {
+              print('Skip add mouvements.client_code: $e');
+            }
+            try {
+              await db.execute('ALTER TABLE mouvements ADD COLUMN fournisseur_code TEXT REFERENCES fournisseurs(code)');
+            } catch (e) {
+              print('Skip add mouvements.fournisseur_code: $e');
+            }
+            try {
+              await db.execute('''
+                UPDATE mouvements
+                SET fournisseur_code = (
+                  SELECT code FROM fournisseurs WHERE fournisseurs.nom = mouvements.fournisseur
+                )
+                WHERE fournisseur IS NOT NULL
+              ''');
+            } catch (e) {
+              print('Skip backfill mouvements.fournisseur_code: $e');
+            }
+            try {
+              await db.execute('''
+                UPDATE mouvements
+                SET client_code = (
+                  SELECT code FROM clients WHERE clients.nom = mouvements.client
+                )
+                WHERE client IS NOT NULL
+              ''');
+            } catch (e) {
+              print('Skip backfill mouvements.client_code: $e');
+            }
+            // sortie : produit (nom) supprimé (produit_code suffit) ;
+            // categorie/souscategorie (nom) remplacés par categorie_code/sous_categorie_code.
+            try {
+              await db.execute('ALTER TABLE sortie ADD COLUMN categorie_code TEXT REFERENCES categories(code)');
+            } catch (e) {
+              print('Skip add sortie.categorie_code: $e');
+            }
+            try {
+              await db.execute('ALTER TABLE sortie ADD COLUMN sous_categorie_code TEXT REFERENCES sous_categories(code)');
+            } catch (e) {
+              print('Skip add sortie.sous_categorie_code: $e');
+            }
+            try {
+              await db.execute('''
+                UPDATE sortie
+                SET categorie_code = (
+                  SELECT code FROM categories WHERE categories.nom = sortie.categorie
+                )
+                WHERE categorie IS NOT NULL
+              ''');
+            } catch (e) {
+              print('Skip backfill sortie.categorie_code: $e');
+            }
+            try {
+              await db.execute('''
+                UPDATE sortie
+                SET sous_categorie_code = (
+                  SELECT code FROM sous_categories WHERE sous_categories.nom = sortie.souscategorie
+                )
+                WHERE souscategorie IS NOT NULL
+              ''');
+            } catch (e) {
+              print('Skip backfill sortie.sous_categorie_code: $e');
+            }
+
+            // entree : produit/fournisseur (nom) supprimés, produit_code/
+            // fournisseur_code (déjà présents) suffisent.
+
+            // produits : categorie/sous_categorie/remise (nom) supprimés
+            // (categorie_id/sous_categorie_id/remise_id suffisent) ;
+            // fournisseur (nom) remplacé par fournisseur_code.
+            try {
+              await db.execute('ALTER TABLE produits ADD COLUMN fournisseur_code TEXT REFERENCES fournisseurs(code)');
+            } catch (e) {
+              print('Skip add produits.fournisseur_code: $e');
+            }
+            try {
+              await db.execute('''
+                UPDATE produits
+                SET fournisseur_code = (
+                  SELECT code FROM fournisseurs WHERE fournisseurs.nom = produits.fournisseur
+                )
+                WHERE fournisseur IS NOT NULL
+              ''');
+            } catch (e) {
+              print('Skip backfill produits.fournisseur_code: $e');
+            }
+
+            const dropColumnsV9 = <String, List<String>>{
+              'mouvements': ['nom_produit', 'client', 'fournisseur'],
+              'sortie': ['produit', 'categorie', 'souscategorie'],
+              'entree': ['produit', 'fournisseur'],
+              'produits': ['categorie', 'sous_categorie', 'remise', 'fournisseur'],
+            };
+            for (final entry in dropColumnsV9.entries) {
+              for (final column in entry.value) {
+                try {
+                  await db.execute('ALTER TABLE ${entry.key} DROP COLUMN $column');
+                } catch (e) {
+                  print('Skip drop ${entry.key}.$column: $e');
+                }
+              }
+            }
+          }
+
+          if (oldVersion < 10) {
+            // Suite de la normalisation : besionList, caisseGestion, panniers,
+            // pannierProduit, produit_pack_detail, retours, smart_scan,
+            // smartScanProduit, sous_categories, transfert, verssements.
+
+            // besionList : fournisseur (nom) -> fournisseur_code.
+            try {
+              await db.execute('ALTER TABLE besionList ADD COLUMN fournisseur_code TEXT REFERENCES fournisseurs(code)');
+            } catch (e) {
+              print('Skip add besionList.fournisseur_code: $e');
+            }
+            try {
+              await db.execute('''
+                UPDATE besionList
+                SET fournisseur_code = (
+                  SELECT code FROM fournisseurs WHERE fournisseurs.nom = besionList.fournisseur
+                )
+                WHERE fournisseur IS NOT NULL
+              ''');
+            } catch (e) {
+              print('Skip backfill besionList.fournisseur_code: $e');
+            }
+
+            // sous_categories : categorie_nom -> categorie_code (backfill via
+            // categorie_id, plus fiable qu'un matching par nom).
+            try {
+              await db.execute('ALTER TABLE sous_categories ADD COLUMN categorie_code TEXT REFERENCES categories(code)');
+            } catch (e) {
+              print('Skip add sous_categories.categorie_code: $e');
+            }
+            try {
+              await db.execute('''
+                UPDATE sous_categories
+                SET categorie_code = (
+                  SELECT code FROM categories WHERE categories.id = sous_categories.categorie_id
+                )
+              ''');
+            } catch (e) {
+              print('Skip backfill sous_categories.categorie_code: $e');
+            }
+
+            // verssements : beneficiare (nom, client ou fournisseur selon
+            // typebeneficiare) -> beneficiare_code.
+            try {
+              await db.execute('ALTER TABLE verssements ADD COLUMN beneficiare_code TEXT');
+            } catch (e) {
+              print('Skip add verssements.beneficiare_code: $e');
+            }
+            try {
+              await db.execute('''
+                UPDATE verssements
+                SET beneficiare_code = (
+                  SELECT code FROM clients WHERE clients.nom = verssements.beneficiare
+                )
+                WHERE typebeneficiare = 'Client'
+              ''');
+            } catch (e) {
+              print('Skip backfill verssements.beneficiare_code (client): $e');
+            }
+            try {
+              await db.execute('''
+                UPDATE verssements
+                SET beneficiare_code = (
+                  SELECT code FROM fournisseurs WHERE fournisseurs.nom = verssements.beneficiare
+                )
+                WHERE typebeneficiare = 'Fournisseur'
+              ''');
+            } catch (e) {
+              print('Skip backfill verssements.beneficiare_code (fournisseur): $e');
+            }
+
+            const dropColumnsV10 = <String, List<String>>{
+              'besionList': ['fournisseur'],
+              'caisseGestion': ['magasin'],
+              'panniers': ['client', 'caisser'],
+              'pannierProduit': ['nom_produit'],
+              'produit_pack_detail': ['pack_nom', 'produit_nom'],
+              'retours': ['nom_produit', 'client', 'fournisseur'],
+              'smart_scan': ['fournisseur'],
+              'smartScanProduit': ['nom_produit'],
+              'sous_categories': ['categorie_nom'],
+              'transfert': ['caisse_exp', 'caisse_dest'],
+              'verssements': ['beneficiare'],
+            };
+            for (final entry in dropColumnsV10.entries) {
+              for (final column in entry.value) {
+                try {
+                  await db.execute('ALTER TABLE ${entry.key} DROP COLUMN $column');
+                } catch (e) {
+                  print('Skip drop ${entry.key}.$column: $e');
+                }
+              }
+            }
+          }
         },
       ),
     );
@@ -340,7 +551,6 @@ class DbCreator {
       await db.insert('caisseGestion', {
         'code': 'CIS0000',
         'etat': 1,
-        'magasin': 'Magasin System',
         'magasin_code': 'MAG0000',
         'date_cree': now,
         'typecaisse': "Physique",
@@ -364,7 +574,7 @@ class DbCreator {
       await db.insert('sous_categories', {
         'nom': 'Sans Sous-Catego',
         'code': 'SC0000',
-        'categorie_nom': 'Sans Categorie',
+        'categorie_code': 'CATE0000',
         'categorie_id': 1,
         'observation': 'Sous categorié System',
         'etat': 1,
@@ -628,7 +838,7 @@ class DbCreator {
         id INTEGER PRIMARY KEY,
         nom   TEXT UNIQUE NOT NULL,
         code  TEXT UNIQUE NOT NULL,
-        categorie_nom TEXT    NOT NULL,
+        categorie_code TEXT    NOT NULL,
         categorie_id  INTEGER NOT NULL,
         observation TEXT,
         etat INTEGER NOT NULL DEFAULT 1,
@@ -640,6 +850,7 @@ class DbCreator {
         annul_par_code TEXT,
         motif_annul TEXT,
         FOREIGN KEY (categorie_id)  REFERENCES categories(id),
+        FOREIGN KEY (categorie_code) REFERENCES categories(code),
         FOREIGN KEY (cree_par_code) REFERENCES utilisateur(code)
       )
     ''');
@@ -756,13 +967,10 @@ class DbCreator {
       description   TEXT,
       code_barre    TEXT,
       numero_serie  TEXT,
-      fournisseur   TEXT,
+      fournisseur_code TEXT,
       categorie_id INTEGER,
       sous_categorie_id INTEGER,
       remise_id INTEGER,
-      categorie       TEXT NOT NULL,
-      sous_categorie  TEXT NOT NULL,
-      remise          TEXT,
       prix_achat  REAL    NOT NULL DEFAULT 0,
       prix_vente  REAL    NOT NULL DEFAULT 0,
       tva         REAL    NOT NULL DEFAULT 0,
@@ -796,7 +1004,8 @@ class DbCreator {
       besion          INTEGER NOT NULL DEFAULT 0,
       FOREIGN KEY (cree_par_code) REFERENCES utilisateur(code),
       FOREIGN KEY (categorie_id) REFERENCES categories(id),
-      FOREIGN KEY (sous_categorie_id) REFERENCES sous_categories(id)
+      FOREIGN KEY (sous_categorie_id) REFERENCES sous_categories(id),
+      FOREIGN KEY (fournisseur_code) REFERENCES fournisseurs(code)
   )
   ''');
   }
@@ -867,9 +1076,7 @@ class DbCreator {
     await db.execute('''
       CREATE TABLE IF NOT EXISTS produit_pack_detail (
         id                  INTEGER PRIMARY KEY AUTOINCREMENT,
-        pack_nom            TEXT    NOT NULL,
         pack_code           TEXT    NOT NULL,
-        produit_nom         TEXT    NOT NULL,
         produit_code        TEXT    NOT NULL,
         prix_unitaire       REAL    NOT NULL DEFAULT 0,
         quantite            INTEGER NOT NULL DEFAULT 1,
@@ -910,14 +1117,13 @@ class DbCreator {
       id            INTEGER PRIMARY KEY AUTOINCREMENT,
       date          TEXT    DEFAULT (datetime('now')),
       code          TEXT    NOT NULL UNIQUE,
-      nom_produit   TEXT    NOT NULL,
       code_produit  TEXT    NOT NULL,
       quantite      REAL    DEFAULT 0,
       prix_achat    REAL    DEFAULT 0,
       prix_vente    REAL    DEFAULT 0,
       code_operation TEXT NOT NULL,
-      client        TEXT,
-      fournisseur   TEXT,
+      client_code       TEXT,
+      fournisseur_code  TEXT,
       type          TEXT,
       etat          INTEGER NOT NULL DEFAULT 1,
       date_cree     TEXT DEFAULT (datetime('now')),
@@ -927,8 +1133,10 @@ class DbCreator {
       date_annul    TEXT,
       annul_par_code     TEXT,
       motif_annul   TEXT,
-      FOREIGN KEY (code_produit)  REFERENCES produits(code),
-      FOREIGN KEY (cree_par_code) REFERENCES utilisateur(code)
+      FOREIGN KEY (code_produit)      REFERENCES produits(code),
+      FOREIGN KEY (client_code)       REFERENCES clients(code),
+      FOREIGN KEY (fournisseur_code)  REFERENCES fournisseurs(code),
+      FOREIGN KEY (cree_par_code)     REFERENCES utilisateur(code)
     )
     ''');
   }
@@ -939,13 +1147,11 @@ class DbCreator {
         code  TEXT NOT NULL,
         date  TEXT NOT NULL,
         produit_code TEXT NOT NULL,
-        produit TEXT NOT NULL,
-        
+
         prix REAL NOT NULL,
         quantite REAL NOT NULL,
         montant REAL NOT NULL,
-        
-        fournisseur TEXT NOT NULL,
+
         fournisseur_code TEXT NOT NULL,
         etat INTEGER NOT NULL,
         cree_par_code TEXT NOT NULL,
@@ -992,14 +1198,12 @@ class DbCreator {
         verse             REAL NOT NULL,
         reste             REAL,
         mode_paiement     TEXT NOT NULL,
-        caisser           TEXT NOT NULL,
         caisser_code      TEXT NOT NULL,
         caisse            TEXT NOT NULL,
-        caisse_code       TEXT NOT NULL,       
+        caisse_code       TEXT NOT NULL,
         etat              INTEGER NOT NULL DEFAULT 1,
         observation       TEXT,
         type_pannier      TEXT,
-        client            TEXT NOT NULL,
         client_code       TEXT,
         date_cree         TEXT DEFAULT (datetime('now')),
         date              TEXT DEFAULT (datetime('now')),
@@ -1020,7 +1224,6 @@ class DbCreator {
       CREATE TABLE IF NOT EXISTS retours (
         id                INTEGER PRIMARY KEY,
         code              TEXT    NOT NULL UNIQUE,
-        nom_produit       TEXT    NOT NULL,
         code_produit      TEXT    NOT NULL,
         quantite          REAL    NOT NULL,
         prix_achat        REAL    NOT NULL,
@@ -1030,9 +1233,7 @@ class DbCreator {
         etat              INTEGER NOT NULL DEFAULT 1,
         date_cree         TEXT    NOT NULL DEFAULT (datetime('now')),
         date              TEXT    NOT NULL DEFAULT (datetime('now')),
-        client            TEXT,
         client_code       TEXT,
-        fournisseur       TEXT,
         fournisseur_code  TEXT,
         observation       TEXT,
         date_modif        TEXT,
@@ -1058,7 +1259,7 @@ class DbCreator {
         sense           TEXT    NOT NULL,
         etat            INTEGER NOT NULL DEFAULT 1,
         montant         REAL    NOT NULL,
-        beneficiare     TEXT    NOT NULL,
+        beneficiare_code TEXT   NOT NULL,
         mode_paiement   TEXT    NOT NULL,
         date            TEXT    NOT NULL,
         date_cree       TEXT    NOT NULL DEFAULT (datetime('now')),
@@ -1086,7 +1287,6 @@ class DbCreator {
         montant           REAL    NOT NULL,
         nbr_produit       INTEGER NOT NULL,
         ecart             REAL    NOT NULL,
-        fournisseur       TEXT    NOT NULL,
         fournisseur_code  TEXT    NOT NULL,
         etat              INTEGER NOT NULL  DEFAULT 1,
         activity          TEXT    NOT NULL,
@@ -1184,7 +1384,7 @@ class DbCreator {
         montant         REAL    NOT NULL,
         nomber_article  INTEGER NOT NULL,
         quantite        REAL    NOT NULL,
-        fournisseur     TEXT    NOT NULL,
+        fournisseur_code TEXT   NOT NULL,
         etat            TEXT    NOT NULL,
         observation     TEXT,
         date_cree       TEXT    NOT NULL DEFAULT (datetime('now')),
@@ -1194,7 +1394,8 @@ class DbCreator {
         date_annul      TEXT,
         annul_par_code       TEXT,
         motif_annul     TEXT,
-        FOREIGN KEY (cree_par_code) REFERENCES utilisateur(code)
+        FOREIGN KEY (cree_par_code) REFERENCES utilisateur(code),
+        FOREIGN KEY (fournisseur_code) REFERENCES fournisseurs(code)
       )
     ''');
   }
@@ -1205,7 +1406,6 @@ class DbCreator {
         id INTEGER PRIMARY KEY,
         code TEXT NOT NULL UNIQUE,
         etat INTEGER NOT NULL DEFAULT 1,
-        magasin TEXT NOT NULL,
         magasin_code TEXT NOT NULL,
         date_cree TEXT NOT NULL DEFAULT (datetime('now')),
         typecaisse TEXT NOT NULL,
@@ -1236,7 +1436,6 @@ class DbCreator {
         quantite REAL NOT NULL,
         date_cree TEXT NOT NULL DEFAULT (datetime ('now')),
         code_pannier TEXT NOT NULL,
-        nom_produit TEXT NOT NULL,
         code_produit TEXT NOT NULL,
         cree_par_code TEXT NOT NULL,
         modif_par_code       TEXT,
@@ -1256,7 +1455,6 @@ class DbCreator {
         id              INTEGER PRIMARY KEY,
         code_SmartScan  TEXT    NOT NULL,
         code_produit    TEXT    NOT NULL,
-        nom_produit     TEXT    NOT NULL,
         quantite        REAL    NOT NULL,
         prix            REAL    NOT NULL,
         prixVente       REAL    NOT NULL,
@@ -1285,23 +1483,24 @@ class DbCreator {
         date          TEXT    NOT NULL,
         code          TEXT    NOT NULL UNIQUE,
         type          TEXT    NOT NULL,
-        produit       TEXT    NOT NULL,
         date_cree     TEXT    NOT NULL DEFAULT(datetime('now')),
         cree_par_code TEXT    NOT NULL,
         montant       REAL    NOT NULL,
         quantite      REAL    NOT NULL,
         prix          REAL    NOT NULL,
         produit_code  TEXT    NOT NULL,
-        souscategorie TEXT,
+        sous_categorie_code TEXT,
         observation   TEXT,
         date_modif    TEXT,
-        categorie     TEXT,
+        categorie_code      TEXT,
         modif_par_code     TEXT,
         annul_par_code     TEXT,
         date_annul    TEXT,
         motif_annul   TEXT,
-        FOREIGN KEY (cree_par_code) REFERENCES utilisateur(code),
-        FOREIGN KEY (produit_code)  REFERENCES produits(code)
+        FOREIGN KEY (cree_par_code)        REFERENCES utilisateur(code),
+        FOREIGN KEY (produit_code)         REFERENCES produits(code),
+        FOREIGN KEY (categorie_code)       REFERENCES categories(code),
+        FOREIGN KEY (sous_categorie_code)  REFERENCES sous_categories(code)
       )
     ''');
   }
@@ -1312,8 +1511,6 @@ class DbCreator {
         id  INTEGER PRIMARY KEY,
         code TEXT NOT NULL UNIQUE,
         date_transfert TEXT NOT NULL,
-        caisse_exp TEXT NOT NULL,
-        caisse_dest TEXT NOT NULL,
         montant REAL NOT NULL,
         etat INTEGER NOT NULL DEFAULT 1,
         date_cree TEXT NOT NULL DEFAULT(datetime('now')),
