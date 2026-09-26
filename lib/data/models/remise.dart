@@ -101,4 +101,20 @@ class Remise {
         .map((e) => e?.toString().toLowerCase() ?? '')
         .join(' ');
   }
+
+  /// Vrai si la date du jour est comprise dans la période [debut, fin] de la
+  /// remise (fin non incluse = pas de date de fin, remise active tant
+  /// qu'elle a commencé). Comparaison sur la date seule (heure ignorée).
+  bool get estActifSelonDates {
+    final aujourdhui = DateTime.now();
+    final today = DateTime(aujourdhui.year, aujourdhui.month, aujourdhui.day);
+    final debutJour = DateTime(debut.year, debut.month, debut.day);
+
+    if (today.isBefore(debutJour)) return false;
+    if (fin != null) {
+      final finJour = DateTime(fin!.year, fin!.month, fin!.day);
+      if (today.isAfter(finJour)) return false;
+    }
+    return true;
+  }
 }

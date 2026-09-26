@@ -7,8 +7,6 @@ class Pannier {
   double montant;      // total du panier
   double montantAchat;      // total du panier
   double marge;      // total du panier
-  double verse;        // montant payé
-  double reste;        // reste à payer
   String? client_code;
   String? modePaiement; // espèce, carte, chèque, etc.
   String caisse_code;
@@ -28,6 +26,20 @@ class Pannier {
   String?   annulParCode;
   String?   motifAnnul;
 
+  // POST /api/sync/push/sale : uuid mobile (idempotence — évite les
+  // doublons sur retry réseau) et appareil source, null pour les panniers
+  // créés depuis le desktop.
+  String? uuid;
+  String? deviceIdMobile;
+
+  // Scellement fiscal (voir PannierServices._sealPannier) : empreinte
+  // SHA-256 de ce ticket et empreinte du ticket précédent sur la même
+  // caisse — chaînage qui rend toute altération après coup détectable.
+  // Renseignés uniquement par le service à la création, jamais en écriture
+  // libre depuis l'UI.
+  String? hash;
+  String? hashPrecedent;
+
   Pannier({
 
     required this.id,
@@ -35,8 +47,6 @@ class Pannier {
     required this.montant,
     required this.montantAchat,
     required this.marge,
-    required this.verse,
-    required this.reste,
     required this.typepannier,
     required this.date,
     required this.dateCree,
@@ -55,6 +65,10 @@ class Pannier {
     this.dateAnnul,
     this.annulParCode,
     this.motifAnnul,
+    this.uuid,
+    this.deviceIdMobile,
+    this.hash,
+    this.hashPrecedent,
 
   });
 
@@ -67,8 +81,6 @@ class Pannier {
       montant         : map['montant'],
       montantAchat    : map['montant_achat']?? 0.0,
       marge           : map['marge']?? 0.0,
-      verse           : map['verse']?? 0.0,
-      reste           : map['reste']?? 0.0,
       client_code     : map['client_code'],
       modePaiement    : map['mode_paiement'],
       caissier_code   : map['caisser_code'],
@@ -88,6 +100,10 @@ class Pannier {
           : null,
       annulParCode        : map['annul_par_code'],
       motifAnnul      : map['motif_annul'],
+      uuid            : map['uuid'],
+      deviceIdMobile  : map['device_id_mobile'],
+      hash            : map['hash'],
+      hashPrecedent   : map['hash_precedent'],
     );
   }
 
@@ -102,8 +118,6 @@ class Pannier {
       'montant'           : montant,
       'montant_achat'     : montantAchat,
       'marge'             : marge,
-      'verse'             : verse,
-      'reste'             : reste,
       'client_code'       : client_code,
       'mode_paiement'     : modePaiement,
       'caisser_code'      : caissier_code,
@@ -118,6 +132,10 @@ class Pannier {
       'date_annul'        : dateAnnul?.toIso8601String(),
       'annul_par_code'         : annulParCode,
       'motif_annul'       : motifAnnul,
+      'uuid'              : uuid,
+      'device_id_mobile'  : deviceIdMobile,
+      'hash'              : hash,
+      'hash_precedent'    : hashPrecedent,
     };
   }
   String get searchableText {

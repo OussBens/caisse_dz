@@ -18,12 +18,14 @@ class InsertionPackDialog extends StatefulWidget {
   final List<Pack> packs;
   final Function(Pack) onPackSelected;
   final bool multiselection;
+  final bool newButton;
 
   const InsertionPackDialog({
     Key? key,
     required this.packs,
     required this.onPackSelected,
     required this.multiselection,
+    this.newButton = true,
   }) : super(key: key);
 
   @override
@@ -70,7 +72,7 @@ class _InsertionPackDialogState extends State<InsertionPackDialog> {
     }).toList();
 
     return BaseDialog(
-      couleur: Appstyle.violetC,
+      couleur: Appstyle.Tblanc,
       width: 1000,
       height: 800,
       header: Row(
@@ -101,18 +103,19 @@ class _InsertionPackDialogState extends State<InsertionPackDialog> {
                   },
                 ),
               ),
-              MainButton(
-                text: l10n.newWord,
-                color: Appstyle.crevete,
-                onPressed: () async {
-                  // Ouvrir le dialog de création
-                  await PackNouveau(context);
+              if (widget.newButton)
+                MainButton(
+                  text: l10n.newWord,
+                  color: Appstyle.crevete,
+                  onPressed: () async {
+                    // Ouvrir le dialog de création
+                    await PackNouveau(context);
 
-                  // Recharger les packs après la fermeture du dialog
-                  await reloadPacks();
+                    // Recharger les packs après la fermeture du dialog
+                    await reloadPacks();
 
-                },
-              ),
+                  },
+                ),
             ],
           ),
           const SizedBox(height: 12),

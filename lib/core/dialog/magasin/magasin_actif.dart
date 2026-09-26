@@ -1,12 +1,9 @@
 import 'dart:ui';
 import 'package:caisse_dz/DBCreate.dart';
 import 'package:caisse_dz/Services/Magasin.dart';
-import 'package:caisse_dz/core/Auth/auth_state.dart';
-import 'package:caisse_dz/data/models/produit_magasin_detail.dart';
 import 'package:caisse_dz/l10n/app_localizations.dart';
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
-import '../../../../data/models/magasin.dart';
+import '../../../data/models/magasin.dart';
 import 'package:caisse_dz/core/theme/app_style.dart';
 import '../../widget/button/main_button.dart';
 import '../../widget/title/titre_avec_ligne.dart';
@@ -14,35 +11,16 @@ import '../base_dialog.dart';
 import '../confirmation_dialog.dart';
 import '../information_dialog.dart';
 
-List<ProduitMagasinDetail> MagasinDetail = [];
-
-Future<int> _deleteMagasins({required List<Magasin> Magasins}) async {
+Future<void> DeleteMagasins({required List<Magasin> magasins}) async {
   final db = await DbCreator.openDb();
-  final services = await MagasinServices(db);
-  int i = 0;
-  for(var magasin in Magasins){
+  final services = MagasinServices(db);
+
+  for (var magasin in magasins) {
     await services.deleteMagasin(magasin.id);
-    i++;
   }
-  return i;
 }
 
-Future<void> AnnulerMagasin(
-    BuildContext context, List<Magasin> magasinsSelectionnes) async {
-  final auth = Provider.of<AuthState>(context, listen: false);
-  final userName = auth.username!;
-  final userCode = auth.userCode!;
-
-  if (!auth.isAuthenticated || auth.username == null || auth.userCode == null) {
-    await InformationDialog(
-      context: context,
-      titre_type_message: AppLocalizations.of(context)!.authentication,
-      titre_concerne: AppLocalizations.of(context)!.user,
-      message: AppLocalizations.of(context)!.loginRequired,
-    );
-    return;
-  }
-
+Future<void> AnnulerMagasin(BuildContext context, List<Magasin> magasinsSelectionnes) {
   return showDialog(
     context: context,
     barrierDismissible: false,
@@ -56,16 +34,16 @@ Future<void> AnnulerMagasin(
             child: BackdropFilter(
               filter: ImageFilter.blur(sigmaX: 2, sigmaY: 2),
               child: BaseDialog(
-                width: 800,
-                height: 500,
+                width: 700,
+                height: 480,
                 header: TitreAvecLigne(
                   imagePath: 'assets/icons/sidebar/magasin_icon.png',
                   text: l10n.deleteStores,
                 ),
+
                 content: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    // 🔹 Liste des magasins sélectionnés
                     Text(
                       l10n.selectedStores,
                       style: TextStyle(
@@ -74,6 +52,7 @@ Future<void> AnnulerMagasin(
                       ),
                     ),
                     const SizedBox(height: 10),
+
                     Expanded(
                       child: ListView.builder(
                         itemCount: magasinsSelectionnes.length,
@@ -88,7 +67,7 @@ Future<void> AnnulerMagasin(
                                 borderRadius: BorderRadius.circular(8),
                               ),
                               child: Text(
-                                "${l10n.storeNumber(m.id)} - ${l10n.name}: ${m.nom ?? '-'} - ${l10n.address}: ${m.adresse ?? '-'}",
+                                "${l10n.storeNumber(m.id)} - ${l10n.name}: ${m.nom} - ${l10n.address}: ${m.adresse ?? '-'}",
                                 style: Appstyle.textSB.copyWith(
                                   color: Appstyle.Tnoir,
                                 ),
@@ -98,14 +77,18 @@ Future<void> AnnulerMagasin(
                         },
                       ),
                     ),
+
                     const SizedBox(height: 20),
+
                     Text(
                       l10n.confirmDeleteStores,
                       style: Appstyle.textS.copyWith(color: Appstyle.TgrisC),
                     ),
+
                     const SizedBox(height: 20),
                   ],
                 ),
+
                 footer: Row(
                   mainAxisAlignment: MainAxisAlignment.end,
                   children: [
@@ -116,6 +99,7 @@ Future<void> AnnulerMagasin(
                       onPressed: () => Navigator.pop(context),
                     ),
                     const SizedBox(width: 10),
+
                     MainButton(
                       text: l10n.delete,
                       color: Appstyle.violet,
@@ -126,23 +110,13 @@ Future<void> AnnulerMagasin(
                           titre: l10n.deleteStores,
                           message: l10n.confirmDeleteStores,
                           onConfirmer: () async {
-                            final response = await _deleteMagasins(Magasins: magasinsSelectionnes);
-
-                            if (response == 0) {
-                              await InformationDialog(
-                                context: context,
-                                titre_type_message: l10n.information,
-                                titre_concerne: l10n.store,
-                                message: l10n.noStoreDeleted,
-                              );
-                              return;
-                            }
+                            await DeleteMagasins(magasins: magasinsSelectionnes);
 
                             await InformationDialog(
                               context: context,
                               titre_type_message: l10n.success,
-                              titre_concerne: l10n.store,
-                              message: l10n.deleteSuccess.replaceAll('{count}', response.toString()),
+                              titre_concerne: l10n.storeDetail,
+                              message: l10n.storeDeleteSuccess,
                               onTerminer: () {
                                 Navigator.pop(context);
                               },

@@ -61,6 +61,32 @@ class RemiseServices{
 
   }
 
+  /// Recale le statut actif/inactif de chaque remise sur sa période
+  /// [debut, fin] (actif si la date du jour y est incluse, inactif sinon) et
+  /// persiste les changements en base. Appelé à chaque ouverture de l'écran
+  /// Remise pour que le statut reste toujours à jour, même sans action
+  /// manuelle de l'utilisateur (remise qui démarre ou expire simplement en
+  /// laissant le temps passer).
+  static Future<List<Remise>> synchroniserEtatsSelonDates() async {
+    final db = await DbCreator.openDb();
+    final remises = await getAllRemise();
+
+    for (final remise in remises) {
+      final etatAttendu = remise.estActifSelonDates;
+      if (remise.etat != etatAttendu) {
+        await db.update(
+          'remises',
+          {'etat': etatAttendu ? 1 : 0},
+          where: 'id = ?',
+          whereArgs: [remise.id],
+        );
+        remise.etat = etatAttendu;
+      }
+    }
+
+    return remises;
+  }
+
   static Future<List<Remise>> getAllRemiseParProduit() async {
 
     final db = await DbCreator.openDb();

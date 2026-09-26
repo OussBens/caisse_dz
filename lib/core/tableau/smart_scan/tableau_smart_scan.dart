@@ -1,21 +1,30 @@
 import 'package:caisse_dz/core/dialog/smart_screen/smart_screen_detail.dart';
 import 'package:caisse_dz/core/theme/app_style.dart';
-import 'package:caisse_dz/core/widget/button/main_button.dart';
+import 'package:caisse_dz/data/models/fournisseur.dart';
 import 'package:caisse_dz/data/models/smart_scan.dart';
+import 'package:caisse_dz/data/models/utilisateur.dart';
 import 'package:caisse_dz/l10n/app_localizations.dart';
 import 'package:flutter/material.dart';
 import 'package:syncfusion_flutter_core/theme.dart';
 import 'package:syncfusion_flutter_datagrid/datagrid.dart';
-import '../../widget/tableau/paginated.dart';
+import '../filter_icon_builder.dart';
 import 'smart_scan_source.dart';
 
 class TableauSmartScanAdvanced extends StatefulWidget {
   final List<SmartScan> scans;
+  final Map<String, double> verseParSmartScan;
+  final Map<String, int> nbrVersementParSmartScan;
+  final List<Fournisseur> fournisseurs;
+  final List<Utilisateur> utilisateurs;
   final void Function(List<SmartScan>)? onSelectionChanged;
 
   const TableauSmartScanAdvanced({
     super.key,
     required this.scans,
+    this.verseParSmartScan = const {},
+    this.nbrVersementParSmartScan = const {},
+    this.fournisseurs = const [],
+    this.utilisateurs = const [],
     this.onSelectionChanged,
   });
 
@@ -30,23 +39,9 @@ class _TableauSmartScanAdvancedState
   bool garderSelectionColonnes = true;
   late final Map<String, bool> colonnesParDefaut;
   final Map<String, double> columnWidths = {};
-  int rowsPerPage = 15;
-  int currentPage = 1;
+  int _rowsPerPage = 15;
+  static const List<int> _rowsPerPageOptions = [10, 15, 20, 30, 50];
   bool selectAll = false;
-
-  List<SmartScan> get paginatedData {
-    final start = (currentPage - 1) * rowsPerPage;
-    final end = (start + rowsPerPage).clamp(0, widget.scans.length);
-    if (start >= widget.scans.length) return [];
-    return widget.scans.sublist(start, end);
-  }
-
-  int get totalPages =>
-      widget.scans.isEmpty
-          ? 1
-          : (widget.scans.length / rowsPerPage)
-          .ceil()
-          .clamp(1, 9999);
 
   late Map<String, Map<String, dynamic>> columnVisibility;
 
@@ -59,16 +54,12 @@ class _TableauSmartScanAdvancedState
       'etat': {'visible': true, 'label': 'status', 'field': 'etat'},
       'code': {'visible': true, 'label': 'code', 'field': 'code'},
       'date': {'visible': true, 'label': 'date', 'field': 'date'},
-      'activity': {'visible': true, 'label': 'activity', 'field': 'activity'},
       'fournisseur': {'visible': true, 'label': 'supplier', 'field': 'fournisseur'},
       'nbrProduit': {'visible': true, 'label': 'products', 'field': 'nbrProduit'},
-      'nbrProduitCalcul': {'visible': true, 'label': 'calculatedProducts', 'field': 'nbrProduitCalcul'},
-      'quantiteArticle': {'visible': true, 'label': 'quantity', 'field': 'quantiteArticle'},
-      'quantiteArticleCalcul': {'visible': true, 'label': 'calculatedQuantity', 'field': 'quantiteArticleCalcul'},
       'montant': {'visible': true, 'label': 'amount', 'field': 'montant'},
-      'montantCalcul': {'visible': true, 'label': 'calculatedAmount', 'field': 'montantCalcul'},
-
-      'ecart': {'visible': true, 'label': 'gap', 'field': 'ecart'},
+      'verse': {'visible': true, 'label': 'paidAmount', 'field': 'verse'},
+      'reste': {'visible': true, 'label': 'remaining', 'field': 'reste'},
+      'nbrVersement': {'visible': true, 'label': 'numberOfPayments', 'field': 'nbrVersement'},
       'observation': {'visible': true, 'label': 'observation', 'field': 'observation'},
 
       // Audit
@@ -93,41 +84,78 @@ class _TableauSmartScanAdvancedState
     final l10n = AppLocalizations.of(context)!;
 
     dataSource = SmartScanDataSource(
-      scans: paginatedData,
+      scans: widget.scans,
       columnConfig: columnVisibility,
       l10n: l10n,
+      fournisseurs: widget.fournisseurs,
+      verseParSmartScan: widget.verseParSmartScan,
+      nbrVersementParSmartScan: widget.nbrVersementParSmartScan,
+      utilisateurs: widget.utilisateurs,
     );
+    dataSource.onRowDoubleTap = (scan) => SmartScanDetail(context, scan);
 
     dataSource.addListener(() {
-      widget.onSelectionChanged?.call(dataSource.getSelectedRows());
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted) return;
+        setState(() {});
+        widget.onSelectionChanged?.call(dataSource.getSelectedRows());
+      });
     });
+  }
+
+  @override
+  void didUpdateWidget(covariant TableauSmartScanAdvanced oldWidget) {
+    super.didUpdateWidget(oldWidget);
+
+    if (oldWidget.scans != widget.scans) {
+      dataSource.update(widget.scans);
+    }
+    if (oldWidget.verseParSmartScan != widget.verseParSmartScan ||
+        oldWidget.nbrVersementParSmartScan != widget.nbrVersementParSmartScan) {
+      dataSource.updateVerseInfo(widget.verseParSmartScan, widget.nbrVersementParSmartScan);
+    }
   }
 
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
 
+    final pageCount = (dataSource.items.length / _rowsPerPage).ceil().clamp(1, 9999).toDouble();
+
     return Column(
       children: [
         Expanded(child: _buildTable(l10n)),
         const SizedBox(height: 12),
-        PaginationBar(
-          currentPage: currentPage,
-          totalPages: totalPages,
-          rowsPerPage: rowsPerPage,
-          onPageChanged: (page) {
-            setState(() {
-              currentPage = page;
-              dataSource.update(paginatedData);
-            });
-          },
-          onRowsPerPageChanged: (v) {
-            setState(() {
-              rowsPerPage = v;
-              currentPage = 1;
-              dataSource.update(paginatedData);
-            });
-          },
+        Container(
+          padding: const EdgeInsets.symmetric(vertical: 6, horizontal: 12),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(14),
+            boxShadow: const [BoxShadow(color: Colors.black12, blurRadius: 10)],
+          ),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              SfDataPager(
+                delegate: dataSource,
+                pageCount: pageCount,
+                direction: Axis.horizontal,
+                itemWidth: 36,
+                itemHeight: 36,
+              ),
+              const SizedBox(width: 20),
+              DropdownButton<int>(
+                value: _rowsPerPage,
+                items: _rowsPerPageOptions
+                    .map((e) => DropdownMenuItem(value: e, child: Text("$e ${l10n.rowsPerPage}")))
+                    .toList(),
+                onChanged: (v) {
+                  if (v == null) return;
+                  setState(() => _rowsPerPage = v);
+                },
+              ),
+            ],
+          ),
         ),
       ],
     );
@@ -148,14 +176,15 @@ class _TableauSmartScanAdvancedState
         borderRadius: BorderRadius.circular(16),
         child: SfDataGridTheme(
           data: SfDataGridThemeData(
-            headerColor: Appstyle.indigo.withOpacity(0.7),
+            headerColor: Appstyle.violet.withOpacity(0.7),
             sortIconColor: Appstyle.Tblanc,
-            filterIconColor: Appstyle.Tblanc,
+            filterIcon: Builder(builder: (context) => buildFilterIcon(context, dataSource)),
             gridLineColor: Colors.grey.shade300,
             gridLineStrokeWidth: 0.4,
           ),
           child: SfDataGrid(
             source: dataSource,
+            rowsPerPage: _rowsPerPage,
             headerRowHeight: 36,
             rowHeight: 38,
             selectionMode: SelectionMode.single,
@@ -164,12 +193,8 @@ class _TableauSmartScanAdvancedState
             columnWidthMode: ColumnWidthMode.none,
             allowColumnsResizing: true,
             columnResizeMode: ColumnResizeMode.onResize,
-            onCellDoubleTap: (details) {
-              if (details.rowColumnIndex.rowIndex <= 0) return;
-              final rowIndex = details.rowColumnIndex.rowIndex - 1;
-              final SmartScan smartscan = paginatedData[rowIndex];
-              SmartScanDetail(context, smartscan);
-            },
+            // Sélection au clic + double-clic pour le détail gérés dans
+            // BaseTableDataSource.buildRow (n'importe quelle colonne).
             onColumnResizeUpdate: (details) {
               double w = details.width;
               if (w < 150) w = 150;
@@ -230,15 +255,12 @@ class _TableauSmartScanAdvancedState
       case 'status': return l10n.status;
       case 'code': return l10n.code;
       case 'date': return l10n.date;
-      case 'activity': return l10n.activity;
       case 'supplier': return l10n.supplier;
       case 'products': return l10n.products;
-      case 'calculatedProducts': return l10n.calculatedProducts;
-      case 'quantity': return l10n.quantity;
-      case 'calculatedQuantity': return l10n.calculatedQuantity;
       case 'amount': return l10n.amount;
-      case 'calculatedAmount': return l10n.calculatedAmount;
-      case 'gap': return l10n.gap;
+      case 'paidAmount': return l10n.paidAmount;
+      case 'remaining': return l10n.remaining;
+      case 'numberOfPayments': return l10n.numberOfPayments;
       case 'observation': return l10n.observation;
       case 'createdAt': return l10n.createdAt;
       case 'createdBy': return l10n.createdBy;
@@ -262,20 +284,6 @@ class _TableauSmartScanAdvancedState
   );
 
   // ================= COLONNES =================
-  Widget _buildActiveColumnsBar(AppLocalizations l10n) {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.end,
-      children: [
-        MainButton(
-          text: "",
-          color: Appstyle.violet,
-          onPressed: () => _showColumnSettingsPopup(context, l10n),
-          icon: Icons.view_column,
-        )
-      ],
-    );
-  }
-
   void _showColumnSettingsPopup(BuildContext context, AppLocalizations l10n) {
     showDialog(
       context: context,

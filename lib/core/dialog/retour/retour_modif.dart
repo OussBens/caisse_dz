@@ -1,6 +1,5 @@
 import 'dart:ui';
 import 'package:collection/collection.dart';
-import 'package:intl/intl.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:caisse_dz/DBCreate.dart';
@@ -13,6 +12,7 @@ import 'package:caisse_dz/Services/Produits.dart' hide ApiResponse;
 import 'package:caisse_dz/Services/Client.dart' hide ApiResponse;
 import 'package:caisse_dz/Services/Retour.dart';
 import 'package:caisse_dz/core/Auth/auth_state.dart';
+import 'package:caisse_dz/core/utilis/quantite_format.dart';
 import 'package:caisse_dz/l10n/app_localizations.dart';
 import 'package:caisse_dz/data/models/caisseParam.dart';
 import 'package:caisse_dz/data/models/gestion_caisse.dart';
@@ -23,8 +23,6 @@ import 'package:caisse_dz/data/models/client.dart';
 import 'package:caisse_dz/data/models/retour.dart';
 import 'package:caisse_dz/data/constant.dart';
 import 'package:caisse_dz/core/dialog/base_dialog.dart';
-import 'package:caisse_dz/core/dialog/insertion_client.dart';
-import 'package:caisse_dz/core/dialog/insertion_fournisseur.dart';
 import 'package:caisse_dz/core/theme/app_style.dart';
 import 'package:caisse_dz/core/widget/champ/date_champ.dart';
 import 'package:caisse_dz/core/widget/champ/liste_champ.dart';
@@ -36,13 +34,19 @@ import '../../dialog//confirmation_dialog.dart';
 import '../../utilis/api_response.dart';
 import '../information_dialog.dart';
 
+/// Modification d'un retour déjà enregistré : le contenu (produit, quantité,
+/// prix, type, bénéficiaire) est verrouillé dès l'enregistrement — même
+/// principe que Pannier/SmartScan. Le remboursement lié (Versement) est
+/// toujours quantité×prix, jamais un paiement partiel séparé, donc rien à
+/// resynchroniser ici : seules la date et l'observation restent modifiables.
+/// Une correction du contenu passe par une annulation.
 final TextEditingController observationControllerR = TextEditingController();
 final TextEditingController quantiteControllerR = TextEditingController();
+final TextEditingController nombreControllerR = TextEditingController();
 final TextEditingController smartDateController = TextEditingController();
 
 String? selectedType;
 String? selectedTypeR;
-String? selectedEtatR;
 String? selectedClientR;
 String? selectedNomProduitR;
 String? selectedFournisseurR;
@@ -72,49 +76,40 @@ Future<void> _LoadAllData() async {
 
 Future<ApiResponse<int>> _UpdateR({
   required Retour retour,
-  required double Orignal,
   required String userName,
   required String userCode,
 }) async {
   final db = await DbCreator.openDb();
-  final serviceh = await HistoriqueServices(db);
-  final serviceM = await MouvementsServices(db);
-  final serviceP = await ProduitServices(db);
-  final services = await RetourServices(db);
-  final serviceC = await GCServices(db);
-  final mouv = await MouvementsServices.getAllMouvementsByCodeOper(retour.code);
-
-  final prods = await ProduitServices.getAllProduits();
-  Produit prod = prods.where((e) => e.code == retour.codeProduit).first;
-  if (retour.fournisseur_code != null) {
-    prod.quantite = prod.quantite + (Orignal - retour.quantite);
-    prod.dateModif = DateTime.now();
-    prod.modifParCode = userCode;
-    await serviceP.updateProduit(prod);
-  }
-  if (retour.client_code != null) {
-    prod.quantite = prod.quantite - (Orignal - retour.quantite);
-    prod.dateModif = DateTime.now();
-    prod.modifParCode = userCode;
-    await serviceP.updateProduit(prod);
-  }
-  mouv.first.fournisseurCode = retour.fournisseur_code;
-  mouv.first.quantite = retour.quantite;
-  mouv.first.clientCode = retour.client_code;
-  mouv.first.etat = retour.etat;
-  mouv.first.date = retour.date;
-
-  await serviceM.updateMouvement(mouv.first);
+  final serviceh = HistoriqueServices(db);
+  final serviceM = MouvementsServices(db);
+  final services = RetourServices(db);
 
   final response = await services.updateRetour(retour);
+  if (!response.success) {
+    return response;
+  }
+
+  // Répercuter la date sur le mouvement de stock lié — le contenu ne change
+  // plus, seule la date peut être corrigée.
+  final mouv = await MouvementsServices.getAllMouvementsByCodeOper(retour.code);
+  if (mouv.isNotEmpty) {
+    final m = mouv.first;
+    m.date = retour.date;
+    m.dateModif = DateTime.now();
+    m.modifParCode = userCode;
+    await serviceM.updateMouvement(m);
+  }
+
+  final produits = await ProduitServices.getAllProduits();
+  final prod = produits.where((e) => e.code == retour.codeProduit).firstOrNull;
 
   int idh = await _GetNextHistoriqueId();
-
   Historique histo = Historique(
       id: idh,
       code: "HS$idh${DateTime.now().millisecondsSinceEpoch}",
       type: "Retours",
-      desc: "L'utilisateur $userName modifee le Retour ${retour.code} de Produit ${prod.nom}",
+      desc: "L'utilisateur $userName a modifié la date/observation du Retour ${retour.code}"
+          "${prod != null ? ' de Produit ${prod.nom}' : ''}",
       oper: ListsConst.typeHisto[1],
       dateCree: DateTime.now(),
       creeParCode: userCode);
@@ -141,17 +136,16 @@ Future<void> RetourModif(BuildContext context, Retour retour) async {
     return;
   }
 
-  double Orignal = retour.quantite;
-
   observationControllerR.text = retour.observation.toString();
-  quantiteControllerR.text = retour.quantite.toString();
+  quantiteControllerR.text = QuantiteFormat.format(retour.quantite);
+  nombreControllerR.text = retour.nombre != null ? QuantiteFormat.format(retour.nombre!) : '';
   smartDateController.text = "${retour.date.day}-${retour.date.month}-${retour.date.year}";
 
   selectedFournisseurR = fournisseursTest.where((f) => f.code == retour.fournisseur_code).firstOrNull?.nom;
   selectedNomProduitR = produitsTest.where((p) => p.code == retour.codeProduit).firstOrNull?.nom;
+  final bool afficheNombreR = produitsTest.where((p) => p.code == retour.codeProduit).firstOrNull?.nombreActif ?? false;
   selectedClientR = clientsTest.where((c) => c.code == retour.client_code).firstOrNull?.nom;
   selectedTypeR = retour.type;
-  selectedEtatR = retour.etat ? l10n.active : l10n.inactive;
   return showDialog(
     context: context,
     barrierDismissible: false,
@@ -185,19 +179,6 @@ Future<void> RetourModif(BuildContext context, Retour retour) async {
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               ChampAvecLabel(
-                                obligatoire: true,
-                                label: l10n.status,
-                                child: TextListe(
-                                  value: selectedEtatR,
-                                  obligatoire: true,
-                                  items: translator.etatDisplayList,
-                                  onChanged: (v) => setState(() {
-                                    selectedEtatR = v;
-                                  }),
-                                ),
-                              ),
-                              const SizedBox(height: 10),
-                              ChampAvecLabel(
                                 label: l10n.number,
                                 child: TextChampL(
                                   hint: "",
@@ -210,9 +191,7 @@ Future<void> RetourModif(BuildContext context, Retour retour) async {
                               const SizedBox(height: 10),
                               ChampAvecLabel(
                                 label: l10n.product,
-                                obligatoire: true,
                                 child: TextListe(
-                                  obligatoire: true,
                                   clearable: false,
                                   value: selectedNomProduitR,
                                   items: produitsTest.map((p) => p.nom).toList(),
@@ -247,14 +226,27 @@ Future<void> RetourModif(BuildContext context, Retour retour) async {
                               const SizedBox(height: 10),
                               ChampAvecLabel(
                                 label: l10n.quantity,
-                                obligatoire: true,
                                 child: TextChampL(
-                                  obligatoire: true,
                                   numeric: true,
+                                  isQuantite: true,
+                                  enabled: false,
                                   controller: quantiteControllerR,
                                   hint: "",
                                 ),
                               ),
+                              if (afficheNombreR) ...[
+                                const SizedBox(height: 10),
+                                ChampAvecLabel(
+                                  label: l10n.numberField,
+                                  child: TextChampL(
+                                    numeric: true,
+                                    isQuantite: true,
+                                    enabled: false,
+                                    controller: nombreControllerR,
+                                    hint: "",
+                                  ),
+                                ),
+                              ],
                               const SizedBox(height: 10),
                               ChampAvecLabel(
                                 label: l10n.observation,
@@ -274,20 +266,26 @@ Future<void> RetourModif(BuildContext context, Retour retour) async {
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
+
+                              ChampAvecLabel(
+                                label: l10n.code,
+                                child: TextChampL(
+                                  hint: "",
+                                  enabled: false,
+                                  controller: TextEditingController(
+                                    text: retour.code,
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(height: 10),
                               ChampAvecLabel(
                                 label: l10n.type,
-                                obligatoire: true,
                                 child: TextListe(
-                                  obligatoire: true,
                                   clearable: false,
                                   value: selectedType,
                                   items: translator.typeRetourDisplayList,
-                                  onChanged: (v) {
-                                    setState(() {
-                                      selectedType= v;
-                                      selectedTypeR = translator.typeRetourToFrench(v!);
-                                    });
-                                  },
+                                  enabled: false,
+                                  onChanged: (v) {},
                                 ),
                               ),
                               const SizedBox(height: 10),
@@ -295,66 +293,20 @@ Future<void> RetourModif(BuildContext context, Retour retour) async {
                               if (isTypeFournisseur)
                                 ChampAvecLabel(
                                   label: l10n.supplier,
-                                  buttonAjout: true,
-                                  onAjoutPressed: () async {
-                                    await showDialog(
-                                      context: context,
-                                      barrierColor: Appstyle.gris.withOpacity(0.25),
-                                      builder: (_) {
-                                        return InsertionFournisseurDialog(
-                                          fournisseurs: fournisseursTest,
-                                          onFournisseurSelected: (fournisseur) {
-                                            setState(() {
-                                              selectedFournisseurR = fournisseur.nom;
-                                              retour.fournisseur_code = fournisseur.code;
-                                            });
-                                          },
-                                        );
-                                      },
-                                    );
-                                  },
-                                  obligatoire: true,
-                                  child: TextListe(
-                                    obligatoire: true,
-                                    value: selectedFournisseurR,
-                                    items: fournisseursTest.map((f) => f.nom).toList(),
-                                    onChanged: (v) => setState(() {
-                                      selectedFournisseurR = v;
-                                      retour.fournisseur_code = fournisseursTest.where((e) => e.nom == v).first.code;
-                                    }),
+                                  child: TextChampL(
+                                    controller: TextEditingController(text: selectedFournisseurR ?? ''),
+                                    enabled: false,
+                                    hint: '',
                                   ),
                                 ),
 
                               if (!isTypeFournisseur)
                                 ChampAvecLabel(
                                   label: l10n.client,
-                                  obligatoire: true,
-                                  buttonAjout: true,
-                                  onAjoutPressed: () async {
-                                    await showDialog(
-                                      context: context,
-                                      barrierColor: Appstyle.gris.withOpacity(0.25),
-                                      builder: (_) {
-                                        return InsertionClientDialog(
-                                          clients: clientsTest,
-                                          onClientSelected: (client) {
-                                            setState(() {
-                                              selectedClientR = client.nom;
-                                              retour.client_code = client.code;
-                                            });
-                                          },
-                                        );
-                                      },
-                                    );
-                                  },
-                                  child: TextListe(
-                                    value: selectedClientR,
-                                    obligatoire: true,
-                                    items: clientsTest.map((c) => c.nom).toList(),
-                                    onChanged: (v) => setState(() {
-                                      selectedClientR = v;
-                                      retour.client_code = clientsTest.where((e) => e.nom == v).first.code;
-                                    }),
+                                  child: TextChampL(
+                                    controller: TextEditingController(text: selectedClientR ?? ''),
+                                    enabled: false,
+                                    hint: '',
                                   ),
                                 ),
 
@@ -418,16 +370,14 @@ Future<void> RetourModif(BuildContext context, Retour retour) async {
                           titre: l10n.modification,
                           message: l10n.confirmModifyReturn,
                           onConfirmer: () async {
-                            retour.quantite = double.parse(quantiteControllerR.text);
-                            retour.type = selectedTypeR!;
+                            // ✅ retour.date est déjà à jour : mis à jour en
+                            // direct par le sélecteur de date ci-dessus.
                             retour.modifParCode = userCode;
                             retour.dateModif = DateTime.now();
-                            retour.etat = selectedEtatR == l10n.active;
                             retour.observation = observationControllerR.text;
 
                             final response = await _UpdateR(
                               retour: retour,
-                              Orignal: Orignal,
                               userName: userName,
                               userCode: userCode,
                             );

@@ -9,6 +9,7 @@ class TextDate extends StatelessWidget {
   final VoidCallback onTap;
   final bool enabled;
   final bool obligatoire;
+  final double width;
 
   const TextDate({
     super.key,
@@ -17,14 +18,20 @@ class TextDate extends StatelessWidget {
     required this.onTap,
     this.enabled = true,
     this.obligatoire = false,
+    this.width = 300,
   });
 
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
 
-    return SizedBox(
-      width: 300,
+    return ValueListenableBuilder<TextEditingValue>(
+      valueListenable: controller,
+      builder: (context, value, _) {
+        final bool isFilled = enabled && value.text.trim().isNotEmpty;
+
+        return SizedBox(
+      width: width,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -38,14 +45,19 @@ class TextDate extends StatelessWidget {
                   : Colors.grey.shade200,
               borderRadius: BorderRadius.circular(14),
               border: Border.all(
-                color: enabled
-                    ? Colors.grey.shade300
-                    : Colors.grey.shade400,
+                color: isFilled
+                    ? Appstyle.violet
+                    : enabled
+                        ? Colors.grey.shade300
+                        : Colors.grey.shade400,
+                width: isFilled ? 1.5 : 1,
               ),
               boxShadow: enabled
                   ? [
                 BoxShadow(
-                  color: Colors.black.withOpacity(0.04),
+                  color: isFilled
+                      ? Appstyle.violet.withOpacity(0.15)
+                      : Colors.black.withOpacity(0.04),
                   blurRadius: 8,
                   offset: const Offset(0, 3),
                 ),
@@ -103,6 +115,8 @@ class TextDate extends StatelessWidget {
           ),
         ],
       ),
+    );
+      },
     );
   }
 }

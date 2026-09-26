@@ -3,6 +3,8 @@ import 'package:collection/collection.dart';
 import 'package:caisse_dz/DBCreate.dart';
 import 'package:caisse_dz/Services/Fournisseur.dart';
 import 'package:caisse_dz/Services/Verssement.dart';
+import 'package:caisse_dz/Services/CaisseSession.dart';
+import 'package:caisse_dz/Services/Retour.dart';
 import 'package:caisse_dz/core/Auth/auth_state.dart';
 import 'package:caisse_dz/l10n/app_localizations.dart';
 import 'package:flutter/cupertino.dart';
@@ -17,11 +19,15 @@ import '../../widget/title/titre_avec_ligne.dart';
 import '../base_dialog.dart';
 import '../information_dialog.dart';
 
-Future<void> DeleteVerssements({required List<Verssement> verssements}) async {
+Future<void> DeleteVerssements({
+  required List<Verssement> verssements,
+  required String userCode,
+}) async {
   final db = await DbCreator.openDb();
   final versService = VerssementServices(db);
   final clientService = ClientServices(db);
   final fournisseurService = FournisseurServices(db);
+  final caisseSessionService = CaisseSessionServices(db);
   final clients = await ClientServices.getAllClients();
   final fournisseurs = await FournisseurServices.getAllFournisseurs();
 
@@ -62,6 +68,21 @@ Future<void> DeleteVerssements({required List<Verssement> verssements}) async {
         );
       }
     }
+    // Soft-cancel du mouvement de caisse lié (jamais de suppression physique
+    // du grand-livre) avant de supprimer le versement lui-même.
+    final type = verssement.typebeneficiare == 'Fournisseur' ? 'versement_fournisseur' : 'versement_client';
+    final mouvementsExistants = await CaisseSessionServices.getMouvementsByCodeOperation(
+      verssement.code,
+      type: type,
+    );
+    for (final mouvement in mouvementsExistants) {
+      await caisseSessionService.annulerMouvement(
+        code: mouvement.code,
+        userCode: userCode,
+        motif: "Versement ${verssement.code} supprimé",
+      );
+    }
+
     await versService.deleteverssement(verssement.id);
   }
 }
@@ -83,6 +104,21 @@ Future<void> ActiverVersements(
       message: l10n.loginRequiredDelete,
     );
     return;
+  }
+
+  // Un versement généré par un retour ne peut pas être supprimé directement :
+  // il doit rester synchronisé avec le retour, donc toute suppression doit
+  // passer par le retour lui-même.
+  for (final v in versementsSelectionnes) {
+    if (await RetourServices.estLieAUnRetour(v.codeOperation)) {
+      await InformationDialog(
+        context: context,
+        titre_type_message: l10n.information,
+        titre_concerne: l10n.payment,
+        message: l10n.versementLieRetourSuppr(v.code, v.codeOperation),
+      );
+      return;
+    }
   }
 
   final clientsCatalogue = await ClientServices.getAllClients();
@@ -208,7 +244,7 @@ Future<void> ActiverVersements(
                           titre: l10n.payment,
                           message: l10n.confirmDeletePayments,
                           onConfirmer: () async {
-                            await DeleteVerssements(verssements: versementsSelectionnes);
+                            await DeleteVerssements(verssements: versementsSelectionnes, userCode: userCode);
 
                             await InformationDialog(
                                 context: context,

@@ -33,6 +33,30 @@ class FournisseurStats {
   });
 }
 
+/// Statistiques globales agrégées sur l'ensemble des fournisseurs
+/// (nombre de fournisseurs, total des achats, total du crédit et
+/// les fournisseurs "top" associés) — calculées en direct à partir
+/// des tables smart_scan et verssements.
+class FournisseurGlobalStats {
+  final int nombreFournisseurs;
+  final double totalAchat;
+  final Fournisseur? fournisseurTopAchat;
+  final double montantTopAchat;
+  final double totalCredit;
+  final Fournisseur? fournisseurTopCredit;
+  final double montantTopCredit;
+
+  FournisseurGlobalStats({
+    required this.nombreFournisseurs,
+    required this.totalAchat,
+    required this.fournisseurTopAchat,
+    required this.montantTopAchat,
+    required this.totalCredit,
+    required this.fournisseurTopCredit,
+    required this.montantTopCredit,
+  });
+}
+
 class FournisseurServices {
 
   final Database db;
@@ -73,6 +97,23 @@ class FournisseurServices {
     );
 
     return result.map((e) => Fournisseur.fromMap(e)).toList();
+  }
+
+  /// Retourne le fournisseur (autre que [excludeFournisseurCode]) portant
+  /// déjà ce nom (comparaison insensible à la casse et aux espaces) — null
+  /// si le nom est libre.
+  static Future<Fournisseur?> findFournisseurByNom(String nom, {String? excludeFournisseurCode}) async {
+    final db = await DbCreator.openDb();
+    final maps = await db.query(
+      'fournisseurs',
+      where: 'LOWER(TRIM(nom)) = ?',
+      whereArgs: [nom.trim().toLowerCase()],
+      limit: 1,
+    );
+    if (maps.isEmpty) return null;
+    final fournisseur = Fournisseur.fromMap(maps.first);
+    if (fournisseur.code == excludeFournisseurCode) return null;
+    return fournisseur;
   }
 
   // 🔹 GET BY CODE
@@ -231,56 +272,55 @@ class FournisseurServices {
   }
 
   /// Calcule en direct les statistiques financières d'un fournisseur
-  /// (achats via entree/smartScan, versements, retours, solde) à
-  /// partir des tables entree, smart_scan, verssements et retours.
+  /// (achats via smartScan, versements, retours, solde) à
+  /// partir des tables smart_scan, verssements et retours.
   static Future<FournisseurStats> getFournisseurStats(Fournisseur fournisseur) async {
     final db = await DbCreator.openDb();
 
-    final entrees = await db.query(
-      'entree',
-      where: 'fournisseur = ? AND etat = 1',
-      whereArgs: [fournisseur.nom],
-    );
     final scans = await db.query(
       'smart_scan',
-      where: 'fournisseur = ? AND etat = 1',
-      whereArgs: [fournisseur.nom],
+      where: 'fournisseur_code = ? AND etat = 1',
+      whereArgs: [fournisseur.code],
     );
-    final versements = await db.query(
+    final versementsEntree = await db.query(
       'verssements',
-      where: 'beneficiare = ? AND typebeneficiare = ? AND etat = 1',
-      whereArgs: [fournisseur.nom, 'Fournisseur'],
+      where: 'beneficiare_code = ? AND typebeneficiare = ? AND sense = ? AND etat = 1',
+      whereArgs: [fournisseur.code, 'Fournisseur', 'Entrée'],
+    );
+    final versementsSortie = await db.query(
+      'verssements',
+      where: 'beneficiare_code = ? AND typebeneficiare = ? AND sense = ? AND etat = 1',
+      whereArgs: [fournisseur.code, 'Fournisseur', 'Sortie'],
     );
     final retours = await db.query(
       'retours',
-      where: 'fournisseur = ? AND type = ? AND etat = 1',
-      whereArgs: [fournisseur.nom, 'Fournisseur'],
+      where: 'fournisseur_code = ? AND type = ? AND etat = 1',
+      whereArgs: [fournisseur.code, 'Fournisseur'],
     );
 
-    final double totalAchatEntree = entrees.fold(
-        0.0, (sum, e) => sum + (e['montant'] as num).toDouble());
     final double totalAchatScan = scans.fold(
         0.0, (sum, e) => sum + (e['montant'] as num).toDouble());
-    final int nbrAchat = entrees.length + scans.length;
+    final int nbrAchat = scans.length;
 
-    final double totalVerse = versements.fold(
+    final double totalVerseEntree = versementsEntree.fold(
         0.0, (sum, v) => sum + (v['montant'] as num).toDouble());
-    final int nbrVersement = versements.length;
+    final double totalVerseSortie = versementsSortie.fold(
+        0.0, (sum, v) => sum + (v['montant'] as num).toDouble());
+    // Total versé sortie (règlement au fournisseur) - Total versé entrée (remboursement du fournisseur)
+    // Total versement fournisseur = uniquement les versements Sortie (paiements
+    // au fournisseur). Les remboursements reçus (Entrée) sont suivis via les
+    // retours et ne sont pas déduits de ce total.
+    final double totalVerse = totalVerseSortie;
+    final int nbrVersement = versementsEntree.length + versementsSortie.length;
 
     final int nbrRetour = retours.length;
     final double totalRetour = retours.fold(0.0, (sum, r) {
       final qte = (r['quantite'] as num).toDouble();
-      final prixVente = (r['prix_vente'] as num?)?.toDouble() ?? 0;
-      return sum + (qte * prixVente);
+      final prixAchat = (r['prix_achat'] as num?)?.toDouble() ?? 0;
+      return sum + (qte * prixAchat);
     });
 
     DateTime? dateDernierAchat;
-    for (final e in entrees) {
-      final date = DateTime.parse(e['date'] as String);
-      if (dateDernierAchat == null || date.isAfter(dateDernierAchat)) {
-        dateDernierAchat = date;
-      }
-    }
     for (final s in scans) {
       final date = DateTime.parse(s['date'] as String);
       if (dateDernierAchat == null || date.isAfter(dateDernierAchat)) {
@@ -288,10 +328,13 @@ class FournisseurServices {
       }
     }
 
-    final double totalAchat = totalAchatEntree + totalAchatScan;
-    final double avance = (totalVerse - totalAchat) > 0 ? (totalVerse - totalAchat) : 0;
-    final double credit = (totalAchat - totalVerse) > 0 ? (totalAchat - totalVerse) : 0;
-    final double solde = avance > 0 ? avance : (credit > 0 ? -credit : 0);
+    final double totalAchat = totalAchatScan;
+    // Solde = Total achat - Total versé (positif = on doit encore au fournisseur)
+    final double solde = totalAchat - totalVerse;
+    // Avance : on a versé plus qu'acheté (solde négatif)
+    final double avance = solde < 0 ? -solde : 0;
+    // Credit : on a acheté plus que versé (solde positif)
+    final double credit = solde > 0 ? solde : 0;
 
     return FournisseurStats(
       totalAchat: totalAchat,
@@ -304,6 +347,83 @@ class FournisseurServices {
       avance: avance,
       credit: credit,
       solde: solde,
+    );
+  }
+
+  /// Calcule en direct les statistiques globales de tous les fournisseurs :
+  /// total des achats (entree + smart_scan), fournisseur ayant le plus
+  /// vendu, total du crédit (somme des soldes négatifs par fournisseur)
+  /// et le fournisseur ayant le plus grand crédit.
+  static Future<FournisseurGlobalStats> getGlobalFournisseurStats() async {
+    final db = await DbCreator.openDb();
+    final fournisseurs = await getAllFournisseurs();
+
+    final scansParFournisseur = await db.rawQuery('''
+      SELECT fournisseur_code, SUM(montant) AS total
+      FROM smart_scan
+      WHERE etat = 1
+      GROUP BY fournisseur_code
+    ''');
+    final versementsParFournisseur = await db.rawQuery('''
+      SELECT beneficiare_code, sense, SUM(montant) AS total
+      FROM verssements
+      WHERE etat = 1 AND typebeneficiare = 'Fournisseur'
+      GROUP BY beneficiare_code, sense
+    ''');
+
+    final Map<String, double> achatParFournisseurCode = {};
+    for (final row in scansParFournisseur) {
+      final code = row['fournisseur_code'] as String;
+      achatParFournisseurCode[code] = (achatParFournisseurCode[code] ?? 0) + ((row['total'] as num?)?.toDouble() ?? 0);
+    }
+
+    final Map<String, double> entreeParFournisseurCode = {};
+    final Map<String, double> sortieParFournisseurCode = {};
+    for (final row in versementsParFournisseur) {
+      final code = row['beneficiare_code'] as String;
+      final total = (row['total'] as num?)?.toDouble() ?? 0;
+      if (row['sense'] == 'Entrée') {
+        entreeParFournisseurCode[code] = total;
+      } else if (row['sense'] == 'Sortie') {
+        sortieParFournisseurCode[code] = total;
+      }
+    }
+
+    double totalAchat = 0;
+    double totalCredit = 0;
+    Fournisseur? fournisseurTopAchat;
+    double montantTopAchat = 0;
+    Fournisseur? fournisseurTopCredit;
+    double montantTopCredit = 0;
+
+    for (final fournisseur in fournisseurs) {
+      final achat = achatParFournisseurCode[fournisseur.code] ?? 0;
+      // Total versé sortie (règlement au fournisseur) - Total versé entrée (remboursement du fournisseur)
+      final verse = (sortieParFournisseurCode[fournisseur.code] ?? 0);
+      final solde = verse - achat;
+      final credit = solde < 0 ? -solde : 0.0;
+
+      totalAchat += achat;
+      totalCredit += credit;
+
+      if (achat > montantTopAchat) {
+        montantTopAchat = achat;
+        fournisseurTopAchat = fournisseur;
+      }
+      if (credit > montantTopCredit) {
+        montantTopCredit = credit;
+        fournisseurTopCredit = fournisseur;
+      }
+    }
+
+    return FournisseurGlobalStats(
+      nombreFournisseurs: fournisseurs.length,
+      totalAchat: totalAchat,
+      fournisseurTopAchat: fournisseurTopAchat,
+      montantTopAchat: montantTopAchat,
+      totalCredit: totalCredit,
+      fournisseurTopCredit: fournisseurTopCredit,
+      montantTopCredit: montantTopCredit,
     );
   }
 

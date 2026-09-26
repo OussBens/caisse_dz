@@ -9,6 +9,7 @@ import 'package:caisse_dz/data/models/histore.dart';
 import 'package:caisse_dz/data/models/pack.dart';
 import 'package:caisse_dz/data/models/produit_pack_detail.dart';
 import 'package:caisse_dz/l10n/app_localizations.dart';
+import 'package:collection/collection.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
@@ -102,7 +103,7 @@ Future<void> _saveProccess({
     for (var produit in produits) {
       final packsProduit = produitPacksMap[produit.code] ?? [];
 
-      if (packsProduit.contains(pack.nom)) {
+      if (packsProduit.contains(pack.code)) {
         continue;
       }
 
@@ -141,12 +142,12 @@ Future<void> _saveProccess({
       context: context,
       titre_type_message: l10n.error,
       titre_concerne: l10n.pack,
-      message: "$l10n.errorOccurred: $e",
+      message: "${l10n.errorOccurred}: $e",
     );
   }
 }
 
-Future<void> PackProduit(BuildContext context, List<Produit> produitsSelectionnes) async {
+Future<bool?> PackProduit(BuildContext context, List<Produit> produitsSelectionnes) async {
   final auth = Provider.of<AuthState>(context, listen: false);
   final userName = auth.username!;
   final userCode = auth.userCode!;
@@ -159,7 +160,7 @@ Future<void> PackProduit(BuildContext context, List<Produit> produitsSelectionne
       titre_concerne: l10n.user,
       message: l10n.loginRequired,
     );
-    return;
+    return null;
   }
 
   Pack? selectedpack;
@@ -172,7 +173,7 @@ Future<void> PackProduit(BuildContext context, List<Produit> produitsSelectionne
     selectedpack = packsTest.first;
   }
 
-  return showDialog(
+  return showDialog<bool>(
     context: context,
     barrierDismissible: false,
     barrierColor: Appstyle.gris.withOpacity(0.2),
@@ -197,9 +198,20 @@ Future<void> PackProduit(BuildContext context, List<Produit> produitsSelectionne
                 content: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(
-                      l10n.selectedProducts,
-                      style: TextStyle(fontWeight: FontWeight.w600, color: Appstyle.Tnoir),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text(
+                          l10n.selectedProducts,
+                          style: TextStyle(fontWeight: FontWeight.w600, color: Appstyle.Tnoir),
+                        ),
+                        Text(
+                          l10n.packactuel,
+                          style: TextStyle(fontWeight: FontWeight.w500, color: Appstyle.Tnoir),
+                        ),
+
+
+                      ],
                     ),
                     const SizedBox(height: 10),
                     Expanded(
@@ -207,7 +219,9 @@ Future<void> PackProduit(BuildContext context, List<Produit> produitsSelectionne
                         itemCount: produitsSelectionnes.length,
                         itemBuilder: (context, index) {
                           final p = produitsSelectionnes[index];
-                          final packs = produitPacksMap[p.code] ?? [];
+                          final packs = (produitPacksMap[p.code] ?? [])
+                              .map((code) => packsTest.firstWhereOrNull((pk) => pk.code == code)?.nom ?? code)
+                              .toList();
                           return Padding(
                             padding: const EdgeInsets.symmetric(vertical: 4),
                             child: Container(
@@ -304,7 +318,7 @@ Future<void> PackProduit(BuildContext context, List<Produit> produitsSelectionne
                               titre_concerne: l10n.product,
                               message: l10n.packAppliedSuccess,
                               onTerminer: () {
-                                Navigator.pop(context);
+                                Navigator.pop(context, true);
                               },
                             );
                           },

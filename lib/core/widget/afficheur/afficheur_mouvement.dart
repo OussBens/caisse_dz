@@ -4,6 +4,7 @@ import 'package:caisse_dz/core/theme/app_style.dart';
 import '../../../../data/models/mouvement.dart';
 import '../../../../l10n/app_localizations.dart';
 import 'package:intl/intl.dart';
+import 'package:caisse_dz/core/utilis/number_format.dart';
 
 class AfficheurMouvement extends StatelessWidget {
   final Mouvement mouvement;
@@ -222,7 +223,7 @@ class AfficheurMouvement extends StatelessWidget {
           Text(label, style: TextStyle(color: color, fontSize: 12)),
           const SizedBox(height: 4),
           Text(
-            isMoney ? "${value.toStringAsFixed(0)} ${l10n.currency}" : value.toStringAsFixed(0),
+            isMoney ? "${NumberFormatUtil.formatMontant(value, decimales: 0)} ${l10n.currency}" : NumberFormatUtil.formatMontant(value, decimales: 0),
             style: TextStyle(
               fontWeight: FontWeight.bold,
               color: color,

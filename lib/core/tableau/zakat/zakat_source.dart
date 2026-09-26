@@ -14,6 +14,7 @@ class ZakatDataSource extends BaseTableDataSource<Zakat> {
     required List<Zakat> zakats,
     required super.columnConfig,
     required this.l10n,
+    super.utilisateurs = const [],
   }) : super(items: zakats);
 
   String formatDate(DateTime? date) {
@@ -68,15 +69,15 @@ class ZakatDataSource extends BaseTableDataSource<Zakat> {
       case 'dateCree':
         return formatDate(zakat.dateCree);
       case 'creeParCode':
-        return zakat.creeParCode ?? '';
+        return nomUtilisateur(zakat.creeParCode);
       case 'dateModif':
         return formatDate(zakat.dateModif);
       case 'modifParCode':
-        return zakat.modifParCode ?? '';
+        return nomUtilisateur(zakat.modifParCode);
       case 'dateAnnul':
         return formatDate(zakat.dateAnnul);
       case 'annulParCode':
-        return zakat.annulParCode ?? '';
+        return nomUtilisateur(zakat.annulParCode);
       case 'motifAnnul':
         return zakat.motifAnnul ?? '';
 

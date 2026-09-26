@@ -5,6 +5,7 @@ import 'package:caisse_dz/core/theme/app_style.dart';
 import '../../../../data/models/role.dart';
 import '../../../../data/models/utilisateur.dart';
 import '../../../../l10n/app_localizations.dart';
+import 'package:caisse_dz/core/utilis/number_format.dart';
 
 class AfficheurRole extends StatelessWidget {
 
@@ -207,8 +208,8 @@ class AfficheurRole extends StatelessWidget {
           Text(
             customText ??
                 (isMoney
-                    ? "${value.toStringAsFixed(0)} ${l10n.currency}"
-                    : value.toStringAsFixed(0)),
+                    ? "${NumberFormatUtil.formatMontant(value, decimales: 0)} ${l10n.currency}"
+                    : NumberFormatUtil.formatMontant(value, decimales: 0)),
             style: TextStyle(
               fontWeight: FontWeight.bold,
               color: color,

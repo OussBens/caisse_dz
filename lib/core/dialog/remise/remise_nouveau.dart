@@ -297,7 +297,7 @@ class _RemiseDialogState extends State<RemiseDialog> {
         context: context,
         titre_type_message: l10n.error,
         titre_concerne: l10n.discount,
-        message: "Veuillez ajouter au moins un produit",
+        message: l10n.atLeastOneProduct,
       );
       return;
     }
@@ -323,6 +323,9 @@ class _RemiseDialogState extends State<RemiseDialog> {
         etat: true,
         creeParCode: widget.userCode,
       );
+      // ✅ Actif seulement si la date du jour est déjà dans [debut, fin] —
+      // une remise programmée dans le futur démarre inactive.
+      remise.etat = remise.estActifSelonDates;
 
       await _SaveData(
         remise: remise,
@@ -528,7 +531,7 @@ class _RemiseDialogState extends State<RemiseDialog> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         ChampAvecLabel(
-                          label: l10n.reference,
+                          label: l10n.code,
                           child: AffichageChamp(text: cd),
                         ),
                         const SizedBox(height: 20),
@@ -974,6 +977,7 @@ class _RemiseDialogState extends State<RemiseDialog> {
     showDialog(
       context: context,
       builder: (_) => InsertionProduitDialog(
+        newButton:false,
         multiselection: true,
         produits: produitsTest,
         onProduitSelected: (Produit produit) {

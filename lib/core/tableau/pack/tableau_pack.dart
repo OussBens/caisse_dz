@@ -1,21 +1,23 @@
 import 'package:caisse_dz/core/dialog/pack/pack_detail.dart';
 import 'package:caisse_dz/core/theme/app_style.dart';
-import 'package:caisse_dz/core/widget/button/main_button.dart';
 import 'package:caisse_dz/data/models/pack.dart';
+import 'package:caisse_dz/data/models/utilisateur.dart';
 import 'package:caisse_dz/l10n/app_localizations.dart';
 import 'package:flutter/material.dart';
 import 'package:syncfusion_flutter_core/theme.dart';
 import 'package:syncfusion_flutter_datagrid/datagrid.dart';
-import '../../widget/tableau/paginated.dart';
+import '../filter_icon_builder.dart';
 import 'pack_source.dart';
 
 class TableauPackAdvanced extends StatefulWidget {
   final List<Pack> packs;
+  final List<Utilisateur> utilisateurs;
   final void Function(List<Pack>)? onSelectionChanged;
 
   const TableauPackAdvanced({
     super.key,
     required this.packs,
+    this.utilisateurs = const [],
     this.onSelectionChanged,
   });
 
@@ -30,18 +32,8 @@ class _TableauPackAdvancedState extends State<TableauPackAdvanced> {
   late PackDataSource dataSource;
   final Map<String, double> columnWidths = {};
 
-  int rowsPerPage = 15;
-  int currentPage = 1;
-
-  List<Pack> get paginatedData {
-    final start = (currentPage - 1) * rowsPerPage;
-    final end = (start + rowsPerPage).clamp(0, widget.packs.length);
-    if (start >= widget.packs.length) return [];
-    return widget.packs.sublist(start, end);
-  }
-
-  int get totalPages =>
-      (widget.packs.isEmpty) ? 1 : (widget.packs.length / rowsPerPage).ceil().clamp(1, 9999);
+  int _rowsPerPage = 15;
+  static const List<int> _rowsPerPageOptions = [10, 15, 20, 30, 50];
 
   bool selectAll = false;
 
@@ -78,23 +70,39 @@ class _TableauPackAdvancedState extends State<TableauPackAdvanced> {
     final l10n = AppLocalizations.of(context)!;
 
     dataSource = PackDataSource(
-      packs: paginatedData,
+      packs: widget.packs,
       columnConfig: columnVisibility.map((k, v) => MapEntry(k, {
         'visible': v['visible'],
         'label': v['label'],
         'field': v['field'],
       })),
       l10n: l10n,
+      utilisateurs: widget.utilisateurs,
     );
+    dataSource.onRowDoubleTap = (pack) => PackDetail(context, pack);
 
     dataSource.addListener(() {
-      widget.onSelectionChanged?.call(dataSource.getSelectedRows());
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted) return;
+        setState(() {});
+        widget.onSelectionChanged?.call(dataSource.getSelectedRows());
+      });
     });
+  }
+
+  @override
+  void didUpdateWidget(covariant TableauPackAdvanced oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.packs != widget.packs) {
+      dataSource.update(widget.packs);
+    }
   }
 
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
+
+    final pageCount = (dataSource.items.length / _rowsPerPage).ceil().clamp(1, 9999).toDouble();
 
     return Column(
       children: [
@@ -130,21 +138,18 @@ class _TableauPackAdvancedState extends State<TableauPackAdvanced> {
                           gridLineColor: Colors.grey.shade300,
                           gridLineStrokeWidth: 0.4,
                           sortIconColor: Appstyle.Tblanc,
-                          filterIconColor: Appstyle.Tblanc,
+                          filterIcon: Builder(builder: (context) => buildFilterIcon(context, dataSource)),
                         ),
                         child: SfDataGrid(
                           headerRowHeight: 36,
                           rowHeight: 38,
                           source: dataSource,
+                          rowsPerPage: _rowsPerPage,
                           selectionMode: SelectionMode.multiple,
                           allowSorting: true,
                           allowFiltering: true,
-                          onCellDoubleTap: (details) {
-                            if (details.rowColumnIndex.rowIndex <= 0) return;
-                            final rowIndex = details.rowColumnIndex.rowIndex - 1;
-                            final Pack pack = paginatedData[rowIndex];
-                            PackDetail(context, pack);
-                          },
+                          // Sélection au clic + double-clic pour le détail gérés
+                          // dans BaseTableDataSource.buildRow.
 
                           columnWidthMode: ColumnWidthMode.none,
                           allowColumnsResizing: true,
@@ -215,23 +220,36 @@ class _TableauPackAdvancedState extends State<TableauPackAdvanced> {
           ),
         ),
         const SizedBox(height: 12),
-        PaginationBar(
-          currentPage: currentPage,
-          totalPages: totalPages,
-          rowsPerPage: rowsPerPage,
-          onPageChanged: (page) {
-            setState(() {
-              currentPage = page;
-              dataSource.update(paginatedData);
-            });
-          },
-          onRowsPerPageChanged: (v) {
-            setState(() {
-              rowsPerPage = v;
-              currentPage = 1;
-              dataSource.update(paginatedData);
-            });
-          },
+        Container(
+          padding: const EdgeInsets.symmetric(vertical: 6, horizontal: 12),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(14),
+            boxShadow: const [BoxShadow(color: Colors.black12, blurRadius: 10)],
+          ),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              SfDataPager(
+                delegate: dataSource,
+                pageCount: pageCount,
+                direction: Axis.horizontal,
+                itemWidth: 36,
+                itemHeight: 36,
+              ),
+              const SizedBox(width: 20),
+              DropdownButton<int>(
+                value: _rowsPerPage,
+                items: _rowsPerPageOptions
+                    .map((e) => DropdownMenuItem(value: e, child: Text("$e ${l10n.rowsPerPage}")))
+                    .toList(),
+                onChanged: (v) {
+                  if (v == null) return;
+                  setState(() => _rowsPerPage = v);
+                },
+              ),
+            ],
+          ),
         ),
       ],
     );
@@ -266,20 +284,6 @@ class _TableauPackAdvancedState extends State<TableauPackAdvanced> {
           color: Appstyle.Tblanc,
         ),
       ),
-    );
-  }
-
-  Widget _buildActiveColumnsBar(AppLocalizations l10n) {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.end,
-      children: [
-        MainButton(
-          text: "",
-          color: Appstyle.violet,
-          onPressed: () => _showColumnSettingsPopup(context, l10n),
-          icon: Icons.view_column,
-        )
-      ],
     );
   }
 

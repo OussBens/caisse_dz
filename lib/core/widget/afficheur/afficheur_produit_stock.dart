@@ -5,8 +5,10 @@ import 'package:flutter/material.dart';
 import 'package:caisse_dz/core/theme/app_style.dart';
 import '../../../../data/models/produit.dart';
 import '../../../../l10n/app_localizations.dart';
+import '../../../Services/Mouvement.dart';
 import '../../../Services/Photos.dart';
 import '../../../Services/Produits.dart';
+import 'package:caisse_dz/core/utilis/number_format.dart';
 
 class AfficheurProduitMouvement extends StatelessWidget {
   final Produit produit;
@@ -21,7 +23,6 @@ class AfficheurProduitMouvement extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
-    final stock = produit.quantite ?? 0;
 
     return Container(
       padding: const EdgeInsets.all(8),
@@ -53,10 +54,20 @@ class AfficheurProduitMouvement extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    Text(
-                      produit.nom,
-                      style: Appstyle.textLB.copyWith(fontSize: 16),
-                      overflow: TextOverflow.ellipsis,
+                    Row(
+                      children: [
+                        Flexible(
+                          child: Text(
+                            produit.nom,
+                            style: Appstyle.textLB.copyWith(fontSize: 16),
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                        if (produit.remiseId != null) ...[
+                          const SizedBox(width: 8),
+                          _remiseBadge(l10n),
+                        ],
+                      ],
                     ),
                     const SizedBox(height: 4),
                     Text(
@@ -71,10 +82,16 @@ class AfficheurProduitMouvement extends StatelessWidget {
               /// 📊 Stats
               Expanded(
                 flex: 7,
-                child: Row(
-                  children: [
-                    _stat(l10n.actualStock, stock.toString(), Colors.blue, l10n),
-                  ],
+                child: FutureBuilder<double>(
+                  future: MouvementsServices.quantiteProduit(produit.code),
+                  builder: (context, snapshot) {
+                    final stock = snapshot.data ?? 0;
+                    return Row(
+                      children: [
+                        _stat(l10n.actualStock, stock.toString(), Colors.blue, l10n),
+                      ],
+                    );
+                  },
                 ),
               ),
 
@@ -115,7 +132,7 @@ class AfficheurProduitMouvement extends StatelessWidget {
                   children: [
                     _statFixed(
                       l10n.lastPurchaseQuantity,
-                      stats.quantiteDernierAchat.toStringAsFixed(0),
+                      NumberFormatUtil.formatMontant(stats.quantiteDernierAchat, decimales: 0),
                       Colors.indigo,
                     ),
                     _statFixed(
@@ -123,15 +140,40 @@ class AfficheurProduitMouvement extends StatelessWidget {
                       stats.dateDernierAchat != null ? _formatDate(stats.dateDernierAchat!) : "-",
                       Colors.indigo,
                     ),
-                    _statFixed(l10n.totalAchat, stats.totalAchat.toStringAsFixed(0), Colors.purple),
-                    _statFixed(l10n.totalSold, stats.totalVendu.toStringAsFixed(0), Colors.teal),
-                    _statFixed(l10n.clientReturns, stats.totalRetourClient.toStringAsFixed(0), Colors.redAccent),
-                    _statFixed(l10n.supplierReturns, stats.totalRetourFournisseur.toStringAsFixed(0), Colors.brown),
+                    _statFixed(l10n.totalAchat, NumberFormatUtil.formatMontant(stats.totalAchat, decimales: 0), Colors.purple),
+                    _statFixed(l10n.totalSold, NumberFormatUtil.formatMontant(stats.totalVendu, decimales: 0), Colors.teal),
+                    _statFixed(l10n.clientReturns, NumberFormatUtil.formatMontant(stats.totalRetourClient, decimales: 0), Colors.redAccent),
+                    _statFixed(l10n.supplierReturns, NumberFormatUtil.formatMontant(stats.totalRetourFournisseur, decimales: 0), Colors.brown),
                     _statFixed(l10n.need, stats.besoin ? l10n.yes : l10n.no, stats.besoin ? Colors.red : Colors.green),
                     _statFixed(l10n.needStatus, stats.besoinStatus, Appstyle.blueF),
                   ],
                 );
               },
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _remiseBadge(AppLocalizations l10n) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+      decoration: BoxDecoration(
+        color: Colors.orange.withOpacity(0.15),
+        borderRadius: BorderRadius.circular(20),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          const Icon(Icons.local_offer, size: 12, color: Colors.orange),
+          const SizedBox(width: 4),
+          Text(
+            l10n.discount,
+            style: const TextStyle(
+              color: Colors.orange,
+              fontSize: 10,
+              fontWeight: FontWeight.bold,
             ),
           ),
         ],

@@ -10,6 +10,7 @@ import 'package:caisse_dz/core/Auth/auth_state.dart';
 import 'package:caisse_dz/core/theme/app_style.dart';
 import '../../utilis/api_response.dart';
 import '../../widget/button/main_button.dart';
+import '../../widget/champ/affichage_champ.dart';
 import '../../widget/champ/champ_avec_label.dart';
 import '../../widget/champ/liste_champ.dart';
 import '../../widget/champ/text_champ_l.dart';
@@ -106,7 +107,14 @@ Future<void> FournisseurModif(BuildContext context, Fournisseur fournisseur) asy
                                 title: l10n.generalInformation,
                                 icon: "assets/icons/info_icon.png",
                                 child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
+                                    ChampAvecLabel(
+                                      label: l10n.code,
+                                      child: AffichageChamp(text: fournisseur.code),
+                                    ),
+                                    const SizedBox(height: 10),
+
                                     ChampAvecLabel(
                                       label: l10n.status,
                                       obligatoire: true,
@@ -251,11 +259,26 @@ Future<void> FournisseurModif(BuildContext context, Fournisseur fournisseur) asy
                           return;
                         }
 
+                        // ✅ Unicité du nom du fournisseur, en excluant ce fournisseur lui-même.
+                        final fournisseurNomExistant = await FournisseurServices.findFournisseurByNom(
+                          nomControllerF.text,
+                          excludeFournisseurCode: fournisseur.code,
+                        );
+                        if (fournisseurNomExistant != null) {
+                          await InformationDialog(
+                            context: context,
+                            titre_type_message: l10n.error,
+                            titre_concerne: l10n.modifySupplier,
+                            message: l10n.supplierNameAlreadyExists,
+                          );
+                          return;
+                        }
+
                         // ✅ Confirmation utilisateur
                         await ConfirmationDialog(
                           context: context,
                           titre: l10n.modifySupplier,
-                          message: "Êtes-vous sûr de vouloir modifier ce fournisseur ?",
+                          message: l10n.confirmModifyFournisseur,
                           onConfirmer: () async {
                             // Création de l'objet Fournisseur modifié
                             final Ufournisseur = Fournisseur(
@@ -333,6 +356,7 @@ Widget _section({
         TitleSmall(
           imageSize: 22,
           imagePath: icon,
+          textsize: 20,
           text: title,
           couleur: Appstyle.Tblue,
           opacity: 0.85,

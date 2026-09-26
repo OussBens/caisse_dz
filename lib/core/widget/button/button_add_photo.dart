@@ -4,6 +4,7 @@ import 'package:file_picker/file_picker.dart';
 import 'package:path/path.dart' as path;
 
 import '../../../Services/Photos.dart';
+import '../../theme/app_style.dart';
 
 class ButtonAddPhoto extends StatefulWidget {
   final String? photo;
@@ -24,6 +25,8 @@ class ButtonAddPhoto extends StatefulWidget {
 class _ButtonAddPhotoState extends State<ButtonAddPhoto> {
   bool _isLoading = false;
   String? _currentPhoto;
+  bool _isHoveredAdd = false;
+  bool _isHoveredDelete = false;
 
   @override
   void initState() {
@@ -62,14 +65,15 @@ class _ButtonAddPhotoState extends State<ButtonAddPhoto> {
       if (result != null && result.files.isNotEmpty) {
         final file = File(result.files.first.path!);
 
-        // Générer un nom temporaire unique
-        final tempName = 'temp_${DateTime.now().millisecondsSinceEpoch}${path.extension(file.path)}';
-        final tempFile = await file.copy(tempName);
+        // Copier vers un chemin temporaire absolu (dossier temp système,
+        // toujours accessible en écriture — voir PhotoService.buildTempPhotoPath).
+        final tempPath = PhotoService.buildTempPhotoPath(path.extension(file.path));
+        final tempFile = await file.copy(tempPath);
 
         // Si on est en mode édition et qu'il y a une ancienne photo, on la marque pour suppression
         if (widget.isEditMode && _currentPhoto != null) {
           // L'ancienne photo sera supprimée lors de la sauvegarde
-          debugPrint('📸 Remplacement de la photo: $_currentPhoto -> $tempName');
+          debugPrint('📸 Remplacement de la photo: $_currentPhoto -> $tempPath');
         }
 
         _currentPhoto = tempFile.path;
@@ -85,9 +89,9 @@ class _ButtonAddPhotoState extends State<ButtonAddPhoto> {
   }
 
   void _removePhoto() async {
-    if (_currentPhoto != null && widget.isEditMode && !_currentPhoto!.startsWith('temp_')) {
+    if (_currentPhoto != null && widget.isEditMode && !PhotoService.isTempPhoto(_currentPhoto)) {
       await PhotoService.deletePhoto(_currentPhoto);
-    } else if (_currentPhoto != null && _currentPhoto!.startsWith('temp_')) {
+    } else if (_currentPhoto != null && PhotoService.isTempPhoto(_currentPhoto)) {
       try {
         final tempFile = File(_currentPhoto!);
         if (await tempFile.exists()) {
@@ -114,55 +118,84 @@ class _ButtonAddPhotoState extends State<ButtonAddPhoto> {
 
         const SizedBox(height: 12),
 
-        // Boutons d'ajout/suppression
+        // Boutons d'ajout/suppression — même langage visuel (violet/crevette,
+        // survol avec légère élévation) que MainButton ailleurs dans l'app,
+        // au lieu du gris/rouge générique d'origine.
         Row(
           children: [
             Expanded(
-              child: GestureDetector(
-                onTap: _addPhoto,
-                child: Container(
-                  padding: const EdgeInsets.symmetric(vertical: 20),
-                  decoration: BoxDecoration(
-                    color: Colors.grey[50],
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: Colors.grey[300]!, width: 1.5),
-                  ),
-                  child: _isLoading
-                      ? const Center(child: CircularProgressIndicator())
-                      : Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Icon(_currentPhoto == null ? Icons.add_photo_alternate : Icons.edit,
-                          size: 32, color: Colors.grey[600]),
-                      const SizedBox(height: 8),
-                      Text(
-                        _currentPhoto == null ? 'Ajouter une photo' : 'Changer la photo',
-                        style: TextStyle(color: Colors.grey[600]),
-                      ),
-                    ],
-                  ),
-                ),
+              child: _photoActionButton(
+                onTap: _isLoading ? null : _addPhoto,
+                isHovered: _isHoveredAdd,
+                onHoverChanged: (v) => setState(() => _isHoveredAdd = v),
+                color: Appstyle.violet,
+                backgroundColor: Appstyle.violetC,
+                icon: _currentPhoto == null ? Icons.add_photo_alternate : Icons.edit,
+                label: _currentPhoto == null ? 'Ajouter une photo' : 'Changer la photo',
+                loading: _isLoading,
               ),
             ),
             if (_currentPhoto != null && _currentPhoto!.isNotEmpty)
               Padding(
                 padding: const EdgeInsets.only(left: 12),
-                child: GestureDetector(
+                child: _photoActionButton(
                   onTap: _removePhoto,
-                  child: Container(
-                    padding: const EdgeInsets.all(16),
-                    decoration: BoxDecoration(
-                      color: Colors.red[50],
-                      borderRadius: BorderRadius.circular(12),
-                      border: Border.all(color: Colors.red[200]!, width: 1.5),
-                    ),
-                    child: Icon(Icons.delete, color: Colors.red[600]),
-                  ),
+                  isHovered: _isHoveredDelete,
+                  onHoverChanged: (v) => setState(() => _isHoveredDelete = v),
+                  color: Appstyle.crevete,
+                  backgroundColor: Appstyle.crevete.withOpacity(0.08),
+                  icon: Icons.delete_outline,
+                  label: 'Supprimer',
+                  horizontalPadding: 20,
                 ),
               ),
           ],
         ),
       ],
+    );
+  }
+
+  Widget _photoActionButton({
+    required VoidCallback? onTap,
+    required bool isHovered,
+    required ValueChanged<bool> onHoverChanged,
+    required Color color,
+    required Color backgroundColor,
+    required IconData icon,
+    required String label,
+    bool loading = false,
+    double horizontalPadding = 0,
+  }) {
+    return MouseRegion(
+      onEnter: (_) => onHoverChanged(true),
+      onExit: (_) => onHoverChanged(false),
+      cursor: onTap != null ? SystemMouseCursors.click : MouseCursor.defer,
+      child: GestureDetector(
+        onTap: onTap,
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 160),
+          curve: Curves.easeOut,
+          transform: Matrix4.identity()..translate(0.0, isHovered ? -2.0 : 0.0),
+          transformAlignment: Alignment.center,
+          padding: EdgeInsets.symmetric(vertical: 20, horizontal: horizontalPadding),
+          decoration: BoxDecoration(
+            color: backgroundColor,
+            borderRadius: BorderRadius.circular(Appstyle.radiusMD),
+            border: Border.all(color: color.withOpacity(isHovered ? 0.6 : 0.3), width: 1.5),
+            boxShadow: isHovered ? Appstyle.shadowHover(color: color) : const [],
+          ),
+          child: loading
+              ? Center(child: CircularProgressIndicator(strokeWidth: 2, color: color))
+              : Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(icon, size: 32, color: color),
+              const SizedBox(height: 8),
+              Text(label, style: Appstyle.textSB.copyWith(color: color)),
+            ],
+          ),
+        ),
+      ),
     );
   }
 
@@ -174,9 +207,10 @@ class _ButtonAddPhotoState extends State<ButtonAddPhoto> {
           return GestureDetector(
             onTap: () => _showFullScreenPhoto(context, snapshot.data!.path),
             child: Container(
-              height: 200,
+              height: 160,
               width: double.infinity,
               decoration: BoxDecoration(
+                color: Colors.grey[100],
                 borderRadius: BorderRadius.circular(12),
                 boxShadow: [
                   BoxShadow(
@@ -190,9 +224,9 @@ class _ButtonAddPhotoState extends State<ButtonAddPhoto> {
                 borderRadius: BorderRadius.circular(12),
                 child: Image.file(
                   snapshot.data!,
-                  fit: BoxFit.cover,
+                  fit: BoxFit.contain,
                   width: double.infinity,
-                  height: 200,
+                  height: 160,
                 ),
               ),
             ),
@@ -200,7 +234,7 @@ class _ButtonAddPhotoState extends State<ButtonAddPhoto> {
         }
 
         return Container(
-          height: 200,
+          height: 160,
           width: double.infinity,
           decoration: BoxDecoration(
             color: Colors.grey[200],

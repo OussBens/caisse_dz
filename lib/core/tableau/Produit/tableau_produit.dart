@@ -1,17 +1,17 @@
 import 'package:caisse_dz/core/dialog/produit/produit_detail.dart';
 import 'package:caisse_dz/core/tableau/Produit/produit_date_source.dart';
 import 'package:caisse_dz/core/theme/app_style.dart';
-import 'package:caisse_dz/core/widget/button/main_button.dart';
 import 'package:caisse_dz/data/models/categorie.dart';
 import 'package:caisse_dz/data/models/sous_categorie.dart';
 import 'package:caisse_dz/data/models/remise.dart';
 import 'package:caisse_dz/data/models/fournisseur.dart';
 import 'package:caisse_dz/data/models/produit.dart';
+import 'package:caisse_dz/data/models/utilisateur.dart';
 import 'package:caisse_dz/l10n/app_localizations.dart';
 import 'package:flutter/material.dart';
 import 'package:syncfusion_flutter_core/theme.dart';
 import 'package:syncfusion_flutter_datagrid/datagrid.dart';
-import 'package:caisse_dz/core/widget/tableau/paginated.dart';
+import '../filter_icon_builder.dart';
 
 class TableauProduitAdvanced extends StatefulWidget {
   final List<Produit> produits;
@@ -19,6 +19,16 @@ class TableauProduitAdvanced extends StatefulWidget {
   final List<SousCategorie> sousCategories;
   final List<Remise> remises;
   final List<Fournisseur> fournisseurs;
+  final List<Utilisateur> utilisateurs;
+  final double seuilMinimum;
+
+  /// Quantité par produit calculée depuis le journal des mouvements (voir
+  /// ProduitDataSource.quantites) — remplace Produit.quantite à l'affichage.
+  final Map<String, double> quantites;
+
+  /// Affiche le bouton de configuration des colonnes (masqué dans la vue
+  /// "besoins", plus restreinte — voir besion_screen.dart).
+  final bool col;
   final void Function(List<Produit>)? onSelectionChanged;
 
   const TableauProduitAdvanced({
@@ -28,6 +38,10 @@ class TableauProduitAdvanced extends StatefulWidget {
     required this.sousCategories,
     required this.remises,
     required this.fournisseurs,
+    this.utilisateurs = const [],
+    this.seuilMinimum = 0,
+    this.quantites = const {},
+    this.col = true,
     this.onSelectionChanged,
   });
 
@@ -40,19 +54,9 @@ class _TableauProduitAdvancedState extends State<TableauProduitAdvanced> {
   bool garderSelectionColonnes = true;
   late ProduitDataSource dataSource;
   final Map<String, double> columnWidths = {};
-  int rowsPerPage = 15;
-  int currentPage = 1;
+  int _rowsPerPage = 15;
+  static const List<int> _rowsPerPageOptions = [10, 15, 20, 30, 50];
   bool selectAll = false;
-
-  List<Produit> get paginatedData {
-    final start = (currentPage - 1) * rowsPerPage;
-    final end = (start + rowsPerPage).clamp(0, widget.produits.length);
-    if (start >= widget.produits.length) return [];
-    return widget.produits.sublist(start, end);
-  }
-
-  int get totalPages =>
-      (widget.produits.isEmpty) ? 1 : (widget.produits.length / rowsPerPage).ceil().clamp(1, 9999);
 
   late Map<String, Map<String, dynamic>> columnVisibility;
 
@@ -83,8 +87,6 @@ class _TableauProduitAdvancedState extends State<TableauProduitAdvanced> {
       'emballageP1': {'visible': true, 'label': 'Prix packaging1', 'field': 'emballageP1'},
       'emballage2': {'visible': true, 'label': 'packaging2', 'field': 'emballage2'},
       'emballageP2': {'visible': true, 'label': 'Prix packaging2', 'field': 'emballageP2'},
-      'seuilMin': {'visible': false, 'label': 'minThreshold', 'field': 'seuilMin'},
-      'seuilMax': {'visible': false, 'label': 'maxThreshold', 'field': 'seuilMax'},
 
       'besion': {'visible': false, 'label': 'need', 'field': 'besion'},
 
@@ -97,7 +99,6 @@ class _TableauProduitAdvancedState extends State<TableauProduitAdvanced> {
       'margeTauxPrct': {'visible': false, 'label': 'marginRatePercent', 'field': 'margeTauxPrct'},
       'tva': {'visible': false, 'label': 'vat', 'field': 'tva'},
       'dateEmpreint': {'visible': false, 'label': 'dateBorrowed', 'field': 'dateEmpreint'},
-      'seuilBool': {'visible': false, 'label': 'thresholdBool', 'field': 'seuilBool'},
 
       'dateCree': {'visible': true, 'label': 'createdAt', 'field': 'dateCree'},
       'creeParCode': {'visible': true, 'label': 'createdBy', 'field': 'creeParCode'},
@@ -120,7 +121,7 @@ class _TableauProduitAdvancedState extends State<TableauProduitAdvanced> {
     final l10n = AppLocalizations.of(context)!;
 
     dataSource = ProduitDataSource(
-      produits: paginatedData,
+      produits: widget.produits,
       columnConfig: columnVisibility.map((k, v) => MapEntry(k, {
         'visible': v['visible'],
         'label': v['label'],
@@ -131,10 +132,18 @@ class _TableauProduitAdvancedState extends State<TableauProduitAdvanced> {
       sousCategories: widget.sousCategories,
       remises: widget.remises,
       fournisseurs: widget.fournisseurs,
+      seuilMinimum: widget.seuilMinimum,
+      utilisateurs: widget.utilisateurs,
+      quantites: widget.quantites,
     );
+    dataSource.onRowDoubleTap = (produit) => ProduitDetail(context, produit);
 
     dataSource.addListener(() {
-      widget.onSelectionChanged?.call(dataSource.getSelectedRows());
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted) return;
+        setState(() {});
+        widget.onSelectionChanged?.call(dataSource.getSelectedRows());
+      });
     });
   }
 
@@ -143,14 +152,18 @@ class _TableauProduitAdvancedState extends State<TableauProduitAdvanced> {
     super.didUpdateWidget(oldWidget);
 
     if (oldWidget.produits != widget.produits) {
-      final newPaginatedData = paginatedData;
-      dataSource.updateProduits(newPaginatedData);
+      dataSource.updateProduits(widget.produits);
+    }
+    if (oldWidget.quantites != widget.quantites) {
+      dataSource.updateQuantites(widget.quantites);
     }
   }
 
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
+
+    final pageCount = (dataSource.items.length / _rowsPerPage).ceil().clamp(1, 9999).toDouble();
 
     return Column(
       children: [
@@ -173,6 +186,20 @@ class _TableauProduitAdvancedState extends State<TableauProduitAdvanced> {
               borderRadius: BorderRadius.circular(16),
               child: LayoutBuilder(
                 builder: (context, constraints) {
+                  final visibleColumns = columnVisibility.entries
+                      .where((e) => e.value['visible'] as bool)
+                      .toList();
+                  // ✅ Largeur idéale = largeur du tableau / nombre de colonnes
+                  // affichées, pour que les colonnes remplissent toute la
+                  // largeur disponible au lieu de laisser un vide (ou de
+                  // scroller inutilement) avec la largeur fixe précédente.
+                  const reservedColumnsWidth = 60.0 /* settings */ + 60.0 /* select */;
+                  final idealColumnWidth = visibleColumns.isEmpty
+                      ? 180.0
+                      : ((constraints.maxWidth - reservedColumnsWidth) /
+                              visibleColumns.length)
+                          .clamp(120.0, 400.0);
+
                   return SingleChildScrollView(
                     scrollDirection: Axis.horizontal,
                     child: ConstrainedBox(
@@ -186,21 +213,18 @@ class _TableauProduitAdvancedState extends State<TableauProduitAdvanced> {
                           gridLineColor: Colors.grey.shade300,
                           gridLineStrokeWidth: 0.4,
                           sortIconColor: Appstyle.Tblanc,
-                          filterIconColor: Appstyle.Tblanc,
+                          filterIcon: Builder(builder: (context) => buildFilterIcon(context, dataSource)),
                         ),
                         child: SfDataGrid(
                           headerRowHeight: 36,
                           rowHeight: 38,
                           source: dataSource,
+                          rowsPerPage: _rowsPerPage,
                           selectionMode: SelectionMode.multiple,
                           allowSorting: true,
                           allowFiltering: true,
-                          onCellDoubleTap: (details) {
-                            if (details.rowColumnIndex.rowIndex <= 0) return;
-                            final rowIndex = details.rowColumnIndex.rowIndex - 1;
-                            final Produit produit = paginatedData[rowIndex];
-                            ProduitDetail(context, produit);
-                          },
+                          // Sélection au clic + double-clic pour le détail gérés
+                          // dans BaseTableDataSource.buildRow (n'importe quelle colonne).
 
                           columnWidthMode: ColumnWidthMode.none,
                           allowColumnsResizing: true,
@@ -222,16 +246,18 @@ class _TableauProduitAdvancedState extends State<TableauProduitAdvanced> {
                           columns: [
                             GridColumn(
                               columnName: 'settings',
-                              width: 60,
+                              width: widget.col ? 60 : 0,
                               allowSorting: false,
                               allowFiltering: false,
-                              label: Center(
-                                child: IconButton(
-                                  icon: const Icon(Icons.view_column, color: Colors.white),
-                                  tooltip: l10n.showHideColumns,
-                                  onPressed: () => _showColumnSettingsPopup(context, l10n),
-                                ),
-                              ),
+                              label: widget.col
+                                  ? Center(
+                                      child: IconButton(
+                                        icon: const Icon(Icons.view_column, color: Colors.white),
+                                        tooltip: l10n.showHideColumns,
+                                        onPressed: () => _showColumnSettingsPopup(context, l10n),
+                                      ),
+                                    )
+                                  : const SizedBox.shrink(),
                             ),
                             GridColumn(
                               columnName: 'select',
@@ -251,12 +277,10 @@ class _TableauProduitAdvancedState extends State<TableauProduitAdvanced> {
                                 ),
                               ),
                             ),
-                            ...columnVisibility.entries
-                                .where((e) => e.value['visible'])
-                                .map(
+                            ...visibleColumns.map(
                                   (entry) => GridColumn(
                                 columnName: entry.key,
-                                width: columnWidths[entry.key] ?? 180,
+                                width: columnWidths[entry.key] ?? idealColumnWidth,
                                 label: _header(_getTranslatedLabel(entry.value['label'], l10n)),
                               ),
                             ),
@@ -271,23 +295,36 @@ class _TableauProduitAdvancedState extends State<TableauProduitAdvanced> {
           ),
         ),
         const SizedBox(height: 12),
-        PaginationBar(
-          currentPage: currentPage,
-          totalPages: totalPages,
-          rowsPerPage: rowsPerPage,
-          onPageChanged: (page) {
-            setState(() {
-              currentPage = page;
-              dataSource.updateProduits(paginatedData);
-            });
-          },
-          onRowsPerPageChanged: (v) {
-            setState(() {
-              rowsPerPage = v;
-              currentPage = 1;
-              dataSource.updateProduits(paginatedData);
-            });
-          },
+        Container(
+          padding: const EdgeInsets.symmetric(vertical: 6, horizontal: 12),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(14),
+            boxShadow: const [BoxShadow(color: Colors.black12, blurRadius: 10)],
+          ),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              SfDataPager(
+                delegate: dataSource,
+                pageCount: pageCount,
+                direction: Axis.horizontal,
+                itemWidth: 36,
+                itemHeight: 36,
+              ),
+              const SizedBox(width: 20),
+              DropdownButton<int>(
+                value: _rowsPerPage,
+                items: _rowsPerPageOptions
+                    .map((e) => DropdownMenuItem(value: e, child: Text("$e ${l10n.rowsPerPage}")))
+                    .toList(),
+                onChanged: (v) {
+                  if (v == null) return;
+                  setState(() => _rowsPerPage = v);
+                },
+              ),
+            ],
+          ),
         ),
       ],
     );
@@ -312,8 +349,6 @@ class _TableauProduitAdvancedState extends State<TableauProduitAdvanced> {
       case 'unit': return l10n.unit;
       case 'packaging1': return l10n.packaging1;
       case 'packaging2': return l10n.packaging2;
-      case 'minThreshold': return l10n.minThreshold;
-      case 'maxThreshold': return l10n.maxThreshold;
       case 'need': return l10n.need;
       case 'barcode': return l10n.barcode;
       case 'serialNumber': return l10n.serialNumber;
@@ -324,7 +359,6 @@ class _TableauProduitAdvancedState extends State<TableauProduitAdvanced> {
       case 'marginRatePercent': return l10n.marginRatePercent;
       case 'vat': return l10n.vat;
       case 'dateBorrowed': return l10n.dateBorrowed;
-      case 'thresholdBool': return l10n.thresholdBool;
       case 'createdAt': return l10n.createdAt;
       case 'createdBy': return l10n.createdBy;
       case 'cancelledBy': return l10n.cancelledBy;
@@ -347,20 +381,6 @@ class _TableauProduitAdvancedState extends State<TableauProduitAdvanced> {
           color: Appstyle.Tblanc,
         ),
       ),
-    );
-  }
-
-  Widget _buildActiveColumnsBar(AppLocalizations l10n) {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.end,
-      children: [
-        MainButton(
-          text: "",
-          color: Appstyle.violet,
-          onPressed: () => _showColumnSettingsPopup(context, l10n),
-          icon: Icons.view_column,
-        )
-      ],
     );
   }
 

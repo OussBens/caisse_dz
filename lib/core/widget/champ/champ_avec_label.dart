@@ -1,4 +1,3 @@
-
 import 'package:caisse_dz/core/theme/app_style.dart';
 import 'package:flutter/material.dart';
 
@@ -11,6 +10,7 @@ class ChampAvecLabel extends StatelessWidget {
   final bool alignmentStart;
   final bool buttonAjout;
   final VoidCallback? onAjoutPressed;
+  final bool parent; // ← nouveau paramètre
 
   const ChampAvecLabel({
     super.key,
@@ -22,14 +22,15 @@ class ChampAvecLabel extends StatelessWidget {
     this.buttonAjout = false,
     this.onAjoutPressed,
     this.distance = 140,
+    this.parent = false, // ← initialisé à false
   });
 
   @override
   Widget build(BuildContext context) {
     return SizedBox(
-      width: width,
+      width: parent ? double.infinity : width, // ← si parent est true, prend toute la largeur
       child: Row(
-        mainAxisSize: MainAxisSize.min,  // ← ajouté
+        mainAxisSize: parent ? MainAxisSize.max : MainAxisSize.min, // ← adapte le mainAxisSize
         crossAxisAlignment:
         alignmentStart ? CrossAxisAlignment.start : CrossAxisAlignment.center,
         children: [
@@ -58,7 +59,7 @@ class ChampAvecLabel extends StatelessWidget {
             ),
           ),
           const SizedBox(width: 15),
-          Flexible(  // ← remplace Expanded
+          Flexible(  // ← conserve Flexible pour permettre au child de s'adapter
             fit: FlexFit.loose,
             child: child,
           ),

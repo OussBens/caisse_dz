@@ -2,10 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:caisse_dz/core/theme/app_style.dart';
 import '../../../../data/models/sous_categorie.dart';
 import '../../../../l10n/app_localizations.dart';
-
-// ✅ Ajouter l'import pour les services
-import '../../../../Services/Produits.dart' hide ApiResponse;
-import '../../../../DBCreate.dart';
+import 'package:caisse_dz/core/dialog/sous_categorie/sous_categorie_detail.dart';
+import 'package:caisse_dz/core/utilis/number_format.dart';
 
 class AfficheurSousCategorie extends StatelessWidget {
   final SousCategorie sousCategorie;
@@ -167,7 +165,7 @@ class AfficheurSousCategorie extends StatelessWidget {
               // ✅ Bouton Liste des produits
               ElevatedButton(
                 onPressed: () {
-                  _showSousCategorieProductsListDialog(context, sousCategorie, l10n);
+                  showSousCategorieProductsListDialog(context, sousCategorie, l10n);
                 },
                 style: ElevatedButton.styleFrom(
                   backgroundColor: Appstyle.crevete,
@@ -183,7 +181,7 @@ class AfficheurSousCategorie extends StatelessWidget {
                     const Icon(Icons.list, size: 18, color: Colors.white),
                     const SizedBox(width: 8),
                     Text(
-                      l10n.productsList,
+                      l10n.productList,
                       style: Appstyle.textSB.copyWith(color: Appstyle.Tblanc),
                     ),
                   ],
@@ -194,116 +192,6 @@ class AfficheurSousCategorie extends StatelessWidget {
         ],
       ),
     );
-  }
-
-  // ✅ Fonction pour afficher la liste des produits de la sous-catégorie
-  void _showSousCategorieProductsListDialog(
-      BuildContext context,
-      SousCategorie sousCategorie,
-      AppLocalizations l10n,
-      ) async {
-    try {
-      final db = await DbCreator.openDb();
-      final service = ProduitServices(db);
-
-      // Récupérer les produits par sous-catégorie
-      final products = await service.getProduitsBySousCategorieId(sousCategorie.id);
-
-      if (products.isEmpty) {
-        showDialog(
-          context: context,
-          builder: (context) => AlertDialog(
-            title: Text("${l10n.products} - ${sousCategorie.nom}"),
-            content: Text(l10n.noProduct),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.pop(context),
-                child: Text(l10n.close),
-              ),
-            ],
-          ),
-        );
-        return;
-      }
-
-      // Afficher la liste
-      showDialog(
-        context: context,
-        builder: (context) => AlertDialog(
-          title: Row(
-            children: [
-              const Icon(Icons.layers, color: Colors.orange),
-              const SizedBox(width: 8),
-              Expanded(
-                child: Text(
-                  "${l10n.products} - ${sousCategorie.nom}",
-                  style: const TextStyle(fontSize: 18),
-                ),
-              ),
-            ],
-          ),
-          content: SizedBox(
-            width: 600,
-            height: 400,
-            child: products.isEmpty
-                ? Center(child: Text(l10n.noProduct))
-                : ListView.builder(
-              itemCount: products.length,
-              itemBuilder: (context, index) {
-                final product = products[index];
-                return Card(
-                  margin: const EdgeInsets.symmetric(vertical: 4),
-                  child: ListTile(
-                    leading: CircleAvatar(
-                      backgroundColor: Appstyle.violet.withOpacity(0.1),
-                      child: Text(
-                        (index + 1).toString(),
-                        style: TextStyle(color: Appstyle.violet),
-                      ),
-                    ),
-                    title: Text(
-                      product.nom,
-                      style: const TextStyle(fontWeight: FontWeight.bold),
-                    ),
-                    subtitle: Text(
-                      "${l10n.code}: ${product.code} | ${l10n.quantity}: ${product.quantite.toStringAsFixed(0)}",
-                    ),
-                    trailing: Text(
-                      "${product.prixVente.toStringAsFixed(2)} ${l10n.currency}",
-                      style: TextStyle(
-                        color: Appstyle.violet,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                  ),
-                );
-              },
-            ),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: Text(l10n.close),
-            ),
-          ],
-        ),
-      );
-    } catch (e) {
-      print('❌ Erreur lors du chargement des produits: $e');
-      showDialog(
-        context: context,
-        builder: (context) => AlertDialog(
-          title: Text(l10n.error),
-          content: Text("${l10n.error}: $e"),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: Text(l10n.close),
-            ),
-          ],
-        ),
-      );
-    }
   }
 
   /// 🟢 Badge état
@@ -350,8 +238,8 @@ class AfficheurSousCategorie extends StatelessWidget {
           const SizedBox(height: 6),
           Text(
             isMoney
-                ? "${value.toStringAsFixed(0)} ${l10n.currency}"
-                : value.toStringAsFixed(0),
+                ? "${NumberFormatUtil.formatMontant(value, decimales: 0)} ${l10n.currency}"
+                : NumberFormatUtil.formatMontant(value, decimales: 0),
             style: TextStyle(
               fontWeight: FontWeight.bold,
               color: color,

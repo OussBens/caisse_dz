@@ -28,15 +28,14 @@ class _RolePermissionTableState extends State<RolePermissionTable> {
       l10n.fournisseur,
       l10n.stock,
       l10n.utilisateur,
-      l10n.magasin,
     ];
 
     // ---- DONNÉES DES PERMISSIONS ---- //
     // Use keys for roles to allow translation
     Map<String, List<bool>> permissions = {
-      "admin":       [true, true, true, true, true, true, true, true, true],
-      "caissier":    [true, false, false, true, true, true, false, true, true],
-      "magasinier":  [false, false, true, true, true, true, true, true, false],
+      "admin":       [true, true, true, true, true, true, true, true],
+      "caissier":    [true, false, false, true, true, true, false, true],
+      "magasinier":  [false, false, true, true, true, true, true, true],
     };
 
     return Directionality(

@@ -16,6 +16,10 @@ class TableauProduitInsertion extends StatefulWidget {
   final void Function(Produit)? onSelectionChanged;
   final void Function(Produit)? onDoubleTapProduit;
 
+  /// Quantité par produit calculée depuis le journal des mouvements — voir
+  /// ProduitDataSource.quantites pour le même mécanisme.
+  final Map<String, double> quantites;
+
   const TableauProduitInsertion({
     Key? key,
     required this.produits,
@@ -25,6 +29,7 @@ class TableauProduitInsertion extends StatefulWidget {
     this.selectedProduit,
     this.onSelectionMultipleChanged,
     this.selectedProduits,
+    this.quantites = const {},
   }) : super(key: key);
 
   @override
@@ -65,6 +70,7 @@ class _TableauProduitInsertion extends State<TableauProduitInsertion> {
       produits: paginatedData,
       onSelectRow: _selectRow,
       l10n: l10n,
+      quantites: widget.quantites,
     );
   }
 
@@ -78,6 +84,9 @@ class _TableauProduitInsertion extends State<TableauProduitInsertion> {
             ? widget.selectedProduits
             : (widget.selectedProduit != null ? [widget.selectedProduit!] : null),
       );
+    }
+    if (oldWidget.quantites != widget.quantites) {
+      dataSource.updateQuantites(widget.quantites);
     }
   }
 
@@ -171,7 +180,7 @@ class _TableauProduitInsertion extends State<TableauProduitInsertion> {
   GridColumn _col(String name, String label) {
     return GridColumn(
       columnName: name,
-      width: columnWidths[name] ?? 160,
+      width: columnWidths[name] ?? 180,
       label: Center(
         child: Text(
           label,

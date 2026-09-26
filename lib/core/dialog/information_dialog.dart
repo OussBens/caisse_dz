@@ -11,6 +11,7 @@ Future<void> InformationDialog({
   required String titre_type_message,
   required String titre_concerne,
   required String message,
+  double width = 500,
   VoidCallback? onTerminer,
 }) {
   final l10n = AppLocalizations.of(context)!;
@@ -24,7 +25,7 @@ Future<void> InformationDialog({
         child: BackdropFilter(
           filter: ImageFilter.blur(sigmaX: 2, sigmaY: 2),
           child: BaseDialog(
-            width: 500,
+            width: width,
             height: 300,
 
             header: TitreAvecLigne(

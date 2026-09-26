@@ -6,7 +6,7 @@ import 'package:caisse_dz/core/theme/app_style.dart';
 import 'package:caisse_dz/core/widget/button/main_button.dart';
 import 'package:open_file/open_file.dart';
 import 'package:share_plus/share_plus.dart';
-import 'package:path_provider/path_provider.dart';
+import 'package:caisse_dz/Services/ExportStorage.dart';
 
 class ExcelPreviewDialog extends StatefulWidget {
   final List<List<dynamic>> data;
@@ -75,7 +75,7 @@ class _ExcelPreviewDialogState extends State<ExcelPreviewDialog> {
   Future<void> _saveExcel() async {
     if (widget.excelFile != null) {
       try {
-        final directory = await getApplicationDocumentsDirectory();
+        final directory = await getExportDirectory();
         final fileName = '${widget.title}_${DateTime.now().millisecondsSinceEpoch}.xlsx';
         final newFile = File('${directory.path}/$fileName');
         await widget.excelFile!.copy(newFile.path);

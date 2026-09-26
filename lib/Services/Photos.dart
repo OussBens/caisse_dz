@@ -31,6 +31,25 @@ class PhotoService {
     return appDir;
   }
 
+  // Chemin absolu pour une photo temporaire (sélectionnée mais pas encore
+  // rattachée à un produit) — voir ButtonAddPhoto et OpenFoodFactsService.
+  // Le dossier temp système est toujours accessible en écriture,
+  // contrairement au répertoire de travail du process une fois l'app
+  // installée (ex. Program Files), qui a causé une PathAccessException en
+  // production.
+  static String buildTempPhotoPath(String extension) {
+    final fileName = 'temp_${DateTime.now().millisecondsSinceEpoch}$extension';
+    return path.join(Directory.systemTemp.path, fileName);
+  }
+
+  // Une photo "temp_..." n'est pas encore rattachée à un produit (voir
+  // [buildTempPhotoPath]). On ne teste que le nom de fichier car le chemin
+  // complet inclut désormais le dossier temp système, pas seulement le nom.
+  static bool isTempPhoto(String? photoPath) {
+    if (photoPath == null || photoPath.isEmpty) return false;
+    return path.basename(photoPath).startsWith('temp_');
+  }
+
   // Sauvegarder une seule photo
 
   static Future<String?> savePhoto(File sourceFile, String productCode) async {
@@ -56,6 +75,29 @@ class PhotoService {
   }
   }
 
+
+  // Sauvegarder une photo à partir d'octets déjà en mémoire (ex: upload
+  // réseau depuis l'app mobile) — même convention que [savePhoto] (nom fixe
+  // "<code>_main.jpg", ancienne photo remplacée).
+  static Future<String?> savePhotoBytes(List<int> bytes, String productCode) async {
+    try {
+      final photosDir = await getPhotosDirectory();
+      final fileName = '${productCode}_main.jpg';
+      final destinationFile = File(path.join(photosDir.path, fileName));
+
+      if (await destinationFile.exists()) {
+        await destinationFile.delete();
+      }
+
+      await destinationFile.writeAsBytes(bytes, flush: true);
+      debugPrint('📸 Photo (octets) sauvegardée: $fileName');
+
+      return fileName;
+    } catch (e) {
+      debugPrint('❌ Erreur sauvegarde photo (octets): $e');
+      return null;
+    }
+  }
 
   // Obtenir le fichier de la photo
   static Future<File?> getPhotoFile(String? fileName) async {

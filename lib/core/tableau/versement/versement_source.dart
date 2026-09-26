@@ -1,19 +1,33 @@
+import 'package:collection/collection.dart';
 import 'package:flutter/material.dart';
 import 'package:syncfusion_flutter_datagrid/datagrid.dart';
+import '../../../../data/models/client.dart';
+import '../../../../data/models/fournisseur.dart';
 import '../../../../data/models/verssement.dart';
 import '../../../data/constant.dart';
 import '../../../l10n/app_localizations.dart';
+import 'package:caisse_dz/core/theme/app_style.dart';
+import '../../dialog/produits_liste_dialog.dart';
 import '../../widget/status_badge.dart';
 import '../base_table_data_source.dart';
 
 class VerssementDataSource extends BaseTableDataSource<Verssement> {
   final AppLocalizations l10n;
+  final List<Client> clients;
+  final List<Fournisseur> fournisseurs;
 
   VerssementDataSource({
     required List<Verssement> verssements,
     required super.columnConfig,
     required this.l10n,
+    this.clients = const [],
+    this.fournisseurs = const [],
+    super.utilisateurs = const [],
   }) : super(items: verssements);
+
+  String _nomBeneficiaire(Verssement v) => v.typebeneficiare == "Client"
+      ? (clients.firstWhereOrNull((c) => c.code == v.beneficiareCode)?.nom ?? v.beneficiareCode)
+      : (fournisseurs.firstWhereOrNull((f) => f.code == v.beneficiareCode)?.nom ?? v.beneficiareCode);
 
   String formatDate(DateTime? date) {
     if (date == null) return '';
@@ -46,7 +60,7 @@ class VerssementDataSource extends BaseTableDataSource<Verssement> {
       case 'typebeneficiare':
         return v.typebeneficiare;
       case 'beneficiare':
-        return v.beneficiareCode;
+        return _nomBeneficiaire(v);
       case 'montant':
         return "${v.montant} ${l10n.currency}";
       case 'caisse':
@@ -62,15 +76,15 @@ class VerssementDataSource extends BaseTableDataSource<Verssement> {
       case 'dateCree':
         return formatDate(v.dateCree);
       case 'creeParCode':
-        return v.creeParCode;
+        return nomUtilisateur(v.creeParCode);
       case 'dateModif':
         return formatDate(v.dateModif);
       case 'modifParCode':
-        return v.modifParCode;
+        return nomUtilisateur(v.modifParCode);
       case 'dateAnnul':
         return formatDate(v.dateAnnul);
       case 'annulParCode':
-        return v.annulParCode;
+        return nomUtilisateur(v.annulParCode);
       case 'motifAnnul':
         return v.motifAnnul;
 
@@ -83,6 +97,12 @@ class VerssementDataSource extends BaseTableDataSource<Verssement> {
   Widget? buildCustomCell(String columnName, DataGridCell cell, Verssement item) {
     if (columnName == 'etat') {
       return Center(child: EtatBadge(isActive: item.etat));
+    }
+
+    if (columnName == 'montant') {
+      return Center(
+        child: pilluleCellule("${item.montant} ${l10n.currency}", Appstyle.violet),
+      );
     }
 
     if (columnName == 'sense') {

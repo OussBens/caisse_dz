@@ -1,5 +1,6 @@
 import 'dart:ui';
 import 'package:caisse_dz/DBCreate.dart';
+import 'package:caisse_dz/Services/Mouvement.dart';
 import 'package:caisse_dz/Services/Historique.dart' hide ApiResponse;
 import 'package:caisse_dz/Services/ParamZakat.dart' hide ApiResponse;
 import 'package:caisse_dz/Services/Zakat.dart'; // ✅ Correction: utiliser Zakat.dart (pas ZAKATServices)
@@ -26,6 +27,7 @@ import '../../widget/title/title_small.dart';
 import '../../widget/title/titre_avec_ligne.dart';
 import '../base_dialog.dart';
 import '../information_dialog.dart';
+import 'package:caisse_dz/core/utilis/number_format.dart';
 
 final TextEditingController stockController = TextEditingController();
 final TextEditingController liquiditesController = TextEditingController();
@@ -35,6 +37,9 @@ final TextEditingController nissabController = TextEditingController();
 final TextEditingController tauxController = TextEditingController(text: "2.5");
 final TextEditingController observationController = TextEditingController();
 List<Produit> produitsTest = [];
+// Quantité par produit calculée depuis le journal des mouvements — voir
+// produit_screen.dart pour le même mécanisme. Remplace Produit.quantite.
+Map<String, double> quantitesTest = {};
 
 Future<int> _GetNextHistoriqueId() async {
   final db = await DbCreator.openDb();
@@ -104,7 +109,7 @@ void resetZakatForm() {
 double calculStockAuto() {
   double total = 0;
   for (final p in produitsTest) {
-    total += p.prixVente * p.quantite;
+    total += p.prixVente * (quantitesTest[p.code] ?? 0);
   }
   return total;
 }
@@ -175,9 +180,11 @@ Future<void> ZakatNouveau(BuildContext context) async {
   // Charger les produits pour le calcul automatique
   try {
     produitsTest = await ProduitServices.getAllProduits();
+    quantitesTest = (await MouvementsServices.totauxParProduit()).quantites;
   } catch (e) {
     print('⚠️ Erreur chargement produits: $e');
     produitsTest = [];
+    quantitesTest = {};
   }
 
   int id = await _GetNextId();
@@ -205,7 +212,10 @@ Future<void> ZakatNouveau(BuildContext context) async {
   creancesController.text = "0.0";
   dettesController.text = "0.0";
   observationController.clear();
-  selectedStatut = "";
+
+  final translator = ListsConstTranslator(l10n);
+  zakatStatus = translator.statutZakatDisplayList.first;
+  selectedStatut = translator.statutZakatToFrench(zakatStatus!);
 
   return showDialog(
     context: context,
@@ -216,7 +226,6 @@ Future<void> ZakatNouveau(BuildContext context) async {
         builder: (context, setState) {
           final l10n = AppLocalizations.of(context)!;
           final translator = ListsConstTranslator(l10n);
-          zakatStatus = translator.statutZakatDisplayList.first;
 
           return ClipRect(
             child: BackdropFilter(
@@ -244,6 +253,15 @@ Future<void> ZakatNouveau(BuildContext context) async {
                                     icon: "assets/icons/info_icon.png",
                                     child: Column(
                                       children: [
+                                        ChampAvecLabel(
+                                          label: l10n.code,
+                                          child: TextChampL(
+                                            enabled: false,
+                                            controller: TextEditingController(text: code),
+                                            hint: "",
+                                          ),
+                                        ),
+                                        const SizedBox(height: 10),
                                         ChampAvecLabel(
                                           label: l10n.autoCalculate,
                                           alignmentStart: true,
@@ -407,7 +425,7 @@ Future<void> ZakatNouveau(BuildContext context) async {
                                 children: [
                                   _resumeItem(
                                     title: l10n.totalCapital,
-                                    value: "${calculCapitalTotal().toStringAsFixed(2)} ${l10n.currency}",
+                                    value: "${NumberFormatUtil.formatMontant(calculCapitalTotal(), decimales: 2)} ${l10n.currency}",
                                     icon: Icons.account_balance_wallet,
                                     color: Appstyle.blueF,
                                   ),
@@ -445,7 +463,7 @@ Future<void> ZakatNouveau(BuildContext context) async {
                                   ),
                                   _resumeItem(
                                     title: l10n.zakatAmount,
-                                    value: "${calculMontantZakat().toStringAsFixed(2)} ${l10n.currency}",
+                                    value: "${NumberFormatUtil.formatMontant(calculMontantZakat(), decimales: 2)} ${l10n.currency}",
                                     icon: Icons.monetization_on,
                                     color: calculMontantZakat() > 0
                                         ? Colors.green
@@ -495,7 +513,7 @@ Future<void> ZakatNouveau(BuildContext context) async {
                             context: context,
                             titre_type_message: l10n.error,
                             titre_concerne: l10n.zakat,
-                            message: "Veuillez sélectionner un statut",
+                            message: l10n.selectStatus,
                           );
                           return;
                         }
@@ -512,7 +530,6 @@ Future<void> ZakatNouveau(BuildContext context) async {
                             liquidites: _toDouble(liquiditesController),
                             creances: _toDouble(creancesController),
                             dettes: _toDouble(dettesController),
-                            dattes: _toDouble(dettesController),
                             capitalTotal: capitalTotal,
                             nissab: _toDouble(nissabController),
                             taux: _toDouble(tauxController),
@@ -559,7 +576,7 @@ Future<void> ZakatNouveau(BuildContext context) async {
                             context: context,
                             titre_type_message: l10n.error,
                             titre_concerne: l10n.zakat,
-                            message: "Erreur lors de la sauvegarde: $e",
+                            message: "${l10n.errorOccurred}: $e",
                           );
                         }
                       },

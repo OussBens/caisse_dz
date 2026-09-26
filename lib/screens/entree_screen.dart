@@ -1,20 +1,34 @@
+import 'dart:async';
 import 'dart:io';
+import 'package:caisse_dz/DBCreate.dart';
+import 'package:caisse_dz/Services/BonReception.dart';
+import 'package:caisse_dz/Services/BonReceptionPhotos.dart';
+import 'package:caisse_dz/Services/BonReceptionServer.dart';
 import 'package:caisse_dz/core/dialog/AI/ai_receipt_dialog.dart';
+import 'package:caisse_dz/core/dialog/AI/reception_connection_dialog.dart';
+import 'package:caisse_dz/core/widget/photo/bon_reception_card.dart';
+import 'package:caisse_dz/core/widget/ai_smart_icon.dart';
+import 'package:caisse_dz/data/models/bon_reception.dart';
 import 'package:excel/excel.dart';
+import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import 'package:caisse_dz/Services/ExcelPreviewDialog.dart';
 import 'package:caisse_dz/Services/BesionListDetail.dart';
+import 'package:caisse_dz/Services/Mouvement.dart';
 import 'package:caisse_dz/Services/excel_generator.dart';
 import 'package:caisse_dz/Services/SousCategories.dart';
 import 'package:caisse_dz/Services/Fournisseur.dart';
 import 'package:caisse_dz/Services/Categorie.dart';
 import 'package:caisse_dz/Services/SmartScan.dart';
+import 'package:caisse_dz/Services/Verssement.dart';
+import 'package:caisse_dz/data/models/verssement.dart';
 import 'package:caisse_dz/Services/Produits.dart';
-import 'package:caisse_dz/Services/Magasin.dart';
-import 'package:caisse_dz/Services/Entree.dart';
 import 'package:caisse_dz/Services/Client.dart';
+import 'package:caisse_dz/Services/Paramters.dart';
+import 'package:caisse_dz/Services/Utilisateur.dart';
+import 'package:caisse_dz/data/models/utilisateur.dart';
 
 import 'package:caisse_dz/l10n/app_localizations.dart';
 
@@ -28,16 +42,13 @@ import 'package:caisse_dz/core/dialog/smart_screen/smart_screen_actif.dart';
 import 'package:caisse_dz/core/dialog/smart_screen/smart_screen_modif.dart';
 import 'package:caisse_dz/core/dialog/entree/entree_nouveau.dart';
 import 'package:caisse_dz/core/dialog/entree/entree_detail.dart';
-import 'package:caisse_dz/core/dialog/entree/entree_actif.dart';
 import 'package:caisse_dz/core/dialog/entree/entree_modif.dart';
 import 'package:caisse_dz/core/dialog/information_dialog.dart';
 
-import 'package:caisse_dz/core/tableau/entree/entree_tableau.dart';
 import 'package:caisse_dz/core/tableau/smart_scan/tableau_smart_scan.dart';
 import 'package:caisse_dz/core/theme/app_style.dart';
 import 'package:caisse_dz/core/utilis/constant.dart';
 import 'package:caisse_dz/core/widget/account.dart';
-import 'package:caisse_dz/core/widget/afficheur/afficheur_entree_rapide.dart';
 import 'package:caisse_dz/core/widget/afficheur/afficheur_stock_global.dart';
 import 'package:caisse_dz/core/widget/afficheur/afficheur_smart_scan.dart';
 import 'package:caisse_dz/core/widget/button/Icon_button.dart';
@@ -47,6 +58,8 @@ import 'package:caisse_dz/core/widget/champ/liste_champ.dart';
 import 'package:caisse_dz/core/widget/champ/date_champ.dart';
 import 'package:caisse_dz/core/widget/fourchette._widget.dart';
 import 'package:caisse_dz/core/widget/time_date_widget.dart';
+import 'package:caisse_dz/core/widget/connection_status_bar.dart';
+import 'package:caisse_dz/core/widget/internet_status_widget.dart';
 import 'package:caisse_dz/core/widget/header_module.dart';
 import 'package:caisse_dz/core/widget/search_bar.dart';
 import 'package:caisse_dz/core/widget/side_bar.dart';
@@ -56,24 +69,18 @@ import 'package:caisse_dz/data/models/fournisseur.dart';
 import 'package:caisse_dz/data/models/smart_scan.dart';
 import 'package:caisse_dz/data/models/categorie.dart';
 import 'package:caisse_dz/data/models/produit.dart';
-import 'package:caisse_dz/data/models/magasin.dart';
 import 'package:caisse_dz/data/models/client.dart';
 import 'package:caisse_dz/data/constant.dart';
 
 import 'package:caisse_dz/core/widget/section_decoration_filtre.dart';
-import 'package:caisse_dz/data/models/entree.dart';
 import 'dart:ui' as ui;
 
-String? selectedEtatFilterS;
 String? selectedEtatFilterE;
 
 List<BesoinListDetail> besoinListDetailsTest = [];
 
 // Valeurs sélectionnées dans le filtre
-String? selectedProduitFilter;
-String? selectedFournisseurFilter;
 String? selectedCategorieFilter;
-String? selectedMagasinFilter;
 String? selectedSousCategorieFilter;
 String? selectedMarqueFilter;
 String? selectedFournisseurSCFilter;
@@ -84,11 +91,9 @@ List<Client>            clientsTest           = [];
 List<Fournisseur>       fournisseursTest      = [];
 List<Produit>           produitsTest          = [];
 List<Categorie>         categoriesTest        = [];
-List<Magasin>           magasinsTest          = [];
 List<SmartScan>         smartScansTest        = [];
-List<Entree>            entreeTest             = [];
+List<Utilisateur>       utilisateursTest      = [];
 
-List<Entree>     entreesSelectionnes    = [];
 List<SmartScan>   smartscansSelectionnes  = [];
 
 class EntreeScreen extends StatefulWidget {
@@ -101,22 +106,19 @@ class _EntreeScreenState extends State<EntreeScreen> with TickerProviderStateMix
   late TabController _tabController;
 
   // ✅ Constantes pour les index des tabs
-  static const int TAB_RAPIDE = 0;
-  static const int TAB_SMART_SCAN = 1;
-  static const int TAB_AI = 2;
+  static const int TAB_SMART_SCAN = 0;
+  static const int TAB_AI = 1;
 
   List<String> sousCategorieFilterOptions = sousCategoriesTest.map((sc) => sc .nom).toSet().toList();
   List<String> FournisseurFilterOptions   = fournisseursTest  .map((sc) => sc .nom).toSet().toList();
   List<String> categorieFilterOptions     = categoriesTest    .map((c)  => c  .nom).toSet().toList();
-  List<String> magasinFilterOptions       = magasinsTest      .map((sc) => sc .nom).toSet().toList();
-  List<String> ProduitFilterOptions       = produitsTest      .map((c)  => c  .nom).toSet().toList();
 
   // Plus besoin de selectedCardIndex, on utilise _tabController.index
-  String nombre_entree      = "500";
   String nombre_smart_scan  = "320";
   String nombre_ai          = "0";
+  double seuilMinimum       = 0;
 
-  final titles = ["Rapide", "SmartScan", "AI"];
+  final titles = ["SmartScan", "AI"];
 
   Future<void> loadAllData() async {
     final test = await ProduitServices.getAllProduits();
@@ -126,41 +128,110 @@ class _EntreeScreenState extends State<EntreeScreen> with TickerProviderStateMix
     final fournisseurs      = await FournisseurServices.getAllFournisseurs();
     final categories        = await CategorieServices.getAllCategorie();
     final smartScans        = await SmartScanServices.getAllSmartScans();
+    final versements        = await VerssementServices.getAllverssement();
     final produits          = await ProduitServices.getAllProduits();
-    final magasins          = await MagasinServices.getAllMagasins();
     final clients           = await ClientServices.getAllClients();
-    final entrees           = await EntreeServices.getAllEntre();
+    final param              = await ParamServices.getParam();
+    final utilisateurs      = await UtilisateurServices.getAllUtilisateurs();
+    final bonsReceptionList = await BonReceptionServices.getAllBonReceptions();
+    // ✅ Quantités calculées depuis le journal des mouvements — remplace Produit.quantite.
+    final quantitesTest = (await MouvementsServices.totauxParProduit()).quantites;
 
     setState(() {
+      bonsReception         = bonsReceptionList;
+      nombre_ai             = bonsReceptionList.length.toString();
+      appliquerFiltreAI();
       besoinListDetailsTest = besoinListDetails;
       sousCategoriesTest    = sousCategories;
       fournisseursTest      = fournisseurs;
       categoriesTest        = categories;
       smartScansTest        = smartScans;
+      utilisateursTest      = utilisateurs;
       smartscansFiltres     = smartScans;
+      versementsTest        = versements;
+      verseParSmartScan     = SmartScanServices.verseParSmartScan(versements);
+      nbrVersementParSmartScan = SmartScanServices.nbrVersementParSmartScan(versements);
       produitsTest          = produits;
-      magasinsTest          = magasins;
       clientsTest           = clients;
-      entreeTest            = entrees;
       smartscansFiltres = smartScansTest;
 
       sousCategorieFilterOptions  = sousCategoriesTest  .map((sc) => sc .nom).toSet().toList();
       FournisseurFilterOptions    = fournisseursTest    .map((sc) => sc .nom).toSet().toList();
       categorieFilterOptions      = categoriesTest      .map((c)  => c  .nom).toSet().toList();
-      magasinFilterOptions        = magasinsTest        .map((sc) => sc .nom).toSet().toList();
-      ProduitFilterOptions        = produitsTest        .map((c)  => c  .nom).toSet().toList();
 
-      besoinsTest = test.where((e) => e.quantite <= e.seuilMin).toList();
+      besoinsTest = test.where((e) => (quantitesTest[e.code] ?? 0) <= param.Minimum).toList();
+      seuilMinimum = param.Minimum;
 
-      entreesFiltres    = entreeTest;
       smartscansFiltres = smartScansTest;
 
-      nombre_entree = entreesFiltres.length.toString();
       nombre_smart_scan = smartscansFiltres.length.toString();
 
-      entreesSelectionnes   .clear();
       smartscansSelectionnes.clear();
     });
+  }
+
+  // ✅ Joindre une photo de bon depuis le disque : rejoint la même file
+  // d'attente que les photos reçues depuis le mobile (statut 'recu').
+  Future<void> _attachBonFromDisk() async {
+    final result = await FilePicker.platform.pickFiles(type: FileType.image);
+    final pickedPath = result?.files.single.path;
+    if (pickedPath == null) return;
+
+    final relativePath = await BonReceptionPhotoService.savePhoto(File(pickedPath));
+    final db = await DbCreator.openDb();
+    await BonReceptionServices(db).addBonReception(BonReception(
+      id: 0,
+      cheminPhoto: relativePath,
+      dateReception: DateTime.now(),
+    ));
+    await loadAllData();
+  }
+
+  // ✅ Tap sur une vignette de la file : lance l'assistant IA directement à
+  // l'étape de validation (photo déjà choisie), puis marque le bon traité.
+  Future<void> _openWizardFor(BonReception bon) async {
+    if (bon.estTraite) return;
+
+    final file = await BonReceptionPhotoService.getPhotoFile(bon.cheminPhoto);
+    if (file == null) {
+      final l10n = AppLocalizations.of(context)!;
+      await InformationDialog(
+        context: context,
+        titre_type_message: l10n.error,
+        titre_concerne: '',
+        message: l10n.receptionPhotoMissing,
+      );
+      return;
+    }
+
+    // ✅ Le scan IA appelle des API cloud (OCR + extraction) : sans réseau,
+    // il échouerait au milieu du dialogue — autant prévenir avant d'ouvrir.
+    if (!await hasInternetConnection()) {
+      if (!mounted) return;
+      final l10n = AppLocalizations.of(context)!;
+      await InformationDialog(
+        context: context,
+        titre_type_message: l10n.attention,
+        titre_concerne: '',
+        message: l10n.internetDisconnected,
+      );
+      return;
+    }
+
+    await AISmartScanDialog.open(
+      context,
+      initialImage: file,
+      receptionPhotoId: bon.id,
+      receptionFournisseurCode: bon.fournisseurCode,
+    );
+    await loadAllData();
+  }
+
+  Future<void> _deleteBon(BonReception bon) async {
+    final db = await DbCreator.openDb();
+    await BonReceptionServices(db).deleteBonReception(bon.id);
+    await BonReceptionPhotoService.deletePhoto(bon.cheminPhoto);
+    await loadAllData();
   }
 
   // ... (gardez vos méthodes d'export _exportCurrentModuleToExcel et _exportSelectedToExcel en les adaptant avec _tabController.index)
@@ -181,10 +252,6 @@ class _EntreeScreenState extends State<EntreeScreen> with TickerProviderStateMix
     };
   }
 
-  DateTime? dateDebutE;
-  DateTime? dateFinE;
-  final TextEditingController _dateDebutCtrlE  = TextEditingController();
-  final TextEditingController _dateFinCtrlE    = TextEditingController();
   DateTime? dateDebutSC;
   DateTime? dateFinSC;
   final TextEditingController _dateDebutCtrlSC = TextEditingController();
@@ -193,28 +260,48 @@ class _EntreeScreenState extends State<EntreeScreen> with TickerProviderStateMix
   bool filtresActifs = false;
   bool? filtreetat;
 
-  double? prixAchatMin;
-  double? prixAchatMax;
-  double? prixVenteMin;
-  double? prixVenteMax;
-  double? quantiteMax;
-  double? quantiteMin;
   double? montantMin;
   double? montantMax;
 
   String? periodeRapide;
-  String? periodeRapideE;
 
-  final TextEditingController _searchControllerE = TextEditingController();
   final TextEditingController _searchControllerSC = TextEditingController();
 
   List<SmartScan> smartscansFiltres = [];
-  List<Entree> entreesFiltres = [];
+  List<Verssement> versementsTest = [];
+  Map<String, double> verseParSmartScan = {};
+  Map<String, int> nbrVersementParSmartScan = {};
+
+  // ✅ File d'attente des photos de bons de réception (jointes depuis le
+  // disque ou reçues depuis le mobile), affichée dans l'onglet IA.
+  List<BonReception> bonsReception = [];
+  List<BonReception> bonsReceptionFiltres = [];
+
+  // Filtres de l'onglet IA (mêmes principes que filtreSC pour SmartScan).
+  bool filtresActifsAI = false;
+  String? selectedFournisseurAIFilter;
+  String? selectedStatutAIFilter; // 'recu' | 'traite' | 'erreur'
+  DateTime? dateDebutAI;
+  DateTime? dateFinAI;
+  final TextEditingController _dateDebutCtrlAI = TextEditingController();
+  final TextEditingController _dateFinCtrlAI = TextEditingController();
+  // Filtre sur la date de scan (dateTraitement), distincte de la date de
+  // réception ci-dessus.
+  DateTime? dateDebutScanAI;
+  DateTime? dateFinScanAI;
+  final TextEditingController _dateDebutScanCtrlAI = TextEditingController();
+  final TextEditingController _dateFinScanCtrlAI = TextEditingController();
+  final TextEditingController _searchControllerAI = TextEditingController();
+
+  // ✅ Id du bon tout juste arrivé du mobile : sert à déclencher une courte
+  // animation d'apparition sur sa vignette dans la grille.
+  int? _justArrivedBonId;
+  Timer? _justArrivedTimer;
 
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 3, vsync: this);
+    _tabController = TabController(length: 2, vsync: this);
     _tabController.addListener(() {
       if (mounted) {
         setState(() {
@@ -223,16 +310,169 @@ class _EntreeScreenState extends State<EntreeScreen> with TickerProviderStateMix
       }
     });
     loadAllData();
+
+    // ✅ Rafraîchit la file d'attente dès qu'une photo est reçue du mobile,
+    // sans attendre une navigation ou un polling manuel, et déclenche une
+    // animation d'apparition sur la nouvelle vignette.
+    BonReceptionServer.instance.onBonReceived = (bon) async {
+      if (!mounted) return;
+      await loadAllData();
+      if (!mounted) return;
+      setState(() => _justArrivedBonId = bon.id);
+      _justArrivedTimer?.cancel();
+      _justArrivedTimer = Timer(const Duration(milliseconds: 900), () {
+        if (mounted) setState(() => _justArrivedBonId = null);
+      });
+    };
   }
 
   @override
   void dispose() {
+    BonReceptionServer.instance.onBonReceived = null;
+    _justArrivedTimer?.cancel();
+    _dateDebutCtrlAI.dispose();
+    _dateFinCtrlAI.dispose();
+    _dateDebutScanCtrlAI.dispose();
+    _dateFinScanCtrlAI.dispose();
+    _searchControllerAI.dispose();
     _tabController.dispose();
     super.dispose();
   }
 
+  String? _nomUtilisateur(String? code) {
+    if (code == null) return null;
+    for (final u in utilisateursTest) {
+      if (u.code == code) return u.username;
+    }
+    return null;
+  }
+
+  bool get _filtresAIActifs =>
+      (selectedFournisseurAIFilter != null && selectedFournisseurAIFilter!.isNotEmpty) ||
+      (selectedStatutAIFilter != null && selectedStatutAIFilter!.isNotEmpty) ||
+      dateDebutAI != null ||
+      dateFinAI != null ||
+      dateDebutScanAI != null ||
+      dateFinScanAI != null ||
+      _searchControllerAI.text.isNotEmpty;
+
+  // Vrai si [d] tombe dans [debut, fin] (bornes incluses, comparaison sur la
+  // date seule). Utilisé pour les deux filtres de date (réception et scan).
+  bool _dateDansPlage(DateTime? d, DateTime? debut, DateTime? fin) {
+    if (debut == null && fin == null) return true;
+    if (d == null) return false;
+    final debutJour = debut != null ? DateTime(debut.year, debut.month, debut.day) : null;
+    final finJour = fin != null ? DateTime(fin.year, fin.month, fin.day, 23, 59, 59) : null;
+    if (debutJour != null && d.isBefore(debutJour)) return false;
+    if (finJour != null && d.isAfter(finJour)) return false;
+    return true;
+  }
+
+  void appliquerFiltreAI() {
+    bonsReceptionFiltres = bonsReception.where((b) {
+      final searchText = _searchControllerAI.text.toLowerCase();
+      final searchOk = searchText.isEmpty || b.searchableText.contains(searchText);
+
+      final fournisseurOk = selectedFournisseurAIFilter == null ||
+          selectedFournisseurAIFilter!.isEmpty ||
+          (b.fournisseur ?? '').toLowerCase() == selectedFournisseurAIFilter!.toLowerCase();
+
+      final statutOk = selectedStatutAIFilter == null ||
+          selectedStatutAIFilter!.isEmpty ||
+          b.statut == selectedStatutAIFilter;
+
+      final dateOk = _dateDansPlage(b.dateReception, dateDebutAI, dateFinAI);
+      final dateScanOk = _dateDansPlage(b.dateTraitement, dateDebutScanAI, dateFinScanAI);
+
+      return searchOk && fournisseurOk && statutOk && dateOk && dateScanOk;
+    }).toList();
+  }
+
+  void supprimerFilterAI() {
+    selectedFournisseurAIFilter = null;
+    selectedStatutAIFilter = null;
+    _searchControllerAI.clear();
+    dateDebutAI = null;
+    dateFinAI = null;
+    _dateDebutCtrlAI.clear();
+    _dateFinCtrlAI.clear();
+    dateDebutScanAI = null;
+    dateFinScanAI = null;
+    _dateDebutScanCtrlAI.clear();
+    _dateFinScanCtrlAI.clear();
+  }
+
+  Future<void> _pickDateDebutAI() async {
+    final picked = await showDatePicker(
+      context: context,
+      initialDate: dateDebutAI ?? DateTime.now(),
+      firstDate: DateTime(2000),
+      lastDate: DateTime(2100),
+    );
+    if (picked != null) {
+      setState(() {
+        dateDebutAI = picked;
+        _dateDebutCtrlAI.text = _formatDate(picked);
+        appliquerFiltreAI();
+      });
+    }
+  }
+
+  Future<void> _pickDateFinAI() async {
+    final picked = await showDatePicker(
+      context: context,
+      initialDate: dateFinAI ?? dateDebutAI ?? DateTime.now(),
+      firstDate: DateTime(2000),
+      lastDate: DateTime(2100),
+    );
+    if (picked != null) {
+      setState(() {
+        dateFinAI = picked;
+        if (dateDebutAI != null && picked.isBefore(dateDebutAI!)) {
+          dateFinAI = dateDebutAI;
+        }
+        _dateFinCtrlAI.text = _formatDate(dateFinAI!);
+        appliquerFiltreAI();
+      });
+    }
+  }
+
+  Future<void> _pickDateDebutScanAI() async {
+    final picked = await showDatePicker(
+      context: context,
+      initialDate: dateDebutScanAI ?? DateTime.now(),
+      firstDate: DateTime(2000),
+      lastDate: DateTime(2100),
+    );
+    if (picked != null) {
+      setState(() {
+        dateDebutScanAI = picked;
+        _dateDebutScanCtrlAI.text = _formatDate(picked);
+        appliquerFiltreAI();
+      });
+    }
+  }
+
+  Future<void> _pickDateFinScanAI() async {
+    final picked = await showDatePicker(
+      context: context,
+      initialDate: dateFinScanAI ?? dateDebutScanAI ?? DateTime.now(),
+      firstDate: DateTime(2000),
+      lastDate: DateTime(2100),
+    );
+    if (picked != null) {
+      setState(() {
+        dateFinScanAI = picked;
+        if (dateDebutScanAI != null && picked.isBefore(dateDebutScanAI!)) {
+          dateFinScanAI = dateDebutScanAI;
+        }
+        _dateFinScanCtrlAI.text = _formatDate(dateFinScanAI!);
+        appliquerFiltreAI();
+      });
+    }
+  }
+
   void vider_selectionne() {
-    entreesSelectionnes.clear();
     smartscansSelectionnes.clear();
   }
 
@@ -244,60 +484,15 @@ class _EntreeScreenState extends State<EntreeScreen> with TickerProviderStateMix
 
 
 
-  void appliquerFiltre() {
-    entreesFiltres = entreeTest.where((p) {
-      final searchText = _searchControllerE.text.toLowerCase();
-      final nomProduitE = produitsTest.where((pr) => pr.code == p.produitcode).firstOrNull?.nom ?? '';
-      final nomFournisseurE = fournisseursTest.where((f) => f.code == p.fournisseurCode).firstOrNull?.nom ?? '';
-      final ProdOk = selectedProduitFilter == null || selectedProduitFilter!.isEmpty || nomProduitE == selectedProduitFilter;
-      final FournOk = selectedFournisseurFilter == null || selectedFournisseurFilter!.isEmpty || nomFournisseurE == selectedFournisseurFilter;
-      final searchOk = searchText.isEmpty || '${p.searchableText} $nomProduitE $nomFournisseurE'.toLowerCase().contains(searchText);
-
-      final prixAchatOk = (prixAchatMin == null || p.prix >= prixAchatMin!) &&
-          (prixAchatMax == null || p.prix <= prixAchatMax!);
-
-      final quantiteOk = (quantiteMin == null || p.quantite >= quantiteMin!) &&
-          (quantiteMax == null || p.quantite <= quantiteMax!);
-
-      final etatOk = selectedEtatFilterS == null ||
-          selectedEtatFilterS == "" ||
-          (selectedEtatFilterS == "Actif" && p.etat) ||
-          (selectedEtatFilterS == "Inactif" && !p.etat);
-
-      final dateOk = () {
-        if (dateDebutE == null && dateFinE == null) return true;
-
-        final d = p.date;
-
-        final debut = dateDebutE != null
-            ? DateTime(dateDebutE!.year, dateDebutE!.month, dateDebutE!.day)
-            : null;
-
-        final fin = dateFinE != null
-            ? DateTime(dateFinE!.year, dateFinE!.month, dateFinE!.day, 23, 59, 59)
-            : null;
-
-        if (debut != null && d.isBefore(debut)) return false;
-        if (fin != null && d.isAfter(fin)) return false;
-
-        return true;
-      }();
-
-      return ProdOk && FournOk && prixAchatOk && dateOk && etatOk && searchOk && quantiteOk;
-    }).toList();
-
-    if ((selectedFournisseurFilter == null || selectedFournisseurFilter!.isEmpty) &&
-        (selectedProduitFilter == null || selectedProduitFilter!.isEmpty) &&
-        (selectedEtatFilterS == null || selectedEtatFilterS!.isEmpty) &&
-        prixAchatMin == null && prixAchatMax == null &&
-        prixVenteMin == null && prixVenteMax == null &&
-        quantiteMin == null && quantiteMax == null &&
-        dateDebutSC == null &&
-        dateFinSC == null &&
-        _searchControllerE.text.isEmpty) {
-      entreesFiltres = entreeTest;
-    }
-  }
+  // ✅ Vrai si au moins un champ de filtre entrée/SmartScan est renseigné (pour l'indicateur visuel du bouton Filtre).
+  bool get _filtresEntreeActifs =>
+      (selectedFournisseurSCFilter != null && selectedFournisseurSCFilter!.isNotEmpty) ||
+      montantMin != null ||
+      montantMax != null ||
+      (selectedEtatFilterE != null && selectedEtatFilterE!.isNotEmpty) ||
+      dateDebutSC != null ||
+      dateFinSC != null ||
+      _searchControllerSC.text.isNotEmpty;
 
   void appliquerFiltreSmartScan() {
     smartscansFiltres = smartScansTest.where((p) {
@@ -398,75 +593,6 @@ class _EntreeScreenState extends State<EntreeScreen> with TickerProviderStateMix
     appliquerFiltreSmartScan();
   }
 
-  void _appliquerPeriodeRapideE(String p, AppLocalizations l10n) {
-    final now = DateTime.now();
-
-    switch (p) {
-      case "today":
-        dateDebutE = DateTime(now.year, now.month, now.day);
-        dateFinE = dateDebutE;
-        break;
-      case "yesterday":
-        dateDebutE = DateTime(now.year, now.month, now.day - 1);
-        dateFinE = dateDebutE;
-        break;
-      case "week":
-        dateDebutE = now.subtract(Duration(days: now.weekday - 1));
-        dateFinE = dateDebutE!.add(const Duration(days: 6));
-        break;
-      case "lastWeek":
-        dateDebutE = now.subtract(Duration(days: now.weekday + 6));
-        dateFinE = dateDebutE!.add(const Duration(days: 6));
-        break;
-      case "month":
-        dateDebutE = DateTime(now.year, now.month, 1);
-        dateFinE = DateTime(now.year, now.month + 1, 0);
-        break;
-      case "lastMonth":
-        dateDebutE = DateTime(now.year, now.month - 1, 1);
-        dateFinE = DateTime(now.year, now.month, 0);
-        break;
-      case "last7days":
-        dateDebutE = now.subtract(const Duration(days: 6));
-        dateFinE = now;
-        break;
-      case "last30days":
-        dateDebutE = now.subtract(const Duration(days: 29));
-        dateFinE = now;
-        break;
-      case "year":
-        dateDebutE = DateTime(now.year, 1, 1);
-        dateFinE = DateTime(now.year, 12, 31);
-        break;
-      case "lastYear":
-        dateDebutE = DateTime(now.year - 1, 1, 1);
-        dateFinE = DateTime(now.year - 1, 12, 31);
-        break;
-    }
-
-    _dateDebutCtrlE.text = _formatDate(dateDebutE!);
-    _dateFinCtrlE.text = _formatDate(dateFinE!);
-
-    appliquerFiltre();
-  }
-
-  void supprimerFilter() {
-    prixAchatMin = null;
-    prixAchatMax = null;
-    quantiteMin = null;
-    quantiteMax = null;
-    prixVenteMin = null;
-    prixVenteMax = null;
-    dateDebutE = null;
-    dateFinE = null;
-    _dateDebutCtrlE.clear();
-    _dateFinCtrlE.clear();
-    selectedEtatFilterS = null;
-    _searchControllerE.clear();
-    selectedFournisseurFilter = null;
-    selectedProduitFilter = null;
-  }
-
   void supprimerFilterSmartScan() {
     selectedFournisseurSCFilter = null;
     selectedEtatFilterE = null;
@@ -479,47 +605,6 @@ class _EntreeScreenState extends State<EntreeScreen> with TickerProviderStateMix
     montantMax = null;
   }
 
-
-  Future<void> _pickDateDebutE() async {
-    final picked = await showDatePicker(
-      context: context,
-      initialDate: dateDebutE ?? DateTime.now(),
-      firstDate: DateTime(2000),
-      lastDate: DateTime(2100),
-    );
-
-    if (picked != null) {
-      setState(() {
-        dateDebutE = picked;
-        _dateDebutCtrlE.text = _formatDate(picked);
-        periodeRapideE = null;
-        appliquerFiltre();
-      });
-    }
-  }
-
-  Future<void> _pickDateFinE() async {
-    final picked = await showDatePicker(
-      context: context,
-      initialDate: dateFinE ?? dateDebutE ?? DateTime.now(),
-      firstDate: DateTime(2000),
-      lastDate: DateTime(2100),
-    );
-
-    if (picked != null) {
-      setState(() {
-        dateFinE = picked;
-
-        if (dateDebutE != null && picked.isBefore(dateDebutE!)) {
-          dateFinE = dateDebutE;
-        }
-
-        _dateFinCtrlE.text = _formatDate(dateFinE!);
-        periodeRapideE = null;
-        appliquerFiltre();
-      });
-    }
-  }
 
   Future<void> _pickDateDebutSC() async {
     final picked = await showDatePicker(
@@ -581,30 +666,30 @@ class _EntreeScreenState extends State<EntreeScreen> with TickerProviderStateMix
     // ✅ Index actuel du tab
     final currentTab = _tabController.index;
 
+    // ✅ Couleur de l'en-tête alignée sur la couleur du tab actif
+    // (même logique binaire que l'indicateur du TabBar : TAB_SMART_SCAN vs le reste)
+    final Color headerColor = currentTab == TAB_SMART_SCAN ? Appstyle.violet : Appstyle.indigo;
+
     // ✅ Noms des tabs
     final tabNames = [
-      l10n.quickMode,
       l10n.smartScan,
       l10n.aiMode,
     ];
 
     // ✅ Icônes des tabs
     final tabIcons = [
-      'assets/icons/cardwidget/entree_rapide_icon.png',
       'assets/icons/cardwidget/scan_icon.png',
-      'assets/icons/ai_icon.png',
+      'assets/icons/smart_icon.png',
     ];
 
     // ✅ Compteurs pour les tabs
     final tabCounts = [
-      nombre_entree,
       nombre_smart_scan,
       nombre_ai,
     ];
 
     // ✅ Couleurs des tabs
     final tabColors = [
-      Appstyle.blueC,
       Appstyle.violet,
       Appstyle.violetC,
     ];
@@ -628,16 +713,14 @@ class _EntreeScreenState extends State<EntreeScreen> with TickerProviderStateMix
 
             return SingleChildScrollView(
               scrollDirection: Axis.horizontal,
-              child: SingleChildScrollView(
-                scrollDirection: Axis.vertical,
-                child: ConstrainedBox(
-                  constraints: const BoxConstraints(
-                    minWidth: minWidth,
-                    minHeight: minHeight,
-                  ),
-                  child: SizedBox(
-                    width: adjustedWidth,
-                    height: adjustedHeight,
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(
+                  minWidth: minWidth,
+                  minHeight: minHeight,
+                ),
+                child: SizedBox(
+                  width: adjustedWidth,
+                  height: adjustedHeight,
                     child: Row(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
@@ -656,7 +739,7 @@ class _EntreeScreenState extends State<EntreeScreen> with TickerProviderStateMix
                                           Image.asset(
                                             "assets/icons/sidebar/entree_icon.png",
                                             width: 40,
-                                            color: Appstyle.violet,
+                                            color: headerColor,
                                           ),
                                           const SizedBox(width: 10),
                                           Row(
@@ -664,7 +747,7 @@ class _EntreeScreenState extends State<EntreeScreen> with TickerProviderStateMix
                                               Text(
                                                 l10n.entry,
                                                 style: Appstyle.textXLB.copyWith(
-                                                  color: Appstyle.violet,
+                                                  color: headerColor,
                                                   fontWeight: FontWeight.bold,
                                                 ),
                                               ),
@@ -672,7 +755,7 @@ class _EntreeScreenState extends State<EntreeScreen> with TickerProviderStateMix
                                               Text(
                                                 "(${tabNames[currentTab]})",
                                                 style: Appstyle.textXLB.copyWith(
-                                                  color: Appstyle.violet,
+                                                  color: headerColor,
                                                   fontWeight: FontWeight.bold,
                                                 ),
                                               ),
@@ -683,10 +766,10 @@ class _EntreeScreenState extends State<EntreeScreen> with TickerProviderStateMix
                                       const Spacer(),
                                       Row(
                                         children: [
+                                          const ConnectionStatusBar(),
+                                          const SizedBox(width: 20),
                                           TimeDateWidget(
-                                            heure: "18:00",
-                                            date: "25 Nov 2025",
-                                            iconHeure: "assets/icons/hour_icon.png",
+                                             iconHeure: "assets/icons/hour_icon.png",
                                             iconDate: "assets/icons/agenda_icon.png",
                                           ),
                                           const SizedBox(width: 20),
@@ -719,7 +802,7 @@ class _EntreeScreenState extends State<EntreeScreen> with TickerProviderStateMix
                                     controller: _tabController,
                                     isScrollable: false,
                                     indicator: BoxDecoration(
-                                      color: currentTab == TAB_RAPIDE ? Appstyle.violet : Appstyle.indigo,
+                                      color: currentTab == TAB_SMART_SCAN ? Appstyle.violet : Appstyle.indigo,
                                       borderRadius: BorderRadius.circular(12),
                                     ),
                                     labelColor: Colors.white,
@@ -733,19 +816,26 @@ class _EntreeScreenState extends State<EntreeScreen> with TickerProviderStateMix
                                     unselectedLabelStyle: Appstyle.textXS.copyWith(
                                       fontWeight: FontWeight.w500,
                                     ),
-                                    tabs: List.generate(3, (index) {
+                                    tabs: List.generate(2, (index) {
                                       final isSelected = currentTab == index;
                                       return Tab(
-                                        icon: Container(
-                                          width: 24,
-                                          height: 24,
-                                          child: Image.asset(
-                                            tabIcons[index],
-                                            width: 20,
-                                            height: 20,
-                                            color: isSelected ? Colors.white : Appstyle.gris,
-                                          ),
-                                        ),
+                                        icon: index == 1
+                                            ? AiSmartIcon(
+                                                iconPath: tabIcons[index],
+                                                width: 100,
+                                                height: 40,
+                                                active: isSelected,
+                                              )
+                                            : Container(
+                                                width: 100,
+                                                height: 40,
+                                                child: Image.asset(
+                                                  tabIcons[index],
+                                                  width: 100,
+                                                  height: 40,
+                                                  color: isSelected ? Colors.white : Appstyle.gris,
+                                                ),
+                                              ),
                                         text: "${tabNames[index]} (${tabCounts[index]})",
                                       );
                                     }),
@@ -759,238 +849,9 @@ class _EntreeScreenState extends State<EntreeScreen> with TickerProviderStateMix
                                 // ═══════════════════════════════════════════════════════════════════════════════
 
                                 // ──────────────────────────────────────────────────────────────
-                                // 1. CAS RAPIDE (currentTab == TAB_RAPIDE)
+                                // 1. CAS SMART SCAN (currentTab == TAB_SMART_SCAN)
                                 // ──────────────────────────────────────────────────────────────
-                                if (currentTab == TAB_RAPIDE)
-                                  Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
-                                    children: [
-                                      // Afficheur
-                                      if (entreesSelectionnes.length == 1)
-                                        AfficheurEntreeMouvement(
-                                          entree: entreesSelectionnes.first,
-                                          nomProduit: produitsTest.where((pr) => pr.code == entreesSelectionnes.first.produitcode).firstOrNull?.nom ?? entreesSelectionnes.first.produitcode,
-                                          nomFournisseur: fournisseursTest.where((f) => f.code == entreesSelectionnes.first.fournisseurCode).firstOrNull?.nom ?? entreesSelectionnes.first.fournisseurCode,
-                                          onDetails: () {
-                                            EntreeDetail(
-                                              context,
-                                              entreesSelectionnes.first,
-                                              produits: produitsTest,
-                                              fournisseurs: fournisseursTest,
-                                            );
-                                          },
-                                        )
-                                      else
-                                        Padding(
-                                          padding: const EdgeInsets.only(bottom: 16.0),
-                                          child: AfficheurStockGlobalWidget(
-                                            nombreBesoinList: 7,
-                                            nombrePanniers: smartScansTest.length,
-                                            nombreProduitsStock: 26,
-                                            nombreRetours: 15,
-                                            nombreSmartScan: 40,
-                                            nombreSorties: 10,
-                                          ),
-                                        ),
-
-                                      if (entreesSelectionnes.length == 1)
-                                        SizedBox(height: paddingV / 2),
-
-                                      // Filtres & Actions
-                                      Align(
-                                        alignment: Alignment.topLeft,
-                                        child: Row(
-                                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                          children: [
-                                            Row(
-                                              children: [
-                                                MainButton(
-                                                  text: l10n.filter,
-                                                  textColor: Appstyle.violet,
-                                                  color: Appstyle.Tblanc,
-                                                  icon: filtresActifs ? Icons.visibility_off : Icons.visibility,
-                                                  iconColor:Appstyle.violet ,
-                                                  onPressed: () {
-                                                    setState(() {
-                                                      filtresActifs = !filtresActifs;
-                                                      if (!filtresActifs) {
-                                                        supprimerFilter();
-                                                        appliquerFiltre();
-                                                      }
-                                                    });
-                                                  },
-                                                ),
-                                                SizedBox(width: paddingH / 4),
-                                                if (filtresActifs)
-                                                  MainIconButton(
-                                                    color: Colors.grey.shade400,
-                                                    imagePath: 'assets/icons/action/supprimer_icon.png',
-                                                    onPressed: () {
-                                                      setState(() {
-                                                        supprimerFilter();
-                                                        appliquerFiltre();
-                                                      });
-                                                    },
-                                                  ),
-                                                if (filtresActifs)
-                                                  SizedBox(width: paddingH / 4),
-                                                MainButton(
-                                                  text: l10n.extract,
-                                                  textColor:Colors.green ,
-                                                  iconColor: Colors.green,
-                                                  color: Appstyle.Tblanc,
-                                                  icon: Icons.download,
-                                                  onPressed: () async {
-                                                     },
-                                                ),
-                                                SizedBox(width: paddingH / 4),
-                                                MainIconButton(
-                                                  imagePath: "assets/icons/action/extacter_filtre_icon.png",
-                                                  color: Colors.orange,
-                                                  onPressed: () async {
-                                                   },
-                                                ),
-                                              ],
-                                            ),
-                                            Row(
-                                              mainAxisAlignment: MainAxisAlignment.end,
-                                              children: [
-                                                MainIconButton(
-                                                  imagePath: "assets/icons/action/detail_icon.png",
-                                                  color: Appstyle.violet,
-                                                  onPressed: () async {
-                                                    if (entreesSelectionnes.length == 1) {
-                                                      EntreeDetail(
-                                                        context,
-                                                        entreesSelectionnes.first,
-                                                        produits: produitsTest,
-                                                        fournisseurs: fournisseursTest,
-                                                      );
-                                                    } else if (entreesSelectionnes.isEmpty) {
-                                                      await InformationDialog(
-                                                        context: context,
-                                                        titre_type_message: l10n.information,
-                                                        titre_concerne: l10n.entry,
-                                                        message: l10n.noEntrySelected,
-                                                      );
-                                                    } else {
-                                                      await InformationDialog(
-                                                        context: context,
-                                                        titre_type_message: l10n.information,
-                                                        titre_concerne: l10n.entry,
-                                                        message: l10n.selectSingleEntryForDetail,
-                                                      );
-                                                    }
-                                                  },
-                                                ),
-                                                SizedBox(width: paddingH / 4),
-                                                MainIconButton(
-                                                  imagePath: "assets/icons/action/supprimer_icon.png",
-                                                  color: Appstyle.gris,
-                                                  onPressed: () async {
-                                                    if (entreesSelectionnes.isNotEmpty) {
-                                                      await AnnulerEntree(
-                                                        context,
-                                                        entreesSelectionnes,
-                                                      );
-                                                      await loadAllData();
-                                                    } else if (entreesSelectionnes.isEmpty) {
-                                                      await InformationDialog(
-                                                        context: context,
-                                                        titre_type_message: l10n.information,
-                                                        titre_concerne: l10n.entry,
-                                                        message: l10n.noEntrySelected,
-                                                      );
-                                                    }
-                                                  },
-                                                ),
-                                                SizedBox(width: paddingH / 4),
-                                                MainIconButton(
-                                                  imagePath: "assets/icons/action/edit_icon.png",
-                                                  color: Appstyle.blueC,
-                                                  onPressed: () async {
-                                                    if (entreesSelectionnes.length == 1) {
-                                                      await EntreeModif(
-                                                        context,
-                                                        entreesSelectionnes.first,
-                                                      );
-                                                      await loadAllData();
-                                                    } else if (entreesSelectionnes.isEmpty) {
-                                                      await InformationDialog(
-                                                        context: context,
-                                                        titre_type_message: l10n.information,
-                                                        titre_concerne: l10n.entry,
-                                                        message: l10n.noEntrySelected,
-                                                      );
-                                                    } else {
-                                                      await InformationDialog(
-                                                        context: context,
-                                                        titre_type_message: l10n.information,
-                                                        titre_concerne: l10n.entry,
-                                                        message: l10n.selectSingleEntryToModify,
-                                                      );
-                                                    }
-                                                  },
-                                                ),
-                                                SizedBox(width: paddingH / 4),
-                                                MainButton(
-                                                  text: l10n.newWord,
-                                                  color: Appstyle.crevete,
-                                                  onPressed: () async {
-                                                    await EntreeNouveau(
-                                                      context,
-                                                      onSuccess: () async {
-                                                        await loadAllData();
-                                                        if (mounted) {
-                                                          setState(() {
-                                                            entreesFiltres = List.from(entreeTest);
-                                                          });
-                                                        }
-                                                      },
-                                                    );
-                                                  },
-                                                ),
-                                              ],
-                                            ),
-                                          ],
-                                        ),
-                                      ),
-
-                                      if (!filtresActifs)
-                                        SizedBox(height: paddingV / 2),
-
-                                      // Filtres
-                                      if (filtresActifs)
-                                        Align(
-                                          alignment: Alignment.topLeft,
-                                          child: Padding(
-                                            padding: EdgeInsets.symmetric(vertical: paddingV / 2),
-                                            child: filtreEntree(setState, adjustedWidth * 1 / 3, l10n, translator, periodesRapides),
-                                          ),
-                                        ),
-
-                                      // Tableau
-                                      SizedBox(
-                                        height: adjustedHeight * 0.68,
-                                        child: TableauEntreeAdvanced(
-                                          key: ValueKey(entreesFiltres),
-                                          entrees: entreesFiltres,
-                                          produits: produitsTest,
-                                          fournisseurs: fournisseursTest,
-                                          onSelectionChanged: (selection) {
-                                            setState(() {
-                                              entreesSelectionnes = selection;
-                                            });
-                                          },
-                                        ),
-                                      ),
-                                    ],
-                                  )
-
-                                // ──────────────────────────────────────────────────────────────
-                                // 2. CAS SMART SCAN (currentTab == TAB_SMART_SCAN)
-                                // ──────────────────────────────────────────────────────────────
-                                else if (currentTab == TAB_SMART_SCAN)
+                                if (currentTab == TAB_SMART_SCAN)
                                   Column(
                                     crossAxisAlignment: CrossAxisAlignment.start,
                                     children: [
@@ -998,8 +859,22 @@ class _EntreeScreenState extends State<EntreeScreen> with TickerProviderStateMix
                                       if (smartscansSelectionnes.length == 1)
                                         AfficheurSmartScan(
                                           scan: smartscansSelectionnes.first,
+                                          verse: verseParSmartScan[smartscansSelectionnes.first.code] ?? 0,
+                                          reste: smartscansSelectionnes.first.montant -
+                                              (verseParSmartScan[smartscansSelectionnes.first.code] ?? 0),
+                                          nbrVersement: nbrVersementParSmartScan[smartscansSelectionnes.first.code] ?? 0,
                                           onDetails: () {
-                                            SmartScanDetail(context, smartscansSelectionnes.first);
+                                            final scan = smartscansSelectionnes.first;
+                                            if (scan.nbrProduit == 1) {
+                                              EntreeDetail(
+                                                context,
+                                                scan,
+                                                produits: produitsTest,
+                                                fournisseurs: fournisseursTest,
+                                              );
+                                            } else {
+                                              SmartScanDetail(context, scan);
+                                            }
                                           },
                                         )
                                       else
@@ -1030,6 +905,7 @@ class _EntreeScreenState extends State<EntreeScreen> with TickerProviderStateMix
                                                   text: l10n.filter,
                                                   textColor: Appstyle.violet,
                                                   color: Appstyle.Tblanc,
+                                                  showBadge: _filtresEntreeActifs,
                                                   icon: filtresActifs ? Icons.visibility_off : Icons.visibility,
                                                   iconColor:Appstyle.violet ,
                                                   onPressed: () {
@@ -1082,7 +958,17 @@ class _EntreeScreenState extends State<EntreeScreen> with TickerProviderStateMix
                                                   color: Appstyle.violet,
                                                   onPressed: () async {
                                                     if (smartscansSelectionnes.length == 1) {
-                                                      SmartScanDetail(context, smartscansSelectionnes.first);
+                                                      final scan = smartscansSelectionnes.first;
+                                                      if (scan.nbrProduit == 1) {
+                                                        EntreeDetail(
+                                                          context,
+                                                          scan,
+                                                          produits: produitsTest,
+                                                          fournisseurs: fournisseursTest,
+                                                        );
+                                                      } else {
+                                                        SmartScanDetail(context, scan);
+                                                      }
                                                     } else if (smartscansSelectionnes.isEmpty) {
                                                       await InformationDialog(
                                                         context: context,
@@ -1127,10 +1013,12 @@ class _EntreeScreenState extends State<EntreeScreen> with TickerProviderStateMix
                                                   color: Appstyle.blueC,
                                                   onPressed: () async {
                                                     if (smartscansSelectionnes.length == 1) {
-                                                      await SmartScanModif(
-                                                        context,
-                                                        smartscansSelectionnes.first,
-                                                      );
+                                                      final scan = smartscansSelectionnes.first;
+                                                      if (scan.nbrProduit == 1) {
+                                                        await EntreeModif(context, scan);
+                                                      } else {
+                                                        await SmartScanModif(context, scan);
+                                                      }
                                                       await loadAllData();
                                                     } else if (smartscansSelectionnes.isEmpty) {
                                                       await InformationDialog(
@@ -1154,8 +1042,21 @@ class _EntreeScreenState extends State<EntreeScreen> with TickerProviderStateMix
                                                   text: l10n.newWord,
                                                   color: Appstyle.crevete,
                                                   onPressed: () async {
-                                                    SmartScanDialog.open(context);
+                                                    await SmartScanDialog.open(context);
                                                     await loadAllData();
+                                                  },
+                                                ),
+                                                SizedBox(width: paddingH / 4),
+                                                MainButton(
+                                                  text: l10n.entryrapide,
+                                                  color: Appstyle.jaune,
+                                                  onPressed: () async {
+                                                    await EntreeNouveau(
+                                                      context,
+                                                      onSuccess: () async {
+                                                        await loadAllData();
+                                                      },
+                                                    );
                                                   },
                                                 ),
                                               ],
@@ -1183,6 +1084,10 @@ class _EntreeScreenState extends State<EntreeScreen> with TickerProviderStateMix
                                         child: TableauSmartScanAdvanced(
                                           key: ValueKey(smartscansFiltres),
                                           scans: smartscansFiltres,
+                                          verseParSmartScan: verseParSmartScan,
+                                          nbrVersementParSmartScan: nbrVersementParSmartScan,
+                                          fournisseurs: fournisseursTest,
+                                          utilisateurs: utilisateursTest,
                                           onSelectionChanged: (selection) {
                                             setState(() {
                                               smartscansSelectionnes = selection;
@@ -1194,43 +1099,133 @@ class _EntreeScreenState extends State<EntreeScreen> with TickerProviderStateMix
                                   )
 
                                 // ──────────────────────────────────────────────────────────────
-                                // 3. CAS AI (currentTab == TAB_AI)
+                                // 2. CAS AI (currentTab == TAB_AI)
                                 // ──────────────────────────────────────────────────────────────
                                 else if (currentTab == TAB_AI)
-                                    Center(
-                                      child: Column(
-                                        mainAxisAlignment: MainAxisAlignment.center,
-                                        children: [
-                                          Padding(
-                                            padding: const EdgeInsets.all(16.0),
-                                            child: Image.asset(
-                                              "assets/icons/ai_icon.png",
-                                              width: 100,
-                                              height: 100,
-                                              color: Appstyle.violet,
+                                    Column(
+                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      children: [
+                                        Row(
+                                          children: [
+                                            Expanded(
+                                              child: MainButton(
+                                                text: l10n.attachBonFromDisk,
+                                                color: Appstyle.crevete,
+                                                icon: Icons.attach_file,
+                                                onPressed: _attachBonFromDisk,
+                                              ),
+                                            ),
+                                            const SizedBox(width: 16),
+                                            Expanded(
+                                              child: MainButton(
+                                                text: l10n.receiveBonFromPhone,
+                                                color: Appstyle.violet,
+                                                icon: Icons.qr_code,
+                                                onPressed: () => ReceptionConnectionDialog.open(context),
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                        const SizedBox(height: 16),
+                                        if (bonsReception.isNotEmpty)
+                                          Align(
+                                            alignment: Alignment.topLeft,
+                                            child: Row(
+                                              children: [
+                                                MainButton(
+                                                  text: l10n.filter,
+                                                  textColor: Appstyle.violet,
+                                                  color: Appstyle.Tblanc,
+                                                  showBadge: _filtresAIActifs,
+                                                  icon: filtresActifsAI ? Icons.visibility_off : Icons.visibility,
+                                                  iconColor: Appstyle.violet,
+                                                  onPressed: () {
+                                                    setState(() {
+                                                      filtresActifsAI = !filtresActifsAI;
+                                                      if (!filtresActifsAI) {
+                                                        supprimerFilterAI();
+                                                        appliquerFiltreAI();
+                                                      }
+                                                    });
+                                                  },
+                                                ),
+                                                if (filtresActifsAI) SizedBox(width: paddingH / 4),
+                                                if (filtresActifsAI)
+                                                  MainIconButton(
+                                                    color: Colors.grey.shade400,
+                                                    imagePath: 'assets/icons/action/supprimer_icon.png',
+                                                    onPressed: () {
+                                                      setState(() {
+                                                        supprimerFilterAI();
+                                                        appliquerFiltreAI();
+                                                      });
+                                                    },
+                                                  ),
+                                              ],
                                             ),
                                           ),
-                                          const SizedBox(height: 20),
-                                          Text(
-                                            l10n.aiModeDescription,
-                                            style: Appstyle.textXLB.copyWith(
-                                              color: Appstyle.violet,
-                                              fontWeight: FontWeight.bold,
+                                        if (filtresActifsAI)
+                                          Align(
+                                            alignment: Alignment.topLeft,
+                                            child: Padding(
+                                              padding: EdgeInsets.symmetric(vertical: paddingV / 2),
+                                              child: filtreAI(setState, adjustedWidth * 1 / 3, l10n),
                                             ),
-                                            textAlign: TextAlign.center,
                                           ),
-                                          const SizedBox(height: 30),
-                                          MainButton(
-                                            text: l10n.generalInformation,
-                                            color: Appstyle.crevete,
-                                            icon: Icons.auto_awesome,
-                                            onPressed: () async {
-                                              AISmartScanDialog.open(context);
-                                              await loadAllData();
-                                            },
+                                        if (bonsReception.isNotEmpty) const SizedBox(height: 8),
+                                        if (bonsReception.isEmpty)
+                                          Center(
+                                            child: Column(
+                                              children: [
+                                                Padding(
+                                                  padding: const EdgeInsets.all(16.0),
+                                                  child: Image.asset(
+                                                    "assets/icons/smart_icon.png",
+                                                    width: 100,
+                                                    height: 100,
+                                                    color: Appstyle.violet,
+                                                  ),
+                                                ),
+                                                Text(
+                                                  l10n.aiModeDescription,
+                                                  style: Appstyle.textXLB.copyWith(
+                                                    color: Appstyle.violet,
+                                                    fontWeight: FontWeight.bold,
+                                                  ),
+                                                  textAlign: TextAlign.center,
+                                                ),
+                                              ],
+                                            ),
+                                          )
+                                        else if (bonsReceptionFiltres.isEmpty)
+                                          Center(
+                                            child: Padding(
+                                              padding: const EdgeInsets.all(32.0),
+                                              child: Text(
+                                                l10n.noResultsFound,
+                                                style: Appstyle.textSB.copyWith(color: Appstyle.gris),
+                                              ),
+                                            ),
+                                          )
+                                        else
+                                          Wrap(
+                                            spacing: 16,
+                                            runSpacing: 16,
+                                            children: bonsReceptionFiltres.map((bon) {
+                                              return BonReceptionCard(
+                                                key: ValueKey(bon.id),
+                                                bon: bon,
+                                                justArrived: bon.id == _justArrivedBonId,
+                                                traiteParNom: _nomUtilisateur(bon.traiteParCode),
+                                                onTap: () => _openWizardFor(bon),
+                                                // ✅ Une photo déjà scannée est liée à un Smart Scan :
+                                                // la supprimer ici casserait ce lien, donc seules les
+                                                // photos non traitées restent supprimables.
+                                                onDelete: bon.estTraite ? null : () => _deleteBon(bon),
+                                              );
+                                            }).toList(),
                                           ),
-                                        ],
-                                      ),
+                                      ],
                                     ),
                               ],
                             ),
@@ -1240,196 +1235,9 @@ class _EntreeScreenState extends State<EntreeScreen> with TickerProviderStateMix
                     ),
                   ),
                 ),
-              ),
             );
           },
         ),
-      ),
-    );
-  }
-
-  Widget filtreEntree(
-      void Function(VoidCallback fn) setState,
-      double width,
-      AppLocalizations l10n,
-      ListsConstTranslator translator,
-      Map<String, String> periodesRapides,
-      ) {
-    return SectionDecorationFiltre(
-      padding: const EdgeInsets.all(10),
-      color: Appstyle.Tblanc,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Expanded(
-                child: ChampAvecLabel(
-                  label: l10n.product,
-                  child: TextListe(
-                    value: selectedProduitFilter ?? "",
-                    items: ProduitFilterOptions,
-                    onChanged: (v) {
-                      setState(() {
-                        selectedProduitFilter = v;
-                        appliquerFiltre();
-                      });
-                    },
-                  ),
-                ),
-              ),
-              const SizedBox(width: 20),
-              Expanded(
-                child: ChampAvecLabel(
-                  label: l10n.supplier,
-                  child: TextListe(
-                    value: selectedFournisseurFilter,
-                    items: FournisseurFilterOptions,
-                    onChanged: (v) {
-                      setState(() {
-                        selectedFournisseurFilter = v;
-                        appliquerFiltre();
-                      });
-                    },
-                  ),
-                ),
-              ),
-              const SizedBox(width: 20),
-              Expanded(
-                child: ChampAvecLabel(
-                  label: l10n.status,
-                  child: TextListe(
-                    value: selectedEtatFilterS,
-                    items: translator.etatDisplayList,
-                    onChanged: (v) {
-                      setState(() {
-                        selectedEtatFilterS = translator.etatToFrench(v!);
-                        appliquerFiltre();
-                      });
-                    },
-                  ),
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 15),
-          Row(
-            children: [
-              Expanded(
-                child: ChampAvecLabel(
-                  label: l10n.from,
-                  child: TextDate(
-                    hint: l10n.startDate,
-                    controller: _dateDebutCtrlE,
-                    onTap: _pickDateDebutE,
-                  ),
-                ),
-              ),
-              const SizedBox(width: 20),
-              Expanded(
-                child: ChampAvecLabel(
-                  label: l10n.to,
-                  child: TextDate(
-                    hint: l10n.endDate,
-                    enabled: dateDebutE != null,
-                    controller: _dateFinCtrlE,
-                    onTap: _pickDateFinE,
-                  ),
-                ),
-              ),
-              const SizedBox(width: 20),
-              SizedBox(
-                width: 400,
-                child: ChampAvecLabel(
-                  label: l10n.quickPeriod,
-                  child: DropdownButtonFormField<String>(
-                    value: periodeRapideE,
-                    decoration: InputDecoration(
-                      hintText: l10n.choosePeriod,
-                      isDense: true,
-                      border: const OutlineInputBorder(),
-                    ),
-                    items: periodesRapides.entries.map((e) {
-                      return DropdownMenuItem<String>(
-                        value: e.key,
-                        child: Text(e.value),
-                      );
-                    }).toList(),
-                    onChanged: (v) {
-                      if (v != null) {
-                        setState(() {
-                          periodeRapideE = v;
-                          _appliquerPeriodeRapideE(v, l10n);
-                        });
-                      }
-                    },
-                  ),
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 15),
-          Row(
-            children: [
-              SizedBox(
-                width: width * 0.9,
-                child: Row(
-                  children: [
-                    Expanded(
-                      child: ChampAvecLabel(
-                        label: l10n.search,
-                        child: SearchField(
-                          controller: _searchControllerE,
-                          onChanged: (v) {
-                            setState(() {
-                              appliquerFiltre();
-                            });
-                          },
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(width: 20),
-              Expanded(
-                child: ChampAvecLabel(
-                  label: l10n.purchasePrice,
-                  child: FourchettePrixWidget(
-                    couleur: Appstyle.violet,
-                    minValue: prixAchatMin,
-                    maxValue: prixAchatMax,
-                    onChanged: (min, max) {
-                      setState(() {
-                        prixAchatMin = min;
-                        prixAchatMax = max;
-                        appliquerFiltre();
-                      });
-                    },
-                  ),
-                ),
-              ),
-              const SizedBox(width: 20),
-              Expanded(
-                child: ChampAvecLabel(
-                  label: l10n.quantity,
-                  child: FourchettePrixWidget(
-                    couleur: Appstyle.violet,
-                    minValue: quantiteMin,
-                    maxValue: quantiteMax,
-                    onChanged: (min, max) {
-                      setState(() {
-                        quantiteMin = min;
-                        quantiteMax = max;
-                        appliquerFiltre();
-                      });
-                    },
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ],
       ),
     );
   }
@@ -1527,7 +1335,7 @@ class _EntreeScreenState extends State<EntreeScreen> with TickerProviderStateMix
               ),
               const SizedBox(width: 20),
               SizedBox(
-                width: 400,
+                width: width * 0.7,
                 child: ChampAvecLabel(
                   label: l10n.quickPeriod,
                   child: DropdownButtonFormField<String>(
@@ -1560,7 +1368,7 @@ class _EntreeScreenState extends State<EntreeScreen> with TickerProviderStateMix
           Row(
             children: [
               SizedBox(
-                width: width * 0.9,
+                width: width * 0.7,
                 child: Row(
                   children: [
                     Expanded(
@@ -1577,6 +1385,160 @@ class _EntreeScreenState extends State<EntreeScreen> with TickerProviderStateMix
                       ),
                     ),
                   ],
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  // Libellé affiché <-> valeur brute stockée en base pour le statut d'un bon.
+  String _statutAIDisplay(String statut, AppLocalizations l10n) {
+    switch (statut) {
+      case 'traite':
+        return l10n.receptionStatutTraite;
+      case 'erreur':
+        return l10n.receptionStatutErreur;
+      default:
+        return l10n.receptionStatutRecu;
+    }
+  }
+
+  String _statutAIFromDisplay(String display, AppLocalizations l10n) {
+    if (display == l10n.receptionStatutTraite) return 'traite';
+    if (display == l10n.receptionStatutErreur) return 'erreur';
+    return 'recu';
+  }
+
+  Widget filtreAI(
+      void Function(VoidCallback fn) setState,
+      double width,
+      AppLocalizations l10n,
+      ) {
+    final fournisseurOptionsAI = bonsReception
+        .map((b) => b.fournisseur)
+        .whereType<String>()
+        .where((f) => f.trim().isNotEmpty)
+        .toSet()
+        .toList();
+
+    return SectionDecorationFiltre(
+      padding: const EdgeInsets.all(10),
+      color: Appstyle.Tblanc,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Expanded(
+                child: ChampAvecLabel(
+                  label: l10n.supplier,
+                  child: TextListe(
+                    value: selectedFournisseurAIFilter,
+                    items: fournisseurOptionsAI,
+                    onChanged: (v) {
+                      setState(() {
+                        selectedFournisseurAIFilter = v;
+                        appliquerFiltreAI();
+                      });
+                    },
+                  ),
+                ),
+              ),
+              const SizedBox(width: 20),
+              Expanded(
+                child: ChampAvecLabel(
+                  label: l10n.status,
+                  child: TextListe(
+                    value: selectedStatutAIFilter == null
+                        ? null
+                        : _statutAIDisplay(selectedStatutAIFilter!, l10n),
+                    items: [
+                      l10n.receptionStatutRecu,
+                      l10n.receptionStatutTraite,
+                      l10n.receptionStatutErreur,
+                    ],
+                    onChanged: (v) {
+                      setState(() {
+                        selectedStatutAIFilter = v == null ? null : _statutAIFromDisplay(v, l10n);
+                        appliquerFiltreAI();
+                      });
+                    },
+                  ),
+                ),
+              ),
+              const SizedBox(width: 20),
+              Expanded(
+                child: ChampAvecLabel(
+                  label: l10n.search,
+                  child: SearchField(
+                    controller: _searchControllerAI,
+                    onChanged: (v) {
+                      setState(() {
+                        appliquerFiltreAI();
+                      });
+                    },
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 15),
+          Text(l10n.receptionDateRangeLabel, style: Appstyle.textXSB.copyWith(color: Appstyle.gris)),
+          const SizedBox(height: 6),
+          Row(
+            children: [
+              Expanded(
+                child: ChampAvecLabel(
+                  label: l10n.from,
+                  child: TextDate(
+                    hint: l10n.startDate,
+                    controller: _dateDebutCtrlAI,
+                    onTap: _pickDateDebutAI,
+                  ),
+                ),
+              ),
+              const SizedBox(width: 20),
+              Expanded(
+                child: ChampAvecLabel(
+                  label: l10n.to,
+                  child: TextDate(
+                    hint: l10n.endDate,
+                    enabled: dateDebutAI != null,
+                    controller: _dateFinCtrlAI,
+                    onTap: _pickDateFinAI,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 15),
+          Text(l10n.scanDateRangeLabel, style: Appstyle.textXSB.copyWith(color: Appstyle.gris)),
+          const SizedBox(height: 6),
+          Row(
+            children: [
+              Expanded(
+                child: ChampAvecLabel(
+                  label: l10n.from,
+                  child: TextDate(
+                    hint: l10n.startDate,
+                    controller: _dateDebutScanCtrlAI,
+                    onTap: _pickDateDebutScanAI,
+                  ),
+                ),
+              ),
+              const SizedBox(width: 20),
+              Expanded(
+                child: ChampAvecLabel(
+                  label: l10n.to,
+                  child: TextDate(
+                    hint: l10n.endDate,
+                    enabled: dateDebutScanAI != null,
+                    controller: _dateFinScanCtrlAI,
+                    onTap: _pickDateFinScanAI,
+                  ),
                 ),
               ),
             ],

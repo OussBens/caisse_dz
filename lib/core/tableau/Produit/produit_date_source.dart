@@ -7,8 +7,9 @@ import '../../../../data/models/categorie.dart';
 import '../../../../data/models/sous_categorie.dart';
 import '../../../../data/models/remise.dart';
 import '../../../../data/models/fournisseur.dart';
-import '../../../data/constant.dart';
 import '../../../l10n/app_localizations.dart';
+import 'package:caisse_dz/core/theme/app_style.dart';
+import '../../dialog/produits_liste_dialog.dart';
 import '../../widget/status_badge.dart';
 import '../base_table_data_source.dart';
 
@@ -19,6 +20,16 @@ class ProduitDataSource extends BaseTableDataSource<Produit> {
   final List<Remise> remises;
   final List<Fournisseur> fournisseurs;
 
+  /// Seuil global de stock bas (Paramètres > Minimum), en l'absence d'un
+  /// seuil par produit (retiré du modèle Produit) — voir stock_screen.dart.
+  final double seuilMinimum;
+
+  /// Quantité calculée à partir du journal des mouvements (voir
+  /// MouvementsServices.totauxParProduit), pour le magasin filtré côté écran
+  /// — remplace Produit.quantite (compteur en cache, sujet à dérive) comme
+  /// source affichée. Absent d'un code = aucun mouvement enregistré = 0.
+  Map<String, double> quantites;
+
   ProduitDataSource({
     required List<Produit> produits,
     required super.columnConfig,
@@ -27,7 +38,18 @@ class ProduitDataSource extends BaseTableDataSource<Produit> {
     required this.sousCategories,
     required this.remises,
     required this.fournisseurs,
+    this.seuilMinimum = 0,
+    this.quantites = const {},
+    super.utilisateurs = const [],
   }) : super(items: produits);
+
+  double _quantite(Produit produit) => quantites[produit.code] ?? 0;
+
+  void updateQuantites(Map<String, double> newQuantites) {
+    quantites = newQuantites;
+    buildDataGridRows();
+    notifyListeners();
+  }
 
   String _nomCategorie(int? id) =>
       categories.where((c) => c.id == id).firstOrNull?.nom ?? '';
@@ -89,8 +111,6 @@ class ProduitDataSource extends BaseTableDataSource<Produit> {
         return produit.multicodebar ? l10n.yes : l10n.no;
       case 'margeBool':
         return produit.margeBool ? l10n.yes : l10n.no;
-      case 'seuilBool':
-        return produit.seuilBool ? l10n.yes : l10n.no;
 
 
       // --- Prix ---
@@ -107,11 +127,7 @@ class ProduitDataSource extends BaseTableDataSource<Produit> {
 
       // --- Stock ---
       case 'quantite':
-        return produit.quantite;
-      case 'seuilMin':
-        return produit.seuilMin;
-      case 'seuilMax':
-        return produit.seuilMax;
+        return _quantite(produit);
       case 'uniteMesure':
         return produit.uniteMesure;
 
@@ -137,11 +153,11 @@ class ProduitDataSource extends BaseTableDataSource<Produit> {
 
       // --- Audit ---
       case 'creeParCode':
-        return produit.creeParcode;
+        return nomUtilisateur(produit.creeParcode);
       case 'modifParCode':
-        return produit.modifParCode ?? '';
+        return nomUtilisateur(produit.modifParCode);
       case 'annulerParCode':
-        return produit.annulerParCode ?? '';
+        return nomUtilisateur(produit.annulerParCode);
       case 'motifAnnul':
         return produit.motifAnnul ?? '';
 
@@ -162,25 +178,33 @@ class ProduitDataSource extends BaseTableDataSource<Produit> {
       return Center(child: EtatBadge(isActive: item.etat));
     }
 
+    if (columnName == 'prixAchat') {
+      return Center(
+        child: pilluleCellule("${item.prixAchat} ${l10n.currency}", Appstyle.violet),
+      );
+    }
+
+    if (columnName == 'prixVente') {
+      return Center(
+        child: pilluleCellule("${item.prixVente} ${l10n.currency}", Appstyle.crevete),
+      );
+    }
+
     if (columnName == 'quantite') {
-      final bool lowStock = item.quantite < item.seuilMin || item.quantite == 0;
+      final double quantite = _quantite(item);
+      final bool lowStock = quantite <= seuilMinimum;
 
       return Center(
         child: lowStock
             ? Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Text(item.quantite.toString()),
+                  Text(quantite.toString()),
                   const SizedBox(width: 6),
-                  StatusBadge(
-                    text: "!",
-                    color: item.quantite < item.seuilMin
-                        ? Colors.red
-                        : Colors.deepOrangeAccent,
-                  ),
+                  const StatusBadge(text: "!", color: Colors.red),
                 ],
               )
-            : Text(item.quantite.toString()),
+            : Text(quantite.toString()),
       );
     }
 

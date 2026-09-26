@@ -8,7 +8,9 @@ import '../../../data/models/categorie.dart';
 import '../../../data/models/sous_categorie.dart';
 import '../../widget/detail_widget.dart';
 import '../../widget/section_decoration.dart';
+import '../../widget/stats_card.dart';
 import '../base_dialog.dart';
+import 'package:caisse_dz/core/utilis/number_format.dart';
 
 Future<void> SortieDetail(
     BuildContext context,
@@ -64,14 +66,20 @@ Future<void> SortieDetail(
                 ),
 
                 const Spacer(),
-
                 Chip(
                   label: Text(
                     sortie.etat ? l10n.active : l10n.inactive,
-                    style: Appstyle.textSB.copyWith(color: Appstyle.Tblanc),
+                    style: Appstyle.textSB.copyWith(
+                      color: sortie.etat ? Appstyle.Tblanc : Appstyle.Tnoir, // ou une autre couleur
+                    ),
                   ),
-                  backgroundColor: Appstyle.crevete,
-                ),
+                  backgroundColor: sortie.etat
+                      ? Appstyle.violet.withOpacity(0.8)
+                      : Appstyle.crevete.withOpacity(0.7), // ou rouge, orange, etc.
+                  labelPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                  elevation: sortie.etat ? 2 : 0,
+                )
+
               ],
             ),
 
@@ -102,8 +110,9 @@ Future<void> SortieDetail(
                 child: detailwrap([
                   detailinfo(l10n.productName, nomProduit),
                   detailinfo(l10n.quantity, sortie.quantite),
-                  detailinfo(l10n.unitPrice, "${sortie.prix.toStringAsFixed(2)} ${l10n.currency}"),
-                  detailinfo(l10n.amount, "${sortie.montant.toStringAsFixed(2)} ${l10n.currency}"),
+                  detailinfo(l10n.numberField, sortie.nombre),
+                  detailinfo(l10n.unitPrice, "${NumberFormatUtil.formatMontant(sortie.prix, decimales: 2)} ${l10n.currency}"),
+                  detailinfo(l10n.amount, "${NumberFormatUtil.formatMontant(sortie.montant, decimales: 2)} ${l10n.currency}"),
                 ]),
               ),
 
@@ -156,21 +165,14 @@ Future<void> SortieDetail(
   );
 }
 
+// sortie_detail.dart - Remplacer _resumeSortie
 Widget _resumeSortie(Sortie s, AppLocalizations l10n) {
-  return Container(
-    decoration: BoxDecoration(
-      color: Appstyle.violet.withOpacity(0.6),
-      borderRadius: BorderRadius.circular(10),
-    ),
-    padding: const EdgeInsets.all(8),
-    child: Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-      children: [
-        detailbadge(l10n.quantity, s.quantite),
-        detailbadge(l10n.price, "${s.prix.toStringAsFixed(2)} ${l10n.currency}"),
-        detailbadge(l10n.amount, "${s.montant.toStringAsFixed(2)} ${l10n.currency}"),
-        detailbadge(l10n.type, s.type),
-      ],
-    ),
+  return StatsCard(
+    items: [
+      StatsItem(label: l10n.quantity, value: s.quantite),
+      StatsItem(label: l10n.price, value: "${NumberFormatUtil.formatMontant(s.prix, decimales: 2)} ${l10n.currency}"),
+      StatsItem(label: l10n.amount, value: "${NumberFormatUtil.formatMontant(s.montant, decimales: 2)} ${l10n.currency}"),
+      StatsItem(label: l10n.type, value: s.type),
+    ],
   );
 }

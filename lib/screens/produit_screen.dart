@@ -1,16 +1,19 @@
 import 'dart:io';
 import 'package:collection/collection.dart';
-import 'package:caisse_dz/DBCreate.dart';
 import 'package:caisse_dz/Services/Categorie.dart';
 import 'package:caisse_dz/Services/ExcelPreviewDialog.dart';
 import 'package:caisse_dz/Services/Fournisseur.dart';
-import 'package:caisse_dz/Services/Historique.dart';
 import 'package:caisse_dz/Services/Pack.dart';
 import 'package:caisse_dz/Services/Paramters.dart';
 import 'package:caisse_dz/Services/Produits.dart';
+import 'package:caisse_dz/Services/Mouvement.dart';
+import 'package:caisse_dz/Services/Magasin.dart';
+import 'package:caisse_dz/data/models/magasin.dart';
 import 'package:caisse_dz/Services/Remise.dart';
 import 'package:caisse_dz/Services/SousCategories.dart';
 import 'package:caisse_dz/Services/excel_generator.dart';
+import 'package:caisse_dz/Services/Utilisateur.dart';
+import 'package:caisse_dz/data/models/utilisateur.dart';
 import 'package:caisse_dz/core/Auth/auth_state.dart';
 import 'package:caisse_dz/core/dialog/categorie/categorie_detail.dart';
 import 'package:caisse_dz/core/dialog/pack/pack_detail.dart';
@@ -25,9 +28,9 @@ import 'package:caisse_dz/core/widget/afficheur/afficheure_souscateg.dart';
 import 'package:caisse_dz/core/widget/header_module.dart';
 import 'package:caisse_dz/core/widget/section_decoration_filtre.dart';
 import 'package:caisse_dz/core/widget/time_date_widget.dart';
+import 'package:caisse_dz/core/widget/connection_status_bar.dart';
 import 'package:caisse_dz/data/models/categorie.dart';
 import 'package:caisse_dz/data/models/fournisseur.dart';
-import 'package:caisse_dz/data/models/histore.dart';
 import 'package:caisse_dz/data/models/pack.dart';
 import 'package:caisse_dz/data/models/paramters.dart';
 import 'package:caisse_dz/data/models/remise.dart';
@@ -60,6 +63,7 @@ import 'package:caisse_dz/core/tableau/pack/tableau_pack.dart';
 import 'package:caisse_dz/core/tableau/remise/tableau_remise.dart';
 import 'package:caisse_dz/core/tableau/sous_categorie/tableau_sous_categorie.dart';
 import 'package:caisse_dz/core/theme/app_style.dart';
+import 'package:caisse_dz/core/utilis/barcode_scan_listener.dart';
 import 'package:caisse_dz/core/utilis/constant.dart';
 import 'package:caisse_dz/core/widget/account.dart';
 import 'package:caisse_dz/core/widget/afficheur/afficheur_produit_glolbal.dart';
@@ -67,17 +71,13 @@ import 'package:caisse_dz/core/widget/button/Icon_button.dart';
 import 'package:caisse_dz/core/widget/button/main_button.dart';
 import 'package:caisse_dz/core/widget/champ/champ_avec_label.dart';
 import 'package:caisse_dz/core/widget/champ/liste_champ.dart';
-import 'package:caisse_dz/core/widget/champ/text_champ_l.dart';
 import 'package:caisse_dz/core/widget/fourchette._widget.dart';
 import 'package:caisse_dz/core/widget/search_bar.dart';
 import 'package:caisse_dz/core/widget/side_bar.dart';
 import 'package:caisse_dz/data/constant.dart';
 import 'package:caisse_dz/data/models/produit.dart';
+import 'package:caisse_dz/data/models/produit_code_detail.dart';
 import 'package:caisse_dz/l10n/app_localizations.dart';
-
-final TextEditingController tauxController = TextEditingController();
-final TextEditingController minController = TextEditingController();
-final TextEditingController maxController = TextEditingController();
 
 // Valeurs sélectionnées dans le filtre
 String? selectedEtatFilter;
@@ -85,15 +85,6 @@ String? selectedCategorieFilter;
 String? selectedSousCategorieFilter;
 String? selectedMarqueFilter;
 String typeMargecalcul = "Montant";
-
-Future<int> _GetNextHistoriqueId() async {
-  final db = await DbCreator.openDb();
-  int id = 0;
-  await db.transaction((txn) async {
-    id = await HistoriqueServices.getNextHistoriqueId(txn);
-  });
-  return id;
-}
 
 class ProduitScreen extends StatefulWidget {
   const ProduitScreen({super.key});
@@ -104,6 +95,7 @@ class ProduitScreen extends StatefulWidget {
 
 class _ProduitScreenState extends State<ProduitScreen> with TickerProviderStateMixin {
   late TabController _tabController;
+  late BarcodeScanListener _barcodeScanListener;
 
   // ✅ Constantes pour les index des tabs
   static const int TAB_PRODUIT = 0;
@@ -111,7 +103,6 @@ class _ProduitScreenState extends State<ProduitScreen> with TickerProviderStateM
   static const int TAB_SOUS_CATEGORIE = 2;
   static const int TAB_REMISE = 3;
   static const int TAB_PACK = 4;
-  static const int TAB_PARAMETRE = 5;
 
   late List<String> categorieFilterOptions = categoriesTest
       .map((c) => c.nom)
@@ -166,6 +157,33 @@ class _ProduitScreenState extends State<ProduitScreen> with TickerProviderStateM
   List<SousCategorie> sousCategoriesTest = [];
   List<Fournisseur> fournisseursTest = [];
   List<Categorie> categoriesTest = [];
+  List<Utilisateur> utilisateursTest = [];
+
+  // Quantité par produit calculée depuis le journal des mouvements (voir
+  // MouvementsServices.totauxParProduit) — remplace Produit.quantite pour
+  // l'affichage, filtrable par magasin. null = tous magasins confondus.
+  Map<String, double> quantitesParMagasin = {};
+  String? magasinFiltreCode;
+  List<Magasin> magasinsDisponiblesProduit = [];
+
+  Future<void> _chargerQuantitesParMagasin() async {
+    final totaux = await MouvementsServices.totauxParProduit(magasinCode: magasinFiltreCode);
+    if (!mounted) return;
+    setState(() => quantitesParMagasin = totaux.quantites);
+  }
+
+  // ✅ Codes-barres/codes secondaires (produit_code_detail), pour les produits
+  // à plusieurs codes-barres : produitCode -> textes recherchables en minuscule.
+  Map<String, List<String>> codeDetailsSecondairesMap = {};
+
+  void _buildCodeDetailsSecondairesMap(List<ProduitCodeDetail> details) {
+    codeDetailsSecondairesMap = {};
+    for (var d in details) {
+      codeDetailsSecondairesMap
+          .putIfAbsent(d.produitCode, () => [])
+          .add(d.CodeBar.toLowerCase());
+    }
+  }
   Paramters ParamtersDB = Paramters(
       id: 0,
       TauxMargePerncetage: 0,
@@ -176,13 +194,12 @@ class _ProduitScreenState extends State<ProduitScreen> with TickerProviderStateM
       Datecree: DateTime.now(),
       creeParCode: "IMAD2"
   );
-  String selectedtypecacul = "";
   bool isLoading = true;
 
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 6, vsync: this);
+    _tabController = TabController(length: 5, vsync: this);
     _tabController.addListener(() {
       if (mounted) {
         setState(() {
@@ -190,13 +207,37 @@ class _ProduitScreenState extends State<ProduitScreen> with TickerProviderStateM
         });
       }
     });
+    _barcodeScanListener = BarcodeScanListener(onScan: _onBarcodeScanned)..start();
     loadAllData();
   }
 
   @override
   void dispose() {
+    _barcodeScanListener.stop();
     _tabController.dispose();
     super.dispose();
+  }
+
+  // ✅ Scan lecteur code-barres/QR : bascule sur l'onglet Produit si besoin et
+  // remplit le champ de recherche avec le code scanné (remplace tout texte déjà saisi).
+  // Ignoré si un dialog est ouvert au-dessus de l'écran (route plus "current"),
+  // pour que le scan profite au dialog ouvert et non à l'écran en arrière-plan.
+  void _onBarcodeScanned(String rawCode) {
+    if (!mounted) return;
+    final route = ModalRoute.of(context);
+    if (route != null && !route.isCurrent) return;
+    final code = rawCode.trim();
+    if (code.isEmpty) return;
+
+    if (_tabController.index != TAB_PRODUIT) {
+      _tabController.animateTo(TAB_PRODUIT);
+    }
+
+    setState(() {
+      filtresActifs = true;
+      _searchController.text = code;
+      appliquerFiltre();
+    });
   }
 
   Future<void> _exportCurrentModuleToExcel() async {
@@ -226,6 +267,8 @@ class _ProduitScreenState extends State<ProduitScreen> with TickerProviderStateM
               remises: remisesTest,
               l10n: l10n,
               translator: translator,
+              seuilMin: ParamtersDB.Minimum,
+              seuilMax: ParamtersDB.Maximum,
             );
           }
           break;
@@ -273,14 +316,6 @@ class _ProduitScreenState extends State<ProduitScreen> with TickerProviderStateM
             );
           }
           break;
-        case TAB_PARAMETRE: // 5 - Paramètre - Pas d'export
-          await InformationDialog(
-            context: context,
-            titre_type_message: l10n.information,
-            titre_concerne: l10n.parametre,
-            message: l10n.noDataToExport,
-          );
-          return;
       }
 
       if (dataToExport.isEmpty) {
@@ -441,6 +476,8 @@ class _ProduitScreenState extends State<ProduitScreen> with TickerProviderStateM
           remises: remisesTest,
           l10n: l10n,
           translator: translator,
+          seuilMin: ParamtersDB.Minimum,
+          seuilMax: ParamtersDB.Maximum,
         );
         break;
       case TAB_CATEGORIE: // 1 - Categories
@@ -515,14 +552,6 @@ class _ProduitScreenState extends State<ProduitScreen> with TickerProviderStateM
           l10n: l10n,
         );
         break;
-      case TAB_PARAMETRE: // 5 - Paramètre - Pas d'export de sélection
-        await InformationDialog(
-          context: context,
-          titre_type_message: l10n.information,
-          titre_concerne: l10n.parametre,
-          message: l10n.noDataToExport,
-        );
-        return;
     }
 
     try {
@@ -703,8 +732,8 @@ class _ProduitScreenState extends State<ProduitScreen> with TickerProviderStateM
           'icon': 'assets/icons/cardwidget/categorie_icon.png',
           'onPressed': () async {
             if (produitsSelectionnes.isNotEmpty) {
-              await CategorieSousCategorieProduit(context, produitsSelectionnes);
-              await loadAllData();
+              final saved = await CategorieSousCategorieProduit(context, produitsSelectionnes);
+              if (saved == true) await loadAllData();
             } else {
               await InformationDialog(
                 context: context,
@@ -719,16 +748,23 @@ class _ProduitScreenState extends State<ProduitScreen> with TickerProviderStateM
           'color': colorbuttonactionicon5,
           'icon': 'assets/icons/cardwidget/remise_icon.png',
           'onPressed': () async {
-            if (produitsSelectionnes.isNotEmpty) {
-              await RemiseProduit(context, produitsSelectionnes);
-              await loadAllData();
-            } else {
+            if (produitsSelectionnes.isEmpty) {
               await InformationDialog(
                 context: context,
                 titre_type_message: l10n.information,
                 titre_concerne: l10n.produit,
                 message: l10n.noProductSelected,
               );
+            } else if (remisesTest.isEmpty) {
+              await InformationDialog(
+                context: context,
+                titre_type_message: l10n.information,
+                titre_concerne: l10n.remise,
+                message: l10n.noDiscountExists,
+              );
+            } else {
+              final saved = await RemiseProduit(context, produitsSelectionnes);
+              if (saved == true) await loadAllData();
             }
           },
         },
@@ -736,16 +772,23 @@ class _ProduitScreenState extends State<ProduitScreen> with TickerProviderStateM
           'color': colorbuttonactionicon6,
           'icon': 'assets/icons/cardwidget/pack_icon.png',
           'onPressed': () async {
-            if (produitsSelectionnes.isNotEmpty) {
-              await PackProduit(context, produitsSelectionnes);
-              await loadAllData();
-            } else {
+            if (produitsSelectionnes.isEmpty) {
               await InformationDialog(
                 context: context,
                 titre_type_message: l10n.information,
                 titre_concerne: l10n.produit,
                 message: l10n.noProductSelected,
               );
+            } else if (packsTest.isEmpty) {
+              await InformationDialog(
+                context: context,
+                titre_type_message: l10n.information,
+                titre_concerne: l10n.pack,
+                message: l10n.noPackExists,
+              );
+            } else {
+              final saved = await PackProduit(context, produitsSelectionnes);
+              if (saved == true) await loadAllData();
             }
           },
         },
@@ -1107,32 +1150,28 @@ class _ProduitScreenState extends State<ProduitScreen> with TickerProviderStateM
       final Param = await ParamServices.getParam();
 
       final pack = await PackServices.getAllPacks();
-      final remise = await RemiseServices.getAllRemise();
+      // ✅ Recale actif/inactif sur la période [debut, fin] de chaque remise
+      // avant affichage, pour que le statut reste toujours à jour même sans
+      // action manuelle (remise qui démarre ou expire avec le temps).
+      final remise = await RemiseServices.synchroniserEtatsSelonDates();
       final produit = await ProduitServices.getAllProduits();
       final categorie = await CategorieServices.getAllCategorie();
       final sous = await SousCategoriesServices.getAllSousCategorie();
       final fournisseur = await FournisseurServices.getAllFournisseurs();
+      final codeDetails = await ProduitServices.getAllCodeDetails();
+      final utilisateurs = await UtilisateurServices.getAllUtilisateurs();
+      final magasins = (await MagasinServices.getAllMagasins()).where((m) => m.etat).toList();
+      final totaux = await MouvementsServices.totauxParProduit(magasinCode: magasinFiltreCode);
 
       if (!mounted) return;
 
-      // Get translator for current locale
-      final translator = ListsConstTranslator(AppLocalizations.of(context)!);
-
       setState(() {
         ParamtersDB = Param;
-
-        // Store the TRANSLATED value for UI display
-        selectedtypecacul = translator.translateTypeCalcul(ParamtersDB.typeMarge);
-
-        // Set the controller text based on the translated value
-        tauxController.text = selectedtypecacul == translator.translateTypeCalcul("Pourcentage")
-            ? ParamtersDB.TauxMargePerncetage.toString()
-            : ParamtersDB.TauxMargeMontant.toString();
-
-        minController.text = ParamtersDB.Minimum.toString();
-        maxController.text = ParamtersDB.Maximum.toString();
+        magasinsDisponiblesProduit = magasins;
+        quantitesParMagasin = totaux.quantites;
 
         // Mettre à jour les listes principales
+        utilisateursTest = utilisateurs;
         packsTest = pack;
         packsFiltres = List.from(pack); // Créer une nouvelle liste
 
@@ -1150,6 +1189,8 @@ class _ProduitScreenState extends State<ProduitScreen> with TickerProviderStateM
         produitsTest = produit;
         produitsFiltres = List.from(produit); // Créer une nouvelle liste
 
+        _buildCodeDetailsSecondairesMap(codeDetails);
+
         // Mettre à jour les compteurs
         nombre_produit = produitsTest.length.toString();
         nombre_categorie = categoriesTest.length.toString();
@@ -1165,27 +1206,6 @@ class _ProduitScreenState extends State<ProduitScreen> with TickerProviderStateM
         souscategoriesSelectionnes.clear();
         remisesSelectionnes.clear();
         packsSelectionnes.clear();
-
-
-
-        // ✅ MISE À JOUR DES CONTRÔLEURS
-        // Vérifier si le type traduit correspond à "Montant" ou "Pourcentage"
-        if (selectedtypecacul == "Montant" || selectedtypecacul == "المبلغ") {
-          tauxController.text = ParamtersDB.TauxMargeMontant.toString();
-          print('Taux Montant: ${ParamtersDB.TauxMargeMontant}');
-        } else if (selectedtypecacul == "Pourcentage" || selectedtypecacul == "النسبة المئوية") {
-          tauxController.text = ParamtersDB.TauxMargePerncetage.toString();
-          print('Taux Pourcentage: ${ParamtersDB.TauxMargePerncetage}');
-        } else {
-          // Fallback
-          tauxController.text = "0";
-        }
-
-        minController.text = ParamtersDB.Minimum.toString();
-        maxController.text = ParamtersDB.Maximum.toString();
-
-
-
 
         isLoading = false;
       });
@@ -1235,65 +1255,17 @@ class _ProduitScreenState extends State<ProduitScreen> with TickerProviderStateM
     }
   }
 
-  Future<void> _saveParam(AppLocalizations l10n, ListsConstTranslator translator) async {
-    final auth = Provider.of<AuthState>(context, listen: false);
-    final userName = auth.username!;
-    final userCode = auth.userCode!;
-
-    final db = await DbCreator.openDb();
-    final paramService = ParamServices(db);
-
-    final double? tauxInput = tauxController.text.trim().isEmpty
-        ? null
-        : double.tryParse(tauxController.text);
-    final double? minInput = minController.text.trim().isEmpty
-        ? null
-        : double.tryParse(minController.text);
-    final double? maxInput = maxController.text.trim().isEmpty
-        ? null
-        : double.tryParse(maxController.text);
-
-    // Convert display value (translated) back to French for database
-    final frenchTypeCalcul = translator.typeCalculToFrench(selectedtypecacul);
-
-    final updatedParam = Paramters(
-      id: ParamtersDB.id,
-      typeMarge: frenchTypeCalcul,
-      TauxMargePerncetage: frenchTypeCalcul == "Pourcentage"
-          ? (tauxInput ?? ParamtersDB.TauxMargePerncetage)
-          : ParamtersDB.TauxMargePerncetage,
-      TauxMargeMontant: frenchTypeCalcul == "Montant"
-          ? (tauxInput ?? ParamtersDB.TauxMargeMontant)
-          : ParamtersDB.TauxMargeMontant,
-      Minimum: minInput ?? ParamtersDB.Minimum,
-      Maximum: maxInput ?? ParamtersDB.Maximum,
-      Datemodif: DateTime.now(),
-      modifParCode: userCode,
-      Datecree: ParamtersDB.Datecree,
-      creeParCode: ParamtersDB.creeParCode,
-    );
-
-    final int id = await _GetNextHistoriqueId();
-    final serviceess = await HistoriqueServices(db);
-    final Historique histo = Historique(
-      id: id,
-      code: "HS $id ${DateTime.now().microsecondsSinceEpoch}",
-      desc: "${l10n.modification} ${l10n.parametreProduit} ${l10n.by} $userName",
-      oper: 'modification',
-      type: 'paramter',
-      dateCree: DateTime.now(),
-      creeParCode: userCode,
-    );
-    await serviceess.addHistorique(histo);
-
-    await paramService.updateParam(updatedParam);
-
-    if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(l10n.settingsSavedSuccess)),
-      );
-    }
-  }
+  // ✅ Vrai si au moins un champ de filtre produit est renseigné (pour l'indicateur visuel du bouton Filtre).
+  bool get _filtresProduitActifs =>
+      (selectedCategorieFilter != null && selectedCategorieFilter!.isNotEmpty) ||
+      (selectedSousCategorieFilter != null && selectedSousCategorieFilter!.isNotEmpty) ||
+      (selectedEtatFilter != null && selectedEtatFilter!.isNotEmpty) ||
+      (selectedMarqueFilter != null && selectedMarqueFilter!.isNotEmpty) ||
+      prixAchatMin != null ||
+      prixAchatMax != null ||
+      prixVenteMin != null ||
+      prixVenteMax != null ||
+      _searchController.text.isNotEmpty;
 
   void appliquerFiltre() {
     produitsFiltres = produitsTest.where((p) {
@@ -1304,7 +1276,8 @@ class _ProduitScreenState extends State<ProduitScreen> with TickerProviderStateM
       final sousCatOk = selectedSousCategorieFilter == null || selectedSousCategorieFilter!.isEmpty || nomSousCategorieP == selectedSousCategorieFilter;
       final marqueOk = selectedMarqueFilter == null || selectedMarqueFilter!.isEmpty || p.marque == selectedMarqueFilter;
       final searchOk = searchText.isEmpty ||
-          '${p.searchableText} $nomCategorieP $nomSousCategorieP'.toLowerCase().contains(searchText);
+          '${p.searchableText} $nomCategorieP $nomSousCategorieP'.toLowerCase().contains(searchText) ||
+          (codeDetailsSecondairesMap[p.code]?.any((c) => c.contains(searchText)) ?? false);
       final prixAchatOk = (prixAchatMin == null || p.prixAchat >= prixAchatMin!) &&
           (prixAchatMax == null || p.prixAchat <= prixAchatMax!);
       final prixVenteOk = (prixVenteMin == null || p.prixVente >= prixVenteMin!) &&
@@ -1400,7 +1373,6 @@ class _ProduitScreenState extends State<ProduitScreen> with TickerProviderStateM
     final translator = ListsConstTranslator(l10n);
     final auth = Provider.of<AuthState>(context, listen: false);
     final userName = auth.username ?? '';
-    final userCode = auth.userCode ?? '';
 
     if (actionButtons.isEmpty) {
       _initActionButtons(l10n, translator);
@@ -1413,7 +1385,6 @@ class _ProduitScreenState extends State<ProduitScreen> with TickerProviderStateM
       l10n.sousCategorie,
       l10n.remise,
       l10n.pack,
-      l10n.parametre,
     ];
 
     // ✅ Icônes des tabs
@@ -1423,7 +1394,6 @@ class _ProduitScreenState extends State<ProduitScreen> with TickerProviderStateM
       'assets/icons/cardwidget/sous_catego_icon.png',
       'assets/icons/cardwidget/remise_icon.png',
       'assets/icons/cardwidget/pack_icon.png',
-      'assets/icons/sidebar/parametre_icon.png',
     ];
 
     // ✅ Compteurs pour les tabs
@@ -1433,7 +1403,6 @@ class _ProduitScreenState extends State<ProduitScreen> with TickerProviderStateM
       nombre_sous_categorie,
       nombre_remise,
       nombre_pack,
-      '', // Pas de compteur pour paramètre
     ];
 
     // ✅ Map index vers actionButtons
@@ -1443,12 +1412,11 @@ class _ProduitScreenState extends State<ProduitScreen> with TickerProviderStateM
       TAB_SOUS_CATEGORIE: 4,
       TAB_REMISE: 2,
       TAB_PACK: 3,
-      TAB_PARAMETRE: -1,
     };
 
     // ✅ Index actuel du tab
     final currentTab = _tabController.index;
-    final int actionIndex = currentTab == TAB_PARAMETRE ? -1 : actionIndexMap[currentTab]!;
+    final int actionIndex = actionIndexMap[currentTab]!;
 
     return Scaffold(
       backgroundColor: Appstyle.violetC,
@@ -1467,17 +1435,15 @@ class _ProduitScreenState extends State<ProduitScreen> with TickerProviderStateM
 
           return SingleChildScrollView(
             scrollDirection: Axis.horizontal,
-            child: SingleChildScrollView(
-              scrollDirection: Axis.vertical,
-              child: ConstrainedBox(
-                constraints: const BoxConstraints(
-                  minWidth: minWidth,
-                  minHeight: minHeight,
-                ),
-                child: SizedBox(
-                  width: adjustedWidth,
-                  height: adjustedHeight,
-                  child: Row(
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(
+                minWidth: minWidth,
+                minHeight: minHeight,
+              ),
+              child: SizedBox(
+                width: adjustedWidth,
+                height: adjustedHeight,
+                child: Row(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       SideBarWidget(),
@@ -1512,9 +1478,9 @@ class _ProduitScreenState extends State<ProduitScreen> with TickerProviderStateM
                                     const Spacer(),
                                     Row(
                                       children: [
+                                        const ConnectionStatusBar(),
+                                        const SizedBox(width: 20),
                                         TimeDateWidget(
-                                          heure: "18:00",
-                                          date: "25 Nov 2025",
                                           iconHeure: "assets/icons/hour_icon.png",
                                           iconDate: "assets/icons/agenda_icon.png",
                                         ),
@@ -1548,7 +1514,7 @@ class _ProduitScreenState extends State<ProduitScreen> with TickerProviderStateM
                                 ),
                                 child: LayoutBuilder(
                                   builder: (context, constraints) {
-                                    final double tabWidth = constraints.maxWidth / 6; // 6 tabs
+                                    final double tabWidth = constraints.maxWidth / 5; // 5 tabs
                                     return TabBar(
                                       controller: _tabController,
                                       isScrollable: false,
@@ -1567,7 +1533,7 @@ class _ProduitScreenState extends State<ProduitScreen> with TickerProviderStateM
                                       unselectedLabelStyle: Appstyle.textXS.copyWith(
                                         fontWeight: FontWeight.w500,
                                       ),
-                                      tabs: List.generate(6, (index) {
+                                      tabs: List.generate(5, (index) {
                                         final isSelected = currentTab == index;
                                         return SizedBox(
                                           width: tabWidth,
@@ -1582,9 +1548,7 @@ class _ProduitScreenState extends State<ProduitScreen> with TickerProviderStateM
                                                 color: isSelected ? Colors.white : Appstyle.gris,
                                               ),
                                             ),
-                                            text: index == TAB_PARAMETRE
-                                                ? tabNames[index]
-                                                : "${tabNames[index]} (${tabCounts[index]})",
+                                            text: "${tabNames[index]} (${tabCounts[index]})",
                                           ),
                                         );
                                       }),
@@ -1635,6 +1599,7 @@ class _ProduitScreenState extends State<ProduitScreen> with TickerProviderStateM
                                               textColor:Appstyle.violet ,
                                               iconColor: Appstyle.violet,
                                               color: Appstyle.Tblanc,
+                                              showBadge: _filtresProduitActifs,
                                               icon: filtresActifs ? Icons.visibility_off : Icons.visibility,
                                               onPressed: () {
                                                 setState(() {
@@ -1692,6 +1657,8 @@ class _ProduitScreenState extends State<ProduitScreen> with TickerProviderStateM
                                                 ),
                                               ),
                                             ),
+                                            SizedBox(width: paddingH / 4),
+
                                             MainButton(
                                               text: l10n.newWord,
                                               color: Appstyle.crevete,
@@ -1719,12 +1686,23 @@ class _ProduitScreenState extends State<ProduitScreen> with TickerProviderStateM
                                     SizedBox(
                                       height: adjustedHeight * 0.72,
                                       child: TableauProduitAdvanced(
-                                        key: ValueKey(produitsFiltres),
+                                        // ⚠️ Clé STABLE (pas basée sur produitsFiltres) : une
+                                        // ValueKey construite à partir de la liste change
+                                        // d'identité à chaque rafraîchissement (nouvelle
+                                        // instance de liste), ce qui force Flutter à détruire
+                                        // et recréer tout l'état du tableau (tri, sélection,
+                                        // pagination) à chaque fois. didUpdateWidget() du
+                                        // tableau gère déjà la mise à jour des données en
+                                        // conservant cet état.
+                                        key: const ValueKey('produit-table'),
                                         produits: produitsFiltres,
                                         categories: categoriesTest,
                                         sousCategories: sousCategoriesTest,
                                         remises: remisesTest,
                                         fournisseurs: fournisseursTest,
+                                        seuilMinimum: ParamtersDB.Minimum,
+                                        utilisateurs: utilisateursTest,
+                                        quantites: quantitesParMagasin,
                                         onSelectionChanged: (selection) {
                                           setState(() {
                                             produitsSelectionnes = selection;
@@ -1804,6 +1782,8 @@ class _ProduitScreenState extends State<ProduitScreen> with TickerProviderStateM
                                                 ),
                                               ),
                                             ),
+                                            SizedBox(width: paddingH / 4),
+
                                             MainButton(
                                               text: l10n.newWord,
                                               color: Appstyle.crevete,
@@ -1825,6 +1805,7 @@ class _ProduitScreenState extends State<ProduitScreen> with TickerProviderStateM
                                         key: ValueKey(categoriesFiltres),
                                         categories: categoriesFiltres,
                                         sousCategories: sousCategoriesTest,
+                                        utilisateurs: utilisateursTest,
                                         onSelectionChanged: (selection) {
                                           setState(() {
                                             categoriesSelectionnes = selection;
@@ -1904,6 +1885,8 @@ class _ProduitScreenState extends State<ProduitScreen> with TickerProviderStateM
                                                   ),
                                                 ),
                                               ),
+                                              SizedBox(width: paddingH / 4),
+
                                               MainButton(
                                                 text: l10n.newWord,
                                                 color: Appstyle.crevete,
@@ -1934,6 +1917,8 @@ class _ProduitScreenState extends State<ProduitScreen> with TickerProviderStateM
                                           key: ValueKey(souscategoriesFiltres),
                                           sousCategories: souscategoriesFiltres,
                                           produits: produitsTest,
+                                          categories: categoriesTest,
+                                          utilisateurs: utilisateursTest,
                                           onSelectionChanged: (selection) {
                                             setState(() {
                                               souscategoriesSelectionnes = selection;
@@ -2007,6 +1992,8 @@ class _ProduitScreenState extends State<ProduitScreen> with TickerProviderStateM
                                                     ),
                                                   ),
                                                 ),
+                                                SizedBox(width: paddingH / 4),
+
                                                 MainButton(
                                                   text: l10n.newWord,
                                                   color: Appstyle.crevete,
@@ -2036,6 +2023,7 @@ class _ProduitScreenState extends State<ProduitScreen> with TickerProviderStateM
                                           child: TableauRemiseAdvanced(
                                             key: ValueKey(remiseFiltres),
                                             remises: remiseFiltres,
+                                            utilisateurs: utilisateursTest,
                                             onSelectionChanged: (selection) {
                                               setState(() {
                                                 remisesSelectionnes = selection;
@@ -2106,6 +2094,7 @@ class _ProduitScreenState extends State<ProduitScreen> with TickerProviderStateM
                                                       ),
                                                     ),
                                                   ),
+                                                  SizedBox(width: paddingH / 4),
                                                   MainButton(
                                                     text: l10n.newWord,
                                                     color: Appstyle.crevete,
@@ -2126,6 +2115,7 @@ class _ProduitScreenState extends State<ProduitScreen> with TickerProviderStateM
                                             child: TableauPackAdvanced(
                                               key: ValueKey(packsFiltres),
                                               packs: packsFiltres,
+                                              utilisateurs: utilisateursTest,
                                               onSelectionChanged: (selection) {
                                                 setState(() {
                                                   packsSelectionnes = selection;
@@ -2135,148 +2125,6 @@ class _ProduitScreenState extends State<ProduitScreen> with TickerProviderStateM
                                           ),
                                         ],
                                       )
-
-// ──────────────────────────────────────────────────────────────
-// 6. CAS PARAMETRE (currentTab == TAB_PARAMETRE)
-// ──────────────────────────────────────────────────────────────
-                                    else if (currentTab == TAB_PARAMETRE)
-                                        Container(
-                                          padding: EdgeInsets.all(16),
-                                          child: Column(
-                                            crossAxisAlignment: CrossAxisAlignment.start,
-                                            mainAxisSize: MainAxisSize.min,
-                                            children: [
-                                              // Margin Section
-                                              Container(
-                                                width: adjustedWidth * 0.35,
-                                                padding: EdgeInsets.symmetric(vertical: 15, horizontal: 10),
-                                                decoration: BoxDecoration(
-                                                  color: Appstyle.Tblanc,
-                                                  borderRadius: BorderRadius.circular(14),
-                                                ),
-                                                child: Column(
-                                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                                  mainAxisSize: MainAxisSize.min,
-                                                  children: [
-                                                    Text(
-                                                      l10n.margin,
-                                                      style: Appstyle.textMB.copyWith(color: Appstyle.Tnoir),
-                                                    ),
-                                                    SizedBox(height: 20),
-                                                    SizedBox(
-                                                      width: 400,
-                                                      child: ChampAvecLabel(
-                                                        label: l10n.typeCalcul,
-                                                        key: ValueKey(selectedtypecacul),  // ✅ Force la reconstruction
-                                                        child: TextListe(
-                                                          clearable: false,
-                                                          value: selectedtypecacul,
-                                                          items: translator.typeCalculDisplayList,
-                                                          onChanged: (v) {
-                                                            setState(() {
-                                                              selectedtypecacul = v.toString();
-                                                              tauxController.text = selectedtypecacul == translator.translateTypeCalcul("Pourcentage")
-                                                                  ? ParamtersDB.TauxMargePerncetage.toString()
-                                                                  : ParamtersDB.TauxMargeMontant.toString();
-                                                            });
-                                                          },
-                                                        ),
-                                                      ),
-                                                    ),
-                                                    SizedBox(height: 20),
-                                                    Row(
-                                                      children: [
-                                                        SizedBox(
-                                                          width: 400,
-                                                          child: ChampAvecLabel(
-                                                            label: l10n.marginRate,
-                                                            child: TextChampL(
-                                                              maxValue: selectedtypecacul == translator.translateTypeCalcul("Pourcentage") ? 100 : null,
-                                                              controller: tauxController,
-                                                              hint: selectedtypecacul == translator.translateTypeCalcul("Pourcentage")
-                                                                  ? ParamtersDB.TauxMargePerncetage.toString()
-                                                                  : ParamtersDB.TauxMargeMontant.toString(),
-                                                              numeric: true,
-                                                            ),
-                                                          ),
-                                                        ),
-                                                        SizedBox(width: 10),
-                                                        Text(
-                                                          selectedtypecacul == translator.translateTypeCalcul("Pourcentage") ? "%" : l10n.currency,
-                                                          style: Appstyle.textMB.copyWith(
-                                                            color: Appstyle.violet,
-                                                            fontWeight: FontWeight.bold,
-                                                          ),
-                                                        ),
-                                                      ],
-                                                    ),
-                                                  ],
-                                                ),
-                                              ),
-                                              SizedBox(height: 20),
-
-                                              // Threshold Section
-                                              Container(
-                                                width: adjustedWidth * 0.35,
-                                                padding: EdgeInsets.symmetric(vertical: 15, horizontal: 10),
-                                                decoration: BoxDecoration(
-                                                  color: Appstyle.Tblanc,
-                                                  borderRadius: BorderRadius.circular(14),
-                                                ),
-                                                child: Column(
-                                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                                  mainAxisSize: MainAxisSize.min,
-                                                  children: [
-                                                    Text(
-                                                      l10n.threshold,
-                                                      style: Appstyle.textMB.copyWith(color: Appstyle.Tnoir),
-                                                    ),
-                                                    SizedBox(height: 20),
-                                                    SizedBox(
-                                                      width: 400,
-                                                      child: ChampAvecLabel(
-                                                        label: l10n.minimum,
-                                                        child: TextChampL(
-                                                          controller: minController,
-                                                          hint: ParamtersDB.Minimum.toString(),
-                                                          numeric: true,
-                                                        ),
-                                                      ),
-                                                    ),
-                                                    SizedBox(height: 20),
-                                                    SizedBox(
-                                                      width: 400,
-                                                      child: ChampAvecLabel(
-                                                        label: l10n.maximum,
-                                                        child: TextChampL(
-                                                          controller: maxController,
-                                                          hint: ParamtersDB.Maximum.toString(),
-                                                          numeric: true,
-                                                        ),
-                                                      ),
-                                                    ),
-                                                  ],
-                                                ),
-                                              ),
-                                              SizedBox(height: 20),
-
-                                              // Save Button
-                                              Align(
-                                                alignment: Alignment.centerLeft,
-                                                child: MainButton(
-                                                  text: l10n.save,
-                                                  color: Appstyle.crevete,
-                                                  onPressed: () async {
-                                                    await _saveParam(l10n, translator);
-                                                    await loadAllData();
-                                                  },
-                                                  iconOnRight: true,
-                                                  icon: Icons.save,
-                                                ),
-                                              ),
-                                            ],
-                                          ),
-                                        ),
                             ],
                           ),
                         ),
@@ -2285,7 +2133,6 @@ class _ProduitScreenState extends State<ProduitScreen> with TickerProviderStateM
                   ),
                 ),
               ),
-            ),
           );
         },
       ),
@@ -2350,6 +2197,33 @@ class _ProduitScreenState extends State<ProduitScreen> with TickerProviderStateM
                         selectedMarqueFilter = v;
                         appliquerFiltre();
                       });
+                    },
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 15),
+          Row(
+            children: [
+              // Quantité affichée = calculée depuis le journal des
+              // mouvements pour ce magasin (ou tous magasins si "Tous").
+              Expanded(
+                child: ChampAvecLabel(
+                  label: l10n.magasin,
+                  child: TextListe(
+                    value: magasinFiltreCode == null
+                        ? null
+                        : magasinsDisponiblesProduit
+                            .firstWhereOrNull((m) => m.code == magasinFiltreCode)
+                            ?.nom,
+                    hint: "Tous les magasins",
+                    items: magasinsDisponiblesProduit.map((m) => m.nom).toList(),
+                    onChanged: (v) {
+                      magasinFiltreCode = (v == null || v.isEmpty)
+                          ? null
+                          : magasinsDisponiblesProduit.firstWhereOrNull((m) => m.nom == v)?.code;
+                      _chargerQuantitesParMagasin();
                     },
                   ),
                 ),

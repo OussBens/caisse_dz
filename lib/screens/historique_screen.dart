@@ -12,6 +12,8 @@ import 'package:excel/excel.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../Services/Historique.dart';
+import '../Services/Utilisateur.dart';
+import '../data/models/utilisateur.dart';
 import '../core/dialog/historique/historique_detail.dart';
 import '../core/theme/app_style.dart';
 import '../core/utilis/constant.dart';
@@ -25,11 +27,11 @@ import '../core/widget/section_decoration_filtre.dart';
 import '../core/widget/side_bar.dart';
 import '../core/widget/header_module.dart';
 import '../core/widget/time_date_widget.dart';
+import '../core/widget/connection_status_bar.dart';
 import '../core/widget/button/main_button.dart';
 import '../core/widget/champ/champ_avec_label.dart';
 import '../data/constant.dart';
 import '../data/models/histore.dart';
-List<Historique> historiquesTest = [];
 class HistoriqueScreen extends StatefulWidget {
   const HistoriqueScreen({super.key});
 
@@ -61,15 +63,18 @@ class _HistoriqueScreenState extends State<HistoriqueScreen> {
   List<Historique> historiquesFiltres = [];
   List<Historique> historiquesSelectionnes = [];
   List<Historique> historiqueTest = [];
+  List<Utilisateur> utilisateursTest = [];
 
   final TextEditingController _searchController = TextEditingController();
 
   Future<void> _loadAllData() async {
     final historiques = await HistoriqueServices.getAllHistorique();
+    final utilisateurs = await UtilisateurServices.getAllUtilisateurs();
 
     setState(() {
       historiqueTest = historiques;
       historiquesFiltres = historiques;
+      utilisateursTest = utilisateurs;
     });
   }
 
@@ -335,7 +340,6 @@ class _HistoriqueScreenState extends State<HistoriqueScreen> {
   void initState() {
     super.initState();
     _loadAllData();
-    historiquesFiltres = historiquesTest;
   }
 
   String _getLocalizedPeriod(String key, AppLocalizations l10n) {
@@ -424,11 +428,16 @@ class _HistoriqueScreenState extends State<HistoriqueScreen> {
   }
 
   void appliquerFiltre() {
-    historiquesFiltres = historiquesTest.where((z) {
+    historiquesFiltres = historiqueTest.where((z) {
       final searchText = _searchController.text.toLowerCase();
       final searchOk = searchText.isEmpty || z.searchableText.contains(searchText);
-      final typeOk = typeHistoriqueFilter == null || z.oper == typeHistoriqueFilter;
-      final operationdans = operationHistoriquedansFilter == null || z.type == operationHistoriquedansFilter;
+      // Comparaison insensible à la casse : les valeurs stockées (`oper` /
+      // `type`) ne respectent pas toujours la casse des listes de filtre
+      // (ex: "sortie" stocké vs "Sortie" dans la liste).
+      final typeOk = typeHistoriqueFilter == null ||
+          z.oper.toLowerCase() == typeHistoriqueFilter!.toLowerCase();
+      final operationdans = operationHistoriquedansFilter == null ||
+          z.type.toLowerCase() == operationHistoriquedansFilter!.toLowerCase();
       final dateOk = () {
         if (dateDebut == null && dateFin == null) return true;
         final d = z.dateCree;
@@ -451,7 +460,7 @@ class _HistoriqueScreenState extends State<HistoriqueScreen> {
         dateFin == null &&
         typeHistoriqueFilter == null &&
         operationHistoriquedansFilter == null) {
-      historiquesFiltres = historiquesTest;
+      historiquesFiltres = historiqueTest;
     }
   }
 
@@ -487,6 +496,15 @@ class _HistoriqueScreenState extends State<HistoriqueScreen> {
     _dateFinCtrl.clear();
   }
 
+  // ✅ Vrai si au moins un champ de filtre historique est renseigné (pour l'indicateur visuel du bouton Filtre).
+  bool get _filtresHistoriqueActifs =>
+      typeHistoriqueFilter != null ||
+      operationHistoriquedansFilter != null ||
+      dateDebut != null ||
+      dateFin != null ||
+      periodeRapide != null ||
+      _searchController.text.isNotEmpty;
+
   @override
   Widget build(BuildContext context) {
     final auth = Provider.of<AuthState>(context, listen: false);
@@ -515,16 +533,13 @@ class _HistoriqueScreenState extends State<HistoriqueScreen> {
 
             return SingleChildScrollView(
               scrollDirection: Axis.horizontal,
-              child: SingleChildScrollView(
-                scrollDirection: Axis.vertical,
-                child: ConstrainedBox(
-                  constraints: const BoxConstraints(
-                    minWidth: minWidth,
-                    minHeight: minHeight,
-                  ),
-
-                    child: SizedBox(
-                      width: adjustedWidth,
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(
+                  minWidth: minWidth,
+                  minHeight: minHeight,
+                ),
+                child: SizedBox(
+                  width: adjustedWidth,
                       height: adjustedHeight,
                       child: Row(
                         crossAxisAlignment: CrossAxisAlignment.start,
@@ -549,13 +564,13 @@ class _HistoriqueScreenState extends State<HistoriqueScreen> {
                                             Image.asset(
                                               "assets/icons/sidebar/historique_icon.png",
                                               width: 40,
-                                              color: Appstyle.gris,
+                                              color: Appstyle.violet,
                                             ),
                                             const SizedBox(width: 10),
                                             Text(
                                               l10n.historique,
                                               style: Appstyle.textXLB.copyWith(
-                                                color: Appstyle.gris,
+                                                color: Appstyle.violet,
                                                 fontWeight: FontWeight.bold,
                                               ),
                                             ),
@@ -566,9 +581,9 @@ class _HistoriqueScreenState extends State<HistoriqueScreen> {
                                         Row(
                                           textDirection: textDirection,
                                           children: [
+                                            const ConnectionStatusBar(),
+                                            const SizedBox(width: 20),
                                             TimeDateWidget(
-                                              heure: "18:00",
-                                              date: "25 Nov 2025",
                                               iconHeure: "assets/icons/hour_icon.png",
                                               iconDate: "assets/icons/agenda_icon.png",
                                             ),
@@ -598,7 +613,7 @@ class _HistoriqueScreenState extends State<HistoriqueScreen> {
                                     )
                                   else if (historiquesSelectionnes.isEmpty || historiquesSelectionnes.length != 1)
                                     DashboardHistorique(
-                                      historiques: historiquesTest,
+                                      historiques: historiqueTest,
                                     ),
 
                                   SizedBox(height: paddingV / 2),
@@ -617,6 +632,7 @@ class _HistoriqueScreenState extends State<HistoriqueScreen> {
                                             color: Appstyle.Tblanc,
                                             icon: filtresActifs ? Icons.visibility_off : Icons.visibility,
                                             iconColor:Appstyle.violet ,
+                                            showBadge: _filtresHistoriqueActifs,
                                             onPressed: () {
                                               setState(() {
                                                 filtresActifs = !filtresActifs;
@@ -709,6 +725,7 @@ class _HistoriqueScreenState extends State<HistoriqueScreen> {
                                     child: TableauHistoriqueAdvanced(
                                       key: ValueKey(historiquesFiltres),
                                       historiques: historiquesFiltres,
+                                      utilisateurs: utilisateursTest,
                                       onSelectionChanged: (selection) {
                                         setState(() {
                                           historiquesSelectionnes = selection;
@@ -725,7 +742,6 @@ class _HistoriqueScreenState extends State<HistoriqueScreen> {
                     ),
 
                 ),
-              ),
             );
           },
         ),
@@ -770,7 +786,7 @@ class _HistoriqueScreenState extends State<HistoriqueScreen> {
               ),
               const SizedBox(width: 20),
               SizedBox(
-                width: 400,
+                width: width * 0.7,
                 child: ChampAvecLabel(
                   label: l10n.quickPeriod,
                   child: DropdownButtonFormField<String>(
@@ -805,7 +821,7 @@ class _HistoriqueScreenState extends State<HistoriqueScreen> {
             textDirection: textDirection,
             children: [
               SizedBox(
-                width: width * 0.9,
+                width: width * 0.7,
                 child: Row(
                   textDirection: textDirection,
                   children: [

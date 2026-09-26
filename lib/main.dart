@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
+import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 import 'DBCreate.dart';
@@ -7,6 +8,9 @@ import 'router.dart';
 import 'core/Auth/auth_state.dart';
 import 'core/locale/locale_provider.dart';
 import 'l10n/app_localizations.dart';
+import 'Services/BackupService.dart';
+import 'core/utilis/quantite_format.dart';
+import 'core/theme/app_style.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -25,6 +29,19 @@ void main() async {
     debugPrint('⚠️ Activation verification failed - possible license violation');
   }
 
+  // Reconnecte automatiquement l'utilisateur si une session a été mémorisée
+  // via la case "Rester connecté" du login (voir AuthState.tryAutoLogin).
+  if (!authState.isAuthenticated) {
+    await authState.tryAutoLogin();
+  }
+
+  // Sans cet appel, userParam reste null pour toute la session et l'écran
+  // Paramètres tente une création au lieu d'une mise à jour, ce qui échoue
+  // si la ligne existe déjà.
+  if (authState.isAuthenticated) {
+    await authState.loadUserParameters();
+  }
+
   try {
     await DbCreator.openDb();
     debugPrint('🔐 Secure database initialized successfully');
@@ -33,24 +50,47 @@ void main() async {
     rethrow;
   }
 
+  try {
+    await QuantiteFormat.load();
+  } catch (e) {
+    debugPrint('⚠️ Chargement du format quantité échoué (repli sur 2 décimales): $e');
+  }
+
+  try {
+    await BackupService.checkAndRunAutoBackup();
+  } catch (e) {
+    debugPrint('⚠️ Sauvegarde automatique ignorée: $e');
+  }
+
+  // Le routeur ne doit être créé qu'une seule fois : `refreshListenable:
+  // authState` (voir router.dart) suffit déjà à lui faire réévaluer ses
+  // redirections à chaque notifyListeners(). Le recréer à chaque build de
+  // MyApp (comme c'était fait avant, via Provider.of<AuthState>(listen:
+  // true) + AppRouter.createRouter dans build()) réinitialise toute la
+  // navigation sur initialLocation à chaque changement d'AuthState — par
+  // exemple à chaque sauvegarde de paramètres — et éjecte l'utilisateur de
+  // l'écran courant en pleine sauvegarde (setState after dispose).
+  final router = AppRouter.createRouter(authState);
+
   runApp(
     MultiProvider(
       providers: [
         ChangeNotifierProvider.value(value: authState),
         ChangeNotifierProvider.value(value: localeProvider),
       ],
-      child: const MyApp(),
+      child: MyApp(router: router),
     ),
   );
 }
 
 
 class MyApp extends StatelessWidget {
-  const MyApp({super.key});
+  final GoRouter router;
+
+  const MyApp({super.key, required this.router});
 
   @override
   Widget build(BuildContext context) {
-    final authState = Provider.of<AuthState>(context, listen: true);
     final localeProvider = Provider.of<LocaleProvider>(context);
 
     return MaterialApp.router(
@@ -73,18 +113,31 @@ class MyApp extends StatelessWidget {
 
       // Dynamic Theme with Arabic Font Support
       theme: _buildTheme(localeProvider),
-      routerConfig: AppRouter.createRouter(authState),
+      routerConfig: router,
     );
   }
 
   ThemeData _buildTheme(LocaleProvider localeProvider) {
     final isRTL = localeProvider.isRTL;
+    // Le ColorScheme Material3 est aligné sur Appstyle (seul système de
+    // couleurs utilisé concrètement dans l'app, cf. lib/core/theme/app_style.dart)
+    // plutôt que sur un violet Material générique : les widgets standards
+    // (Checkbox, Switch, Scrollbar...) qui n'overrident pas leur couleur
+    // héritent ainsi de la même identité que le reste de l'UI.
+    final colorScheme = ColorScheme.fromSeed(
+      seedColor: Appstyle.violet,
+      brightness: Brightness.light,
+    ).copyWith(
+      primary: Appstyle.violet,
+      secondary: Appstyle.indigo,
+      error: Appstyle.red,
+      surface: Appstyle.Tblanc,
+    );
+
     return ThemeData(
       useMaterial3: true,
-      colorScheme: ColorScheme.fromSeed(
-        seedColor: Colors.deepPurple,
-        brightness: Brightness.light,
-      ),
+      colorScheme: colorScheme,
+      scaffoldBackgroundColor: Appstyle.background,
       // Font family based on locale
       fontFamily: isRTL ? 'Cairo' : 'Poppins',
       // RTL-specific adjustments

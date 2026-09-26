@@ -1,79 +1,81 @@
 class Magasin {
+  int id;
 
-  int     id;
   String  code;
   String  nom;
-  bool    etat;
-
   String? adresse;
+  bool    etat;
   String? observation;
+
   // Audit
-  String    creeParCode;
   DateTime  dateCree;
+  String    creeParCode;
 
   DateTime? dateModif;
-  String? modifParCode;
+  String?   modifParCode;
   DateTime? dateAnnul;
-  String? annulParCode;
-  String? motifAnnul;
+  String?   annulParCode;
+  String?   motifAnnul;
 
   Magasin({
-    required this.creeParCode,
-    required this.dateCree,
-    required this.etat,
+    required this.id,
     required this.code,
     required this.nom,
-    required this.id,
+    required this.etat,
+    required this.dateCree,
+    required this.creeParCode,
 
-    this.observation,
-    this.motifAnnul,
-    this.dateModif,
-    this.dateAnnul,
-    this.modifParCode,
-    this.annulParCode,
     this.adresse,
+    this.observation,
+    this.dateModif,
+    this.modifParCode,
+    this.dateAnnul,
+    this.annulParCode,
+    this.motifAnnul,
   });
 
   factory Magasin.fromMap(Map<String, dynamic> map) {
     return Magasin(
       id            : map['id'],
-      nom           : map['nom'],
-      etat          : map['etat'] == 1,
       code          : map['code'],
+      nom           : map['nom'],
       adresse       : map['adresse'],
+      etat          : map['etat'] == 1,
+      observation   : map['observation'],
       dateCree      : DateTime.parse(map['date_cree']),
       creeParCode   : map['cree_par_code'],
 
-      observation   : map['observation'],
-      modifParCode      : map['modif_par_code'],
-      annulParCode      : map['annul_par_code'],
+      modifParCode  : map['modif_par_code'],
+      annulParCode  : map['annul_par_code'],
       motifAnnul    : map['motif_annul'],
-      dateAnnul     : map['date_annul'] != null
-          ? DateTime.parse(map['date_annul'])
-          : null,
       dateModif     : map['date_modif'] != null
           ? DateTime.parse(map['date_modif'])
+          : null,
+      dateAnnul     : map['date_annul'] != null
+          ? DateTime.parse(map['date_annul'])
           : null,
     );
   }
 
-  Map<String, dynamic> toMap(){
-    return{
+  Map<String, dynamic> toMap() {
+    return {
       'id'            : id,
-      'nom'           : nom,
       'code'          : code,
+      'nom'           : nom,
       'adresse'       : adresse,
       'etat'          : etat ? 1 : 0,
       'observation'   : observation,
       'date_cree'     : dateCree.toIso8601String(),
       'cree_par_code' : creeParCode,
+
       'date_modif'    : dateModif?.toIso8601String(),
-      'modif_par_code'     : modifParCode,
+      'modif_par_code': modifParCode,
       'date_annul'    : dateAnnul?.toIso8601String(),
-      'annul_par_code'     : annulParCode,
+      'annul_par_code': annulParCode,
       'motif_annul'   : motifAnnul,
     };
   }
+
   String get searchableText {
     return toMap()
         .values

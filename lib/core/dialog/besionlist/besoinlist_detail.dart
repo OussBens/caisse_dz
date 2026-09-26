@@ -11,6 +11,9 @@ import 'package:collection/collection.dart';
 import 'package:flutter/material.dart';
 
 import '../../widget/section_decoration.dart';
+import '../../widget/stats_card.dart';
+import '../produits_liste_dialog.dart';
+import 'package:caisse_dz/core/utilis/number_format.dart';
 
 List<BesoinListDetail>  besoinListDetailsTest = [];
 
@@ -61,14 +64,20 @@ Future<void> BesoinListDetailDialog(
                 ),
 
                 const Spacer(),
-
                 Chip(
                   label: Text(
                     besoin.etat ? l10n.active : l10n.inactive,
-                    style: Appstyle.textSB.copyWith(color: Appstyle.Tblanc),
+                    style: Appstyle.textSB.copyWith(
+                      color: besoin.etat ? Appstyle.Tblanc : Appstyle.Tnoir, // ou une autre couleur
+                    ),
                   ),
-                  backgroundColor: Appstyle.crevete,
-                ),
+                  backgroundColor: besoin.etat
+                      ? Appstyle.violet.withOpacity(0.8)
+                      : Appstyle.crevete.withOpacity(0.7), // ou rouge, orange, etc.
+                  labelPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                  elevation: besoin.etat ? 2 : 0,
+                )
+
               ],
             ),
             const SizedBox(height: 16),
@@ -141,7 +150,7 @@ Future<void> BesoinListDetailDialog(
           children: [
             ElevatedButton.icon(
               icon: const Icon(Icons.list),
-              label: Text(l10n.productsList),
+              label: Text(l10n.productList),
               style: ElevatedButton.styleFrom(
                 backgroundColor: Appstyle.crevete,
                 foregroundColor: Colors.white,
@@ -149,11 +158,7 @@ Future<void> BesoinListDetailDialog(
                     borderRadius: BorderRadius.circular(10)),
               ),
               onPressed: () {
-                showDialog(
-                  barrierColor: Appstyle.gris.withOpacity(0.4),
-                  context: context,
-                  builder: (_) => _dialogListeProduitsBesoin(context, besoin, nomFournisseur, l10n),
-                );
+                showBesoinListProduitsDialog(context, besoin, nomFournisseur, l10n);
               },
             ),
             const SizedBox(width: 10),
@@ -175,25 +180,19 @@ Future<void> BesoinListDetailDialog(
   );
 }
 
+// besoin_list_detail.dart - Remplacer _resumeChiffreBesoin
 Widget _resumeChiffreBesoin(BesoinList b, AppLocalizations l10n) {
-  return Container(
-    decoration: BoxDecoration(
-      color: Appstyle.violet.withOpacity(0.6),
-      borderRadius: BorderRadius.circular(10),
-    ),
-    padding: const EdgeInsets.all(8),
-    child: Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-      children: [
-        detailbadge(l10n.numberOfArticles, b.nombreArticle),
-        detailbadge(l10n.totalQuantity, b.quantite),
-        detailbadge(l10n.totalAmount, "${b.montant} ${l10n.currency}"),
-      ],
-    ),
+  return StatsCard(
+    backgroundColor: Appstyle.violet.withOpacity(0.7),
+    items: [
+      StatsItem(label: l10n.numberOfArticles, value: b.nombreArticle),
+      StatsItem(label: l10n.totalQuantity, value: b.quantite),
+      StatsItem(label: l10n.totalAmount, value: "${b.montant} ${l10n.currency}"),
+    ],
   );
 }
 
-Widget _dialogListeProduitsBesoin(
+Future<void> showBesoinListProduitsDialog(
     BuildContext context,
     BesoinList besoin,
     String nomFournisseur,
@@ -203,51 +202,43 @@ Widget _dialogListeProduitsBesoin(
       .where((d) => d.besoinListCode == besoin.code)
       .toList();
 
-  return BaseDialog(
-    width: 700,
-    height: 550,
+  final quantiteTotale = produits.fold(0.0, (sum, p) => sum + p.quantite);
+  final montantTotal = produits.fold(0.0, (sum, p) => sum + p.montant);
 
-    header: Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(l10n.productsOfNeed(besoin.code),
-            style: Appstyle.textLB),
-        const SizedBox(height: 6),
-        Text("${l10n.supplier} : $nomFournisseur", style: Appstyle.textSB),
-        Text("${l10n.total} : ${besoin.montant} ${l10n.currency}",
-            style: Appstyle.textSB.copyWith(color: Appstyle.violet)),
-      ],
-    ),
-
-    content: SingleChildScrollView(
-      child: DataTable(
-        columns: [
-          DataColumn(label: Text(l10n.productCode)),
-          DataColumn(label: Text(l10n.productName)),
-          DataColumn(label: Text(l10n.productQuantity), numeric: true),
-          DataColumn(label: Text(l10n.productPrice), numeric: true),
-          DataColumn(label: Text(l10n.productTotal), numeric: true),
-        ],
-        rows: produits.map((p) {
-          return DataRow(cells: [
-            DataCell(Text(p.ProduitCode)),
-            DataCell(Text(p.ProduitNom)),
-            DataCell(Text("${p.quantite}")),
-            DataCell(Text("${p.prix.toStringAsFixed(2)}")),
-            DataCell(Text("${p.montant.toStringAsFixed(2)}")),
-          ]);
-        }).toList(),
+  return ProduitsListeDialog.afficher(
+    context: context,
+    titre: l10n.productsOfNeed(besoin.code),
+    sousTitre: [
+      Text("${l10n.supplier} : $nomFournisseur", style: Appstyle.textSB),
+    ],
+    stats: [
+      StatBadge(label: l10n.numberOfItems, valeur: "${produits.length}"),
+      StatBadge(label: l10n.totalQuantity, valeur: NumberFormatUtil.formatMontant(quantiteTotale, decimales: 0)),
+      StatBadge(
+        label: l10n.total,
+        valeur: "${NumberFormatUtil.formatMontant(montantTotal, decimales: 2)} ${l10n.currency}",
+        couleur: Appstyle.crevete,
       ),
-    ),
-
-    footer: Align(
-      alignment: Alignment.centerRight,
-      child: ElevatedButton.icon(
-        icon: const Icon(Icons.close, color: Colors.white),
-        label: Text(l10n.close),
-        style: ElevatedButton.styleFrom(backgroundColor: Appstyle.violet),
-        onPressed: () => Navigator.pop(context),
-      ),
-    ),
+    ],
+    colonnes: [
+      DataColumn(label: Text(l10n.productCode)),
+      DataColumn(label: Text(l10n.productName)),
+      DataColumn(label: Text(l10n.productQuantity), numeric: true),
+      DataColumn(label: Text(l10n.productPrice), numeric: true),
+      DataColumn(label: Text(l10n.productTotal), numeric: true),
+    ],
+    lignes: produits.map((p) {
+      return DataRow(cells: [
+        DataCell(Text(p.ProduitCode)),
+        DataCell(Text(p.ProduitNom)),
+        DataCell(pilluleCellule("${p.quantite}", Appstyle.violet)),
+        DataCell(Text(NumberFormatUtil.formatMontant(p.prix, decimales: 2))),
+        DataCell(Text(
+          NumberFormatUtil.formatMontant(p.montant, decimales: 2),
+          style: Appstyle.textSB.copyWith(fontWeight: FontWeight.bold, color: Appstyle.crevete),
+        )),
+      ]);
+    }).toList(),
+    messageVide: l10n.noProductsAssociated,
   );
 }

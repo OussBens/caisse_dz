@@ -1,17 +1,32 @@
 import 'package:caisse_dz/core/theme/app_style.dart';
 import 'package:caisse_dz/l10n/app_localizations.dart';
 import 'package:flutter/material.dart';
+import 'package:caisse_dz/core/utilis/number_format.dart';
 
 class AfficheurFournisseurGlobalWidget extends StatefulWidget {
   final String type;
   final int nombreClients;
   final int nombreInactifs;
 
+  // Statistiques globales optionnelles (achats / crédit tous fournisseurs confondus)
+  final double? totalAchat;
+  final String? nomFournisseurTopAchat;
+  final double? montantTopAchat;
+  final double? totalCredit;
+  final String? nomFournisseurTopCredit;
+  final double? montantTopCredit;
+
   const AfficheurFournisseurGlobalWidget({
     super.key,
     required this.nombreClients,
     required this.nombreInactifs,
     required this.type,
+    this.totalAchat,
+    this.nomFournisseurTopAchat,
+    this.montantTopAchat,
+    this.totalCredit,
+    this.nomFournisseurTopCredit,
+    this.montantTopCredit,
   });
 
   @override
@@ -37,7 +52,9 @@ class _AfficheurFournisseurGlobalWidgetState extends State<AfficheurFournisseurG
     super.didUpdateWidget(oldWidget);
     if (oldWidget.nombreClients != widget.nombreClients ||
         oldWidget.nombreInactifs != widget.nombreInactifs ||
-        oldWidget.type != widget.type) {
+        oldWidget.type != widget.type ||
+        oldWidget.totalAchat != widget.totalAchat ||
+        oldWidget.totalCredit != widget.totalCredit) {
       _controller.reset();
       _controller.forward();
     }
@@ -52,6 +69,7 @@ class _AfficheurFournisseurGlobalWidgetState extends State<AfficheurFournisseurG
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
+    final bool afficherStatsGlobales = widget.totalAchat != null && widget.totalCredit != null;
 
     return FadeTransition(
       opacity: _controller,
@@ -71,13 +89,64 @@ class _AfficheurFournisseurGlobalWidgetState extends State<AfficheurFournisseurG
               suffix: l10n.supplier,
               animation: _controller,
             ),
+            if (afficherStatsGlobales) ...[
+              _space(),
+              _AnimatedStatCard(
+                color: Appstyle.indigo,
+                icon: Icons.shopping_cart_outlined,
+                title: l10n.totalAchat,
+                value: widget.totalAchat!,
+                subtitle: widget.nomFournisseurTopAchat != null
+                    ? "${l10n.bestSuppliers} : ${widget.nomFournisseurTopAchat}"
+                    : "-",
+                suffix: l10n.currency,
+                isMoney: true,
+                animation: _controller,
+              ),
+              _space(),
+              _AnimatedStatCard(
+                color: Appstyle.crevete,
+                icon: Icons.emoji_events_outlined,
+                title: l10n.bestSuppliers,
+                value: widget.montantTopAchat ?? 0,
+                subtitle: widget.nomFournisseurTopAchat ?? "-",
+                suffix: l10n.currency,
+                isMoney: true,
+                animation: _controller,
+              ),
+              _space(),
+              _AnimatedStatCard(
+                color: Colors.orange,
+                icon: Icons.arrow_downward,
+                title: l10n.totalCredit,
+                value: widget.totalCredit!,
+                subtitle: widget.nomFournisseurTopCredit != null
+                    ? "${l10n.topCredits} : ${widget.nomFournisseurTopCredit}"
+                    : "-",
+                suffix: l10n.currency,
+                isMoney: true,
+                animation: _controller,
+              ),
+              _space(),
+              _AnimatedStatCard(
+                color: Colors.redAccent,
+                icon: Icons.warning_amber_outlined,
+                title: l10n.topCredits,
+                value: widget.montantTopCredit ?? 0,
+                subtitle: widget.nomFournisseurTopCredit ?? "-",
+                suffix: l10n.currency,
+                isMoney: true,
+                animation: _controller,
+              ),
+            ],
           ],
         ),
       ),
     );
   }
 
-  Widget _space() => const SizedBox(width: 14);
+  // ✅ Espace réduit de 14 à 10 (70%)
+  Widget _space() => const SizedBox(width: 10);
 }
 
 class _AnimatedStatCard extends StatelessWidget {
@@ -111,10 +180,11 @@ class _AnimatedStatCard extends StatelessWidget {
       child: FadeTransition(
         opacity: animation,
         child: Container(
-          padding: const EdgeInsets.all(20),
+          // ✅ Padding réduit de 20 à 14 (70%)
+          padding: const EdgeInsets.all(14),
           decoration: BoxDecoration(
             color: Colors.white,
-            borderRadius: BorderRadius.circular(24),
+            borderRadius: BorderRadius.circular(18), // ✅ Réduit de 24 à 18
             boxShadow: [
               BoxShadow(
                 color: color.withOpacity(0.1),
@@ -130,35 +200,38 @@ class _AnimatedStatCard extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
+              // ✅ Icone padding réduit de 10 à 7
               Container(
-                padding: const EdgeInsets.all(10),
+                padding: const EdgeInsets.all(7),
                 decoration: BoxDecoration(
                   color: color.withOpacity(0.12),
-                  borderRadius: BorderRadius.circular(16),
+                  borderRadius: BorderRadius.circular(12), // ✅ Réduit de 16 à 12
                 ),
                 child: Icon(
                   icon,
                   color: color,
-                  size: 28,
+                  size: 20, // ✅ Réduit de 28 à 20
                 ),
               ),
-              const SizedBox(height: 16),
+              // ✅ Espace réduit de 16 à 11
+              const SizedBox(height: 11),
               Text(
                 title,
                 style: Appstyle.textSB.copyWith(
                   color: color,
                   fontWeight: FontWeight.w600,
-                  letterSpacing: 0.5,
+                  letterSpacing: 0.4, // ✅ Réduit de 0.5 à 0.4
                 ),
               ),
-              const SizedBox(height: 8),
+              // ✅ Espace réduit de 8 à 6
+              const SizedBox(height: 6),
               if (showValueAsText && textValue != null)
                 Text(
                   textValue!,
                   style: Appstyle.textLB.copyWith(
                     color: color,
                     fontWeight: FontWeight.bold,
-                    fontSize: 24,
+                    fontSize: 18, // ✅ Réduit de 24 à 18
                     height: 1,
                   ),
                   overflow: TextOverflow.ellipsis,
@@ -172,14 +245,15 @@ class _AnimatedStatCard extends StatelessWidget {
                       style: Appstyle.textXXLB.copyWith(
                         color: color,
                         fontWeight: FontWeight.bold,
-                        fontSize: 36,
+                        fontSize: 26, // ✅ Réduit de 36 à 26
                         height: 1,
                       ),
                       animation: animation,
                       isMoney: isMoney,
                     ),
                     if (suffix.isNotEmpty) ...[
-                      const SizedBox(width: 4),
+                      // ✅ Espace réduit de 4 à 3
+                      const SizedBox(width: 3),
                       Text(
                         " $suffix",
                         style: Appstyle.textSB.copyWith(
@@ -190,19 +264,22 @@ class _AnimatedStatCard extends StatelessWidget {
                     ],
                   ],
                 ),
-              const SizedBox(height: 8),
+              // ✅ Espace réduit de 8 à 6
+              const SizedBox(height: 6),
               Text(
                 subtitle,
                 style: Appstyle.textXS.copyWith(
                   color: color.withOpacity(0.8),
                   fontWeight: FontWeight.w400,
+                  fontSize: 10, // ✅ Taille réduite
                 ),
                 overflow: TextOverflow.ellipsis,
                 maxLines: 2,
               ),
-              const SizedBox(height: 12),
+              // ✅ Espace réduit de 12 à 8
+              const SizedBox(height: 8),
               Container(
-                height: 3,
+                height: 2, // ✅ Réduit de 3 à 2
                 width: double.infinity,
                 decoration: BoxDecoration(
                   gradient: LinearGradient(
@@ -249,8 +326,8 @@ class _AnimatedCounter extends StatelessWidget {
           formattedValue = displayValue.toInt().toString();
         } else {
           formattedValue = isMoney
-              ? displayValue.toStringAsFixed(0)
-              : displayValue.toStringAsFixed(1);
+              ? NumberFormatUtil.formatMontant(displayValue, decimales: 0)
+              : NumberFormatUtil.formatMontant(displayValue, decimales: 1);
         }
         return Text(
           formattedValue,

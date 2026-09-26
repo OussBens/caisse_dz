@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:syncfusion_flutter_datagrid/datagrid.dart';
 import '../../../../data/models/operation_client.dart';
 import '../../../l10n/app_localizations.dart';
+import 'package:caisse_dz/core/utilis/number_format.dart';
 
 class SituationClientDataSource extends DataGridSource {
   List<OperationClient> operations;
@@ -23,9 +24,9 @@ class SituationClientDataSource extends DataGridSource {
         DataGridCell(columnName: 'date', value: _formatDate(op.date)),
         DataGridCell(columnName: 'type', value: _getTranslatedOperationType(op.type.name, l10n)),
         DataGridCell(columnName: 'reference', value: op.reference),
-        DataGridCell(columnName: 'debit', value: "${op.debit.toStringAsFixed(2)} ${l10n.currency}"),
-        DataGridCell(columnName: 'credit', value: "${op.credit.toStringAsFixed(2)} ${l10n.currency}"),
-        DataGridCell(columnName: 'solde', value: "${solde.toStringAsFixed(2)} ${l10n.currency}"),
+        DataGridCell(columnName: 'debit', value: "${NumberFormatUtil.formatMontant(op.debit, decimales: 2)} ${l10n.currency}"),
+        DataGridCell(columnName: 'credit', value: "${NumberFormatUtil.formatMontant(op.credit, decimales: 2)} ${l10n.currency}"),
+        DataGridCell(columnName: 'solde', value: "${NumberFormatUtil.formatMontant(solde, decimales: 2)} ${l10n.currency}"),
         DataGridCell(columnName: 'description', value: op.description),
       ]);
     }).toList();

@@ -11,6 +11,10 @@ class AfficheurCaisse extends StatelessWidget {
   final String total;
   final String remise;
 
+  /// Couleur du libellé de remise : orange si la remise sélectionnée est
+  /// dans sa période de validité, gris si elle est hors délais. Ignoré si
+  /// [remise] est vide (aucune remise sélectionnée -> rien n'est affiché).
+  final Color remiseColor;
 
   const AfficheurCaisse({
     super.key,
@@ -19,6 +23,7 @@ class AfficheurCaisse extends StatelessWidget {
     required this.nproduit,
     required this.total,
     required this.remise,
+    this.remiseColor = Appstyle.Tblanc,
   });
 
   @override
@@ -53,14 +58,15 @@ class AfficheurCaisse extends StatelessWidget {
                 children: [
                   TitleSmall(
                     imagePath: 'assets/icons/sidebar/pannier_icon.png',
-                    imageSize: 22,
+                    imageSize: 26,
                     text: npannier,
                     couleur: Appstyle.Tblanc,
                   ),
                   TitleBig(
                     imagePath: 'assets/icons/cardwidget/euro_icon.png',
-                    imageSize: 30,
+                    imageSize: 36,
                     text: total,
+                    textsize: 34,
                     couleur: Appstyle.Tblanc,
                     iconRight: true,
                   ),
@@ -72,17 +78,19 @@ class AfficheurCaisse extends StatelessWidget {
                 children: [
                   TitleSmall(
                     imagePath: 'assets/icons/sidebar/produit_icon.png',
-                    imageSize: 24,
+                    imageSize: 26,
                     text: nproduit,
                     couleur: Appstyle.Tblanc,
                   ),
-                  TitleBig(
-                    imagePath: 'assets/icons/cardwidget/remise_icon.png',
-                    text: remise,
-                    couleur: Appstyle.Tblanc,
-                    iconRight: true,
-                    imageSize: 28,
-                  ),
+                  if (remise.isNotEmpty)
+                    TitleBig(
+                      imagePath: 'assets/icons/cardwidget/remise_icon.png',
+                      text: remise,
+                      textsize: 26,
+                      couleur: remiseColor,
+                      iconRight: true,
+                      imageSize: 28,
+                    ),
                 ],
               ),
             ],

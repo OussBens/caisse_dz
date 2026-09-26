@@ -2,8 +2,13 @@ import 'package:caisse_dz/DBCreate.dart';
 import 'package:caisse_dz/Services/Client.dart';
 import 'package:caisse_dz/Services/Pannier.dart';
 import 'package:caisse_dz/Services/PannierProduit.dart';
+import 'package:caisse_dz/Services/Retour.dart';
+import 'package:caisse_dz/Services/Verssement.dart';
+import 'package:caisse_dz/data/models/verssement.dart';
 import 'package:caisse_dz/Services/excel_generator.dart';
 import 'package:caisse_dz/Services/ExcelPreviewDialog.dart';
+import 'package:caisse_dz/Services/Utilisateur.dart';
+import 'package:caisse_dz/data/models/utilisateur.dart';
 import 'package:caisse_dz/core/Auth/auth_state.dart';
 import 'package:caisse_dz/core/dialog/pannier/pannier_actif.dart';
 import 'package:caisse_dz/core/dialog/pannier/pannier_detail.dart';
@@ -24,6 +29,7 @@ import 'package:caisse_dz/core/widget/header_module.dart';
 import 'package:caisse_dz/core/widget/search_bar.dart';
 import 'package:caisse_dz/core/widget/side_bar.dart';
 import 'package:caisse_dz/core/widget/time_date_widget.dart';
+import 'package:caisse_dz/core/widget/connection_status_bar.dart';
 import 'package:caisse_dz/data/constant.dart';
 import 'package:caisse_dz/data/models/client.dart';
 import 'package:caisse_dz/data/models/pannier.dart';
@@ -50,6 +56,27 @@ class PannierScreen extends StatefulWidget {
 }
 
 class _PannierScreenState extends State<PannierScreen> {
+
+  Future<void> _refreshData() async {
+    await _LoadAllData();
+    if (mounted) {
+      setState(() {});
+    }
+  }
+  void _modifierPannier(Pannier p) {
+    PannierModif(
+      context,
+      p,
+      onSuccess: _refreshData, // ✅ Callback après modification
+    );
+  }
+  void _annulerPannier(List<Pannier> selection) {
+    AnnulerPannier(
+      context,
+      selection,
+      onSuccess: _refreshData, // ✅ Callback après annulation
+    );
+  }
   // Period keys for translation lookup
   final List<String> periodeKeys = [
     "today",
@@ -67,6 +94,11 @@ class _PannierScreenState extends State<PannierScreen> {
   List<Pannier> paniersTest = [];
   List<Client> clientsTest = [];
   List<PannierProduit> pannierProduitsTest = [];
+  List<Verssement> versementsTest = [];
+  List<Utilisateur> utilisateursTest = [];
+  Map<String, double> verseParPannier = {};
+  Map<String, int> nbrVersementParPannier = {};
+  Set<String> panniersAvecRetour = {};
 
   Future<void> _LoadAllData() async {
     supprimerFilter();
@@ -74,12 +106,24 @@ class _PannierScreenState extends State<PannierScreen> {
     paniersTest = await PannierServices.getAllPanniers();
     clientsTest = await ClientServices.getAllClients();
     pannierProduitsTest = await PPServices.getAllPP();
+    versementsTest = await VerssementServices.getAllverssement();
+    utilisateursTest = await UtilisateurServices.getAllUtilisateurs();
+    verseParPannier = PannierServices.verseParPannier(versementsTest);
+    nbrVersementParPannier = PannierServices.nbrVersementParPannier(versementsTest);
+
+    final retoursTest = await RetourServices.getAllRetour();
+    panniersAvecRetour = retoursTest
+        .where((r) => r.etat && r.type == "Client" && r.retourCorrespondDe != null)
+        .map((r) => r.retourCorrespondDe!)
+        .toSet();
 
     setState(() {
       paniers = paniersTest;
       pannierFiltres = paniersTest;
     });
   }
+
+  double _resteDe(Pannier p) => p.montant - (verseParPannier[p.code] ?? 0);
 
   DateTime? dateDebut;
   DateTime? dateFin;
@@ -160,6 +204,20 @@ class _PannierScreenState extends State<PannierScreen> {
     _LoadAllData();
   }
 
+  // ✅ Vrai si au moins un champ de filtre panier est renseigné (pour l'indicateur visuel du bouton Filtre).
+  bool get _filtresPannierActifs =>
+      (selectedClientFilter != null && selectedClientFilter!.isNotEmpty) ||
+      (modepaiementFilter != null && modepaiementFilter!.isNotEmpty) ||
+      (selectedEtatFilter != null && selectedEtatFilter!.isNotEmpty) ||
+      (typepannierFilter != null && typepannierFilter!.isNotEmpty) ||
+      montantMin != null ||
+      montantMax != null ||
+      resteMin != null ||
+      resteMax != null ||
+      dateDebut != null ||
+      dateFin != null ||
+      _searchController.text.isNotEmpty;
+
   void appliquerFiltre() {
     pannierFiltres = paniersTest.where((p) {
       final searchText = _searchController.text.toLowerCase();
@@ -177,8 +235,9 @@ class _PannierScreenState extends State<PannierScreen> {
       final montantOk = (montantMin == null || p.montant >= montantMin!) &&
           (montantMax == null || p.montant <= montantMax!);
 
-      final resteOk = (resteMin == null || p.reste >= resteMin!) &&
-          (resteMax == null || p.reste <= resteMax!);
+      final reste = _resteDe(p);
+      final resteOk = (resteMin == null || reste >= resteMin!) &&
+          (resteMax == null || reste <= resteMax!);
 
       final etatOk = selectedEtatFilter == null ||
           selectedEtatFilter == "" ||
@@ -222,13 +281,7 @@ class _PannierScreenState extends State<PannierScreen> {
     setState(() {});
   }
 
-  void _modifierPannier(Pannier p) {
-    PannierModif(context, p);
-  }
 
-  void _annulerPannier(List<Pannier> selection) {
-    AnnulerPannier(context, selection);
-  }
 
   Future<void> _pickDateDebut() async {
     final picked = await showDatePicker(
@@ -397,6 +450,7 @@ class _PannierScreenState extends State<PannierScreen> {
 
       final excelFile = await ExcelGenerator.generatePanniersExcel(
         panniers: panniersToExport,
+        versements: versementsTest,
         l10n: l10n,
         translator: translator,
       );
@@ -530,6 +584,7 @@ class _PannierScreenState extends State<PannierScreen> {
 
       final excelFile = await ExcelGenerator.generatePanniersExcel(
         panniers: paniersSelectionnes,
+        versements: versementsTest,
         l10n: l10n,
         translator: translator,
       );
@@ -663,16 +718,13 @@ class _PannierScreenState extends State<PannierScreen> {
 
           return SingleChildScrollView(
             scrollDirection: Axis.horizontal,
-            child: SingleChildScrollView(
-              scrollDirection: Axis.vertical,
-              child: ConstrainedBox(
-                constraints: const BoxConstraints(
-                  minWidth: minWidth,
-                  minHeight: minHeight,
-                ),
-
-                  child: SizedBox(
-                    width: adjustedWidth,
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(
+                minWidth: minWidth,
+                minHeight: minHeight,
+              ),
+              child: SizedBox(
+                width: adjustedWidth,
                     height: adjustedHeight,
                     child: Row(
                        children: [
@@ -694,13 +746,13 @@ class _PannierScreenState extends State<PannierScreen> {
                                           Image.asset(
                                             "assets/icons/sidebar/pannier_icon.png",
                                             width: 40,
-                                            color: Appstyle.green2,
+                                            color: Appstyle.violet,
                                           ),
                                           const SizedBox(width: 10),
                                           Text(
                                             l10n.panier,
                                             style: Appstyle.textXLB.copyWith(
-                                              color: Appstyle.green2,
+                                              color: Appstyle.violet,
                                               fontWeight: FontWeight.bold,
                                             ),
                                           ),
@@ -709,9 +761,9 @@ class _PannierScreenState extends State<PannierScreen> {
                                       const Spacer(),
                                       Row(
                                         children: [
+                                          const ConnectionStatusBar(),
+                                          const SizedBox(width: 20),
                                           TimeDateWidget(
-                                            heure: "18:00",
-                                            date: "25 Nov 2025",
                                             iconHeure: "assets/icons/hour_icon.png",
                                             iconDate: "assets/icons/agenda_icon.png",
                                           ),
@@ -731,6 +783,10 @@ class _PannierScreenState extends State<PannierScreen> {
                                 if (paniersSelectionnes.length == 1)
                                   AfficheurPanier(
                                     pannier: paniersSelectionnes.first,
+                                    verse: verseParPannier[paniersSelectionnes.first.code] ?? 0,
+                                    reste: _resteDe(paniersSelectionnes.first),
+                                    nbrVersement: nbrVersementParPannier[paniersSelectionnes.first.code] ?? 0,
+                                    hasRetour: panniersAvecRetour.contains(paniersSelectionnes.first.code),
                                     onDetails: () {
                                       PannierDetail(context, paniersSelectionnes.first);
                                     },
@@ -754,6 +810,7 @@ class _PannierScreenState extends State<PannierScreen> {
                                           text: l10n.filter,
                                           textColor: Appstyle.violet,
                                           color: Appstyle.Tblanc,
+                                          showBadge: _filtresPannierActifs,
                                           icon: filtresActifs ? Icons.visibility_off : Icons.visibility,
                                           iconColor:Appstyle.violet ,
                                           onPressed: () {
@@ -836,7 +893,8 @@ class _PannierScreenState extends State<PannierScreen> {
                                           onPressed: () async {
                                             if (paniersSelectionnes.isNotEmpty) {
                                               _annulerPannier(paniersSelectionnes);
-                                              await _LoadAllData();
+                                              // ❌ Supprimer cette ligne car le callback le fait
+                                              // await _LoadAllData();
                                             } else {
                                               await InformationDialog(
                                                 context: context,
@@ -848,31 +906,32 @@ class _PannierScreenState extends State<PannierScreen> {
                                           },
                                         ),
                                         SizedBox(width: paddingH / 4),
-                                        MainIconButton(
-                                          imagePath: "assets/icons/action/edit_icon.png",
-                                          color: Appstyle.lavande,
-                                          onPressed: () async {
-                                            if (paniersSelectionnes.length == 1) {
-                                              _modifierPannier(paniersSelectionnes.first);
-                                              await _LoadAllData();
-                                            } else if (paniersSelectionnes.isEmpty) {
-                                              await InformationDialog(
-                                                context: context,
-                                                titre_type_message: l10n.information,
-                                                titre_concerne: l10n.panier,
-                                                message: l10n.noCartSelected,
-                                              );
-                                            } else {
-                                              await InformationDialog(
-                                                context: context,
-                                                titre_type_message: l10n.information,
-                                                titre_concerne: l10n.panier,
-                                                message: l10n.selectSingleCartToModify,
-                                              );
-                                            }
-                                          },
-                                        ),
-                                      ],
+                              MainIconButton(
+                                imagePath: "assets/icons/action/edit_icon.png",
+                                color: Appstyle.lavande,
+                                onPressed: () async {
+                                  if (paniersSelectionnes.length == 1) {
+                                    _modifierPannier(paniersSelectionnes.first);
+                                    // ❌ Supprimer cette ligne car le callback le fait
+                                    // await _LoadAllData();
+                                  } else if (paniersSelectionnes.isEmpty) {
+                                    await InformationDialog(
+                                      context: context,
+                                      titre_type_message: l10n.information,
+                                      titre_concerne: l10n.panier,
+                                      message: l10n.noCartSelected,
+                                    );
+                                  } else {
+                                    await InformationDialog(
+                                      context: context,
+                                      titre_type_message: l10n.information,
+                                      titre_concerne: l10n.panier,
+                                      message: l10n.selectSingleCartToModify,
+                                    );
+                                  }
+                                },
+                              ),
+                                 ],
                                     ),
                                   ],
                                 ),
@@ -894,6 +953,10 @@ class _PannierScreenState extends State<PannierScreen> {
                                   child: TableauPannierAdvanced(
                                     key: ValueKey(pannierFiltres),
                                     panniers: pannierFiltres,
+                                    clients: clientsTest,
+                                    verseParPannier: verseParPannier,
+                                    nbrVersementParPannier: nbrVersementParPannier,
+                                    utilisateurs: utilisateursTest,
                                     onSelectionChanged: (selection) {
                                       setState(() {
                                         paniersSelectionnes = selection;
@@ -901,6 +964,8 @@ class _PannierScreenState extends State<PannierScreen> {
                                     },
                                   ),
                                 ),
+
+
                               ],
                             ),
                           ),
@@ -910,7 +975,6 @@ class _PannierScreenState extends State<PannierScreen> {
                   ),
 
               ),
-            ),
           );
         },
       ),
@@ -1071,7 +1135,7 @@ class _PannierScreenState extends State<PannierScreen> {
               ),
               const SizedBox(width: 20),
               SizedBox(
-                width: width * 0.9,
+                width: width * 0.75,
                 child: ChampAvecLabel(
                   label: l10n.quickPeriod,
                   child: DropdownButtonFormField<String>(
@@ -1102,7 +1166,7 @@ class _PannierScreenState extends State<PannierScreen> {
           ),
           const SizedBox(height: 15),
           SizedBox(
-            width: 590,
+            width: width * 0.75,
             child: Row(
               children: [
                 Expanded(

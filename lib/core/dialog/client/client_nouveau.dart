@@ -12,6 +12,7 @@ import '../../../Services/Historique.dart';
 import '../../../data/models/histore.dart';
 import '../../utilis/api_response.dart';
 import '../../widget/button/main_button.dart';
+import '../../widget/champ/affichage_champ.dart';
 import '../../widget/champ/champ_avec_label.dart';
 import '../../widget/champ/liste_champ.dart';
 import '../../widget/champ/text_champ_l.dart';
@@ -44,6 +45,10 @@ final TextEditingController onbservationControllerN  = TextEditingController();
 // Dropdowns
 String? selectedTypeN = ListsConst.typeClient.first;
 String? selectedActiviteN = ListsConst.activitesClient.first;
+
+// ✅ Aperçu du code qui sera généré à la sauvegarde (l'id réel est refetché
+// au moment du save, voir _getNextClientId plus bas — l'aperçu ne verrouille rien).
+String clientCodeApercu = '';
 
 void resetClientForm() {
   nomControllerN.clear();
@@ -80,9 +85,17 @@ Future<void> ClientNouveau(BuildContext context) async {
     return;
   }
 
-  // ✅ NE PAS APPELER _GetNextId() ICI
+  // ✅ NE PAS APPELER _GetNextId() ICI (l'id réel est refetché à la sauvegarde)
   selectedTypeN = ListsConst.typeClient.first;
   selectedActiviteN = ListsConst.activitesClient.first;
+
+  // ✅ Aperçu uniquement : n'affecte pas l'id réellement utilisé à la sauvegarde
+  final int previewId = await _getNextClientId();
+  clientCodeApercu = CodeGenerator.generateCode(
+    prefix: CodePrefix.client,
+    id: previewId,
+    digitCount: 6,
+  );
 
   return showDialog(
     context: context,
@@ -118,7 +131,13 @@ Future<void> ClientNouveau(BuildContext context) async {
                                 title: l10n.generalInformation,
                                 icon: "assets/icons/info_icon.png",
                                 child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
+                                    ChampAvecLabel(
+                                      label: l10n.code,
+                                      child: AffichageChamp(text: clientCodeApercu),
+                                    ),
+                                    const SizedBox(height: 10),
                                     ChampAvecLabel(
                                       label: l10n.name,
                                       obligatoire: true,
@@ -323,6 +342,18 @@ Future<void> ClientNouveau(BuildContext context) async {
                           return;
                         }
 
+                        // ✅ Unicité du nom du client avant toute création.
+                        final clientNomExistant = await ClientServices.findClientByNom(nomControllerN.text);
+                        if (clientNomExistant != null) {
+                          await InformationDialog(
+                            context: context,
+                            titre_type_message: l10n.error,
+                            titre_concerne: l10n.newClient,
+                            message: l10n.clientNameAlreadyExists,
+                          );
+                          return;
+                        }
+
                         // ✅ ICI : Récupérer l'ID au moment de la sauvegarde
                         final int id = await _getNextClientId();
                         final String code = CodeGenerator.generateCode(
@@ -462,6 +493,7 @@ Widget _section({
         TitleSmall(
           imageSize: 22,
           imagePath: icon,
+          textsize: 20,
           text: title,
           couleur: Appstyle.Tblue,
           opacity: 0.85,

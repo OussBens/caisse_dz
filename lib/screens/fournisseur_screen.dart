@@ -7,6 +7,8 @@ import 'package:caisse_dz/Services/SmartScan.dart';
 import 'package:caisse_dz/Services/Verssement.dart';
 import 'package:caisse_dz/Services/excel_generator.dart';
 import 'package:caisse_dz/Services/ExcelPreviewDialog.dart';
+import 'package:caisse_dz/Services/Utilisateur.dart';
+import 'package:caisse_dz/data/models/utilisateur.dart';
 import 'package:caisse_dz/core/Auth/auth_state.dart';
 import 'package:caisse_dz/core/dialog/fournisseur/fournisseur_situation.dart';
 import 'package:caisse_dz/core/widget/section_decoration_filtre.dart';
@@ -25,12 +27,13 @@ import '../core/dialog/versement/versement_actif.dart';
 import '../core/dialog/versement/versement_detail.dart';
 import '../core/dialog/versement/versement_modif.dart';
 import '../core/dialog/versement/versement_modif_retour.dart';
-import '../core/dialog/versement/versement_nouveau.dart';
 import '../core/dialog/versement/versement_nouveau_retour.dart';
 import '../core/tableau/founisseur/tableau_fournisseur.dart';
 import '../core/tableau/versement/versement_tableau.dart';
 import '../core/widget/afficheur/afficheur_client&fournisseur.dart';
 import '../core/widget/afficheur/afficheur_fournisseur_global.dart';
+import '../core/widget/afficheur/afficheur_versement.dart';
+import '../core/widget/afficheur/afficheur_versement_global.dart';
 import '../core/widget/button/Icon_button.dart';
 import '../core/theme/app_style.dart';
 import '../core/utilis/constant.dart';
@@ -43,6 +46,7 @@ import '../core/widget/header_module.dart';
 import '../core/widget/search_bar.dart';
 import '../core/widget/side_bar.dart';
 import '../core/widget/time_date_widget.dart';
+import '../core/widget/connection_status_bar.dart';
 import '../core/widget/account.dart';
 import '../data/constant.dart';
 import '../data/models/fournisseur.dart';
@@ -116,6 +120,8 @@ class _FournisseurScreenState extends State<FournisseurScreen> with TickerProvid
   List<Verssement> verssementsTest = [];
   List<Retour> retoursTest = [];
   List<SmartScan> smartScansTest = [];
+  List<Utilisateur> utilisateursTest = [];
+  FournisseurGlobalStats? fournisseurGlobalStats;
 
   @override
   void initState() {
@@ -145,11 +151,14 @@ class _FournisseurScreenState extends State<FournisseurScreen> with TickerProvid
     final fournisseur = await FournisseurServices.getAllFournisseurs();
     final retour = await RetourServices.getAllRetour();
     final SmartScan = await SmartScanServices.getAllSmartScans();
+    final globalStats = await FournisseurServices.getGlobalFournisseurStats();
+    final utilisateurs = await UtilisateurServices.getAllUtilisateurs();
 
     if (!mounted) return;
 
     setState(() {
       fournisseursTest = fournisseur;
+      utilisateursTest = utilisateurs;
       fournisseurs = fournisseursTest;
       fournisseursFiltres = fournisseursTest;
 
@@ -160,6 +169,7 @@ class _FournisseurScreenState extends State<FournisseurScreen> with TickerProvid
 
       retoursTest = retour;
       smartScansTest = SmartScan;
+      fournisseurGlobalStats = globalStats;
 
       isLoading = false;
 
@@ -521,6 +531,13 @@ class _FournisseurScreenState extends State<FournisseurScreen> with TickerProvid
     }
   }
 
+  // ✅ Vrai si au moins un champ de filtre fournisseur est renseigné (pour l'indicateur visuel du bouton Filtre).
+  bool get _filtresFournisseurActifs =>
+      typeFournisseurFilter != null ||
+      activiteFournisseurFilter != null ||
+      (selectedEtatFilter != null && selectedEtatFilter!.isNotEmpty) ||
+      _searchController.text.isNotEmpty;
+
   void appliquerFiltre() {
     setState(() {
       fournisseursFiltres = fournisseursTest.where((f) {
@@ -614,6 +631,17 @@ class _FournisseurScreenState extends State<FournisseurScreen> with TickerProvid
 
     appliquerFiltreVers();
   }
+
+  // ✅ Vrai si au moins un champ de filtre versement est renseigné (pour l'indicateur visuel du bouton Filtre).
+  bool get _filtresVersementActifs =>
+      (fournisseurFilterVersment != null && fournisseurFilterVersment!.isNotEmpty) ||
+      (modepaiementFilter != null && modepaiementFilter!.isNotEmpty) ||
+      selectedEtatVersementFilter != null ||
+      versemntMin != null ||
+      versemntMax != null ||
+      dateDebut != null ||
+      dateFin != null ||
+      _searchControllerVers.text.isNotEmpty;
 
   void appliquerFiltreVers() {
     verssementsFiltres = versements.where((c) {
@@ -729,6 +757,27 @@ class _FournisseurScreenState extends State<FournisseurScreen> with TickerProvid
     fournisseursSelectionnes.clear();
   }
 
+  // ---------------- STATISTIQUES VERSEMENTS ----------------
+  String _nomFournisseurVersement(String code) =>
+      fournisseursTest.firstWhereOrNull((f) => f.code == code)?.nom ?? code;
+
+  // ✅ Total Versé = total des versements "Entrée" uniquement (paiements
+  // effectivement reçus), sans les versements "Sortie" (règlements
+  // fournisseur).
+  double _totalVerse() => verssementsTest
+      .where((v) => v.sense == 'Entrée')
+      .fold(0.0, (s, v) => s + v.montant);
+
+  Verssement? _versementMax() {
+    if (verssementsTest.isEmpty) return null;
+    return verssementsTest.reduce((a, b) => a.montant >= b.montant ? a : b);
+  }
+
+  Verssement? _dernierVersement() {
+    if (verssementsTest.isEmpty) return null;
+    return verssementsTest.reduce((a, b) => a.date.isAfter(b.date) ? a : b);
+  }
+
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
@@ -743,6 +792,9 @@ class _FournisseurScreenState extends State<FournisseurScreen> with TickerProvid
 
     // ✅ Index actuel du tab
     final currentTab = _tabController.index;
+
+    // ✅ Couleur de l'en-tête alignée sur la couleur du tab actif
+    final Color headerColor = currentTab == TAB_FOURNISSEUR ? Appstyle.violet : Appstyle.indigo;
 
     // ✅ Noms des tabs
     final tabNames = [
@@ -779,16 +831,14 @@ class _FournisseurScreenState extends State<FournisseurScreen> with TickerProvid
 
           return SingleChildScrollView(
             scrollDirection: Axis.horizontal,
-            child: SingleChildScrollView(
-              scrollDirection: Axis.vertical,
-              child: ConstrainedBox(
-                constraints: const BoxConstraints(
-                  minWidth: minWidth,
-                  minHeight: minHeight,
-                ),
-                child: SizedBox(
-                  width: adjustedWidth,
-                  height: adjustedHeight,
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(
+                minWidth: minWidth,
+                minHeight: minHeight,
+              ),
+              child: SizedBox(
+                width: adjustedWidth,
+                height: adjustedHeight,
                   child: Row(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
@@ -807,22 +857,22 @@ class _FournisseurScreenState extends State<FournisseurScreen> with TickerProvid
                                     Image.asset(
                                       "assets/icons/sidebar/fournisseur_icon.png",
                                       width: 40,
-                                      color: Appstyle.indigo,
+                                      color: headerColor,
                                     ),
                                     const SizedBox(width: 10),
                                     Text(
                                       "${l10n.fournisseur} (${tabNames[currentTab]})",
                                       style: Appstyle.textXLB.copyWith(
-                                        color: Appstyle.indigo,
+                                        color: headerColor,
                                         fontWeight: FontWeight.bold,
                                       ),
                                     ),
                                     const Spacer(),
                                     Row(
                                       children: [
+                                        const ConnectionStatusBar(),
+                                        const SizedBox(width: 20),
                                         TimeDateWidget(
-                                          heure: "18:00",
-                                          date: "25 Nov 2025",
                                           iconHeure: "assets/icons/hour_icon.png",
                                           iconDate: "assets/icons/agenda_icon.png",
                                         ),
@@ -924,6 +974,7 @@ class _FournisseurScreenState extends State<FournisseurScreen> with TickerProvid
                                             avance: stats?.avance,
                                             credit: stats?.credit,
                                             solde: stats?.solde,
+                                            soldePositifFavorable: false,
                                             wilaya: fournisseursSelectionnes.first.wilaya ?? "",
                                             dateCreation: fournisseursSelectionnes.first.dateCree.toString(),
                                             onDetails: () {
@@ -937,6 +988,12 @@ class _FournisseurScreenState extends State<FournisseurScreen> with TickerProvid
                                         nombreClients: fournisseurs.length,
                                         nombreInactifs: fournisseurs.where((c) => !c.etat).length,
                                         type: l10n.fournisseur,
+                                        totalAchat: fournisseurGlobalStats?.totalAchat,
+                                        nomFournisseurTopAchat: fournisseurGlobalStats?.fournisseurTopAchat?.nom,
+                                        montantTopAchat: fournisseurGlobalStats?.montantTopAchat,
+                                        totalCredit: fournisseurGlobalStats?.totalCredit,
+                                        nomFournisseurTopCredit: fournisseurGlobalStats?.fournisseurTopCredit?.nom,
+                                        montantTopCredit: fournisseurGlobalStats?.montantTopCredit,
                                       ),
 
                                     SizedBox(height: paddingV),
@@ -951,6 +1008,7 @@ class _FournisseurScreenState extends State<FournisseurScreen> with TickerProvid
                                               text: l10n.filter,
                                               textColor: Appstyle.violet,
                                               color: Appstyle.Tblanc,
+                                              showBadge: _filtresFournisseurActifs,
                                               icon: filtresActifs ? Icons.visibility_off : Icons.visibility,
                                               iconColor:Appstyle.violet ,
                                               onPressed: () {
@@ -1150,6 +1208,7 @@ class _FournisseurScreenState extends State<FournisseurScreen> with TickerProvid
                                       child: TableauFournisseurAdvanced(
                                         key: ValueKey(fournisseursFiltres),
                                         fournisseurs: fournisseursFiltres,
+                                        utilisateurs: utilisateursTest,
                                         onSelectionChanged: (selection) {
                                           setState(() {
                                             fournisseursSelectionnes = selection;
@@ -1169,46 +1228,24 @@ class _FournisseurScreenState extends State<FournisseurScreen> with TickerProvid
                                   children: [
                                     // Afficheur
                                     if (verssementFournisseursSelectionnes.length == 1)
-                                      Container(
-                                        padding: EdgeInsets.all(16),
-                                        decoration: BoxDecoration(
-                                          color: Colors.white,
-                                          borderRadius: BorderRadius.circular(16),
-                                          boxShadow: [
-                                            BoxShadow(
-                                              color: Colors.black.withOpacity(0.05),
-                                              blurRadius: 10,
-                                              offset: const Offset(0, 2),
-                                            ),
-                                          ],
-                                        ),
-                                        child: Column(
-                                          crossAxisAlignment: CrossAxisAlignment.start,
-                                          children: [
-                                            Text(
-                                              "${l10n.versement} #${verssementFournisseursSelectionnes.first.code}",
-                                              style: Appstyle.textMB.copyWith(
-                                                color: Appstyle.violet,
-                                                fontWeight: FontWeight.bold,
-                                              ),
-                                            ),
-                                            SizedBox(height: 8),
-                                            Text(
-                                              "${l10n.fournisseur}: ${fournisseursTest.where((f) => f.code == verssementFournisseursSelectionnes.first.beneficiareCode).firstOrNull?.nom ?? verssementFournisseursSelectionnes.first.beneficiareCode}",
-                                              style: Appstyle.textS.copyWith(color: Appstyle.TgrisC),
-                                            ),
-                                            Text(
-                                              "${l10n.amount}: ${verssementFournisseursSelectionnes.first.montant} ${l10n.currency}",
-                                              style: Appstyle.textS.copyWith(color: Appstyle.TgrisC),
-                                            ),
-                                          ],
-                                        ),
+                                      AfficheurVersement(
+                                        versement: verssementFournisseursSelectionnes.first,
+                                        nomBeneficiaire: _nomFournisseurVersement(
+                                            verssementFournisseursSelectionnes.first.beneficiareCode),
+                                        onDetails: () {
+                                          VersementDetail(context, verssementFournisseursSelectionnes.first);
+                                        },
                                       )
                                     else
-                                      AfficheurFournisseurGlobalWidget(
-                                        nombreClients: fournisseurs.length,
-                                        nombreInactifs: fournisseurs.where((c) => !c.etat).length,
-                                        type: l10n.versement,
+                                      AfficheurVersementGlobalWidget(
+                                        nombreVersements: verssementsTest.length,
+                                        totalVerse: _totalVerse(),
+                                        montantMax: _versementMax()?.montant ?? 0,
+                                        nomBeneficiaireMax: _versementMax() != null
+                                            ? _nomFournisseurVersement(_versementMax()!.beneficiareCode)
+                                            : null,
+                                        montantDernier: _dernierVersement()?.montant ?? 0,
+                                        codeDernier: _dernierVersement()?.code,
                                       ),
 
                                     SizedBox(height: paddingV),
@@ -1223,6 +1260,7 @@ class _FournisseurScreenState extends State<FournisseurScreen> with TickerProvid
                                               text: l10n.filter,
                                               textColor: Appstyle.violet,
                                               color: Appstyle.Tblanc,
+                                              showBadge: _filtresVersementActifs,
                                               icon: filtresActifs ? Icons.visibility_off : Icons.visibility,
                                               iconColor:Appstyle.violet ,
                                               onPressed: () {
@@ -1351,15 +1389,6 @@ class _FournisseurScreenState extends State<FournisseurScreen> with TickerProvid
                                             ),
                                             SizedBox(width: paddingH / 4),
                                             MainButton(
-                                              text: l10n.newWord,
-                                              color: Appstyle.crevete,
-                                              onPressed: () async {
-                                                await VersementNouveau(context, "Fournisseur");
-                                                await loadAllData();
-                                              },
-                                            ),
-                                            SizedBox(width: paddingH / 4),
-                                            MainButton(
                                               text: l10n.exit,
                                               color: Appstyle.jaune,
                                               onPressed: () async {
@@ -1367,6 +1396,7 @@ class _FournisseurScreenState extends State<FournisseurScreen> with TickerProvid
                                                 await loadAllData();
                                               },
                                             ),
+
                                           ],
                                         ),
                                       ],
@@ -1388,6 +1418,8 @@ class _FournisseurScreenState extends State<FournisseurScreen> with TickerProvid
                                       child: TableauVerssementAdvanced(
                                         key: ValueKey(verssementsFiltres),
                                         verssements: verssementsFiltres,
+                                        fournisseurs: fournisseursTest,
+                                        utilisateurs: utilisateursTest,
                                         onSelectionChanged: (selection) {
                                           setState(() {
                                             verssementFournisseursSelectionnes = selection;
@@ -1405,7 +1437,6 @@ class _FournisseurScreenState extends State<FournisseurScreen> with TickerProvid
                   ),
                 ),
               ),
-            ),
           );
         },
       ),
@@ -1585,7 +1616,7 @@ class _FournisseurScreenState extends State<FournisseurScreen> with TickerProvid
               ),
               const SizedBox(width: 20),
               SizedBox(
-                width: 400,
+                width: width * 0.75,
                 child: ChampAvecLabel(
                   label: l10n.quickPeriod,
                   child: DropdownButtonFormField<String>(
@@ -1616,11 +1647,12 @@ class _FournisseurScreenState extends State<FournisseurScreen> with TickerProvid
           ),
           const SizedBox(height: 15),
           SizedBox(
-            width: width * 2 / 3,
+            width: width * 6 / 12,
             child: Row(
               children: [
                 Expanded(
                   child: ChampAvecLabel(
+                    width: width * 0.75,
                     label: l10n.search,
                     child: SearchField(
                       controller: _searchControllerVers,

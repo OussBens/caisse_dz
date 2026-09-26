@@ -1,54 +1,40 @@
-
 import 'package:caisse_dz/core/theme/app_style.dart';
-import 'package:caisse_dz/core/widget/button/main_button.dart';
 import 'package:caisse_dz/data/models/magasin.dart';
+import 'package:caisse_dz/data/models/utilisateur.dart';
 import 'package:caisse_dz/l10n/app_localizations.dart';
 import 'package:flutter/material.dart';
 import 'package:syncfusion_flutter_core/theme.dart';
 import 'package:syncfusion_flutter_datagrid/datagrid.dart';
+import '../filter_icon_builder.dart';
 import '../../dialog/magasin/magasin_detail.dart';
-import '../../widget/tableau/paginated.dart';
 import 'magasin_source.dart';
 
 class TableauMagasinAdvanced extends StatefulWidget {
   final List<Magasin> magasins;
+  final List<Utilisateur> utilisateurs;
   final void Function(List<Magasin>)? onSelectionChanged;
 
   const TableauMagasinAdvanced({
     super.key,
     required this.magasins,
+    this.utilisateurs = const [],
     this.onSelectionChanged,
   });
 
   @override
-  State<TableauMagasinAdvanced> createState() =>
-      _TableauMagasinAdvancedState();
+  State<TableauMagasinAdvanced> createState() => _TableauMagasinAdvancedState();
 }
 
-class _TableauMagasinAdvancedState
-    extends State<TableauMagasinAdvanced> {
-  late MagasinDataSource dataSource;
+class _TableauMagasinAdvancedState extends State<TableauMagasinAdvanced> {
   bool garderSelectionColonnes = true;
   late final Map<String, bool> colonnesParDefaut;
+
+  late MagasinDataSource dataSource;
+
   final Map<String, double> columnWidths = {};
-  int rowsPerPage = 15;
-  int currentPage = 1;
+  int _rowsPerPage = 15;
+  static const List<int> _rowsPerPageOptions = [10, 15, 20, 30, 50];
   bool selectAll = false;
-
-  // ================= PAGINATION =================
-  List<Magasin> get paginatedData {
-    final start = (currentPage - 1) * rowsPerPage;
-    final end = (start + rowsPerPage).clamp(0, widget.magasins.length);
-    if (start >= widget.magasins.length) return [];
-    return widget.magasins.sublist(start, end);
-  }
-
-  int get totalPages =>
-      widget.magasins.isEmpty
-          ? 1
-          : (widget.magasins.length / rowsPerPage)
-          .ceil()
-          .clamp(1, 9999);
 
   late Map<String, Map<String, dynamic>> columnVisibility;
 
@@ -56,17 +42,16 @@ class _TableauMagasinAdvancedState
   void initState() {
     super.initState();
 
-    /// 🔹 Colonnes MAGASIN
     columnVisibility = {
       'etat': {'visible': true, 'label': 'status', 'field': 'etat'},
       'code': {'visible': true, 'label': 'code', 'field': 'code'},
-      'nom': {'visible': true, 'label': 'store', 'field': 'nom'},
+      'nom': {'visible': true, 'label': 'name', 'field': 'nom'},
       'adresse': {'visible': true, 'label': 'address', 'field': 'adresse'},
-      'observation': {'visible': true, 'label': 'observation', 'field': 'observation'},
+      'observation': {'visible': false, 'label': 'observation', 'field': 'observation'},
 
       // Audit
-      'dateCree': {'visible': false, 'label': 'createdAt', 'field': 'dateCree'},
-      'creeParCode': {'visible': false, 'label': 'createdBy', 'field': 'creeParCode'},
+      'dateCree': {'visible': true, 'label': 'createdAt', 'field': 'dateCree'},
+      'creeParCode': {'visible': true, 'label': 'createdBy', 'field': 'creeParCode'},
       'dateModif': {'visible': false, 'label': 'modifiedAt', 'field': 'dateModif'},
       'modifParCode': {'visible': false, 'label': 'modifiedBy', 'field': 'modifParCode'},
       'dateAnnul': {'visible': false, 'label': 'cancelledAt', 'field': 'dateAnnul'},
@@ -75,8 +60,7 @@ class _TableauMagasinAdvancedState
     };
 
     colonnesParDefaut = {
-      for (var e in columnVisibility.entries)
-        e.key: e.value['visible'] as bool,
+      for (var e in columnVisibility.entries) e.key: e.value['visible'] as bool,
     };
   }
 
@@ -86,47 +70,76 @@ class _TableauMagasinAdvancedState
     final l10n = AppLocalizations.of(context)!;
 
     dataSource = MagasinDataSource(
-      magasins: paginatedData,
+      magasins: widget.magasins,
       columnConfig: columnVisibility,
       l10n: l10n,
+      utilisateurs: widget.utilisateurs,
     );
+    dataSource.onRowDoubleTap = (magasin) => MagasinDetail(context, magasin);
 
     dataSource.addListener(() {
-      widget.onSelectionChanged?.call(dataSource.getSelectedRows());
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted) return;
+        setState(() {});
+        widget.onSelectionChanged?.call(dataSource.getSelectedRows());
+      });
     });
+  }
+
+  @override
+  void didUpdateWidget(covariant TableauMagasinAdvanced oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.magasins != widget.magasins) {
+      dataSource.update(widget.magasins);
+    }
   }
 
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
 
+    final pageCount = (dataSource.items.length / _rowsPerPage).ceil().clamp(1, 9999).toDouble();
+
     return Column(
+      crossAxisAlignment: CrossAxisAlignment.end,
       children: [
         Expanded(child: _buildTable(l10n)),
         const SizedBox(height: 12),
-        PaginationBar(
-          currentPage: currentPage,
-          totalPages: totalPages,
-          rowsPerPage: rowsPerPage,
-          onPageChanged: (page) {
-            setState(() {
-              currentPage = page;
-              dataSource.update(paginatedData);
-            });
-          },
-          onRowsPerPageChanged: (v) {
-            setState(() {
-              rowsPerPage = v;
-              currentPage = 1;
-              dataSource.update(paginatedData);
-            });
-          },
+        Container(
+          padding: const EdgeInsets.symmetric(vertical: 6, horizontal: 12),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(14),
+            boxShadow: const [BoxShadow(color: Colors.black12, blurRadius: 10)],
+          ),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              SfDataPager(
+                delegate: dataSource,
+                pageCount: pageCount,
+                direction: Axis.horizontal,
+                itemWidth: 36,
+                itemHeight: 36,
+              ),
+              const SizedBox(width: 20),
+              DropdownButton<int>(
+                value: _rowsPerPage,
+                items: _rowsPerPageOptions
+                    .map((e) => DropdownMenuItem(value: e, child: Text("$e ${l10n.rowsPerPage}")))
+                    .toList(),
+                onChanged: (v) {
+                  if (v == null) return;
+                  setState(() => _rowsPerPage = v);
+                },
+              ),
+            ],
+          ),
         ),
       ],
     );
   }
 
-  // ================= TABLE =================
   Widget _buildTable(AppLocalizations l10n) {
     return Container(
       decoration: BoxDecoration(
@@ -139,29 +152,25 @@ class _TableauMagasinAdvancedState
         borderRadius: BorderRadius.circular(16),
         child: SfDataGridTheme(
           data: SfDataGridThemeData(
-            headerColor: Colors.teal.withOpacity(0.7),
+            headerColor: Appstyle.violet.withOpacity(0.7),
             sortIconColor: Appstyle.Tblanc,
-            filterIconColor: Appstyle.Tblanc,
+            filterIcon: Builder(builder: (context) => buildFilterIcon(context, dataSource)),
             gridLineColor: Colors.grey.shade300,
             gridLineStrokeWidth: 0.4,
           ),
           child: SfDataGrid(
             source: dataSource,
+            rowsPerPage: _rowsPerPage,
             headerRowHeight: 36,
             rowHeight: 38,
             selectionMode: SelectionMode.single,
             allowSorting: true,
             allowFiltering: true,
 
-            onCellDoubleTap: (details) {
-              if (details.rowColumnIndex.rowIndex <= 0) return;
-              final rowIndex = details.rowColumnIndex.rowIndex - 1;
-              final magasin = paginatedData[rowIndex];
-              MagasinDetail(context, magasin);
-            },
-
+            columnWidthMode: ColumnWidthMode.none,
             allowColumnsResizing: true,
             columnResizeMode: ColumnResizeMode.onResize,
+
             onColumnResizeUpdate: (details) {
               double w = details.width;
               if (w < 150) w = 150;
@@ -206,7 +215,7 @@ class _TableauMagasinAdvancedState
                   .map(
                     (e) => GridColumn(
                   columnName: e.key,
-                  width: columnWidths[e.key] ?? 185,
+                  width: columnWidths[e.key] ?? 180,
                   label: _header(_getTranslatedLabel(e.value['label'], l10n)),
                 ),
               ),
@@ -221,7 +230,7 @@ class _TableauMagasinAdvancedState
     switch (key) {
       case 'status': return l10n.status;
       case 'code': return l10n.code;
-      case 'store': return l10n.store;
+      case 'name': return l10n.name;
       case 'address': return l10n.address;
       case 'observation': return l10n.observation;
       case 'createdAt': return l10n.createdAt;
@@ -245,21 +254,6 @@ class _TableauMagasinAdvancedState
     ),
   );
 
-  // ================= COLONNES =================
-  Widget _buildActiveColumnsBar(AppLocalizations l10n) {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.end,
-      children: [
-        MainButton(
-          text: "",
-          color: Appstyle.violet,
-          onPressed: () => _showColumnSettingsPopup(context, l10n),
-          icon: Icons.view_column,
-        )
-      ],
-    );
-  }
-
   void _showColumnSettingsPopup(BuildContext context, AppLocalizations l10n) {
     showDialog(
       context: context,
@@ -271,14 +265,11 @@ class _TableauMagasinAdvancedState
                 borderRadius: BorderRadius.circular(16),
               ),
               title: Text(l10n.showHideColumns),
-
               content: SizedBox(
                 width: 350,
-                height: 450,
+                height: 400,
                 child: Column(
                   children: [
-
-                    /// 🔘 Boutons Tout / Aucun
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
@@ -293,7 +284,6 @@ class _TableauMagasinAdvancedState
                                 }
                               });
                             });
-
                             setState(() {
                               dataSource.updateVisibleColumns(
                                 columnVisibility.map(
@@ -307,7 +297,6 @@ class _TableauMagasinAdvancedState
                             });
                           },
                         ),
-
                         TextButton.icon(
                           icon: const Icon(Icons.check_box_outline_blank),
                           label: Text(l10n.none),
@@ -319,7 +308,6 @@ class _TableauMagasinAdvancedState
                                 }
                               });
                             });
-
                             setState(() {
                               dataSource.updateVisibleColumns(
                                 columnVisibility.map(
@@ -335,10 +323,7 @@ class _TableauMagasinAdvancedState
                         ),
                       ],
                     ),
-
                     const Divider(),
-
-                    /// ☑️ Garder la sélection
                     CheckboxListTile(
                       contentPadding: EdgeInsets.zero,
                       title: Text(l10n.keepSelection),
@@ -351,15 +336,12 @@ class _TableauMagasinAdvancedState
                         setDialog(() {
                           garderSelectionColonnes = value ?? true;
                         });
-
-                        // ❌ Si décoché → retour aux colonnes par défaut
                         if (value == false) {
                           setDialog(() {
                             columnVisibility.forEach((key, v) {
                               v['visible'] = colonnesParDefaut[key] ?? true;
                             });
                           });
-
                           setState(() {
                             dataSource.updateVisibleColumns(
                               columnVisibility.map(
@@ -374,16 +356,12 @@ class _TableauMagasinAdvancedState
                         }
                       },
                     ),
-
                     const Divider(),
-
-                    /// ☑️ Liste des colonnes
                     Expanded(
                       child: SingleChildScrollView(
                         child: Column(
                           children: columnVisibility.entries.map((entry) {
                             final isLocked = entry.key == 'code' || entry.key == 'nom';
-
                             return CheckboxListTile(
                               title: Text(_getTranslatedLabel(entry.value['label'], l10n)),
                               value: entry.value['visible'],
@@ -393,7 +371,6 @@ class _TableauMagasinAdvancedState
                                 setDialog(() {
                                   entry.value['visible'] = value ?? false;
                                 });
-
                                 setState(() {
                                   dataSource.updateVisibleColumns(
                                     columnVisibility.map(
@@ -414,7 +391,6 @@ class _TableauMagasinAdvancedState
                   ],
                 ),
               ),
-
               actions: [
                 TextButton(
                   child: Text(l10n.close),

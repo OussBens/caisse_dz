@@ -448,6 +448,7 @@ void _ouvrirInsertionProduit(
   showDialog(
     context: context,
     builder: (_) => InsertionProduitDialog(
+      newButton:false,
       multiselection: true,
       produits: produitsTest,
       onProduitSelected: (Produit produit) {

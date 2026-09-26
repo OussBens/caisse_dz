@@ -4,10 +4,13 @@ import 'package:caisse_dz/Services/Historique.dart';
 import 'package:caisse_dz/Services/Mouvement.dart';
 import 'package:caisse_dz/Services/Produits.dart';
 import 'package:caisse_dz/Services/Sortie.dart';
+import 'package:caisse_dz/Services/MagasinDetail.dart';
 import 'package:caisse_dz/core/Auth/auth_state.dart';
 import 'package:caisse_dz/core/dialog/base_dialog.dart';
 import 'package:caisse_dz/core/theme/app_style.dart';
 import 'package:caisse_dz/core/widget/button/main_button.dart';
+import 'package:caisse_dz/core/widget/champ/champ_avec_label.dart';
+import 'package:caisse_dz/core/widget/champ/text_champ_l.dart';
 import 'package:caisse_dz/core/widget/title/titre_avec_ligne.dart';
 import 'package:caisse_dz/l10n/app_localizations.dart';
 import 'package:caisse_dz/data/constant.dart';
@@ -15,8 +18,8 @@ import 'package:caisse_dz/data/models/histore.dart';
 import 'package:caisse_dz/data/models/produit.dart';
 import 'package:caisse_dz/data/models/sortie.dart';
 import 'package:flutter/material.dart';
-import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
+import 'package:caisse_dz/core/utilis/number_format.dart';
 
 Future<int> _GetNextHistoriqueId() async {
   final db = await DbCreator.openDb();
@@ -27,15 +30,22 @@ Future<int> _GetNextHistoriqueId() async {
   return id;
 }
 
-Future<void> _DeleteSs({
+/// Annulation "douce" des sorties sélectionnées : la sortie et son mouvement
+/// de stock restent en base (jamais de suppression physique), seul leur
+/// `etat` bascule à annulé — même principe que pannier_actif.dart. Le stock
+/// sorti (perte/don/expiration) est restitué.
+Future<void> _AnnulerSs({
   required String userName,
   required String userCode,
   required List<Sortie> sorties,
+  required String motif,
 }) async {
   final db = await DbCreator.openDb();
   final services = SortieServices(db);
   final serviceh = HistoriqueServices(db);
   final servicep = ProduitServices(db);
+  final serviceM = MouvementsServices(db);
+  final pmdService = ProduitMagasinDetailServices(db);
 
   final produits = await ProduitServices.getAllProduits();
   Produit prod;
@@ -43,29 +53,56 @@ Future<void> _DeleteSs({
   for (var sortie in sorties) {
     prod = produits.where((e) => e.code == sortie.produitCode).first;
 
-    prod.quantite = prod.quantite + sortie.quantite;
+    if (!prod.service) {
+      if (sortie.nombre != null) prod.nombre = prod.nombre + sortie.nombre!;
+    }
     prod.dateModif = DateTime.now();
     prod.modifParCode = userCode;
 
     await servicep.updateProduit(prod);
 
-    await services.deleteSortie(sortie.id);
+    // Restitution du stock par magasin — symétrique du déstockage fait à la
+    // création (sortie_nouveau.dart), sinon annuler une sortie ne restaurait
+    // que le stock global et laissait produit_magasin_detail faux.
+    if (!prod.service && sortie.magasinCode != null) {
+      final magasinDetail = await pmdService.getSingleByProduitAndMagasin(
+        prod.code,
+        sortie.magasinCode!,
+      );
+      if (magasinDetail != null) {
+        if (sortie.nombre != null) {
+          await pmdService.incrementNombre(magasinDetail.id, sortie.nombre!);
+        }
+      }
+    }
+
+    // Mouvement de stock lié : soft-cancel (jamais de suppression).
+    final mouvment = await MouvementsServices.getAllMouvementsByCodeOper(sortie.code);
+    if (mouvment.isNotEmpty) {
+      final m = mouvment.first;
+      m.etat = false;
+      m.dateAnnul = DateTime.now();
+      m.annulParCode = userCode;
+      m.motifAnnul = motif;
+      await serviceM.updateMouvement(m);
+    }
+
+    final response = await services.annulerSortie(sortie.id, motif: motif, userCode: userCode);
 
     int idh = await _GetNextHistoriqueId();
     Historique histo = Historique(
         id: idh,
         code: "HS$idh${DateTime.now().millisecondsSinceEpoch}",
         type: "sortie",
-        desc: "L'utilisateur $userName a Supprimer la Sortie de Produit ${prod.nom} de Type ${sortie.type}",
+        desc: response.success
+            ? "L'utilisateur $userName a annulé la Sortie de Produit ${prod.nom} de Type ${sortie.type} (motif: $motif)"
+            : "Échec annulation de la Sortie ${sortie.code}: ${response.message}",
         oper: ListsConst.typeHisto[2],
         dateCree: DateTime.now(),
         creeParCode: userCode
     );
 
     await serviceh.addHistorique(histo);
-
-    final mouvment = await MouvementsServices.getAllMouvementsByCodeOper(sortie.code);
-    await MouvementsServices.deleteMouvement(mouvment.first.id);
   }
 }
 
@@ -90,6 +127,8 @@ Future<void> AnnulerSortie(
     return;
   }
 
+  final motifController = TextEditingController();
+
   return showDialog(
     context: context,
     barrierDismissible: false,
@@ -104,11 +143,11 @@ Future<void> AnnulerSortie(
               filter: ImageFilter.blur(sigmaX: 2, sigmaY: 2),
               child: BaseDialog(
                 width: 800,
-                height: 500,
+                height: 550,
 
                 header: TitreAvecLigne(
                   imagePath: 'assets/icons/action/supprimer_icon.png',
-                  text: l10n.deleteExit,
+                  text: l10n.cancelExits,
                 ),
 
                 content: Column(
@@ -147,7 +186,7 @@ Future<void> AnnulerSortie(
                                     ),
                                   ),
                                   Text(
-                                    "${s.montant.toStringAsFixed(2)} ${l10n.currency}",
+                                    "${NumberFormatUtil.formatMontant(s.montant, decimales: 2)} ${l10n.currency}",
                                     style: Appstyle.textSB.copyWith(
                                       color: Appstyle.violet,
                                     ),
@@ -163,9 +202,18 @@ Future<void> AnnulerSortie(
                     const SizedBox(height: 20),
 
                     Text(
-                      l10n.confirmDeleteExits,
+                      l10n.confirmCancelExits,
                       style: Appstyle.textS.copyWith(color: Appstyle.TgrisC),
                     ),
+                    const SizedBox(height: 12),
+                    ChampAvecLabel(
+                      label: l10n.cancellationReason,
+                      child: TextChampL(
+                        controller: motifController,
+                        hint: '',
+                      ),
+                    ),
+                    const SizedBox(height: 8),
                   ],
                 ),
 
@@ -180,14 +228,27 @@ Future<void> AnnulerSortie(
                     ),
                     const SizedBox(width: 10),
                     MainButton(
-                      icon: Icons.delete,
-                      text: l10n.deleteExit,
+                      icon: Icons.block,
+                      text: l10n.cancelExits,
                       color: Appstyle.violet,
                       onPressed: () async {
-                        await _DeleteSs(
+                        final motif = motifController.text.trim();
+                        if (motif.isEmpty) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Text(l10n.cancellationReason),
+                              backgroundColor: Colors.red,
+                              duration: const Duration(seconds: 3),
+                            ),
+                          );
+                          return;
+                        }
+
+                        await _AnnulerSs(
                             userName: userName,
                             userCode: userCode,
-                            sorties: sortiesSelectionnees
+                            sorties: sortiesSelectionnees,
+                            motif: motif,
                         );
                         Navigator.pop(context);
                       },

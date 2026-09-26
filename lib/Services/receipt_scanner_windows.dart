@@ -542,13 +542,103 @@ class ReceiptScannerWindows {
   //  Fuzzy product matching
   // ─────────────────────────────────────────────────────────────────────────── //
 
+  /// Remplace chaque caractere accentue latin par son equivalent sans accent
+  /// (e/e/e -> e, etc.) - necessaire pour qu'une correspondance exacte au
+  /// sens utilisateur ("Farine Mama" == "farine mama") soit bien detectee,
+  /// meme quand l'OCR ou la saisie catalogue different sur les accents.
+  static String _stripAccents(String s) {
+    const from = '\u00E0\u00E1\u00E2\u00E3\u00E4\u00E5\u00E8\u00E9\u00EA\u00EB\u00EC\u00ED\u00EE\u00EF\u00F2\u00F3\u00F4\u00F5\u00F6\u00F9\u00FA\u00FB\u00FC\u00E7\u00F1\u00C0\u00C1\u00C2\u00C3\u00C4\u00C5\u00C8\u00C9\u00CA\u00CB\u00CC\u00CD\u00CE\u00CF\u00D2\u00D3\u00D4\u00D5\u00D6\u00D9\u00DA\u00DB\u00DC\u00C7\u00D1';
+    const to   = 'aaaaaaeeeeiiiiooooouuuucnAAAAAAEEEEIIIIOOOOOUUUUCN';
+    final buffer = StringBuffer();
+    for (final ch in s.split('')) {
+      final idx = from.indexOf(ch);
+      buffer.write(idx >= 0 ? to[idx] : ch);
+    }
+    return buffer.toString();
+  }
+
   static String _norm(String t) {
     t = t.replaceAll(RegExp(r'[\u064B-\u065F]'), '');
+    t = _stripAccents(t);
     return t
         .toLowerCase()
         .replaceAll(RegExp(r'[^\w\s\u0600-\u06FF]'), '')
         .replaceAll(RegExp(r'\s+'), ' ')
         .trim();
+  }
+
+  /// Un token qui melange lettres et chiffres (ex: "b2", "c2", "125g")
+  /// identifie presque toujours une variante/reference precise du produit.
+  static bool _isCodeToken(String w) =>
+      RegExp(r'^(?=.*[a-z])(?=.*\d)[a-z0-9]+$').hasMatch(w);
+
+  /// Score de similarite unifie entre [searchName] (deja normalise) et le
+  /// produit [p], utilise a la fois par [findBestMatch] et [findTopMatches].
+  static double _scoreMatch(String searchName, Produit p) {
+    final normNom = _norm(p.nom);
+
+    // Correspondance exacte garantie a 100% une fois la casse, les accents
+    // et les espaces multiples normalises.
+    if (searchName.isNotEmpty && searchName == normNom) return 1.0;
+
+    final productHasArabic = _hasArabic(p.nom);
+    final searchHasArabic = _hasArabic(searchName);
+
+    double score = _lev(searchName, normNom);
+
+    if (productHasArabic && searchHasArabic) {
+      score += 0.15;
+    } else if (!productHasArabic && !searchHasArabic) {
+      score += 0.05;
+    }
+
+    if (score < 0.55) {
+      final rw = searchName.split(' ').where((w) => w.length > 2).toList();
+      final pw = normNom.split(' ').where((w) => w.length > 2).toList();
+      if (rw.isNotEmpty && pw.isNotEmpty) {
+        // Couverture des mots recherches (recall sur rw, pas sur
+        // max(rw, pw)) : un seul mot generique partage avec un nom candidat
+        // tres long ne doit plus suffire a gonfler artificiellement le
+        // score d'un produit sans rapport dans la zone "bruit" 50-60%.
+        // Tolere aussi une petite variation orthographique par mot
+        // ("frine" ~ "farine") via une comparaison de Levenshtein locale.
+        int hits = 0;
+        for (final w in rw) {
+          final matched = pw.any(
+                (x) => x == w || x.contains(w) || w.contains(x) || _lev(w, x) >= 0.75,
+          );
+          if (matched) hits++;
+        }
+        if (hits > 0) {
+          final coverage = hits / rw.length;
+          score = 0.35 + coverage * 0.3; // 35% (bruit) .. 65% (tous les mots retrouves)
+        }
+      }
+    }
+
+    final normMarque = _norm(p.marque);
+    if (normMarque.length > 2 && searchName.contains(normMarque)) {
+      score += 0.1;
+    }
+    final normTaille = _norm(p.taille ?? '');
+    if (normTaille.length > 1 && searchName.contains(normTaille)) {
+      score += 0.05;
+    }
+
+    // Des tokens "codes" differents (ex: "SAC CIMENT B2" vs "SAC CIMENT C2")
+    // empechent un score quasi parfait meme si le reste de la chaine est
+    // identique : la distance de Levenshtein seule confondait ces deux
+    // produits pourtant distincts (un seul caractere de difference sur une
+    // longue chaine == score proche de 100%).
+    final searchCodes = searchName.split(' ').where(_isCodeToken).toSet();
+    final candidateCodes = normNom.split(' ').where(_isCodeToken).toSet();
+    if (searchCodes.isNotEmpty &&
+        candidateCodes.isNotEmpty &&
+        searchCodes.intersection(candidateCodes).isEmpty) {
+      score -= 0.35;
+    }
+
+    return score.clamp(0.0, 1.0);
   }
 
   static double _lev(String a, String b) {
@@ -628,35 +718,43 @@ class ReceiptScannerWindows {
         : _norm(_cleanProductName(name, preferArabic: false));
 
     for (final p in products) {
-      final productHasArabic = _hasArabic(p.nom);
-      final searchHasArabic  = _hasArabic(searchName);
-
-      double score = _lev(searchName, _norm(p.nom));
-
-      if (productHasArabic && searchHasArabic) {
-        score += 0.15;
-      } else if (!productHasArabic && !searchHasArabic) {
-        score += 0.05;
-      }
-
-      if (score < 0.55) {
-        final rw = searchName.split(' ').where((w) => w.length > 2).toList();
-        final pw = _norm(p.nom).split(' ').where((w) => w.length > 2).toList();
-        int hits = 0;
-        for (final w in rw) {
-          if (pw.any((x) => x.contains(w) || w.contains(x))) hits++;
-        }
-        if (hits > 0) {
-          score = 0.55 + (hits / max(rw.length, pw.length)) * 0.3;
-        }
-      }
-
+      final score = _scoreMatch(searchName, p);
       if (score > bestScore && score > 0.55) {
         bestScore = score;
         best      = p.nom;
       }
     }
     return best;
+  }
+
+  /// Retourne les [topN] produits du catalogue les plus proches de [name],
+  /// en comparant le nom recherché à la combinaison nom + marque + taille de
+  /// chaque produit (au lieu du seul nom, comme le fait [findBestMatch]).
+  static List<ProduitMatch> findTopMatches(
+      String name,
+      List<Produit> products, {
+        int topN = 5,
+        double minScore = 0.55,
+      }) {
+    if (products.isEmpty) return [];
+
+    final cleanedName = _cleanProductName(name, preferArabic: true);
+    final normName    = _norm(cleanedName);
+    final searchName  = normName.length > 2
+        ? normName
+        : _norm(_cleanProductName(name, preferArabic: false));
+
+    final matches = <ProduitMatch>[];
+
+    for (final p in products) {
+      final score = _scoreMatch(searchName, p);
+      if (score > minScore) {
+        matches.add(ProduitMatch(produit: p, score: score));
+      }
+    }
+
+    matches.sort((a, b) => b.score.compareTo(a.score));
+    return matches.take(topN).toList();
   }
 }
 
@@ -672,6 +770,7 @@ class ReceiptItem {
   final double unitPrice;
   final double totalPrice;
   final double confidence;
+  final double prixVente;
 
   const ReceiptItem({
     required this.originalName,
@@ -681,6 +780,7 @@ class ReceiptItem {
     required this.unitPrice,
     required this.totalPrice,
     required this.confidence,
+    this.prixVente = 0.0,
   });
 
   factory ReceiptItem.fromJson(Map<String, dynamic> json) => ReceiptItem(
@@ -691,6 +791,7 @@ class ReceiptItem {
     unitPrice:  (json['unit_price']  as num?)?.toDouble() ?? 0,
     totalPrice: (json['total_price'] as num?)?.toDouble() ?? 0,
     confidence: (json['confidence']  as num?)?.toDouble() ?? 0,
+    prixVente:  (json['prix_vente']  as num?)?.toDouble() ?? 0,
   );
 
   static List<ReceiptItem> fromJsonList(List<dynamic> list) =>
@@ -704,6 +805,7 @@ class ReceiptItem {
     double? unitPrice,
     double? totalPrice,
     double? confidence,
+    double? prixVente,
   }) =>
       ReceiptItem(
         originalName:       originalName       ?? this.originalName,
@@ -713,5 +815,13 @@ class ReceiptItem {
         unitPrice:  unitPrice  ?? this.unitPrice,
         totalPrice: totalPrice ?? this.totalPrice,
         confidence: confidence ?? this.confidence,
+        prixVente:  prixVente  ?? this.prixVente,
       );
+}
+
+class ProduitMatch {
+  final Produit produit;
+  final double score;
+
+  const ProduitMatch({required this.produit, required this.score});
 }

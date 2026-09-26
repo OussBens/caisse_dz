@@ -3,6 +3,7 @@ import '../../../core/theme/app_style.dart';
 import '../../../data/models/produit.dart';
 import '../../../data/models/produit_pack_detail.dart';
 import '../../../l10n/app_localizations.dart';
+import 'package:caisse_dz/core/utilis/number_format.dart';
 
 class ProduitPackLineWidget extends StatelessWidget {
   final ProduitPackDetail detail;
@@ -88,7 +89,7 @@ class ProduitPackLineWidget extends StatelessWidget {
           Expanded(
             flex: 2,
             child: Text(
-              '${detail.montant.toStringAsFixed(2)} ${l10n.currency}',
+              '${NumberFormatUtil.formatMontant(detail.montant, decimales: 2)} ${l10n.currency}',
               style: Appstyle.textSB.copyWith(fontWeight: FontWeight.bold),
             ),
           ),

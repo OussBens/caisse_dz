@@ -6,16 +6,19 @@ import '../../../../data/models/remise.dart';
 import '../../../data/constant.dart';
 import '../../../l10n/app_localizations.dart';
 import 'package:caisse_dz/core/theme/app_style.dart';
+import '../../dialog/produits_liste_dialog.dart';
 import '../../widget/status_badge.dart';
 import '../base_table_data_source.dart';
 
 class RemiseDataSource extends BaseTableDataSource<Remise> {
   final AppLocalizations l10n;
+  late final ListsConstTranslator _translator = ListsConstTranslator(l10n);
 
   RemiseDataSource({
     required List<Remise> remises,
     required super.columnConfig,
     required this.l10n,
+    super.utilisateurs = const [],
   }) : super(items: remises);
 
   String formatDate(DateTime? date) {
@@ -40,7 +43,7 @@ class RemiseDataSource extends BaseTableDataSource<Remise> {
       case 'etat':
         return remise.etat ? l10n.active : l10n.inactive;
       case 'type':
-        return remise.type;
+        return _translator.translateTypeRemise(remise.type);
       case 'montant':
         return "${remise.montant} ${l10n.currency}";
       case 'tauxType':
@@ -52,15 +55,15 @@ class RemiseDataSource extends BaseTableDataSource<Remise> {
       case 'fin':
         return formatDate(remise.fin);
       case 'creeParCode':
-        return remise.creeParCode;
+        return nomUtilisateur(remise.creeParCode);
       case 'creeLe':
         return formatDate(remise.creeLe);
       case 'modifParCode':
-        return remise.modifParCode ?? '';
+        return nomUtilisateur(remise.modifParCode);
       case 'modifLe':
         return formatDate(remise.modifLe);
       case 'annulParCode':
-        return remise.annulParCode ?? '';
+        return nomUtilisateur(remise.annulParCode);
       case 'annulLe':
         return formatDate(remise.annulLe);
       case 'motifAnnul':
@@ -74,6 +77,16 @@ class RemiseDataSource extends BaseTableDataSource<Remise> {
   Widget? buildCustomCell(String columnName, DataGridCell cell, Remise item) {
     if (columnName == 'etat') {
       return Center(child: EtatBadge(isActive: item.etat));
+    }
+
+    if (columnName == 'type') {
+      final isParProduit = item.type == 'Par Produit';
+      return Center(
+        child: pilluleCellule(
+          _translator.translateTypeRemise(item.type),
+          isParProduit ? Appstyle.indigo : Appstyle.violet,
+        ),
+      );
     }
 
     if (columnName == 'taux') {

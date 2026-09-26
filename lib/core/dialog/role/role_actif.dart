@@ -24,6 +24,17 @@ Future<int> _DeleteRoles({required BuildContext context, required List<Role> rol
   final tousLesUtilisateurs = await UtilisateurServices.getAllUtilisateurs();
 
   for (var role in roles) {
+    // ✅ Le rôle Admin ne peut pas être supprimé.
+    if (role.rolenom.trim().toLowerCase() == 'admin') {
+      await InformationDialog(
+        context: context,
+        titre_type_message: l10n.deletionImpossible,
+        titre_concerne: l10n.role,
+        message: l10n.cannotDeleteAdminRole,
+      );
+      continue;
+    }
+
     final utilisateursDuRole = tousLesUtilisateurs.where((u) => u.role_code == role.code);
     if (utilisateursDuRole.isEmpty) {
       await services.deleteRole(role.id);

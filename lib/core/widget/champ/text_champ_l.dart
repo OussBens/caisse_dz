@@ -1,5 +1,6 @@
 
 import 'package:caisse_dz/core/theme/app_style.dart';
+import 'package:caisse_dz/core/utilis/quantite_format.dart';
 import 'package:caisse_dz/l10n/app_localizations.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -18,6 +19,12 @@ class TextChampL extends StatelessWidget {
   final bool obligatoire;
   final String? Function(String?)? validator;
   final double? width;
+  final bool obscureText;
+
+  // ✅ Champ quantité : restreint la saisie au nombre de décimales défini
+  // dans Paramètres > Système (QuantiteFormat), au lieu du nombre de
+  // décimales libre habituel des champs numériques (prix, montant...).
+  final bool isQuantite;
 
   const TextChampL({
     super.key,
@@ -33,6 +40,8 @@ class TextChampL extends StatelessWidget {
     this.obligatoire = false,
     this.validator,
     this.width=350,
+    this.obscureText = false,
+    this.isQuantite = false,
   });
 
   @override
@@ -41,7 +50,12 @@ class TextChampL extends StatelessWidget {
 
     final bool isMultiLine = maxLines > 1;
 
-    return SizedBox(
+    return ValueListenableBuilder<TextEditingValue>(
+      valueListenable: controller,
+      builder: (context, value, _) {
+        final bool isFilled = enabled && value.text.trim().isNotEmpty;
+
+        return SizedBox(
       width: width,
       child: Container(
 
@@ -58,6 +72,10 @@ class TextChampL extends StatelessWidget {
         decoration: BoxDecoration(
           color: enabled ? color : colorEnabled,
           borderRadius: BorderRadius.circular(10),
+          border: Border.all(
+            color: isFilled ? Appstyle.violet : Colors.grey.shade300,
+            width: isFilled ? 1.5 : 1,
+          ),
         ),
 
         child: TextFormField(
@@ -66,19 +84,24 @@ class TextChampL extends StatelessWidget {
 
           enabled: enabled,
 
+          obscureText: obscureText,
+
           keyboardType: numeric
               ? const TextInputType.numberWithOptions(decimal: true)
               : isMultiLine
               ? TextInputType.multiline
               : TextInputType.text,
 
-          // ✅ autoriser double
+          // ✅ autoriser double (nombre de décimales configurable pour les
+          // champs quantité, libre pour les autres champs numériques)
           inputFormatters: numeric
-              ? [
-            FilteringTextInputFormatter.allow(
-              RegExp(r'^\d*\.?\d*'),
-            ),
-          ]
+              ? (isQuantite
+                  ? QuantiteFormat.inputFormatters
+                  : [
+                      FilteringTextInputFormatter.allow(
+                        RegExp(r'^\d*\.?\d*'),
+                      ),
+                    ])
               : null,
 
           maxLines: maxLines,
@@ -161,6 +184,8 @@ class TextChampL extends StatelessWidget {
         ),
 
       ),
+    );
+      },
     );
   }
 

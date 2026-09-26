@@ -4,6 +4,9 @@ class SmartScanProduit {
   String  codeProduit;
 
   double  quantite;
+  // Nombre de pièces physiques achetées sur cette ligne (Paramètres > Nombre
+  // et Quantité) — voir Produit.nombre.
+  double? nombre;
   double  prix;
   double  prixVente;
   double  total;
@@ -30,7 +33,8 @@ class SmartScanProduit {
     required this.etat,
     required this.creeParCode,
     required this.creeLe,
-    
+
+    this.nombre,
     this.motifAnnul,
     this.annulParCode,
     this.annulLe,
@@ -50,6 +54,7 @@ class SmartScanProduit {
       total         : map['total'],
       creeLe        : DateTime.parse(map['date_cree']),
       quantite      : map['quantite'],
+      nombre        : (map['nombre'] as num?)?.toDouble(),
       creeParCode   : map['cree_par_code'],
       codeProduit   : map['code_produit'],
       codeSmartScan : map['code_SmartScan'],
@@ -75,6 +80,7 @@ class SmartScanProduit {
       'code_SmartScan'  : codeSmartScan,
       'code_produit'    : codeProduit,
       'quantite'        : quantite,
+      'nombre'          : nombre,
       'prix'            : prix,
       'prixVente'       : prixVente,
       'total'           : total,
@@ -101,6 +107,7 @@ class SmartScanProduit {
     codeSmartScan: codeSmartScan,
     codeProduit: codeProduit,
     quantite: quantite,
+    nombre: nombre,
     prix: prix,
     prixVente: prixVente,
     total: total,

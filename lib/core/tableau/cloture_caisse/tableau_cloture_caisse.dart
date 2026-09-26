@@ -1,0 +1,394 @@
+import 'package:caisse_dz/core/dialog/cloture_caisse/cloture_caisse_detail.dart';
+import 'package:caisse_dz/core/tableau/cloture_caisse/cloture_caisse_source.dart';
+import 'package:caisse_dz/core/theme/app_style.dart';
+import 'package:caisse_dz/data/models/cloture_caisse.dart';
+import 'package:caisse_dz/data/models/gestion_caisse.dart';
+import 'package:caisse_dz/data/models/utilisateur.dart';
+import 'package:caisse_dz/l10n/app_localizations.dart';
+import 'package:flutter/material.dart';
+import 'package:syncfusion_flutter_core/theme.dart';
+import 'package:syncfusion_flutter_datagrid/datagrid.dart';
+import '../filter_icon_builder.dart';
+
+class TableauClotureCaisseAdvanced extends StatefulWidget {
+  final List<ClotureCaisse> clotures;
+  final List<CaisseGestion> caisses;
+  final List<Utilisateur> utilisateurs;
+  final void Function(List<ClotureCaisse>)? onSelectionChanged;
+
+  const TableauClotureCaisseAdvanced({
+    super.key,
+    required this.clotures,
+    this.caisses = const [],
+    this.utilisateurs = const [],
+    this.onSelectionChanged,
+  });
+
+  @override
+  State<TableauClotureCaisseAdvanced> createState() =>
+      _TableauClotureCaisseAdvancedState();
+}
+
+class _TableauClotureCaisseAdvancedState
+    extends State<TableauClotureCaisseAdvanced> {
+  late ClotureCaisseDataSource dataSource;
+
+  final Map<String, double> columnWidths = {};
+  int _rowsPerPage = 15;
+  static const List<int> _rowsPerPageOptions = [10, 15, 20, 30, 50];
+  bool selectAll = false;
+  late final Map<String, bool> colonnesParDefaut;
+  bool garderSelectionColonnes = true;
+
+  late Map<String, Map<String, dynamic>> columnVisibility;
+
+  @override
+  void initState() {
+    super.initState();
+
+    columnVisibility = {
+      'code': {'visible': true, 'label': 'code', 'field': 'code'},
+      'caisseCode': {'visible': true, 'label': 'cashRegister', 'field': 'caisseCode'},
+      'dateDebut': {'visible': true, 'label': 'from', 'field': 'dateDebut'},
+      'dateFin': {'visible': true, 'label': 'to', 'field': 'dateFin'},
+      'totalVentes': {'visible': true, 'label': 'totalAmount', 'field': 'totalVentes'},
+      'nombreTickets': {'visible': true, 'label': 'numberOfSales', 'field': 'nombreTickets'},
+      'totalAnnule': {'visible': false, 'label': 'totalCancelledAmount', 'field': 'totalAnnule'},
+      'nombreTicketsAnnules': {'visible': false, 'label': 'cancelledTicketsCount', 'field': 'nombreTicketsAnnules'},
+      'utilisateurCode': {'visible': true, 'label': 'createdBy', 'field': 'utilisateurCode'},
+      'dateCree': {'visible': false, 'label': 'createdAt', 'field': 'dateCree'},
+      'hash': {'visible': false, 'label': 'fiscalHash', 'field': 'hash'},
+    };
+
+    colonnesParDefaut = {
+      for (var e in columnVisibility.entries) e.key: e.value['visible'] as bool,
+    };
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final l10n = AppLocalizations.of(context)!;
+
+    dataSource = ClotureCaisseDataSource(
+      clotures: widget.clotures,
+      columnConfig: columnVisibility,
+      l10n: l10n,
+      caisses: widget.caisses,
+      utilisateurs: widget.utilisateurs,
+    );
+    dataSource.onRowDoubleTap = (c) => ClotureCaisseDetail(context, c, caisses: widget.caisses, utilisateurs: widget.utilisateurs);
+
+    dataSource.addListener(() {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted) return;
+        setState(() {});
+        widget.onSelectionChanged?.call(dataSource.getSelectedRows());
+      });
+    });
+  }
+
+  @override
+  void didUpdateWidget(covariant TableauClotureCaisseAdvanced oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.clotures != widget.clotures) {
+      dataSource.update(widget.clotures);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+
+    final pageCount = (dataSource.items.length / _rowsPerPage).ceil().clamp(1, 9999).toDouble();
+
+    return Column(
+      children: [
+        Expanded(child: _buildTable(l10n)),
+        const SizedBox(height: 12),
+        Container(
+          padding: const EdgeInsets.symmetric(vertical: 6, horizontal: 12),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(14),
+            boxShadow: const [BoxShadow(color: Colors.black12, blurRadius: 10)],
+          ),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              SfDataPager(
+                delegate: dataSource,
+                pageCount: pageCount,
+                direction: Axis.horizontal,
+                itemWidth: 36,
+                itemHeight: 36,
+              ),
+              const SizedBox(width: 20),
+              DropdownButton<int>(
+                value: _rowsPerPage,
+                items: _rowsPerPageOptions
+                    .map((e) => DropdownMenuItem(value: e, child: Text("$e ${l10n.rowsPerPage}")))
+                    .toList(),
+                onChanged: (v) {
+                  if (v == null) return;
+                  setState(() => _rowsPerPage = v);
+                },
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildTable(AppLocalizations l10n) {
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(18),
+        boxShadow: const [
+          BoxShadow(color: Colors.black12, blurRadius: 12)
+        ],
+      ),
+      padding: const EdgeInsets.all(8),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(16),
+        child: SfDataGridTheme(
+          data: SfDataGridThemeData(
+            headerColor: Appstyle.indigo.withOpacity(0.7),
+            sortIconColor: Appstyle.Tblanc,
+            filterIcon: Builder(builder: (context) => buildFilterIcon(context, dataSource)),
+          ),
+          child: SfDataGrid(
+            source: dataSource,
+            rowsPerPage: _rowsPerPage,
+            headerRowHeight: 36,
+            rowHeight: 38,
+            allowSorting: true,
+            allowFiltering: true,
+            selectionMode: SelectionMode.single,
+            columnWidthMode: ColumnWidthMode.fill,
+            allowColumnsResizing: true,
+            columnResizeMode: ColumnResizeMode.onResize,
+            onColumnResizeUpdate: (details) {
+              double w = details.width.clamp(150, 1000);
+              setState(() => columnWidths[details.column.columnName] = w);
+              return true;
+            },
+            columns: [
+              GridColumn(
+                columnName: 'settings',
+                width: 60,
+                allowSorting: false,
+                allowFiltering: false,
+                label: Center(
+                  child: IconButton(
+                    icon: const Icon(Icons.view_column, color: Colors.white),
+                    tooltip: l10n.showHideColumns,
+                    onPressed: () => _showColumnSettingsPopup(context, l10n),
+                  ),
+                ),
+              ),
+              GridColumn(
+                columnName: 'select',
+                width: 55,
+                allowSorting: false,
+                allowFiltering: false,
+                label: Center(
+                  child: Checkbox(
+                    value: selectAll,
+                    onChanged: (v) {
+                      setState(() {
+                        selectAll = v ?? false;
+                        dataSource.selectAll(selectAll);
+                      });
+                    },
+                  ),
+                ),
+              ),
+              ...columnVisibility.entries
+                  .where((e) => e.value['visible'])
+                  .map(
+                    (e) => GridColumn(
+                  columnName: e.key,
+                  width: columnWidths[e.key] ?? double.nan,
+                  label: _header(_getTranslatedLabel(e.value['label'], l10n)),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  String _getTranslatedLabel(String key, AppLocalizations l10n) {
+    switch (key) {
+      case 'code': return l10n.code;
+      case 'cashRegister': return l10n.cashRegister;
+      case 'from': return l10n.from;
+      case 'to': return l10n.to;
+      case 'totalAmount': return l10n.totalAmount;
+      case 'numberOfSales': return l10n.numberOfSales;
+      case 'totalCancelledAmount': return l10n.totalCancelledAmount;
+      case 'cancelledTicketsCount': return l10n.cancelledTicketsCount;
+      case 'createdBy': return l10n.createdBy;
+      case 'createdAt': return l10n.createdAt;
+      case 'fiscalHash': return l10n.fiscalHash;
+      default: return key;
+    }
+  }
+
+  Widget _header(String title) => Center(
+    child: Text(
+      title,
+      style: Appstyle.textSB.copyWith(
+        color: Appstyle.Tblanc,
+        fontWeight: FontWeight.w600,
+      ),
+    ),
+  );
+
+  void _showColumnSettingsPopup(BuildContext context, AppLocalizations l10n) {
+    showDialog(
+      context: context,
+      builder: (context) {
+        return StatefulBuilder(builder: (context, setDialog) {
+          return AlertDialog(
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(16),
+            ),
+            title: Text(l10n.showHideColumns),
+            content: SizedBox(
+              width: 350,
+              height: 450,
+              child: Column(
+                children: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      TextButton.icon(
+                        icon: const Icon(Icons.check_box),
+                        label: Text(l10n.all),
+                        onPressed: () {
+                          setDialog(() {
+                            columnVisibility.forEach((key, value) {
+                              if (key != 'code') value['visible'] = true;
+                            });
+                          });
+                          setState(() {
+                            dataSource.updateVisibleColumns(
+                              columnVisibility.map(
+                                    (k, v) => MapEntry(k, {
+                                  'visible': v['visible'],
+                                  'label': v['label'],
+                                  'field': v['field'],
+                                }),
+                              ),
+                            );
+                          });
+                        },
+                      ),
+                      TextButton.icon(
+                        icon: const Icon(Icons.check_box_outline_blank),
+                        label: Text(l10n.none),
+                        onPressed: () {
+                          setDialog(() {
+                            columnVisibility.forEach((key, value) {
+                              if (key != 'code') value['visible'] = false;
+                            });
+                          });
+                          setState(() {
+                            dataSource.updateVisibleColumns(
+                              columnVisibility.map(
+                                    (k, v) => MapEntry(k, {
+                                  'visible': v['visible'],
+                                  'label': v['label'],
+                                  'field': v['field'],
+                                }),
+                              ),
+                            );
+                          });
+                        },
+                      ),
+                    ],
+                  ),
+                  const Divider(),
+                  CheckboxListTile(
+                    contentPadding: EdgeInsets.zero,
+                    title: Text(l10n.keepSelection),
+                    subtitle: Text(
+                      l10n.otherwiseDefaultColumns,
+                      style: const TextStyle(fontSize: 12),
+                    ),
+                    value: garderSelectionColonnes,
+                    onChanged: (value) {
+                      setDialog(() {
+                        garderSelectionColonnes = value ?? true;
+                      });
+                      if (value == false) {
+                        setDialog(() {
+                          columnVisibility.forEach((k, v) {
+                            v['visible'] = colonnesParDefaut[k] ?? true;
+                          });
+                        });
+                        setState(() {
+                          dataSource.updateVisibleColumns(
+                            columnVisibility.map(
+                                  (k, v) => MapEntry(k, {
+                                'visible': v['visible'],
+                                'label': v['label'],
+                                'field': v['field'],
+                              }),
+                            ),
+                          );
+                        });
+                      }
+                    },
+                  ),
+                  const Divider(),
+                  Expanded(
+                    child: SingleChildScrollView(
+                      child: Column(
+                        children: columnVisibility.entries.map((entry) {
+                          final isLocked = entry.key == 'code';
+                          return CheckboxListTile(
+                            title: Text(_getTranslatedLabel(entry.value['label'], l10n)),
+                            value: entry.value['visible'],
+                            onChanged: isLocked
+                                ? null
+                                : (value) {
+                              setDialog(() {
+                                entry.value['visible'] = value ?? false;
+                              });
+                              setState(() {
+                                dataSource.updateVisibleColumns(
+                                  columnVisibility.map(
+                                        (k, v) => MapEntry(k, {
+                                      'visible': v['visible'],
+                                      'label': v['label'],
+                                      'field': v['field'],
+                                    }),
+                                  ),
+                                );
+                              });
+                            },
+                          );
+                        }).toList(),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            actions: [
+              TextButton(
+                  onPressed: () => Navigator.pop(context),
+                  child: Text(l10n.close))
+            ],
+          );
+        });
+      },
+    );
+  }
+}

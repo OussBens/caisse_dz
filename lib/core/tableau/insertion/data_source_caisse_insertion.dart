@@ -3,6 +3,7 @@ import 'package:syncfusion_flutter_datagrid/datagrid.dart';
 import '../../../../data/models/gestion_caisse.dart';
 import '../../../data/constant.dart';
 import '../../../l10n/app_localizations.dart';
+import 'package:caisse_dz/core/utilis/number_format.dart';
 
 class CaisseInsertionDataSource extends DataGridSource {
   List<CaisseGestion> caisses;
@@ -39,7 +40,7 @@ class CaisseInsertionDataSource extends DataGridSource {
         DataGridCell(columnName: 'magasin', value: c.magasinCode),
         DataGridCell(columnName: 'typecaisse', value: c.typecaisse),
         DataGridCell(
-            columnName: 'soldeInitial', value: "${c.soldeInitial.toStringAsFixed(2)} ${l10n.currency}"),
+            columnName: 'soldeInitial', value: "${NumberFormatUtil.formatMontant(c.soldeInitial, decimales: 2)} ${l10n.currency}"),
         DataGridCell(columnName: 'etat', value: c.etat ? l10n.active : l10n.inactive),
       ]);
     });

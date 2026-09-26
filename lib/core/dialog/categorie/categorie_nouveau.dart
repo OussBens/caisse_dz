@@ -15,6 +15,7 @@ import '../../../../data/models/categorie.dart';
 import 'package:caisse_dz/core/theme/app_style.dart';
 import '../../utilis/api_response.dart';
 import '../../widget/button/main_button.dart';
+import '../../widget/champ/affichage_champ.dart';
 import '../../widget/champ/champ_avec_label.dart';
 import '../../widget/champ/text_champ_l.dart';
 import '../../widget/title/titre_avec_ligne.dart';
@@ -140,6 +141,11 @@ Future<void> CategorieNouveau(BuildContext context) async{
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
+                      ChampAvecLabel(
+                        label: l10n.code,
+                        child: AffichageChamp(text: cd),
+                      ),
+                      const SizedBox(height: 20),
                       ChampAvecLabel(
                         obligatoire: true,
                         label: l10n.name,

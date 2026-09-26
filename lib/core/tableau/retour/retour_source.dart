@@ -1,19 +1,45 @@
+import 'package:collection/collection.dart';
 import 'package:flutter/material.dart';
 import 'package:syncfusion_flutter_datagrid/datagrid.dart';
 
+import '../../../../data/models/client.dart';
+import '../../../../data/models/fournisseur.dart';
+import '../../../../data/models/produit.dart';
 import '../../../../data/models/retour.dart';
 import '../../../l10n/app_localizations.dart';
+import 'package:caisse_dz/core/theme/app_style.dart';
+import '../../dialog/produits_liste_dialog.dart';
 import '../../widget/status_badge.dart';
 import '../base_table_data_source.dart';
 
 class RetourDataSource extends BaseTableDataSource<Retour> {
   final AppLocalizations l10n;
+  final List<Produit> produits;
+  final List<Client> clients;
+  final List<Fournisseur> fournisseurs;
 
   RetourDataSource({
     required List<Retour> retours,
     required super.columnConfig,
     required this.l10n,
+    this.produits = const [],
+    this.clients = const [],
+    this.fournisseurs = const [],
+    super.utilisateurs = const [],
   }) : super(items: retours);
+
+  String _nomProduit(String code) =>
+      produits.firstWhereOrNull((p) => p.code == code)?.nom ?? code;
+
+  String? _nomClient(String? code) {
+    if (code == null) return null;
+    return clients.firstWhereOrNull((c) => c.code == code)?.nom ?? code;
+  }
+
+  String? _nomFournisseur(String? code) {
+    if (code == null) return null;
+    return fournisseurs.firstWhereOrNull((f) => f.code == code)?.nom ?? code;
+  }
 
   String _formatDate(DateTime? d) {
     if (d == null) return "";
@@ -28,23 +54,27 @@ class RetourDataSource extends BaseTableDataSource<Retour> {
       case 'code':
         return retour.code;
       case 'nomProduit':
-        return retour.codeProduit;
+        return _nomProduit(retour.codeProduit);
       case 'quantite':
         return retour.quantite;
+      case 'nombre':
+        return retour.nombre;
 
       // 💰 Prix
       case 'prixAchat':
         return "${retour.prixAchat} ${l10n.currency}";
       case 'prixVente':
         return "${retour.prixVente} ${l10n.currency}";
+      case 'montant':
+        return "${retour.quantite * (retour.prixVente ?? 0)} ${l10n.currency}";
 
       // 👤 Type / Client / Fournisseur
       case 'type':
         return retour.type == "Client" ? l10n.clientType : l10n.supplierType;
       case 'client':
-        return retour.client_code;
+        return _nomClient(retour.client_code);
       case 'fournisseur':
-        return retour.fournisseur_code;
+        return _nomFournisseur(retour.fournisseur_code);
 
       case 'etat':
         return retour.etat ? l10n.active : l10n.inactive;
@@ -58,15 +88,15 @@ class RetourDataSource extends BaseTableDataSource<Retour> {
       case 'dateCree':
         return _formatDate(retour.dateCree);
       case 'creeParCode':
-        return retour.creeParCode;
+        return nomUtilisateur(retour.creeParCode);
       case 'dateModif':
         return _formatDate(retour.dateModif);
       case 'modifParCode':
-        return retour.modifParCode;
+        return nomUtilisateur(retour.modifParCode);
       case 'dateAnnul':
         return _formatDate(retour.dateAnnul);
       case 'annulParCode':
-        return retour.annulParCode;
+        return nomUtilisateur(retour.annulParCode);
       case 'motifAnnul':
         return retour.motifAnnul;
 
@@ -79,6 +109,21 @@ class RetourDataSource extends BaseTableDataSource<Retour> {
   Widget? buildCustomCell(String columnName, DataGridCell cell, Retour item) {
     if (columnName == 'etat') {
       return Center(child: EtatBadge(isActive: item.etat));
+    }
+
+    if (columnName == 'montant') {
+      return Center(
+        child: pilluleCellule(
+          "${item.quantite * (item.prixVente ?? 0)} ${l10n.currency}",
+          Appstyle.crevete,
+        ),
+      );
+    }
+
+    if (columnName == 'quantite') {
+      return Center(
+        child: pilluleCellule("${item.quantite}", Appstyle.violet),
+      );
     }
 
     if (columnName == 'type') {

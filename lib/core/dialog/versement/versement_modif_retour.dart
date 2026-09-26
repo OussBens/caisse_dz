@@ -1,9 +1,14 @@
 import 'dart:ui';
+import 'package:collection/collection.dart';
 import 'package:caisse_dz/DBCreate.dart';
 import 'package:caisse_dz/Services/CaisseGestion.dart' hide ApiResponse;
 import 'package:caisse_dz/Services/Client.dart' hide ApiResponse;
 import 'package:caisse_dz/Services/Fournisseur.dart' hide ApiResponse;
 import 'package:caisse_dz/Services/Verssement.dart';
+import 'package:caisse_dz/Services/CaisseSession.dart';
+import 'package:caisse_dz/data/models/caisse_mouvement.dart';
+import 'package:caisse_dz/core/widget/code_generateur.dart';
+import 'package:caisse_dz/Services/Retour.dart';
 import 'package:caisse_dz/core/Auth/auth_state.dart';
 import 'package:caisse_dz/core/dialog/insertion_caisse.dart';
 import 'package:caisse_dz/core/dialog/versement/versement_nouveau.dart';
@@ -28,31 +33,86 @@ import '../base_dialog.dart';
 import '../information_dialog.dart';
 import '../insertion_client.dart';
 import '../insertion_fournisseur.dart';
+import '../../../Services/PaiementParam.dart';
+import '../../../data/models/paiementParam.dart';
 
 List<Fournisseur> _fournisseursTest = [];
 List<Client>      _clientsTest      = [];
 List<CaisseGestion>      _caissesTest      = [];
+PaiementParam?    _paiementParamTest;
 
 Future<void> _loadAllData() async {
   final client       = await ClientServices.getAllClients();
   final fournisseur  = await FournisseurServices.getAllFournisseurs();
   final caisse  = await GCServices.getAllCaisses();
+  final paiementParam = await PaiementParamServices.getPaiementParam();
 
   _clientsTest = client;
   _fournisseursTest = fournisseur;
   _caissesTest = caisse;
+  _paiementParamTest = paiementParam;
 }
 
-Future<ApiResponse<int>> _updateVersment({required Verssement verssement}) async {
+Future<ApiResponse<int>> _updateVersment({
+  required Verssement verssement,
+  required double ancienMontant,
+  required String caisseCode,
+  required String userCode,
+}) async {
   final db = await DbCreator.openDb();
   final services = VerssementServices(db);
-  return await services.updateVerssement(verssement);
+  final caisseSessionService = CaisseSessionServices(db);
+  final response = await services.updateVerssement(verssement);
+
+  if (response.success && ancienMontant != verssement.montant) {
+    final type = verssement.typebeneficiare == 'Fournisseur' ? 'versement_fournisseur' : 'versement_client';
+    final mouvementsExistants = await CaisseSessionServices.getMouvementsByCodeOperation(
+      verssement.code,
+      type: type,
+    );
+    final mouvementExistant = mouvementsExistants.firstOrNull;
+
+    if (mouvementExistant != null) {
+      await caisseSessionService.updateMontantMouvement(
+        code: mouvementExistant.code,
+        montant: verssement.montant,
+        userCode: userCode,
+      );
+    } else {
+      final sessionOuverte = await CaisseSessionServices.getSessionOuverte(caisseCode);
+      if (sessionOuverte != null) {
+        final nextMouvementId = await CaisseSessionServices.getNextMouvementId(db);
+        await caisseSessionService.ajouterMouvement(CaisseMouvement(
+          id: nextMouvementId,
+          code: CodeGenerator.generateCode(
+            prefix: CodePrefix.caisseMouvement,
+            id: nextMouvementId,
+            digitCount: 8,
+          ),
+          sessionCode: sessionOuverte.code,
+          caisseCode: caisseCode,
+          type: type,
+          sens: verssement.sense,
+          montant: verssement.montant,
+          modePaiement: verssement.mode_paiement,
+          codeOperation: verssement.code,
+          clientCode: verssement.typebeneficiare == 'Client' ? verssement.beneficiareCode : null,
+          fournisseurCode: verssement.typebeneficiare == 'Fournisseur' ? verssement.beneficiareCode : null,
+          date: verssement.date,
+          etat: true,
+          dateCree: DateTime.now(),
+          creeParCode: userCode,
+        ));
+      }
+    }
+  }
+
+  return response;
 }
 
 String selectedCaisse = "";
 String? selectedTypeV;
 String? selectedBeneficiaireV;
-String selectedEtatV = "";
 String selectedModePaiement = "";
 String selectedType = "";
 
@@ -81,6 +141,19 @@ Future<void> VersementModifRetour(
     return;
   }
 
+  // Un versement généré par un retour ne peut pas être modifié directement :
+  // il doit rester synchronisé avec le retour, donc toute modification doit
+  // passer par le retour lui-même.
+  if (await RetourServices.estLieAUnRetour(versement.codeOperation)) {
+    await InformationDialog(
+      context: context,
+      titre_type_message: l10n.information,
+      titre_concerne: l10n.payment,
+      message: l10n.versementLieRetourModif(versement.codeOperation),
+    );
+    return;
+  }
+
   await _loadAllData();
 
   montantControllerV.text = versement.montant.abs().toString();
@@ -91,7 +164,6 @@ Future<void> VersementModifRetour(
   selectedBeneficiaireV = selectedTypeV == "Client"
       ? _clientsTest.firstWhere((c) => c.code == versement.beneficiareCode, orElse: () => _clientsTest.first).nom
       : _fournisseursTest.firstWhere((f) => f.code == versement.beneficiareCode, orElse: () => _fournisseursTest.first).nom;
-  selectedEtatV = versement.etat ? l10n.validated : l10n.cancelled;
   selectedModePaiement = versement.mode_paiement;
   selectedType = versement.type ?? "";
 
@@ -110,7 +182,7 @@ Future<void> VersementModifRetour(
             child: BackdropFilter(
               filter: ImageFilter.blur(sigmaX: 2, sigmaY: 2),
               child: BaseDialog(
-                width: 850,
+                width: 1000,
                 height: 450,
                 header: TitreAvecLigne(
                   imagePath: 'assets/icons/devise_icon.png',
@@ -126,21 +198,6 @@ Future<void> VersementModifRetour(
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            ChampAvecLabel(
-                              label: l10n.status,
-                              obligatoire: true,
-                              child: TextListe(
-                                obligatoire: true,
-                                clearable: false,
-                                value: selectedEtatV,
-                                items: [l10n.validated, l10n.cancelled],
-                                onChanged: (v) =>
-                                    setState(() => selectedEtatV = v!),
-                              ),
-                            ),
-
-                            const SizedBox(height: 10),
-
                             ChampAvecLabel(
                               label: l10n.number,
                               obligatoire: true,
@@ -234,7 +291,13 @@ Future<void> VersementModifRetour(
                               child: TextListe(
                                 obligatoire: true,
                                 value: selectedModePaiement,
-                                items: translator.modePaiementDisplayList,
+                                items: _paiementParamTest != null
+                                    ? PaiementParamServices.visibleDisplayList(
+                                        _paiementParamTest!,
+                                        translator,
+                                        toujoursInclure: versement.mode_paiement,
+                                      )
+                                    : translator.modePaiementDisplayList,
                                 onChanged: (v) =>
                                     setState(() => selectedModePaiement = translator.modePaiementToFrench(v!)),
                               ),
@@ -349,10 +412,18 @@ Future<void> VersementModifRetour(
                           message: l10n.confirmModifyPayment,
                           onConfirmer: () async {
                             final dateParts = smartDateController.text.split('-');
+                            // ✅ Conserve l'heure d'origine du versement : le
+                            // sélecteur de date ne renvoie qu'un jour, sans
+                            // quoi chaque modification (même sans toucher à
+                            // la date) écraserait l'heure réelle de
+                            // l'opération avec minuit.
                             final parsedDate = DateTime(
                               int.parse(dateParts[2]),
                               int.parse(dateParts[1]),
                               int.parse(dateParts[0]),
+                              versement.date.hour,
+                              versement.date.minute,
+                              versement.date.second,
                             );
 
                             Verssement updatedVerssement = Verssement(
@@ -366,13 +437,14 @@ Future<void> VersementModifRetour(
                               modifParCode: userCode,
                               montant: double.parse(montantControllerV.text),
                               sense: versement.sense,
-                              etat: selectedEtatV == l10n.validated,
+                              etat: versement.etat,
                               date: parsedDate,
                               code: versement.code,
                               type: selectedType,
                               id: versement.id,
                               creeParCode: versement.creeParCode,
                               caisse: selectedCaisse,
+                              codeOperation: versement.codeOperation,
                             );
 
                             final db = await DbCreator.openDb();
@@ -407,7 +479,39 @@ Future<void> VersementModifRetour(
                               );
                             }
 
-                            final response = await _updateVersment(verssement: updatedVerssement);
+                            final caisseChoisieModif = _caissesTest.where((c) => c.nomCaisse == selectedCaisse).firstOrNull;
+                            if (caisseChoisieModif == null) {
+                              await InformationDialog(
+                                context: context,
+                                titre_type_message: l10n.error,
+                                titre_concerne: l10n.payment,
+                                message: l10n.cashRegisterRequired,
+                              );
+                              return;
+                            }
+
+                            // ✅ Session de caisse obligatoire uniquement quand
+                            // le montant change réellement (le mouvement de
+                            // caisse lié va être mis à jour ou créé).
+                            if (updatedVerssement.montant != versement.montant) {
+                              final sessionOuverte = await CaisseSessionServices.getSessionOuverte(caisseChoisieModif.code);
+                              if (sessionOuverte == null) {
+                                await InformationDialog(
+                                  context: context,
+                                  titre_type_message: l10n.attention,
+                                  titre_concerne: l10n.payment,
+                                  message: l10n.aucuneSessionOuverte(caisseChoisieModif.nomCaisse),
+                                );
+                                return;
+                              }
+                            }
+
+                            final response = await _updateVersment(
+                              verssement: updatedVerssement,
+                              ancienMontant: versement.montant,
+                              caisseCode: caisseChoisieModif.code,
+                              userCode: userCode,
+                            );
 
                             if (!response.success) {
                               await InformationDialog(

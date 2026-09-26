@@ -69,7 +69,6 @@ final TextEditingController observationTransfertControllerM = TextEditingControl
 
 String? selectedCaisseSourceM;
 String? selectedCaisseDestinationM;
-String? selectedEtatTransfertM;
 
 final GlobalKey<FormState> produitFormKey = GlobalKey<FormState>();
 
@@ -103,7 +102,6 @@ Future<void> TransfertCaisseModif(
 
   selectedCaisseSourceM = transfert.caisseExpCode;
   selectedCaisseDestinationM = transfert.caisseDestCode;
-  selectedEtatTransfertM = transfert.etat ? l10n.active : l10n.inactive;
 
   return showDialog(
     context: context,
@@ -113,7 +111,6 @@ Future<void> TransfertCaisseModif(
       return StatefulBuilder(
         builder: (context, setState) {
           final l10n = AppLocalizations.of(context)!;
-          final translator = ListsConstTranslator(l10n);
 
           return ClipRect(
             child: BackdropFilter(
@@ -241,19 +238,6 @@ Future<void> TransfertCaisseModif(
                               const SizedBox(height: 10),
 
                               ChampAvecLabel(
-                                label: l10n.status,
-                                obligatoire: true,
-                                child: TextListe(
-                                  value: selectedEtatTransfertM,
-                                  items: translator.etatDisplayList,
-                                  onChanged: (v) => setState(() {
-                                    selectedEtatTransfertM = translator.etatToFrench(v!);
-                                  }),
-                                ),
-                              ),
-                              const SizedBox(height: 10),
-
-                              ChampAvecLabel(
                                 label: l10n.observation,
                                 child: TextChampL(
                                   controller: observationTransfertControllerM,
@@ -315,7 +299,7 @@ Future<void> TransfertCaisseModif(
                               id: transfert.id,
                               montant: double.tryParse(montantControllerM.text) ?? 0,
                               observation: observationTransfertControllerM.text,
-                              etat: selectedEtatTransfertM == l10n.active,
+                              etat: transfert.etat,
                               creeParCode: transfert.creeParCode,
                               code: transfert.code,
                               dateCree: transfert.dateCree,

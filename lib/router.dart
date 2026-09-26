@@ -7,17 +7,18 @@ import 'package:caisse_dz/screens/retour_screen.dart';
 import 'package:caisse_dz/screens/sortie_screen.dart';
 import 'package:go_router/go_router.dart';
 import 'core/Auth/auth_state.dart';
+import 'core/Auth/license_tier.dart';
 import 'screens/dash_screen.dart';
 import 'screens/caisse_screen.dart';
 import 'screens/client_screen.dart';
 import 'screens/fournisseur_screen.dart';
-import 'screens/magasin_screen.dart';
 import 'screens/pannier_screen.dart';
 import 'screens/produit_screen.dart';
 import 'screens/parametre_screen.dart';
 import 'screens/stock_screen.dart';
 import 'screens/utilisateur_screen.dart';
 import 'screens/gestion_caisse_screen.dart';
+import 'screens/magasin_screen.dart';
 import 'screens/zekkat_screen.dart';
 
 class AppRouter {
@@ -35,7 +36,13 @@ class AppRouter {
         if (activated && !loggedIn && !goingToLogin) return '/login';
 
         // Logged in & trying to go to login or activate → send to dashboard
-        if (loggedIn && (goingToLogin || goingToActivate)) return '/dash';
+        if (loggedIn && (goingToLogin || goingToActivate)) return '/caisse';
+
+        // Gestion des magasins réservée au palier Premium — bloque l'accès
+        // direct par URL même si l'entrée de menu est masquée (sidebar).
+        if (loggedIn && state.fullPath == '/magasin' && authState.licenseTier != LicenseTier.premium) {
+          return '/caisse';
+        }
 
         // otherwise, no redirect
         return null;
@@ -47,7 +54,7 @@ class AppRouter {
         GoRoute(path: '/caisse'         , builder: (_, __) =>  CaisseScreen()),
         GoRoute(path: '/client'         , builder: (_, __) =>  ClientScreen()),
         GoRoute(path: '/fournisseur'    , builder: (_, __) =>  FournisseurScreen()),
-        GoRoute(path: '/magasin'        , builder: (_, __) =>  MagasinScreen()),
+        GoRoute(path: '/magasin'        , builder: (_, __) =>  const MagasinScreen()),
         GoRoute(path: '/pannier'        , builder: (_, __) =>  PannierScreen()),
         GoRoute(path: '/produit'        , builder: (_, __) =>  ProduitScreen()),
         GoRoute(path: '/parametre'      , builder: (_, __) =>  ParametreScreen()),

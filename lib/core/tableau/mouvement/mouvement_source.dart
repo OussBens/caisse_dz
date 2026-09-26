@@ -23,6 +23,7 @@ class MouvementDataSource extends BaseTableDataSource<Mouvement> {
     required this.produits,
     required this.clients,
     required this.fournisseurs,
+    super.utilisateurs = const [],
   }) : super(items: mouvements);
 
   String _nomProduit(String code) =>
@@ -56,8 +57,8 @@ class MouvementDataSource extends BaseTableDataSource<Mouvement> {
         return l10n.purchase;
       case "Retour":
         return l10n.return_;
-      case "Déstockage":
-        return l10n.destocking;
+      case "Sortie":
+        return l10n.exit;
       default:
         return type;
     }
@@ -93,15 +94,15 @@ class MouvementDataSource extends BaseTableDataSource<Mouvement> {
       case 'dateCree':
         return formatDate(mouvement.dateCree);
       case 'creeParCode':
-        return mouvement.creeParCode;
+        return nomUtilisateur(mouvement.creeParCode);
       case 'dateModif':
         return formatDate(mouvement.dateModif);
       case 'modifParCode':
-        return mouvement.modifParCode;
+        return nomUtilisateur(mouvement.modifParCode);
       case 'dateAnnul':
         return formatDate(mouvement.dateAnnul);
       case 'annulParCode':
-        return mouvement.annulParCode;
+        return nomUtilisateur(mouvement.annulParCode);
       case 'motifAnnul':
         return mouvement.motifAnnul;
 
@@ -134,7 +135,7 @@ class MouvementDataSource extends BaseTableDataSource<Mouvement> {
           color = Colors.orange;
           icon = Icons.undo;
           break;
-        case "Déstockage":
+        case "Sortie":
           color = Colors.red;
           icon = Icons.remove_circle;
           break;

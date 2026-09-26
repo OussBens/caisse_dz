@@ -12,6 +12,7 @@ class RoleDataSource extends BaseTableDataSource<Role> {
     required List<Role> roles,
     required super.columnConfig,
     required this.l10n,
+    super.utilisateurs = const [],
   }) : super(items: roles);
 
   String formatDate(DateTime? date) {
@@ -40,15 +41,15 @@ class RoleDataSource extends BaseTableDataSource<Role> {
       case 'dateCree':
         return formatDate(role.dateCree);
       case 'creeParCode':
-        return role.creeParCode;
+        return nomUtilisateur(role.creeParCode);
       case 'dateModif':
         return formatDate(role.dateModif);
       case 'modifParCode':
-        return role.modifParCode;
+        return nomUtilisateur(role.modifParCode);
       case 'dateAnnul':
         return formatDate(role.dateAnnul);
       case 'annulParCode':
-        return role.annulParCode;
+        return nomUtilisateur(role.annulParCode);
       case 'motifAnnul':
         return role.motifAnnul;
 

@@ -58,7 +58,6 @@ Future<void> HistoriqueDetail(
                 ),
               ],
             ),
-
             const SizedBox(height: 16),
           ],
         ),
@@ -80,7 +79,10 @@ Future<void> HistoriqueDetail(
               Padding(
                 padding: const EdgeInsets.only(bottom: 20),
                 child: Text(
-                  historique.observation ?? "",
+                  // La description réelle est stockée dans `desc` (les
+                  // créations d'historique renseignent ce champ) ; `observation`
+                  // reste presque toujours nul.
+                  historique.desc ?? historique.observation ?? "",
                   style: Appstyle.textSB,
                 ),
               ),

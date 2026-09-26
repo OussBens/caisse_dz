@@ -1,16 +1,16 @@
 import 'package:caisse_dz/core/dialog/mouvement/mouvement_detail.dart';
 
 import 'package:caisse_dz/core/theme/app_style.dart';
-import 'package:caisse_dz/core/widget/button/main_button.dart';
 import 'package:caisse_dz/data/models/mouvement.dart';
 import 'package:caisse_dz/data/models/produit.dart';
 import 'package:caisse_dz/data/models/client.dart';
 import 'package:caisse_dz/data/models/fournisseur.dart';
+import 'package:caisse_dz/data/models/utilisateur.dart';
 import 'package:caisse_dz/l10n/app_localizations.dart';
 import 'package:flutter/material.dart';
 import 'package:syncfusion_flutter_core/theme.dart';
 import 'package:syncfusion_flutter_datagrid/datagrid.dart';
-import '../../widget/tableau/paginated.dart';
+import '../filter_icon_builder.dart';
 import 'mouvement_source.dart';
 
 class TableauMouvementAdvanced extends StatefulWidget {
@@ -18,6 +18,7 @@ class TableauMouvementAdvanced extends StatefulWidget {
   final List<Produit> produits;
   final List<Client> clients;
   final List<Fournisseur> fournisseurs;
+  final List<Utilisateur> utilisateurs;
   final void Function(List<Mouvement>)? onSelectionChanged;
 
   const TableauMouvementAdvanced({
@@ -26,6 +27,7 @@ class TableauMouvementAdvanced extends StatefulWidget {
     required this.produits,
     required this.clients,
     required this.fournisseurs,
+    this.utilisateurs = const [],
     this.onSelectionChanged,
   });
 
@@ -39,24 +41,9 @@ class _TableauMouvementAdvancedState extends State<TableauMouvementAdvanced> {
   bool garderSelectionColonnes = true;
   late final Map<String, bool> colonnesParDefaut;
   final Map<String, double> columnWidths = {};
-  int rowsPerPage = 15;
-  int currentPage = 1;
+  int _rowsPerPage = 15;
+  static const List<int> _rowsPerPageOptions = [10, 15, 20, 30, 50];
   bool selectAll = false;
-
-  // ================= PAGINATION =================
-  List<Mouvement> get paginatedData {
-    final start = (currentPage - 1) * rowsPerPage;
-    final end = (start + rowsPerPage).clamp(0, widget.mouvements.length);
-    if (start >= widget.mouvements.length) return [];
-    return widget.mouvements.sublist(start, end);
-  }
-
-  int get totalPages =>
-      widget.mouvements.isEmpty
-          ? 1
-          : (widget.mouvements.length / rowsPerPage)
-          .ceil()
-          .clamp(1, 9999);
 
   late Map<String, Map<String, dynamic>> columnVisibility;
 
@@ -99,44 +86,79 @@ class _TableauMouvementAdvancedState extends State<TableauMouvementAdvanced> {
     final l10n = AppLocalizations.of(context)!;
 
     dataSource = MouvementDataSource(
-      mouvements: paginatedData,
+      mouvements: widget.mouvements,
       columnConfig: columnVisibility,
       l10n: l10n,
+      produits: widget.produits,
+      clients: widget.clients,
+      fournisseurs: widget.fournisseurs,
+      utilisateurs: widget.utilisateurs,
+    );
+    dataSource.onRowDoubleTap = (mouvement) => MouvementDetail(
+      context,
+      mouvement,
       produits: widget.produits,
       clients: widget.clients,
       fournisseurs: widget.fournisseurs,
     );
 
     dataSource.addListener(() {
-      widget.onSelectionChanged?.call(dataSource.getSelectedRows());
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted) return;
+        setState(() {});
+        widget.onSelectionChanged?.call(dataSource.getSelectedRows());
+      });
     });
+  }
+
+  @override
+  void didUpdateWidget(covariant TableauMouvementAdvanced oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.mouvements != widget.mouvements) {
+      dataSource.update(widget.mouvements);
+    }
   }
 
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
 
+    final pageCount = (dataSource.items.length / _rowsPerPage).ceil().clamp(1, 9999).toDouble();
+
     return Column(
       children: [
         Expanded(child: _buildTable(l10n)),
         const SizedBox(height: 12),
-        PaginationBar(
-          currentPage: currentPage,
-          totalPages: totalPages,
-          rowsPerPage: rowsPerPage,
-          onPageChanged: (page) {
-            setState(() {
-              currentPage = page;
-              dataSource.update(paginatedData);
-            });
-          },
-          onRowsPerPageChanged: (v) {
-            setState(() {
-              rowsPerPage = v;
-              currentPage = 1;
-              dataSource.update(paginatedData);
-            });
-          },
+        Container(
+          padding: const EdgeInsets.symmetric(vertical: 6, horizontal: 12),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(14),
+            boxShadow: const [BoxShadow(color: Colors.black12, blurRadius: 10)],
+          ),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              SfDataPager(
+                delegate: dataSource,
+                pageCount: pageCount,
+                direction: Axis.horizontal,
+                itemWidth: 36,
+                itemHeight: 36,
+              ),
+              const SizedBox(width: 20),
+              DropdownButton<int>(
+                value: _rowsPerPage,
+                items: _rowsPerPageOptions
+                    .map((e) => DropdownMenuItem(value: e, child: Text("$e ${l10n.rowsPerPage}")))
+                    .toList(),
+                onChanged: (v) {
+                  if (v == null) return;
+                  setState(() => _rowsPerPage = v);
+                },
+              ),
+            ],
+          ),
         ),
       ],
     );
@@ -155,14 +177,15 @@ class _TableauMouvementAdvancedState extends State<TableauMouvementAdvanced> {
         borderRadius: BorderRadius.circular(16),
         child: SfDataGridTheme(
           data: SfDataGridThemeData(
-            headerColor: Appstyle.violet.withOpacity(0.7),
+            headerColor: Appstyle.indigo.withOpacity(0.7),
             sortIconColor: Appstyle.Tblanc,
-            filterIconColor: Appstyle.Tblanc,
+            filterIcon: Builder(builder: (context) => buildFilterIcon(context, dataSource)),
             gridLineColor: Colors.grey.shade300,
             gridLineStrokeWidth: 0.4,
           ),
           child: SfDataGrid(
             source: dataSource,
+            rowsPerPage: _rowsPerPage,
             headerRowHeight: 36,
             rowHeight: 38,
             allowSorting: true,
@@ -171,18 +194,8 @@ class _TableauMouvementAdvancedState extends State<TableauMouvementAdvanced> {
             columnWidthMode: ColumnWidthMode.none,
             allowColumnsResizing: true,
             columnResizeMode: ColumnResizeMode.onResize,
-            onCellDoubleTap: (details) {
-              if (details.rowColumnIndex.rowIndex <= 0) return;
-              final rowIndex = details.rowColumnIndex.rowIndex - 1;
-              final Mouvement mouvement = paginatedData[rowIndex];
-              MouvementDetail(
-                context,
-                mouvement,
-                produits: widget.produits,
-                clients: widget.clients,
-                fournisseurs: widget.fournisseurs,
-              );
-            },
+            // Sélection au clic + double-clic pour le détail gérés dans
+            // BaseTableDataSource.buildRow.
             onColumnResizeUpdate: (details) {
               double w = details.width;
               if (w < 140) w = 140;
@@ -272,20 +285,6 @@ class _TableauMouvementAdvancedState extends State<TableauMouvementAdvanced> {
   );
 
   // ================= COLONNES =================
-  Widget _buildActiveColumnsBar(AppLocalizations l10n) {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.end,
-      children: [
-        MainButton(
-          text: "",
-          color: Appstyle.violet,
-          onPressed: () => _showColumnSettingsPopup(context, l10n),
-          icon: Icons.view_column,
-        )
-      ],
-    );
-  }
-
   void _showColumnSettingsPopup(BuildContext context, AppLocalizations l10n) {
     showDialog(
       context: context,

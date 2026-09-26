@@ -36,8 +36,10 @@ import 'package:caisse_dz/data/models/produit.dart';
 import 'package:caisse_dz/core/Auth/auth_state.dart';
 
 import '../../utilis/api_response.dart';
+import '../../utilis/quantite_format.dart';
 import '../confirmation_dialog.dart';
 import '../information_dialog.dart';
+import 'package:caisse_dz/core/utilis/number_format.dart';
 
 // ---- CONTROLLERS ----
 final TextEditingController codeControllerB           = TextEditingController(text: "BSL00001");
@@ -47,7 +49,23 @@ final TextEditingController quantiteControllerB       = TextEditingController(te
 final TextEditingController observationControllerB    = TextEditingController();
 final TextEditingController nombreArticleControllerB  = TextEditingController(text: "0");
 
-String? selectedEtatR;
+// Controllers persistants des lignes produit (clé = code produit). Les
+// recréer à chaque frappe (comme avant, dans le itemBuilder) fait retomber
+// le curseur en position 0 après chaque caractère et donne l'impression
+// d'une saisie "inversée" — voir tableProduits().
+final Map<String, TextEditingController> quantiteControllersProduitB = {};
+final Map<String, TextEditingController> prixControllersProduitB     = {};
+
+void _clearProduitsBesoinControllers() {
+  for (final c in quantiteControllersProduitB.values) {
+    c.dispose();
+  }
+  for (final c in prixControllersProduitB.values) {
+    c.dispose();
+  }
+  quantiteControllersProduitB.clear();
+  prixControllersProduitB.clear();
+}
 
 List<BesoinListDetail>  produitsBesoin        = [];
 List<BesoinListDetail>  details               = [];
@@ -193,7 +211,6 @@ Future<void> BesoinListModifier(BuildContext context, BesoinList header,) async 
   }
 
   // ===== Charger Header =====
-  selectedEtatR               = header.etat ? "Actif" : 'Inactif';
   fournisseurSelected         = fournisseursList.where((f) => f.code == header.fournisseurCode).firstOrNull?.nom;
 
   codeControllerB.text        = header.code;
@@ -201,6 +218,7 @@ Future<void> BesoinListModifier(BuildContext context, BesoinList header,) async 
   observationControllerB.text = header.observation ?? "";
 
   // ===== Charger Details =====
+  _clearProduitsBesoinControllers();
   produitsBesoin = details
       .where((d) => d.besoinListCode == header.code)
       .map((d) => BesoinListDetail(
@@ -271,7 +289,7 @@ Future<void> BesoinListModifier(BuildContext context, BesoinList header,) async 
                         await InformationDialog(
                           context: context,
                           titre_type_message: l10n.error,
-                          titre_concerne: "BesoinListe",
+                          titre_concerne: l10n.besoinList,
                           message: l10n.fillRequiredFields,
                         );
                         return;
@@ -280,13 +298,12 @@ Future<void> BesoinListModifier(BuildContext context, BesoinList header,) async 
                       /// ✅ Dialog confirmation AVANT modification
                       await ConfirmationDialog(
                           context: context,
-                          titre: "Modification",
-                          message: "Êtes-vous sûr de vouloir modifier cette Besoin Liste ?",
+                          titre: l10n.modifyNeedList,
+                          message: l10n.confirmModifyBesoinListe,
                           onConfirmer: () async {
                             header.date = DateFormat('dd/MM/yyyy').parse(dateControllerB.text);
                             header.fournisseurCode      =   fournisseursList.firstWhere((f) => f.nom == fournisseurSelected!).code;
                             header.observation          =   observationControllerB.text;
-                            header.etat = selectedEtatR == "Actif";
 
                             header.montant        = double.parse(montantControllerB.text);
                             header.quantite       = double.parse(quantiteControllerB.text);
@@ -308,9 +325,8 @@ Future<void> BesoinListModifier(BuildContext context, BesoinList header,) async 
                               await InformationDialog(
                                 context: context,
                                 titre_type_message: l10n.error,
-                                titre_concerne: "BesoinListe",
-                                message: response.message ??
-                                    "Une erreur est survenue lors de la modification.",
+                                titre_concerne: l10n.besoinList,
+                                message: response.message ?? l10n.modificationError,
                               );
                               return;
                             }
@@ -319,9 +335,8 @@ Future<void> BesoinListModifier(BuildContext context, BesoinList header,) async 
                             await InformationDialog(
                               context: context,
                               titre_type_message: l10n.success,
-                              titre_concerne: "BesoinListe",
-                              message: response.message ??
-                                  "Produit modifié avec succès.",
+                              titre_concerne: l10n.besoinList,
+                              message: response.message ?? l10n.modifySuccess,
                               onTerminer:() {Navigator.pop(context);},
                             );
                           }
@@ -373,21 +388,6 @@ Widget buildHeaderUI(BuildContext context, void Function(void Function()) setSta
                     setState(() {});
                   }
                 },
-              ),
-            ),
-            const SizedBox(height: 10),
-            // ETAT (modifiable)
-            ChampAvecLabel(
-              label : l10n.status,
-              obligatoire : true,
-              child : TextListe(
-                value : selectedEtatR,
-                obligatoire : true,
-                items : [l10n.active, l10n.inactive],
-                clearable: false,
-                onChanged: (v) => setState(() {
-                  selectedEtatR = v;
-                }),
               ),
             ),
             const SizedBox(height: 10),
@@ -505,8 +505,10 @@ Widget tableProduits(void Function(void Function()) setState, AppLocalizations l
       itemCount: produitsBesoin.length,
       itemBuilder: (_, i) {
         final p         = produitsBesoin[i];
-        final qCtrl     = TextEditingController(text: p.quantite.toString());
-        final prixCtrl  = TextEditingController(text: p.prix.toString());
+        final qCtrl     = quantiteControllersProduitB.putIfAbsent(
+            p.ProduitCode, () => TextEditingController(text: QuantiteFormat.format(p.quantite)));
+        final prixCtrl  = prixControllersProduitB.putIfAbsent(
+            p.ProduitCode, () => TextEditingController(text: p.prix.toString()));
 
         void update() {
           setState(() {
@@ -533,6 +535,7 @@ Widget tableProduits(void Function(void Function()) setState, AppLocalizations l
                 flex: 2,
                 child: TextField(
                   keyboardType  : TextInputType.number,
+                  inputFormatters: QuantiteFormat.inputFormatters,
                   decoration    : const InputDecoration(isDense: true),
                   controller    : qCtrl,
                   onChanged     : (_) => update(),
@@ -552,7 +555,7 @@ Widget tableProduits(void Function(void Function()) setState, AppLocalizations l
               Expanded(
                 flex: 2,
                 child: Text(
-                  produitsBesoin[i].montant.toStringAsFixed(2),
+                  NumberFormatUtil.formatMontant(produitsBesoin[i].montant, decimales: 2),
                   style : Appstyle.textSB.copyWith(color: Appstyle.violet),
                 ),
               ),
@@ -562,6 +565,8 @@ Widget tableProduits(void Function(void Function()) setState, AppLocalizations l
                 onPressed: () {
                   setState(() {
                     produitsBesoin.removeAt(i);
+                    quantiteControllersProduitB.remove(p.ProduitCode)?.dispose();
+                    prixControllersProduitB.remove(p.ProduitCode)?.dispose();
                     recalculerTotaux();
                   });
                 },
@@ -587,6 +592,7 @@ void ouvrirInsertionProduit(
   showDialog(
     context: context,
     builder: (_) => InsertionProduitDialog(
+      newButton:false,
       produits: produitsTest,
       onProduitSelected: (Produit produit) {
         setParentState(() {

@@ -10,6 +10,24 @@ class DbCreator {
   static Database? _db;
   static final FlutterSecureStorage _secureStorage = const FlutterSecureStorage();
 
+  /// Ferme la connexion active (nécessaire avant de remplacer le fichier
+  /// .db lors d'une restauration de sauvegarde).
+  static Future<void> closeDb() async {
+    if (_db != null) {
+      await _db!.close();
+      _db = null;
+    }
+  }
+
+  static String getDbFilePath() => path.join(getLocalFolder(), 'caisse_real.db');
+
+  /// Fichier d'identifiant machine (voir [_getMachineId]) utilisé pour
+  /// dériver la clé de chiffrement de la base. Doit être sauvegardé et
+  /// restauré EN MÊME TEMPS que le `.db` (voir BackupService) — sans lui,
+  /// une base restaurée sur une machine où ce fichier a été perdu peut
+  /// devenir indéchiffrable.
+  static String getMidFilePath() => path.join(getLocalFolder(), '.mid');
+
   static String getLocalFolder() {
     final home = Platform.isWindows
         ? Platform.environment['APPDATA']!
@@ -32,10 +50,24 @@ class DbCreator {
   }
 
   static Future<Database> openDb() async {
+    // Réutilise la connexion déjà ouverte : chaque méthode de service appelle
+    // openDb() indépendamment (parfois 8-9 fois pour un seul écran, ex.
+    // ProduitScreen.loadAllData), donc sans ce court-circuit chaque appel
+    // recréait une nouvelle DatabaseFactory et une nouvelle connexion native
+    // vers le même fichier sans jamais fermer la précédente, ce qui finissait
+    // par saturer les handles/locks SQLite et geler l'appli.
+    if (_db != null && _db!.isOpen) {
+      return _db!;
+    }
+
     // Get activation status from secure storage instead of SharedPreferences
+
+   //Maitnent reste comme ca toujours true mais aprés changé vers is Activated oiu non
     final isActivated = await _isActivated();
 
     final dbName = isActivated ? 'caisse_real.db' : 'caisse_real.db';
+
+
     final dbPath = path.join(getLocalFolder(), dbName);
 
     print('Opening database: $dbName (Activated: $isActivated)');
@@ -51,7 +83,7 @@ class DbCreator {
     _db = await databaseFactory.openDatabase(
       dbPath,
       options: OpenDatabaseOptions(
-        version: 10,
+        version: 47,
         onConfigure: (db) async {
           await db.execute("PRAGMA KEY = '$password'");
           await db.execute('PRAGMA foreign_keys = ON');
@@ -90,17 +122,27 @@ class DbCreator {
           await _createSortie(db);
           await _createRetours(db);
           await _createTransfertCaisse(db);
+          await _createTransfertMagasin(db);
           await _createVerssement(db);
           await _createZakat(db);
           await _createBesionList(db);
           await _createBesionListDetail(db);
           await _createSmartScan(db);
           await _createSmartScanProduit(db);
-          await _createEntree(db);
           await _createHistorique(db);
           await _createProduitCodeDetail(db);
+          await _createCatalogSync(db);
           await _createCaisseParam(db);
           await _createRoleDetail(db);
+          await _createEntrepriseParam(db);
+          await _createPaiementParam(db);
+          await _createImprimanteParam(db);
+          await _createBackupParam(db);
+          await _createBonReception(db);
+          await _createJournalFiscal(db);
+          await _createClotureCaisse(db);
+          await _createCaisseSession(db);
+          await _createCaisseMouvement(db);
 
           // ONLY INSERT DEFAULT DATA IF ACTIVATED
           if (isActivated) {
@@ -474,9 +516,597 @@ class DbCreator {
               }
             }
           }
+
+          if (oldVersion < 11) {
+            // Seuil par produit (seuil_min/seuil_max/seuil_bool) remplacé par
+            // un seuil global unique (table parametre.minimum/maximum).
+            for (final column in ['seuil_min', 'seuil_max', 'seuil_bool']) {
+              try {
+                await db.execute('ALTER TABLE produits DROP COLUMN $column');
+              } catch (e) {
+                print('Skip drop produits.$column: $e');
+              }
+            }
+          }
+
+          if (oldVersion < 12) {
+            // Smart Scan : montant/nbrProduit/reste sont désormais toujours
+            // calculés depuis la liste de produits, donc ecart/activity/
+            // quantite_article ne sont plus utiles.
+            for (final column in ['ecart', 'activity', 'quantite_article']) {
+              try {
+                await db.execute('ALTER TABLE smart_scan DROP COLUMN $column');
+              } catch (e) {
+                print('Skip drop smart_scan.$column: $e');
+              }
+            }
+          }
+
+          if (oldVersion < 13) {
+            // Trace le panier (retour client) ou l'entrée/smartscan (retour
+            // fournisseur) à l'origine d'un retour.
+            try {
+              await db.execute('ALTER TABLE retours ADD COLUMN retour_correspond_de TEXT');
+            } catch (e) {
+              print('Skip add retours.retour_correspond_de: $e');
+            }
+          }
+
+          if (oldVersion < 14) {
+            // Module Paramètres : infos boutique, visibilité des modes de
+            // paiement, config imprimante, config sauvegarde DB.
+            await _createEntrepriseParam(db);
+            await _createPaiementParam(db);
+            await _createImprimanteParam(db);
+            await _createBackupParam(db);
+          }
+
+          if (oldVersion < 15) {
+            // Trace le panier à l'origine d'un versement (encaissement à la
+            // vente), pour pouvoir répercuter une modification du montant
+            // versé du panier sur le versement correspondant.
+            try {
+              await db.execute('ALTER TABLE verssements ADD COLUMN code_pannier TEXT');
+            } catch (e) {
+              print('Skip add verssements.code_pannier: $e');
+            }
+          }
+
+          if (oldVersion < 16) {
+            // Entrée rapide (1 produit) fusionnée dans Smart Scan : toute
+            // création d'entrée passe désormais par smart_scan/
+            // smartScanProduit (Smart Scan à 1 produit). On migre les
+            // anciennes lignes 'entree' avant de supprimer la table.
+            // Note : 'entree' ne stockait pas de prix de vente par ligne,
+            // on utilise donc le prix de vente actuel du produit en repli.
+            try {
+              final entrees = await db.query('entree');
+              for (final e in entrees) {
+                final produitRows = await db.query(
+                  'produits',
+                  where: 'code = ?',
+                  whereArgs: [e['produit_code']],
+                  limit: 1,
+                );
+                final prixVenteActuel = produitRows.isNotEmpty
+                    ? (produitRows.first['prix_vente'] as num).toDouble()
+                    : (e['prix'] as num).toDouble();
+
+                await db.insert('smart_scan', {
+                  'code': e['code'],
+                  'date': e['date'],
+                  'montant': e['montant'],
+                  'paye': e['montant'],
+                  'reste': 0.0,
+                  'nbr_produit': 1,
+                  'fournisseur_code': e['fournisseur_code'],
+                  'etat': e['etat'],
+                  'observation': e['observation'],
+                  'date_cree': e['date_cree'],
+                  'cree_par_code': e['cree_par_code'],
+                  'date_modif': e['date_modif'],
+                  'modif_par_code': e['modif_par_code'],
+                  'date_annul': e['date_annul'],
+                  'annul_par_code': e['annul_par_code'],
+                  'motif_annul': e['motif_annul'],
+                });
+
+                await db.insert('smartScanProduit', {
+                  'code_SmartScan': e['code'],
+                  'code_produit': e['produit_code'],
+                  'quantite': e['quantite'],
+                  'prix': e['prix'],
+                  'prixVente': prixVenteActuel,
+                  'total': e['montant'],
+                  'cree_par_code': e['cree_par_code'],
+                  'date_cree': e['date_cree'],
+                  'etat': e['etat'],
+                  'modif_par_code': e['modif_par_code'],
+                  'date_modif': e['date_modif'],
+                  'annul_par_code': e['annul_par_code'],
+                  'date_annul': e['date_annul'],
+                  'motif_annul': e['motif_annul'],
+                });
+              }
+            } catch (e) {
+              print('Skip migration entree -> smart_scan: $e');
+            }
+
+            try {
+              await db.execute('DROP TABLE IF EXISTS entree');
+            } catch (e) {
+              print('Skip drop table entree: $e');
+            }
+          }
+
+          if (oldVersion < 17) {
+            // code_pannier (rempli seulement pour les versements liés à un
+            // encaissement panier) renommé en code_operation et rendu
+            // obligatoire : un versement doit désormais toujours référencer
+            // l'opération qui le justifie (panier, retour ou smart scan).
+            // Les versements historiques sans code_pannier (créés via les
+            // anciens formulaires manuels, qui ne le renseignaient pas)
+            // reçoivent leur propre code en repli, faute de lien réel connu.
+            try {
+              await db.execute('ALTER TABLE verssements ADD COLUMN code_operation TEXT');
+            } catch (e) {
+              print('Skip add verssements.code_operation: $e');
+            }
+            try {
+              await db.execute('''
+                UPDATE verssements
+                SET code_operation = COALESCE(code_pannier, code)
+              ''');
+            } catch (e) {
+              print('Skip backfill verssements.code_operation: $e');
+            }
+            try {
+              await db.execute('ALTER TABLE verssements DROP COLUMN code_pannier');
+            } catch (e) {
+              print('Skip drop verssements.code_pannier: $e');
+            }
+          }
+
+          if (oldVersion < 18) {
+            // Table de correspondance produit local <-> produit du catalogue
+            // distant bensds.com, pour la synchronisation (CatalogSyncService).
+            try {
+              await _createCatalogSync(db);
+            } catch (e) {
+              print('Skip create catalog_sync: $e');
+            }
+          }
+
+          if (oldVersion < 19) {
+            // caisse_dz devient mono-magasin : l'écran/service de gestion des
+            // magasins est supprimé, donc le flag de permission roledetail.magasin
+            // n'a plus de sens. La table magasins (avec sa seule ligne système
+            // MAG0000) est conservée comme FK fixe pour gestion_caisse,
+            // caisseparam et produit_magasin_detail.
+            try {
+              await db.execute('ALTER TABLE roledetail DROP COLUMN magasin');
+            } catch (e) {
+              print('Skip drop roledetail.magasin: $e');
+            }
+          }
+
+          if (oldVersion < 20) {
+            // Le montant versé/reste d'un pannier n'est plus stocké : il est
+            // recalculé dynamiquement à partir des versements liés
+            // (table verssements, code_operation = code du pannier).
+            try {
+              await db.execute('ALTER TABLE panniers DROP COLUMN verse');
+            } catch (e) {
+              print('Skip drop panniers.verse: $e');
+            }
+            try {
+              await db.execute('ALTER TABLE panniers DROP COLUMN reste');
+            } catch (e) {
+              print('Skip drop panniers.reste: $e');
+            }
+          }
+
+          if (oldVersion < 21) {
+            // Même principe que pour panniers (v20) : le montant versé/reste
+            // d'un smart scan (entrée fournisseur) n'est plus stocké, il est
+            // recalculé depuis les versements liés (code_operation = code du
+            // smart scan).
+            try {
+              await db.execute('ALTER TABLE smart_scan DROP COLUMN paye');
+            } catch (e) {
+              print('Skip drop smart_scan.paye: $e');
+            }
+            try {
+              await db.execute('ALTER TABLE smart_scan DROP COLUMN reste');
+            } catch (e) {
+              print('Skip drop smart_scan.reste: $e');
+            }
+          }
+
+          if (oldVersion < 22) {
+            // Nouvelle table pour la réception de photos de bons fournisseur
+            // envoyées depuis l'app mobile (ou jointes depuis le disque),
+            // en attente d'être transformées en Smart Scan (voir écran
+            // Entrée > onglet IA).
+            try {
+              await _createBonReception(db);
+            } catch (e) {
+              print('Skip create bon_reception: $e');
+            }
+          }
+
+          if (oldVersion < 23) {
+            // Le fournisseur d'un bon reçu du mobile est désormais résolu
+            // vers un code stable (matché par nom, ou fournisseur système
+            // "Général" par défaut) plutôt que stocké en texte libre only.
+            try {
+              await db.execute('ALTER TABLE bon_reception ADD COLUMN fournisseur_code TEXT');
+            } catch (e) {
+              print('Skip add bon_reception.fournisseur_code: $e');
+            }
+          }
+
+          if (oldVersion < 24) {
+            // Trace qui a transformé la photo en Smart Scan, affiché sur la
+            // vignette (écran Entrée > IA) à côté des dates de réception/scan.
+            try {
+              await db.execute('ALTER TABLE bon_reception ADD COLUMN traite_par_code TEXT');
+            } catch (e) {
+              print('Skip add bon_reception.traite_par_code: $e');
+            }
+          }
+
+          if (oldVersion < 25) {
+            // Dossier de stockage configurable pour tous les fichiers générés
+            // (Excel, PDF de facture/BL...) — voir Paramètres > Sauvegarde.
+            try {
+              await db.execute('ALTER TABLE backup_param ADD COLUMN dossier_documents TEXT');
+            } catch (e) {
+              print('Skip add backup_param.dossier_documents: $e');
+            }
+          }
+
+          if (oldVersion < 26) {
+            // Caisse attachée à l'utilisateur : la caisse de l'écran caisse
+            // (paramètre) est verrouillée sur cette caisse pour tout rôle
+            // autre que Admin.
+            try {
+              await db.execute('ALTER TABLE utilisateur ADD COLUMN caisse_code TEXT REFERENCES caisseGestion(code)');
+            } catch (e) {
+              print('Skip add utilisateur.caisse_code: $e');
+            }
+          }
+
+          if (oldVersion < 27) {
+            // Token d'API mobile : généré par POST /api/auth/login, vérifié
+            // ensuite via le header Authorization Bearer sur les endpoints
+            // de sync avec l'app compagnon (BonReceptionServer).
+            try {
+              await db.execute('ALTER TABLE utilisateur ADD COLUMN api_token TEXT');
+            } catch (e) {
+              print('Skip add utilisateur.api_token: $e');
+            }
+          }
+
+          if (oldVersion < 28) {
+            // Traçabilité de l'appareil mobile source pour les mouvements de
+            // stock créés via POST /api/sync/push/stock-movement.
+            try {
+              await db.execute('ALTER TABLE smart_scan ADD COLUMN device_id_mobile TEXT');
+            } catch (e) {
+              print('Skip add smart_scan.device_id_mobile: $e');
+            }
+          }
+
+          if (oldVersion < 29) {
+            // Traçabilité de l'appareil mobile source pour les produits
+            // créés/modifiés via POST /api/sync/push/product.
+            try {
+              await db.execute('ALTER TABLE produits ADD COLUMN device_id_mobile TEXT');
+            } catch (e) {
+              print('Skip add produits.device_id_mobile: $e');
+            }
+          }
+
+          if (oldVersion < 30) {
+            // Traçabilité de l'appareil mobile source pour les retours créés
+            // via POST /api/sync/push/return.
+            try {
+              await db.execute('ALTER TABLE retours ADD COLUMN device_id_mobile TEXT');
+            } catch (e) {
+              print('Skip add retours.device_id_mobile: $e');
+            }
+          }
+
+          if (oldVersion < 31) {
+            // uuid : idempotence des ventes envoyées par le mobile (POST
+            // /api/sync/push/sale) — évite de créer un doublon si le mobile
+            // retente un envoi après un timeout réseau. device_id_mobile :
+            // même traçabilité que les autres endpoints de sync.
+            try {
+              await db.execute('ALTER TABLE panniers ADD COLUMN uuid TEXT');
+            } catch (e) {
+              print('Skip add panniers.uuid: $e');
+            }
+            try {
+              await db.execute('ALTER TABLE panniers ADD COLUMN device_id_mobile TEXT');
+            } catch (e) {
+              print('Skip add panniers.device_id_mobile: $e');
+            }
+          }
+
+          if (oldVersion < 32) {
+            // Photo (bon de livraison/facture) jointe depuis le mobile via
+            // POST /api/smartscan/upload, même convention que
+            // bon_reception.chemin_photo.
+            try {
+              await db.execute('ALTER TABLE smart_scan ADD COLUMN chemin_photo TEXT');
+            } catch (e) {
+              print('Skip add smart_scan.chemin_photo: $e');
+            }
+          }
+
+          if (oldVersion < 33) {
+            // Nombre de décimales à afficher/saisir sur les champs quantité
+            // dans toute l'app (Paramètres > Système) — voir QuantiteFormat.
+            try {
+              await db.execute('ALTER TABLE parametre ADD COLUMN decimales_quantite INTEGER NOT NULL DEFAULT 2');
+            } catch (e) {
+              print('Skip add parametre.decimales_quantite: $e');
+            }
+          }
+
+          if (oldVersion < 34) {
+            // Scellement fiscal : chaque ticket encaissé porte l'empreinte
+            // SHA-256 de son contenu + l'empreinte du ticket précédent sur la
+            // même caisse (chaînage façon registre inviolable — conformité
+            // art. 51 bis, voir PannierServices._sealPannier). Les tickets
+            // créés avant cette migration restent à `hash` NULL : le premier
+            // ticket scellé après mise à jour redémarre une chaîne (genèse).
+            try {
+              await db.execute('ALTER TABLE panniers ADD COLUMN hash TEXT');
+            } catch (e) {
+              print('Skip add panniers.hash: $e');
+            }
+            try {
+              await db.execute('ALTER TABLE panniers ADD COLUMN hash_precedent TEXT');
+            } catch (e) {
+              print('Skip add panniers.hash_precedent: $e');
+            }
+          }
+
+          if (oldVersion < 35) {
+            // Registre fiscal append-only (JournalFiscalServices) — voir
+            // _createJournalFiscal.
+            try {
+              await _createJournalFiscal(db);
+            } catch (e) {
+              print('Skip create journal_fiscal: $e');
+            }
+          }
+
+          if (oldVersion < 36) {
+            // Clôtures de caisse (rapport Z) — voir _createClotureCaisse.
+            try {
+              await _createClotureCaisse(db);
+            } catch (e) {
+              print('Skip create cloture_caisse: $e');
+            }
+          }
+
+          if (oldVersion < 37) {
+            // Programme de bonus/fidélité (Paramètres > Système) : voir
+            // Paramters.activeBonus/bonusTaux et Client.soldeBonus.
+            try {
+              await db.execute('ALTER TABLE parametre ADD COLUMN active_bonus INTEGER NOT NULL DEFAULT 0');
+            } catch (e) {
+              print('Skip add parametre.active_bonus: $e');
+            }
+            try {
+              await db.execute('ALTER TABLE parametre ADD COLUMN bonus_taux REAL NOT NULL DEFAULT 0');
+            } catch (e) {
+              print('Skip add parametre.bonus_taux: $e');
+            }
+            try {
+              await db.execute('ALTER TABLE clients ADD COLUMN solde_bonus REAL NOT NULL DEFAULT 0');
+            } catch (e) {
+              print('Skip add clients.solde_bonus: $e');
+            }
+          }
+
+          if (oldVersion < 38) {
+            // Second stock parallèle "Nombre" (pièces), en plus de
+            // "Quantité" (poids/mesure) — voir Paramters.activeNombreQuantite
+            // et Produit.nombre. Colonnes nullables sur les lignes de
+            // mouvement (aucune valeur tant que le paramètre n'est pas actif
+            // ou non renseignée sur cette ligne) ; NOT NULL DEFAULT 0 sur les
+            // compteurs de stock (produits, produit_magasin_detail).
+            try {
+              await db.execute('ALTER TABLE parametre ADD COLUMN active_nombre_quantite INTEGER NOT NULL DEFAULT 0');
+            } catch (e) {
+              print('Skip add parametre.active_nombre_quantite: $e');
+            }
+            try {
+              await db.execute('ALTER TABLE produits ADD COLUMN nombre REAL NOT NULL DEFAULT 0');
+            } catch (e) {
+              print('Skip add produits.nombre: $e');
+            }
+            try {
+              await db.execute('ALTER TABLE produit_magasin_detail ADD COLUMN nombre REAL NOT NULL DEFAULT 0');
+            } catch (e) {
+              print('Skip add produit_magasin_detail.nombre: $e');
+            }
+            try {
+              await db.execute('ALTER TABLE pannierProduit ADD COLUMN nombre REAL');
+            } catch (e) {
+              print('Skip add pannierProduit.nombre: $e');
+            }
+            try {
+              await db.execute('ALTER TABLE smartScanProduit ADD COLUMN nombre REAL');
+            } catch (e) {
+              print('Skip add smartScanProduit.nombre: $e');
+            }
+            try {
+              await db.execute('ALTER TABLE retours ADD COLUMN nombre REAL');
+            } catch (e) {
+              print('Skip add retours.nombre: $e');
+            }
+            try {
+              await db.execute('ALTER TABLE sortie ADD COLUMN nombre REAL');
+            } catch (e) {
+              print('Skip add sortie.nombre: $e');
+            }
+            try {
+              await db.execute('ALTER TABLE mouvements ADD COLUMN nombre REAL');
+            } catch (e) {
+              print('Skip add mouvements.nombre: $e');
+            }
+          }
+
+          if (oldVersion < 39) {
+            // Override par produit du paramètre global activeNombreQuantite :
+            // si l'option globale est désactivée, un produit avec
+            // nombre_actif=1 garde quand même le champ "nombre" (au lieu de
+            // "quantité") — voir Produit.nombreActif.
+            try {
+              await db.execute('ALTER TABLE produits ADD COLUMN nombre_actif INTEGER NOT NULL DEFAULT 0');
+            } catch (e) {
+              print('Skip add produits.nombre_actif: $e');
+            }
+          }
+
+          if (oldVersion < 40) {
+            // Architecture caisse à 3 niveaux (Ouverture -> Mouvements ->
+            // Clôture) — voir _createCaisseSession/_createCaisseMouvement.
+            // Toute vente/achat/versement/retour doit désormais être
+            // rattachée à une session ouverte pour sa caisse.
+            try {
+              await _createCaisseSession(db);
+            } catch (e) {
+              print('Skip create caisse_session: $e');
+            }
+            try {
+              await _createCaisseMouvement(db);
+            } catch (e) {
+              print('Skip create caisse_mouvement: $e');
+            }
+          }
+
+          if (oldVersion < 41) {
+            // Sortie devient un type de mouvement propre (aligné sur
+            // ListsConst.typeMouvement) au lieu d'être encodé en chaîne
+            // libre "Sortie ( Don )" — le sous-type (Don/Expiration/Autre)
+            // est désormais stocké séparément dans sous_type.
+            try {
+              await db.execute('ALTER TABLE mouvements ADD COLUMN sous_type TEXT');
+            } catch (e) {
+              print('Skip add mouvements.sous_type: $e');
+            }
+          }
+
+          if (oldVersion < 42) {
+            // Nom/Prénom de l'utilisateur, saisis désormais dans Paramètres
+            // > Information utilisateur (le champ Utilisateur y était grisé
+            // faute de donnée à afficher).
+            try {
+              await db.execute('ALTER TABLE utilisateur ADD COLUMN nom TEXT');
+            } catch (e) {
+              print('Skip add utilisateur.nom: $e');
+            }
+            try {
+              await db.execute('ALTER TABLE utilisateur ADD COLUMN prenom TEXT');
+            } catch (e) {
+              print('Skip add utilisateur.prenom: $e');
+            }
+          }
+
+          if (oldVersion < 43) {
+            // Un mouvement (vente/achat/sortie/retour) n'indiquait pas dans
+            // quel magasin il avait eu lieu — impossible jusqu'ici de
+            // recalculer un stock par magasin à partir du journal des
+            // mouvements. Les lignes déjà existantes restent à NULL
+            // (magasin non connu rétroactivement) ; seuls les nouveaux
+            // mouvements le renseignent, voir MouvementsServices.
+            try {
+              await db.execute('ALTER TABLE mouvements ADD COLUMN magasin_code TEXT');
+            } catch (e) {
+              print('Skip add mouvements.magasin_code: $e');
+            }
+          }
+
+          if (oldVersion < 44) {
+            // Sortie et Retour ne savaient pas non plus dans quel magasin ils
+            // avaient eu lieu — même besoin que pour mouvements (v43), pour
+            // que le stock par magasin reste correct après une sortie ou un
+            // retour, pas seulement une vente/un achat.
+            try {
+              await db.execute('ALTER TABLE sortie ADD COLUMN magasin_code TEXT');
+            } catch (e) {
+              print('Skip add sortie.magasin_code: $e');
+            }
+            try {
+              await db.execute('ALTER TABLE retours ADD COLUMN magasin_code TEXT');
+            } catch (e) {
+              print('Skip add retours.magasin_code: $e');
+            }
+          }
+
+          if (oldVersion < 45) {
+            // Le stock produit n'est plus un compteur caché sur produits.quantite
+            // (désynchronisable, cf. v42-44) mais calculé en direct depuis le
+            // journal des mouvements — voir MouvementsServices.quantiteProduit()/
+            // totauxParProduit(). Le champ devenu inutile est supprimé.
+            try {
+              await db.execute('ALTER TABLE produits DROP COLUMN quantite');
+            } catch (e) {
+              print('Skip drop produits.quantite: $e');
+            }
+          }
+
+          if (oldVersion < 46) {
+            // Même principe que produits.quantite (v45) appliqué au stock par
+            // magasin : produit_magasin_detail.quantite était un compteur
+            // caché désynchronisable, désormais calculé en direct depuis le
+            // journal des mouvements filtré par magasin_code.
+            try {
+              await db.execute('ALTER TABLE produit_magasin_detail DROP COLUMN quantite');
+            } catch (e) {
+              print('Skip drop produit_magasin_detail.quantite: $e');
+            }
+          }
+
+          if (oldVersion < 47) {
+            // Nouveau module : transfert de marchandise entre magasins
+            // (distinct du transfert d'argent entre caisses, table `transfert`).
+            await _createTransfertMagasin(db);
+          }
         },
       ),
     );
+
+    // Filet de sécurité : si l'app a d'abord tourné en mode non activé, le
+    // fichier .db a été créé sans données par défaut (`_insertDefaultData`
+    // n'est appelé que dans `onCreate`, gardé par `isActivated` — voir plus
+    // haut). Comme ce fichier existe déjà, `onCreate` ne se redéclenche
+    // jamais après activation : l'utilisateur ADMIN (et tout le reste :
+    // rôle, magasin, caisse, catégories...) ne sont alors jamais créés.
+    // Résultat : tout ce qui référence utilisateur(code) en clé étrangère
+    // (userparam, Historique...) échoue avec une erreur de contrainte à
+    // chaque enregistrement (ex. écran Paramètres). On répare ça ici : dès
+    // que l'app est activée, si la table utilisateur est vide, on insère
+    // les données par défaut a posteriori.
+    if (isActivated) {
+      try {
+        final result = await _db!.rawQuery('SELECT COUNT(*) AS c FROM utilisateur');
+        final count = (result.first['c'] as int?) ?? 0;
+        if (count == 0) {
+          print('Utilisateur table empty on an activated install — seeding default data now');
+          await _insertDefaultData(_db!, DateTime.now().toIso8601String());
+        }
+      } catch (e) {
+        print('Could not verify/seed default data on activated install: $e');
+      }
+    }
 
     return _db!;
   }
@@ -524,7 +1154,6 @@ class DbCreator {
         'caisse'        : 1,
         'retour'        : 1,
         'pannier'       : 1,
-        'magasin'       : 1,
         'produit'       : 1,
         'parametre'     : 1,
         'historique'    : 1,
@@ -642,6 +1271,21 @@ class DbCreator {
         'cree_par_code': 'ADMIN',
         'date_cree': now,
       });
+
+      // ENTREPRISE PARAM (infos boutique affichées sur tickets/BL/QR)
+      await db.insert('entreprise_param', {
+        'id': 1,
+        'nom_boutique': 'Ma Boutique',
+      });
+
+      // PAIEMENT PARAM (visibilité des modes de paiement, tous visibles par défaut)
+      await db.insert('paiement_param', {'id': 1});
+
+      // IMPRIMANTE PARAM
+      await db.insert('imprimante_param', {'id': 1});
+
+      // BACKUP PARAM
+      await db.insert('backup_param', {'id': 1});
 
       // HISTORIQUE
       await db.insert('Historique', {
@@ -771,6 +1415,28 @@ class DbCreator {
   ''');
   }
 
+  /// Correspondance produit local <-> produit du catalogue distant
+  /// bensds.com : une ligne par produit local déjà synchronisé, utilisée
+  /// par CatalogSyncService pour décider POST (création) vs PUT (mise à
+  /// jour) et pour tracer les échecs de synchronisation sans jamais
+  /// bloquer la sauvegarde locale (architecture offline-first).
+  static Future<void> _createCatalogSync(Database db) async {
+    await db.execute('''
+    CREATE TABLE IF NOT EXISTS catalog_sync (
+      id                 INTEGER PRIMARY KEY AUTOINCREMENT,
+      produit_code       TEXT    NOT NULL,
+      catalog_product_id INTEGER,
+      code_produit       TEXT,
+      sync_status        TEXT    NOT NULL DEFAULT 'pending',
+      last_error         TEXT,
+      synced_at          TEXT,
+      date_cree          TEXT    NOT NULL DEFAULT (datetime('now')),
+      UNIQUE(produit_code),
+      FOREIGN KEY (produit_code) REFERENCES produits(code)
+    )
+  ''');
+  }
+
 
 
 
@@ -790,7 +1456,6 @@ class DbCreator {
         caisse        INTEGER NOT NULL,
         retour        INTEGER NOT NULL,
         pannier       INTEGER NOT NULL,
-        magasin       INTEGER NOT NULL,
         produit       INTEGER NOT NULL,
         parametre     INTEGER NOT NULL,
         historique    INTEGER NOT NULL,
@@ -812,6 +1477,71 @@ class DbCreator {
       )
     ''');
   }
+
+  static Future<void> _createEntrepriseParam(Database db) async {
+    await db.execute('''
+      CREATE TABLE IF NOT EXISTS entreprise_param (
+        id              INTEGER PRIMARY KEY,
+        nom_boutique    TEXT NOT NULL DEFAULT '',
+        logo_path       TEXT,
+        adresse         TEXT,
+        telephone       TEXT,
+        email           TEXT,
+        rc              TEXT,
+        nif             TEXT,
+        nis             TEXT,
+        article         TEXT,
+        message_ticket  TEXT,
+        date_modif      TEXT,
+        modif_par_code  TEXT
+      )
+    ''');
+  }
+
+  static Future<void> _createPaiementParam(Database db) async {
+    await db.execute('''
+      CREATE TABLE IF NOT EXISTS paiement_param (
+        id                INTEGER PRIMARY KEY,
+        especes_visible   INTEGER NOT NULL DEFAULT 1,
+        carte_visible     INTEGER NOT NULL DEFAULT 1,
+        cheque_visible    INTEGER NOT NULL DEFAULT 1,
+        virement_visible  INTEGER NOT NULL DEFAULT 1,
+        date_modif        TEXT,
+        modif_par_code    TEXT
+      )
+    ''');
+  }
+
+  static Future<void> _createImprimanteParam(Database db) async {
+    await db.execute('''
+      CREATE TABLE IF NOT EXISTS imprimante_param (
+        id               INTEGER PRIMARY KEY,
+        type_imprimante  TEXT NOT NULL DEFAULT 'bluetooth',
+        nom_imprimante   TEXT,
+        adresse_ip       TEXT,
+        port             INTEGER,
+        mac_bluetooth    TEXT,
+        largeur_rouleau  INTEGER NOT NULL DEFAULT 80,
+        date_modif       TEXT,
+        modif_par_code   TEXT
+      )
+    ''');
+  }
+
+  static Future<void> _createBackupParam(Database db) async {
+    await db.execute('''
+      CREATE TABLE IF NOT EXISTS backup_param (
+        id                  INTEGER PRIMARY KEY,
+        dossier_backup      TEXT,
+        dossier_documents   TEXT,
+        auto_backup_actif   INTEGER NOT NULL DEFAULT 0,
+        frequence           TEXT NOT NULL DEFAULT 'demarrage',
+        derniere_sauvegarde TEXT,
+        modif_par_code      TEXT
+      )
+    ''');
+  }
+
   static Future<void> _createCategories(Database db) async {
     await db.execute('''
       CREATE TABLE IF NOT EXISTS categories (
@@ -877,6 +1607,7 @@ class DbCreator {
         banque  TEXT,
         dernier_achat TEXT,
         observation   TEXT,
+        solde_bonus   REAL NOT NULL DEFAULT 0,
         date_cree     TEXT NOT NULL DEFAULT(datetime('now')),
         cree_par_code TEXT NOT NULL,
         date_modif    TEXT,
@@ -977,10 +1708,7 @@ class DbCreator {
       marge_taux  REAL    DEFAULT 0,
       marge_bool  INTEGER DEFAULT 0,
       unite_mesure  TEXT    NOT NULL ,
-      quantite      REAL    DEFAULT 0,
-      seuil_min     REAL    DEFAULT 0,
-      seuil_max     REAL    DEFAULT 0,
-      seuil_bool    INTEGER DEFAULT 0,
+      nombre        REAL    NOT NULL DEFAULT 0,
       multicodebar  INTEGER DEFAULT 0,
       marge_tauxPrct  REAL,
       observation   TEXT,
@@ -1002,6 +1730,8 @@ class DbCreator {
       couleur TEXT,
       photos  TEXT,
       besion          INTEGER NOT NULL DEFAULT 0,
+      nombre_actif    INTEGER NOT NULL DEFAULT 0,
+      device_id_mobile TEXT,
       FOREIGN KEY (cree_par_code) REFERENCES utilisateur(code),
       FOREIGN KEY (categorie_id) REFERENCES categories(id),
       FOREIGN KEY (sous_categorie_id) REFERENCES sous_categories(id),
@@ -1047,6 +1777,10 @@ class DbCreator {
       type_marge            TEXT NOT NULL,
       minimum               REAL DEFAULT 0,
       maximum               REAL DEFAULT 0,
+      decimales_quantite    INTEGER NOT NULL DEFAULT 0,
+      active_bonus          INTEGER NOT NULL DEFAULT 0,
+      bonus_taux            REAL NOT NULL DEFAULT 0,
+      active_nombre_quantite INTEGER NOT NULL DEFAULT 0,
       date_cree             TEXT NOT NULL,
       cree_par_code         TEXT NOT NULL,
       date_modif            TEXT,
@@ -1119,12 +1853,15 @@ class DbCreator {
       code          TEXT    NOT NULL UNIQUE,
       code_produit  TEXT    NOT NULL,
       quantite      REAL    DEFAULT 0,
+      nombre        REAL,
       prix_achat    REAL    DEFAULT 0,
       prix_vente    REAL    DEFAULT 0,
       code_operation TEXT NOT NULL,
       client_code       TEXT,
       fournisseur_code  TEXT,
+      magasin_code  TEXT,
       type          TEXT,
+      sous_type     TEXT,
       etat          INTEGER NOT NULL DEFAULT 1,
       date_cree     TEXT DEFAULT (datetime('now')),
       cree_par_code TEXT NOT NULL,
@@ -1136,37 +1873,9 @@ class DbCreator {
       FOREIGN KEY (code_produit)      REFERENCES produits(code),
       FOREIGN KEY (client_code)       REFERENCES clients(code),
       FOREIGN KEY (fournisseur_code)  REFERENCES fournisseurs(code),
+      FOREIGN KEY (magasin_code)      REFERENCES magasins(code),
       FOREIGN KEY (cree_par_code)     REFERENCES utilisateur(code)
     )
-    ''');
-  }
-  static Future<void> _createEntree(Database db) async {
-    await db.execute('''
-      CREATE TABLE IF NOT EXISTS entree (
-        id INTEGER PRIMARY KEY,
-        code  TEXT NOT NULL,
-        date  TEXT NOT NULL,
-        produit_code TEXT NOT NULL,
-
-        prix REAL NOT NULL,
-        quantite REAL NOT NULL,
-        montant REAL NOT NULL,
-
-        fournisseur_code TEXT NOT NULL,
-        etat INTEGER NOT NULL,
-        cree_par_code TEXT NOT NULL,
-        date_cree TEXT NOT NULL,
-        observation TEXT,
-        
-        date_modif    TEXT,
-        modif_par_code     TEXT,
-        date_annul    TEXT,
-        annul_par_code     TEXT,
-        motif_annul   TEXT,
-        FOREIGN KEY (fournisseur_code)  REFERENCES fournisseurs(code),
-        FOREIGN KEY (produit_code)      REFERENCES produits(code),
-        FOREIGN KEY (cree_par_code)     REFERENCES utilisateur(code)
-      )
     ''');
   }
   static Future<void> _createProduitMagasinDetail(Database db) async {
@@ -1175,7 +1884,7 @@ class DbCreator {
         id            INTEGER PRIMARY KEY AUTOINCREMENT,
         magasin_code  TEXT    NOT NULL,
         produit_code  TEXT    NOT NULL,
-        quantite      REAL    DEFAULT 0,
+        nombre        REAL    NOT NULL DEFAULT 0,
         date_cree     TEXT    NOT NULL DEFAULT (datetime('now')),
         cree_par_code TEXT    NOT NULL,
         FOREIGN KEY (magasin_code)  REFERENCES magasins(code),
@@ -1195,8 +1904,6 @@ class DbCreator {
         montant           REAL NOT NULL,
         montant_achat           REAL NOT NULL,
         marge           REAL NOT NULL,
-        verse             REAL NOT NULL,
-        reste             REAL,
         mode_paiement     TEXT NOT NULL,
         caisser_code      TEXT NOT NULL,
         caisse            TEXT NOT NULL,
@@ -1212,6 +1919,10 @@ class DbCreator {
         date_annul        TEXT,
         annul_par_code         TEXT,
         motif_annul       TEXT,
+        uuid              TEXT,
+        device_id_mobile  TEXT,
+        hash              TEXT,
+        hash_precedent    TEXT,
         FOREIGN KEY (caisser_code)      REFERENCES utilisateur(code),
         FOREIGN KEY (caisse_code)       REFERENCES caisseGestion(code),
         FOREIGN KEY (client_code)       REFERENCES clients(code)
@@ -1226,6 +1937,7 @@ class DbCreator {
         code              TEXT    NOT NULL UNIQUE,
         code_produit      TEXT    NOT NULL,
         quantite          REAL    NOT NULL,
+        nombre            REAL,
         prix_achat        REAL    NOT NULL,
         prix_vente        REAL    NOT NULL,
         type              TEXT    NOT NULL,
@@ -1235,15 +1947,19 @@ class DbCreator {
         date              TEXT    NOT NULL DEFAULT (datetime('now')),
         client_code       TEXT,
         fournisseur_code  TEXT,
+        retour_correspond_de TEXT,
+        magasin_code      TEXT,
         observation       TEXT,
         date_modif        TEXT,
         modif_par_code         TEXT,
         date_annul        TEXT,
         annul_par_code         TEXT,
         motif_annul       TEXT,
+        device_id_mobile  TEXT,
         FOREIGN KEY (client_code)       REFERENCES  clients(code),
         FOREIGN KEY (fournisseur_code)  REFERENCES fournisseurs(code),
         FOREIGN KEY (code_produit)      REFERENCES produits(code),
+        FOREIGN KEY (magasin_code)      REFERENCES magasins(code),
         FOREIGN KEY (cree_par_code)     REFERENCES utilisateur(code)
       )
     ''');
@@ -1261,6 +1977,7 @@ class DbCreator {
         montant         REAL    NOT NULL,
         beneficiare_code TEXT   NOT NULL,
         mode_paiement   TEXT    NOT NULL,
+        code_operation  TEXT    NOT NULL,
         date            TEXT    NOT NULL,
         date_cree       TEXT    NOT NULL DEFAULT (datetime('now')),
         cree_par_code   TEXT    NOT NULL,
@@ -1282,16 +1999,11 @@ class DbCreator {
         id                INTEGER PRIMARY KEY,
         code              TEXT    NOT NULL  UNIQUE,
         date              TEXT    NOT NULL,
-        reste           REAL    NOT NULL,
-        paye           REAL    NOT NULL,
         montant           REAL    NOT NULL,
         nbr_produit       INTEGER NOT NULL,
-        ecart             REAL    NOT NULL,
         fournisseur_code  TEXT    NOT NULL,
         etat              INTEGER NOT NULL  DEFAULT 1,
-        activity          TEXT    NOT NULL,
         observation       TEXT,
-        quantite_article  INTEGER NOT NULL,
         date_cree         TEXT    NOT NULL  DEFAULT (datetime('now')),
         cree_par_code     TEXT    NOT NULL,
         date_modif        TEXT,
@@ -1299,8 +2011,32 @@ class DbCreator {
         date_annul        TEXT,
         annul_par_code         TEXT,
         motif_annul       TEXT,
+        device_id_mobile  TEXT,
+        chemin_photo      TEXT,
         FOREIGN KEY (fournisseur_code)  REFERENCES fournisseurs(code),
         FOREIGN KEY (cree_par_code)     REFERENCES utilisateur(code)
+      )
+    ''');
+  }
+
+  static Future<void> _createBonReception(Database db) async {
+    await db.execute('''
+      CREATE TABLE IF NOT EXISTS bon_reception (
+        id                INTEGER PRIMARY KEY,
+        fournisseur       TEXT,
+        fournisseur_code  TEXT,
+        num_bon           TEXT,
+        commentaire       TEXT,
+        chemin_photo      TEXT    NOT NULL,
+        date_reception    TEXT    NOT NULL  DEFAULT (datetime('now')),
+        statut            TEXT    NOT NULL  DEFAULT 'recu',
+        device_id         TEXT,
+        date_traitement   TEXT,
+        traite_par_code   TEXT,
+        smart_scan_code   TEXT,
+        FOREIGN KEY (smart_scan_code)  REFERENCES smart_scan(code),
+        FOREIGN KEY (fournisseur_code) REFERENCES fournisseurs(code),
+        FOREIGN KEY (traite_par_code)  REFERENCES utilisateur(code)
       )
     ''');
   }
@@ -1315,8 +2051,11 @@ class DbCreator {
         credit        REAL    NOT NULL,
         username      TEXT    NOT NULL UNIQUE,
         password      TEXT    NOT NULL,
+        nom           TEXT,
+        prenom        TEXT,
         telephone     TEXT    NOT NULL,
         role_code     TEXT    NOT NULL,
+        caisse_code   TEXT,
         date_cree     TEXT    NOT NULL DEFAULT (datetime('now')),
         cree_par_code TEXT    NOT NULL,
         dernier_acces TEXT    NOT NULL,
@@ -1326,7 +2065,9 @@ class DbCreator {
         date_annul    TEXT,
         annul_par_code     TEXT,
         motif_annul   TEXT,
-        FOREIGN KEY (role_code)     REFERENCES role(code)
+        api_token     TEXT,
+        FOREIGN KEY (role_code)     REFERENCES role(code),
+        FOREIGN KEY (caisse_code)   REFERENCES caisseGestion(code)
       )
     ''');
   }
@@ -1385,7 +2126,7 @@ class DbCreator {
         nomber_article  INTEGER NOT NULL,
         quantite        REAL    NOT NULL,
         fournisseur_code TEXT   NOT NULL,
-        etat            TEXT    NOT NULL,
+        etat            INTEGER NOT NULL DEFAULT 1,
         observation     TEXT,
         date_cree       TEXT    NOT NULL DEFAULT (datetime('now')),
         cree_par_code   TEXT    NOT NULL,
@@ -1434,6 +2175,7 @@ class DbCreator {
         total_achat REAL NOT NULL,
         prix_achat REAL NOT NULL,
         quantite REAL NOT NULL,
+        nombre REAL,
         date_cree TEXT NOT NULL DEFAULT (datetime ('now')),
         code_pannier TEXT NOT NULL,
         code_produit TEXT NOT NULL,
@@ -1456,6 +2198,7 @@ class DbCreator {
         code_SmartScan  TEXT    NOT NULL,
         code_produit    TEXT    NOT NULL,
         quantite        REAL    NOT NULL,
+        nombre          REAL,
         prix            REAL    NOT NULL,
         prixVente       REAL    NOT NULL,
         total           REAL    NOT NULL,
@@ -1487,9 +2230,11 @@ class DbCreator {
         cree_par_code TEXT    NOT NULL,
         montant       REAL    NOT NULL,
         quantite      REAL    NOT NULL,
+        nombre        REAL,
         prix          REAL    NOT NULL,
         produit_code  TEXT    NOT NULL,
         sous_categorie_code TEXT,
+        magasin_code  TEXT,
         observation   TEXT,
         date_modif    TEXT,
         categorie_code      TEXT,
@@ -1500,7 +2245,8 @@ class DbCreator {
         FOREIGN KEY (cree_par_code)        REFERENCES utilisateur(code),
         FOREIGN KEY (produit_code)         REFERENCES produits(code),
         FOREIGN KEY (categorie_code)       REFERENCES categories(code),
-        FOREIGN KEY (sous_categorie_code)  REFERENCES sous_categories(code)
+        FOREIGN KEY (sous_categorie_code)  REFERENCES sous_categories(code),
+        FOREIGN KEY (magasin_code)         REFERENCES magasins(code)
       )
     ''');
   }
@@ -1524,8 +2270,40 @@ class DbCreator {
         annul_par_code TEXT,
         motif_annul TEXT,
         FOREIGN KEY (cree_par_code)     REFERENCES utilisateur(code),
-        FOREIGN KEY (caisse_exp_code)   REFERENCES caisseGestion(code),  
+        FOREIGN KEY (caisse_exp_code)   REFERENCES caisseGestion(code),
         FOREIGN KEY (caisse_dest_code)  REFERENCES caisseGestion(code)
+      )
+    ''');
+  }
+
+  // Transfert de marchandise entre deux magasins (distinct de `transfert`
+  // ci-dessus, qui est un transfert d'argent entre deux caisses) — voir
+  // MouvementsServices : chaque transfert génère 2 mouvements liés (Sortie
+  // au magasin source, Entrée au magasin destination).
+  static Future<void> _createTransfertMagasin(Database db) async {
+    await db.execute('''
+      CREATE TABLE IF NOT EXISTS transfert_magasin(
+        id  INTEGER PRIMARY KEY,
+        code TEXT NOT NULL UNIQUE,
+        date TEXT NOT NULL,
+        produit_code TEXT NOT NULL,
+        quantite REAL NOT NULL,
+        nombre REAL,
+        magasin_source_code TEXT NOT NULL,
+        magasin_dest_code TEXT NOT NULL,
+        etat INTEGER NOT NULL DEFAULT 1,
+        observation TEXT,
+        date_cree TEXT NOT NULL DEFAULT(datetime('now')),
+        cree_par_code TEXT NOT NULL,
+        date_modif TEXT,
+        modif_par_code TEXT,
+        date_annul TEXT,
+        annul_par_code TEXT,
+        motif_annul TEXT,
+        FOREIGN KEY (cree_par_code)         REFERENCES utilisateur(code),
+        FOREIGN KEY (produit_code)          REFERENCES produits(code),
+        FOREIGN KEY (magasin_source_code)   REFERENCES magasins(code),
+        FOREIGN KEY (magasin_dest_code)     REFERENCES magasins(code)
       )
     ''');
   }
@@ -1539,7 +2317,7 @@ class DbCreator {
         code TEXT NOT NULL UNIQUE,
         annee INTEGER NOT NULL,
         stock REAL NOT NULL,
-        dattes REAL NOT NULL,
+        dettes REAL NOT NULL,
         nissab REAL NOT NULL,
         status TEXT NOT NULL,
         creances REAL NOT NULL,
@@ -1574,6 +2352,132 @@ class DbCreator {
         cree_par_code TEXT NOT NULL,
         date_cree     TEXT NOT NULL,
         observation   TEXT,
+        FOREIGN KEY (cree_par_code)     REFERENCES utilisateur(code)
+      )
+    ''');
+  }
+
+  /// Registre fiscal append-only (JournalFiscalServices) : chaque événement
+  /// significatif (vente, annulation...) y est inséré avec un scellement
+  /// SHA-256 chaîné, indépendant des autres tables métier. Aucune méthode
+  /// d'update/delete n'existe côté service — cette table ne doit jamais être
+  /// modifiée après insertion (conformité art. 51 bis).
+  static Future<void> _createJournalFiscal(Database db) async {
+    await db.execute('''
+      CREATE TABLE IF NOT EXISTS journal_fiscal (
+        id                INTEGER PRIMARY KEY,
+        code              TEXT NOT NULL UNIQUE,
+        type_operation    TEXT NOT NULL,
+        code_operation    TEXT NOT NULL,
+        caisse_code       TEXT,
+        utilisateur_code  TEXT NOT NULL,
+        montant           REAL,
+        donnees_avant     TEXT,
+        donnees_apres     TEXT,
+        hash              TEXT NOT NULL,
+        hash_precedent    TEXT NOT NULL,
+        date_evenement    TEXT NOT NULL,
+        FOREIGN KEY (utilisateur_code)  REFERENCES utilisateur(code)
+      )
+    ''');
+  }
+
+  /// Clôtures de caisse (rapport Z) : chaque clôture fige définitivement une
+  /// période (voir ClotureCaisseServices.cloturer) — les tickets de cette
+  /// période ne peuvent plus être annulés (PannierServices.annulerPannier),
+  /// seul un Retour reste possible. Scellée par un chaînage SHA-256 propre à
+  /// chaque caisse (indépendant du chaînage par ticket et de celui du
+  /// journal fiscal).
+  static Future<void> _createClotureCaisse(Database db) async {
+    await db.execute('''
+      CREATE TABLE IF NOT EXISTS cloture_caisse (
+        id                        INTEGER PRIMARY KEY,
+        code                      TEXT NOT NULL UNIQUE,
+        caisse_code               TEXT NOT NULL,
+        date_debut                TEXT NOT NULL,
+        date_fin                  TEXT NOT NULL,
+        total_ventes              REAL NOT NULL,
+        total_annule              REAL NOT NULL,
+        nombre_tickets            INTEGER NOT NULL,
+        nombre_tickets_annules    INTEGER NOT NULL,
+        repartition_paiement      TEXT,
+        utilisateur_code          TEXT NOT NULL,
+        date_cree                 TEXT NOT NULL,
+        hash                      TEXT NOT NULL,
+        hash_precedent            TEXT NOT NULL,
+        FOREIGN KEY (caisse_code)       REFERENCES caisseGestion(code),
+        FOREIGN KEY (utilisateur_code)  REFERENCES utilisateur(code)
+      )
+    ''');
+  }
+
+  /// Session de caisse (ouverture -> mouvements -> clôture) : la période
+  /// pendant laquelle une caisse est active. Une seule session `ouverte`
+  /// doit exister à la fois par `caisse_code` (contrainte applicative, voir
+  /// CaisseSessionServices.ouvrirSession — pas de contrainte SQL dédiée).
+  static Future<void> _createCaisseSession(Database db) async {
+    await db.execute('''
+      CREATE TABLE IF NOT EXISTS caisse_session (
+        id                INTEGER PRIMARY KEY,
+        code              TEXT NOT NULL UNIQUE,
+        caisse_code       TEXT NOT NULL,
+        statut            TEXT NOT NULL DEFAULT 'ouverte',
+        solde_ouverture   REAL NOT NULL,
+        date_ouverture    TEXT NOT NULL,
+        solde_theorique   REAL,
+        solde_reel        REAL,
+        ecart             REAL,
+        date_cloture      TEXT,
+        observation       TEXT,
+        etat              INTEGER NOT NULL DEFAULT 1,
+        date_cree         TEXT NOT NULL,
+        cree_par_code     TEXT NOT NULL,
+        date_modif        TEXT,
+        modif_par_code    TEXT,
+        date_annul        TEXT,
+        annul_par_code    TEXT,
+        motif_annul       TEXT,
+        FOREIGN KEY (caisse_code)     REFERENCES caisseGestion(code),
+        FOREIGN KEY (cree_par_code)   REFERENCES utilisateur(code)
+      )
+    ''');
+  }
+
+  /// Grand-livre des mouvements de caisse : chaque encaissement/décaissement
+  /// réel (vente, achat, versement, retour, ouverture/clôture de session,
+  /// mouvement manuel) est journalisé ici, rattaché à une caisse_session.
+  /// `code_operation` référence de façon polymorphe (selon `type`) le code
+  /// d'un Pannier/SmartScan/Retour/Verssement — pas de contrainte FK dédiée,
+  /// même principe que mouvements.code_operation.
+  static Future<void> _createCaisseMouvement(Database db) async {
+    await db.execute('''
+      CREATE TABLE IF NOT EXISTS caisse_mouvement (
+        id                INTEGER PRIMARY KEY,
+        code              TEXT NOT NULL UNIQUE,
+        session_code      TEXT NOT NULL,
+        caisse_code       TEXT NOT NULL,
+        type              TEXT NOT NULL,
+        sens              TEXT NOT NULL,
+        montant           REAL NOT NULL,
+        mode_paiement     TEXT,
+        code_operation    TEXT,
+        client_code       TEXT,
+        fournisseur_code  TEXT,
+        motif             TEXT,
+        reference         TEXT,
+        date              TEXT NOT NULL,
+        etat              INTEGER NOT NULL DEFAULT 1,
+        date_cree         TEXT NOT NULL,
+        cree_par_code     TEXT NOT NULL,
+        date_modif        TEXT,
+        modif_par_code    TEXT,
+        date_annul        TEXT,
+        annul_par_code    TEXT,
+        motif_annul       TEXT,
+        FOREIGN KEY (session_code)      REFERENCES caisse_session(code),
+        FOREIGN KEY (caisse_code)       REFERENCES caisseGestion(code),
+        FOREIGN KEY (client_code)       REFERENCES clients(code),
+        FOREIGN KEY (fournisseur_code)  REFERENCES fournisseurs(code),
         FOREIGN KEY (cree_par_code)     REFERENCES utilisateur(code)
       )
     ''');

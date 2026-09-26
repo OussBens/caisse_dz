@@ -45,6 +45,32 @@ class RoleServices {
 
   }
 
+  /// Rôles pouvant être assignés à un utilisateur — exclut le rôle Admin
+  /// (unique, seedé au démarrage de l'application). Pour avoir d'autres
+  /// administrateurs, il faut créer un nouveau rôle dédié (écran Rôles)
+  /// puis un utilisateur avec ce rôle.
+  static Future<List<Role>> getAssignableRoles() async {
+    final all = await getAllRoles();
+    return all.where((r) => r.rolenom.trim().toLowerCase() != 'admin').toList();
+  }
+
+  /// Retourne le rôle (autre que [excludeRoleCode]) portant déjà ce nom
+  /// (comparaison insensible à la casse et aux espaces) — null si le nom
+  /// est libre.
+  static Future<Role?> findRoleByNom(String rolenom, {String? excludeRoleCode}) async {
+    final db = await DbCreator.openDb();
+    final maps = await db.query(
+      'role',
+      where: 'LOWER(TRIM(rolenom)) = ?',
+      whereArgs: [rolenom.trim().toLowerCase()],
+      limit: 1,
+    );
+    if (maps.isEmpty) return null;
+    final role = Role.fromMap(maps.first);
+    if (role.code == excludeRoleCode) return null;
+    return role;
+  }
+
   // 🔹 GET BY CODE
   static Future<Role?> getRoleByCode(String code) async {
     final db = await DbCreator.openDb();

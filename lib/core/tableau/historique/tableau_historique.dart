@@ -2,21 +2,24 @@ import 'package:caisse_dz/core/dialog/historique/historique_detail.dart';
 
 import 'package:caisse_dz/core/theme/app_style.dart';
 import 'package:caisse_dz/data/models/histore.dart';
+import 'package:caisse_dz/data/models/utilisateur.dart';
 import 'package:caisse_dz/l10n/app_localizations.dart';
 import 'package:flutter/material.dart';
 import 'package:syncfusion_flutter_core/theme.dart';
 import 'package:syncfusion_flutter_datagrid/datagrid.dart';
-import '../../widget/tableau/paginated.dart';
+import '../filter_icon_builder.dart';
 import 'historique_source.dart';
 
 class TableauHistoriqueAdvanced extends StatefulWidget {
 
   final List<Historique> historiques;
+  final List<Utilisateur> utilisateurs;
   final void Function(List<Historique>)? onSelectionChanged;
 
   const TableauHistoriqueAdvanced({
     super.key,
     required this.historiques,
+    this.utilisateurs = const [],
     this.onSelectionChanged,
   });
 
@@ -34,26 +37,9 @@ class _TableauHistoriqueAdvancedState
   late final Map<String, bool> colonnesParDefaut;
 
   final Map<String, double> columnWidths = {};
-  int rowsPerPage = 15;
-  int currentPage = 1;
+  int _rowsPerPage = 15;
+  static const List<int> _rowsPerPageOptions = [10, 15, 20, 30, 50];
   bool selectAll = false;
-
-  // ================= PAGINATION =================
-  List<Historique> get paginatedData {
-    final start = (currentPage - 1) * rowsPerPage;
-    final end = (start + rowsPerPage)
-        .clamp(0, widget.historiques.length);
-
-    if (start >= widget.historiques.length) return [];
-    return widget.historiques.sublist(start, end);
-  }
-
-  int get totalPages =>
-      widget.historiques.isEmpty
-          ? 1
-          : (widget.historiques.length / rowsPerPage)
-          .ceil()
-          .clamp(1, 9999);
 
   late Map<String, Map<String, dynamic>> columnVisibility;
 
@@ -88,11 +74,6 @@ class _TableauHistoriqueAdvancedState
         'label': 'createdBy',
         'field': 'creeParCode'
       },
-      'creeParCode': {
-        'visible': false,
-        'label': 'creatorCode',
-        'field': 'creeParCode'
-      },
       'dateCree': {
         'visible': true,
         'label': 'createdAt',
@@ -112,41 +93,70 @@ class _TableauHistoriqueAdvancedState
     final l10n = AppLocalizations.of(context)!;
 
     dataSource = HistoriqueDataSource(
-      historiques: paginatedData,
+      historiques: widget.historiques,
       columnConfig: columnVisibility,
       l10n: l10n,
+      utilisateurs: widget.utilisateurs,
     );
+    dataSource.onRowDoubleTap = (historique) => HistoriqueDetail(context, historique);
 
     dataSource.addListener(() {
-      widget.onSelectionChanged?.call(dataSource.getSelectedRows());
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted) return;
+        setState(() {});
+        widget.onSelectionChanged?.call(dataSource.getSelectedRows());
+      });
     });
+  }
+
+  @override
+  void didUpdateWidget(covariant TableauHistoriqueAdvanced oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.historiques != widget.historiques) {
+      dataSource.update(widget.historiques);
+    }
   }
 
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
 
+    final pageCount = (dataSource.items.length / _rowsPerPage).ceil().clamp(1, 9999).toDouble();
+
     return Column(
       children: [
         Expanded(child: _buildTable(l10n)),
         const SizedBox(height: 12),
-        PaginationBar(
-          currentPage: currentPage,
-          totalPages: totalPages,
-          rowsPerPage: rowsPerPage,
-          onPageChanged: (page) {
-            setState(() {
-              currentPage = page;
-              dataSource.update(paginatedData);
-            });
-          },
-          onRowsPerPageChanged: (v) {
-            setState(() {
-              rowsPerPage = v;
-              currentPage = 1;
-              dataSource.update(paginatedData);
-            });
-          },
+        Container(
+          padding: const EdgeInsets.symmetric(vertical: 6, horizontal: 12),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(14),
+            boxShadow: const [BoxShadow(color: Colors.black12, blurRadius: 10)],
+          ),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              SfDataPager(
+                delegate: dataSource,
+                pageCount: pageCount,
+                direction: Axis.horizontal,
+                itemWidth: 36,
+                itemHeight: 36,
+              ),
+              const SizedBox(width: 20),
+              DropdownButton<int>(
+                value: _rowsPerPage,
+                items: _rowsPerPageOptions
+                    .map((e) => DropdownMenuItem(value: e, child: Text("$e ${l10n.rowsPerPage}")))
+                    .toList(),
+                onChanged: (v) {
+                  if (v == null) return;
+                  setState(() => _rowsPerPage = v);
+                },
+              ),
+            ],
+          ),
         ),
       ],
     );
@@ -154,7 +164,23 @@ class _TableauHistoriqueAdvancedState
 
   // ================= TABLE =================
   Widget _buildTable(AppLocalizations l10n) {
-    return Container(
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        // Largeur de colonne = largeur disponible / nombre de colonnes
+        // visibles (hors colonnes fixes réglages + case à cocher), afin que
+        // le tableau occupe toute la largeur de l'écran. Une largeur
+        // redéfinie manuellement (resize) reste prioritaire.
+        final int visibleCount = columnVisibility.values
+            .where((c) => c['visible'] == true)
+            .length;
+        const double fixedWidth = 60 + 55; // settings + select
+        const double innerPadding = 16; // Container padding EdgeInsets.all(8)
+        final double avail = constraints.maxWidth - fixedWidth - innerPadding;
+        final double computed =
+            visibleCount > 0 ? avail / visibleCount : 220.0;
+        final double dataColWidth = computed < 140 ? 140.0 : computed;
+
+        return Container(
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(18),
@@ -169,12 +195,13 @@ class _TableauHistoriqueAdvancedState
           data: SfDataGridThemeData(
             headerColor: Appstyle.gris.withOpacity(0.7),
             sortIconColor: Appstyle.Tblanc,
-            filterIconColor: Appstyle.Tblanc,
+            filterIcon: Builder(builder: (context) => buildFilterIcon(context, dataSource)),
             gridLineColor: Colors.grey.shade300,
             gridLineStrokeWidth: 0.4,
           ),
           child: SfDataGrid(
             source: dataSource,
+            rowsPerPage: _rowsPerPage,
             headerRowHeight: 36,
             rowHeight: 38,
             allowSorting: true,
@@ -184,13 +211,8 @@ class _TableauHistoriqueAdvancedState
             columnWidthMode: ColumnWidthMode.none,
             allowColumnsResizing: true,
             columnResizeMode: ColumnResizeMode.onResize,
-
-            onCellDoubleTap: (details) {
-              if (details.rowColumnIndex.rowIndex <= 0) return;
-              final rowIndex = details.rowColumnIndex.rowIndex - 1;
-              final Historique historique = paginatedData[rowIndex];
-              HistoriqueDetail(context, historique);
-            },
+            // Sélection au clic + double-clic pour le détail gérés dans
+            // BaseTableDataSource.buildRow.
 
             onColumnResizeUpdate: (details) {
               double w = details.width;
@@ -236,7 +258,7 @@ class _TableauHistoriqueAdvancedState
                   .map(
                     (e) => GridColumn(
                   columnName: e.key,
-                  width: columnWidths[e.key] ?? 220,
+                  width: columnWidths[e.key] ?? dataColWidth,
                   label: _header(_getTranslatedLabel(e.value['label'], l10n)),
                 ),
               ),
@@ -244,6 +266,8 @@ class _TableauHistoriqueAdvancedState
           ),
         ),
       ),
+        );
+      },
     );
   }
 

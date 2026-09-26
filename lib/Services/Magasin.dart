@@ -4,107 +4,79 @@ import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 
 import '../core/utilis/api_response.dart';
 
-
-
 class MagasinServices {
   final Database db;
 
   MagasinServices(this.db);
 
-  // 🔹 ACTIVATE / DEACTIVATE
-  Future<int> activerDesactiver(List<Magasin> magasins) async {
-    int count = 0;
-
-    for (var m in magasins) {
-      final updated = await db.update(
-        'magasins',
-        {
-          'etat': m.etat ? 0 : 1,
-          'date_modif': DateTime.now().toIso8601String(),
-        },
-        where: 'id = ?',
-        whereArgs: [m.id],
-      );
-
-      count += updated;
-    }
-    return count;
-  }
-
-  // 🔹 GET ALL
   static Future<List<Magasin>> getAllMagasins() async {
-     final db = await DbCreator.openDb();
-    final result = await db.query(
-        'magasins',
-        orderBy: 'nom ASC'
-    );
-
+    final db = await DbCreator.openDb();
+    final List<Map<String, dynamic>> result = await db.query('magasins', orderBy: 'nom ASC');
     return result.map((e) => Magasin.fromMap(e)).toList();
   }
 
-  // 🔹 GET BY CODE
-  Future<Magasin?> getMagasinByCode(String code) async {
+  /// Retourne le magasin (autre que [excludeMagasinCode]) portant déjà ce nom
+  /// (comparaison insensible à la casse et aux espaces) — null si le nom
+  /// est libre.
+  static Future<Magasin?> findMagasinByNom(String nom, {String? excludeMagasinCode}) async {
+    final db = await DbCreator.openDb();
     final maps = await db.query(
       'magasins',
-      where: 'code = ?',
-      whereArgs: [code],
+      where: 'LOWER(TRIM(nom)) = ?',
+      whereArgs: [nom.trim().toLowerCase()],
       limit: 1,
     );
-    return maps.isNotEmpty ? Magasin.fromMap(maps.first) : null;
-  } // 🔹 GET BY Nom
-
-  Future<Magasin?> getMagasinByNom(String code) async {
-    final maps = await db.query(
-      'magasins',
-      where: 'nom = ?',
-      whereArgs: [code],
-      limit: 1,
-    );
-    return maps.isNotEmpty ? Magasin.fromMap(maps.first) : null;
+    if (maps.isEmpty) return null;
+    final magasin = Magasin.fromMap(maps.first);
+    if (magasin.code == excludeMagasinCode) return null;
+    return magasin;
   }
 
-  // 🔹 GET BY ID
   Future<Magasin?> getMagasinById(int id) async {
-    final maps = await db.query(
-      'magasins',
-      where: 'id = ?',
-      whereArgs: [id],
-    );
-    return maps.isNotEmpty ? Magasin.fromMap(maps.first) : null;
+    final maps = await db.query('magasins', where: 'id = ?', whereArgs: [id]);
+    if (maps.isNotEmpty) return Magasin.fromMap(maps.first);
+    return null;
   }
 
-  // 🔹 ADD
   Future<ApiResponse<int>> addMagasin(Magasin magasin) async {
     try {
       final existing = await db.query(
         'magasins',
-        where: 'nom = ?',
-        whereArgs: [magasin.nom],
+        where: 'LOWER(TRIM(nom)) = ?',
+        whereArgs: [magasin.nom.trim().toLowerCase()],
       );
 
       if (existing.isNotEmpty) {
-        return ApiResponse(success: false, message: "nom magasin déjà utilisé");
+        return ApiResponse(
+          success: false,
+          message: "Un magasin avec ce nom existe deja",
+        );
       }
 
       final id = await db.insert(
         'magasins',
-        magasin.toMap()..remove('id'),
+        magasin.toMap(),
         conflictAlgorithm: ConflictAlgorithm.abort,
       );
 
-      return ApiResponse(success: true, message: "Magasin ajouté", data: id);
+      return ApiResponse(
+        success: true,
+        message: "Magasin ajoute avec succes",
+        data: id,
+      );
     } catch (e) {
-      return ApiResponse(success: false, message: "Erreur ajout: $e");
+      return ApiResponse(
+        success: false,
+        message: "Erreur ajout: ${e.toString()}",
+      );
     }
   }
 
-  // 🔹 UPDATE
   Future<ApiResponse<int>> updateMagasin(Magasin magasin) async {
     try {
       final data = magasin.toMap()
         ..remove('id')
-        ..remove('code')
-        ..['date_modif'] = DateTime.now().toIso8601String();
+        ..remove('code');
 
       final rows = await db.update(
         'magasins',
@@ -113,40 +85,33 @@ class MagasinServices {
         whereArgs: [magasin.id],
       );
 
-      return ApiResponse(success: true, message: "Modification réussie", data: rows);
+      return ApiResponse(
+        success: true,
+        message: "Modification reussie",
+        data: rows,
+      );
     } catch (e) {
       if (e.toString().contains('UNIQUE constraint failed')) {
-        return ApiResponse(success: false, message: "Nom déjà utilisé");
+        return ApiResponse(
+          success: false,
+          message: "Un magasin avec ce nom existe deja",
+        );
       }
-      return ApiResponse(success: false, message: "Erreur modification: $e");
+
+      return ApiResponse(
+        success: false,
+        message: "Erreur modification : ${e.toString()}",
+      );
     }
   }
 
-  // 🔹 HARD DELETE
   Future<int> deleteMagasin(int id) async {
     return await db.delete('magasins', where: 'id = ?', whereArgs: [id]);
   }
 
-  // 🔹 SOFT DELETE
-  Future<int> annulerMagasin(int id, String user) async {
-    return await db.update(
-      'magasins',
-      {
-        'etat': 0,
-        'date_annul': DateTime.now().toIso8601String(),
-        'annul_par_code': user,
-      },
-      where: 'id = ?',
-      whereArgs: [id],
-    );
-  }
-
-  // 🔹 NEXT ID
   static Future<int> getNextMagasinId(DatabaseExecutor db) async {
-    final result = await db.rawQuery('SELECT MAX(id) as maxId FROM magasins');
+    final result = await db.rawQuery('SELECT MAX(id) AS maxId FROM magasins');
     final maxId = result.first['maxId'] as int?;
     return (maxId ?? 0) + 1;
   }
-
-
 }

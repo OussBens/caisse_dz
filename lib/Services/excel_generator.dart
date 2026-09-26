@@ -1,15 +1,20 @@
 import 'dart:io';
+import 'package:caisse_dz/Services/Mouvement.dart';
+import 'package:caisse_dz/Services/Pannier.dart';
+import 'package:caisse_dz/core/tableau/inventaire/inventaire_source.dart';
+import 'package:caisse_dz/core/tableau/marge_periode/marge_periode_source.dart';
+import 'package:collection/collection.dart';
+import 'package:caisse_dz/Services/SmartScan.dart';
 import 'package:caisse_dz/data/constant.dart';
 import 'package:caisse_dz/data/models/besoinList.dart';
 import 'package:caisse_dz/data/models/categorie.dart';
-import 'package:caisse_dz/data/models/entree.dart';
 import 'package:caisse_dz/data/models/fournisseur.dart';
 import 'package:caisse_dz/data/models/gestion_caisse.dart';
 import 'package:caisse_dz/data/models/histore.dart';
-import 'package:caisse_dz/data/models/magasin.dart';
 import 'package:caisse_dz/data/models/mouvement.dart';
 import 'package:caisse_dz/data/models/pack.dart';
 import 'package:caisse_dz/data/models/pannier.dart';
+import 'package:caisse_dz/data/models/pannier_produit.dart';
 import 'package:caisse_dz/data/models/produit.dart';
 import 'package:caisse_dz/data/models/remise.dart';
 import 'package:caisse_dz/data/models/retour.dart';
@@ -21,7 +26,7 @@ import 'package:caisse_dz/data/models/utilisateur.dart';
 import 'package:caisse_dz/data/models/verssement.dart';
 import 'package:caisse_dz/data/models/zakat.dart';
 import 'package:excel/excel.dart';
-import 'package:path_provider/path_provider.dart';
+import 'package:caisse_dz/Services/ExportStorage.dart';
 import 'package:open_file/open_file.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:caisse_dz/data/models/client.dart';
@@ -201,7 +206,7 @@ class ExcelGenerator {
     summarySheet.setColumnWidth(0, 30);
     summarySheet.setColumnWidth(1, 20);
 
-    final directory = await getApplicationDocumentsDirectory();
+    final directory = await getExportDirectory();
     final fileName = 'Clients_${DateTime.now().year}${DateTime.now().month.toString().padLeft(2, '0')}${DateTime.now().day.toString().padLeft(2, '0')}_${DateTime.now().millisecondsSinceEpoch}.xlsx';
     final filePath = '${directory.path}/$fileName';
 
@@ -213,10 +218,17 @@ class ExcelGenerator {
 
   static Future<File> generatePanniersExcel({
     required List<Pannier> panniers,
+    required List<Verssement> versements,
     required AppLocalizations l10n,
     required ListsConstTranslator translator,
   }) async
   {
+    // Montant versé/reste par pannier : calculé dynamiquement à partir des
+    // versements liés (la colonne verse/reste n'existe plus sur le pannier).
+    final verseParPannier = PannierServices.verseParPannier(versements);
+    double verseDe(Pannier p) => verseParPannier[p.code] ?? 0;
+    double resteDe(Pannier p) => p.montant - verseDe(p);
+
     var excel = Excel.createExcel();
 
     var sheet = excel['Panniers'];
@@ -284,10 +296,10 @@ class ExcelGenerator {
           .value = TextCellValue((pannier.quantiteProduit ?? 0).toString());
       // Paid Amount
       sheet.cell(CellIndex.indexByColumnRow(columnIndex: 7, rowIndex: rowIndex))
-          .value = TextCellValue(pannier.verse.toStringAsFixed(2));
+          .value = TextCellValue(verseDe(pannier).toStringAsFixed(2));
       // Remaining Amount
       sheet.cell(CellIndex.indexByColumnRow(columnIndex: 8, rowIndex: rowIndex))
-          .value = TextCellValue(pannier.reste.toStringAsFixed(2));
+          .value = TextCellValue(resteDe(pannier).toStringAsFixed(2));
       // Payment Mode (translated)
       sheet.cell(CellIndex.indexByColumnRow(columnIndex: 9, rowIndex: rowIndex))
           .value = TextCellValue(translator.translateModePaiement(pannier.modePaiement!));
@@ -335,8 +347,8 @@ class ExcelGenerator {
     var summarySheet = excel['Summary'];
 
     double totalAmount = panniers.fold(0.0, (sum, p) => sum + p.montant);
-    double totalPaid = panniers.fold(0.0, (sum, p) => sum + p.verse);
-    double totalRemaining = panniers.fold(0.0, (sum, p) => sum + p.reste);
+    double totalPaid = panniers.fold(0.0, (sum, p) => sum + verseDe(p));
+    double totalRemaining = panniers.fold(0.0, (sum, p) => sum + resteDe(p));
     int totalArticles = panniers.fold(0, (sum, p) => sum + (p.nombreArticle ?? 0));
     int totalQuantity = panniers.fold(0, (sum, p) => sum + (p.quantiteProduit ?? 0));
     int activePanniers = panniers.where((p) => p.etat).length;
@@ -400,8 +412,118 @@ class ExcelGenerator {
     summarySheet.setColumnWidth(0, 30);
     summarySheet.setColumnWidth(1, 20);
 
-    final directory = await getApplicationDocumentsDirectory();
+    final directory = await getExportDirectory();
     final fileName = 'Panniers_${DateTime.now().year}${DateTime.now().month.toString().padLeft(2, '0')}${DateTime.now().day.toString().padLeft(2, '0')}_${DateTime.now().millisecondsSinceEpoch}.xlsx';
+    final filePath = '${directory.path}/$fileName';
+
+    final file = File(filePath);
+    await file.writeAsBytes(excel.encode()!);
+
+    return file;
+  }
+
+  static Future<File> generateRecetteCaisseProduitExcel({
+    required List<PannierProduit> lignes,
+    required List<Pannier> panniers,
+    required List<Produit> produits,
+    required List<Utilisateur> utilisateurs,
+    required AppLocalizations l10n,
+  }) async
+  {
+    var excel = Excel.createExcel();
+
+    var sheet = excel['RecetteCaisseProduit'];
+
+    Pannier? pannierDe(String code) =>
+        panniers.where((p) => p.code == code).firstOrNull;
+    String nomProduit(String code) =>
+        produits.where((p) => p.code == code).firstOrNull?.nom ?? code;
+    String nomCaissier(String code) =>
+        utilisateurs.where((u) => u.code == code).firstOrNull?.username ?? code;
+
+    List<TextCellValue> headers = [
+      TextCellValue(l10n.date),
+      TextCellValue(l10n.cashRegisterCode),
+      TextCellValue("${l10n.date} ${l10n.panier}"),
+      TextCellValue(l10n.panierCode),
+      TextCellValue(l10n.product),
+      TextCellValue(l10n.quantity),
+      TextCellValue(l10n.salePrice),
+      TextCellValue(l10n.amount),
+      TextCellValue(l10n.cashier),
+      TextCellValue(l10n.status),
+    ];
+
+    for (int i = 0; i < headers.length; i++) {
+      var cell = sheet.cell(CellIndex.indexByColumnRow(columnIndex: i, rowIndex: 0));
+      cell.value = headers[i];
+      cell.cellStyle = CellStyle(bold: true, horizontalAlign: HorizontalAlign.Center);
+    }
+
+    for (int row = 0; row < lignes.length; row++) {
+      final ligne = lignes[row];
+      final pannier = pannierDe(ligne.codePannier);
+      final rowIndex = row + 1;
+
+      sheet.cell(CellIndex.indexByColumnRow(columnIndex: 0, rowIndex: rowIndex))
+          .value = TextCellValue(pannier != null ? _formatDate(pannier.dateCree) : '-');
+      sheet.cell(CellIndex.indexByColumnRow(columnIndex: 1, rowIndex: rowIndex))
+          .value = TextCellValue(pannier?.caisse_code ?? '-');
+      sheet.cell(CellIndex.indexByColumnRow(columnIndex: 2, rowIndex: rowIndex))
+          .value = TextCellValue(pannier != null ? _formatDate(pannier.date) : '-');
+      sheet.cell(CellIndex.indexByColumnRow(columnIndex: 3, rowIndex: rowIndex))
+          .value = TextCellValue(ligne.codePannier);
+      sheet.cell(CellIndex.indexByColumnRow(columnIndex: 4, rowIndex: rowIndex))
+          .value = TextCellValue(nomProduit(ligne.codeProduit));
+      sheet.cell(CellIndex.indexByColumnRow(columnIndex: 5, rowIndex: rowIndex))
+          .value = TextCellValue(ligne.quantite.toStringAsFixed(0));
+      sheet.cell(CellIndex.indexByColumnRow(columnIndex: 6, rowIndex: rowIndex))
+          .value = TextCellValue(ligne.prix.toStringAsFixed(2));
+      sheet.cell(CellIndex.indexByColumnRow(columnIndex: 7, rowIndex: rowIndex))
+          .value = TextCellValue(ligne.total.toStringAsFixed(2));
+      sheet.cell(CellIndex.indexByColumnRow(columnIndex: 8, rowIndex: rowIndex))
+          .value = TextCellValue(pannier != null ? nomCaissier(pannier.caissier_code) : '-');
+      sheet.cell(CellIndex.indexByColumnRow(columnIndex: 9, rowIndex: rowIndex))
+          .value = TextCellValue((pannier?.etat ?? false) ? l10n.active : l10n.inactive);
+    }
+
+    for (int i = 0; i < headers.length; i++) {
+      sheet.setColumnWidth(i, 20);
+    }
+
+    var summarySheet = excel['Summary'];
+    double totalQuantite = lignes.fold(0.0, (s, l) => s + l.quantite);
+    double totalMontant = lignes.fold(0.0, (s, l) => s + l.total);
+
+    var titleCell = summarySheet.cell(CellIndex.indexByColumnRow(columnIndex: 0, rowIndex: 0));
+    titleCell.value = TextCellValue(l10n.summary);
+    titleCell.cellStyle = CellStyle(bold: true, fontSize: 14);
+
+    summarySheet.cell(CellIndex.indexByColumnRow(columnIndex: 0, rowIndex: 2))
+        .value = TextCellValue(l10n.numberOfSales);
+    summarySheet.cell(CellIndex.indexByColumnRow(columnIndex: 1, rowIndex: 2))
+        .value = TextCellValue(lignes.length.toString());
+
+    summarySheet.cell(CellIndex.indexByColumnRow(columnIndex: 0, rowIndex: 3))
+        .value = TextCellValue(l10n.totalQuantity);
+    summarySheet.cell(CellIndex.indexByColumnRow(columnIndex: 1, rowIndex: 3))
+        .value = TextCellValue(totalQuantite.toStringAsFixed(2));
+
+    summarySheet.cell(CellIndex.indexByColumnRow(columnIndex: 0, rowIndex: 4))
+        .value = TextCellValue(l10n.totalAmount);
+    summarySheet.cell(CellIndex.indexByColumnRow(columnIndex: 1, rowIndex: 4))
+        .value = TextCellValue(totalMontant.toStringAsFixed(2));
+
+    summarySheet.cell(CellIndex.indexByColumnRow(columnIndex: 0, rowIndex: 6))
+        .value = TextCellValue(l10n.generationDate);
+    summarySheet.cell(CellIndex.indexByColumnRow(columnIndex: 1, rowIndex: 6))
+        .value = TextCellValue(_formatDateTime(DateTime.now()));
+
+    summarySheet.setColumnWidth(0, 30);
+    summarySheet.setColumnWidth(1, 20);
+
+    final directory = await getExportDirectory();
+    final fileName = 'RecetteCaisseProduit_${DateTime.now().year}${DateTime.now().month.toString().padLeft(2, '0')}${DateTime.now().day.toString().padLeft(2, '0')}_${DateTime.now().millisecondsSinceEpoch}.xlsx';
     final filePath = '${directory.path}/$fileName';
 
     final file = File(filePath);
@@ -417,8 +539,14 @@ class ExcelGenerator {
     required List<Remise> remises,
     required AppLocalizations l10n,
     required ListsConstTranslator translator,
+    required double seuilMin,
+    required double seuilMax,
   }) async
   {
+    // ✅ Quantités calculées depuis le journal des mouvements — remplace Produit.quantite.
+    final quantites = (await MouvementsServices.totauxParProduit()).quantites;
+    double qte(Produit p) => quantites[p.code] ?? 0;
+
     var excel = Excel.createExcel();
 
     var sheet = excel['Produits'];
@@ -459,7 +587,6 @@ class ExcelGenerator {
       TextCellValue(l10n.marginRate),
       TextCellValue(l10n.marginRatePercent),
       TextCellValue(l10n.vat),
-      TextCellValue(l10n.thresholdBool),
       TextCellValue(l10n.createdAt),
       TextCellValue(l10n.createdBy),
       TextCellValue(l10n.modifiedAt),
@@ -496,7 +623,7 @@ class ExcelGenerator {
       sheet.cell(CellIndex.indexByColumnRow(columnIndex: 4, rowIndex: rowIndex))
           .value = TextCellValue(produit.description ?? '-');
       sheet.cell(CellIndex.indexByColumnRow(columnIndex: 5, rowIndex: rowIndex))
-          .value = TextCellValue(produit.quantite.toString());
+          .value = TextCellValue(qte(produit).toString());
       sheet.cell(CellIndex.indexByColumnRow(columnIndex: 6, rowIndex: rowIndex))
           .value = TextCellValue(produit.taille ?? '-');
       sheet.cell(CellIndex.indexByColumnRow(columnIndex: 7, rowIndex: rowIndex))
@@ -520,9 +647,9 @@ class ExcelGenerator {
       sheet.cell(CellIndex.indexByColumnRow(columnIndex: 16, rowIndex: rowIndex))
           .value = TextCellValue(produit.emballage2!.toString());
       sheet.cell(CellIndex.indexByColumnRow(columnIndex: 17, rowIndex: rowIndex))
-          .value = TextCellValue(produit.seuilMin.toString());
+          .value = TextCellValue(seuilMin.toString());
       sheet.cell(CellIndex.indexByColumnRow(columnIndex: 18, rowIndex: rowIndex))
-          .value = TextCellValue(produit.seuilMax.toString());
+          .value = TextCellValue(seuilMax.toString());
 
       sheet.cell(CellIndex.indexByColumnRow(columnIndex: 20, rowIndex: rowIndex))
           .value = TextCellValue(produit.codeBarre ?? '-');
@@ -539,22 +666,20 @@ class ExcelGenerator {
       sheet.cell(CellIndex.indexByColumnRow(columnIndex: 26, rowIndex: rowIndex))
           .value = TextCellValue(produit.tva.toStringAsFixed(2));
       sheet.cell(CellIndex.indexByColumnRow(columnIndex: 27, rowIndex: rowIndex))
-          .value = TextCellValue(produit.seuilBool ? l10n.yes : l10n.no);
-      sheet.cell(CellIndex.indexByColumnRow(columnIndex: 28, rowIndex: rowIndex))
           .value = TextCellValue(_formatDate(produit.dateCree));
-      sheet.cell(CellIndex.indexByColumnRow(columnIndex: 29, rowIndex: rowIndex))
+      sheet.cell(CellIndex.indexByColumnRow(columnIndex: 28, rowIndex: rowIndex))
           .value = TextCellValue(produit.creeParcode ?? '-');
-      sheet.cell(CellIndex.indexByColumnRow(columnIndex: 30, rowIndex: rowIndex))
+      sheet.cell(CellIndex.indexByColumnRow(columnIndex: 29, rowIndex: rowIndex))
           .value = TextCellValue(_formatDate(produit.dateModif));
-      sheet.cell(CellIndex.indexByColumnRow(columnIndex: 31, rowIndex: rowIndex))
+      sheet.cell(CellIndex.indexByColumnRow(columnIndex: 30, rowIndex: rowIndex))
           .value = TextCellValue(produit.modifParCode ?? '-');
-      sheet.cell(CellIndex.indexByColumnRow(columnIndex: 32, rowIndex: rowIndex))
+      sheet.cell(CellIndex.indexByColumnRow(columnIndex: 31, rowIndex: rowIndex))
           .value = TextCellValue(_formatDate(produit.annulerLe));
-      sheet.cell(CellIndex.indexByColumnRow(columnIndex: 33, rowIndex: rowIndex))
+      sheet.cell(CellIndex.indexByColumnRow(columnIndex: 32, rowIndex: rowIndex))
           .value = TextCellValue(produit.annulerParCode ?? '-');
-      sheet.cell(CellIndex.indexByColumnRow(columnIndex: 34, rowIndex: rowIndex))
+      sheet.cell(CellIndex.indexByColumnRow(columnIndex: 33, rowIndex: rowIndex))
           .value = TextCellValue(produit.motifAnnul ?? '-');
-      sheet.cell(CellIndex.indexByColumnRow(columnIndex: 35, rowIndex: rowIndex))
+      sheet.cell(CellIndex.indexByColumnRow(columnIndex: 34, rowIndex: rowIndex))
           .value = TextCellValue(_formatDateTime(DateTime.now()));
     }
 
@@ -566,8 +691,8 @@ class ExcelGenerator {
     // Create summary sheet
     var summarySheet = excel['Summary'];
 
-    double totalPurchaseValue = produits.fold(0.0, (sum, p) => sum + (p.prixAchat * p.quantite));
-    double totalSaleValue = produits.fold(0.0, (sum, p) => sum + (p.prixVente * p.quantite));
+    double totalPurchaseValue = produits.fold(0.0, (sum, p) => sum + (p.prixAchat * qte(p)));
+    double totalSaleValue = produits.fold(0.0, (sum, p) => sum + (p.prixVente * qte(p)));
     int activeProduits = produits.where((p) => p.etat).length;
     int inactiveProduits = produits.where((p) => !p.etat).length;
     double avgPrice = produits.isEmpty ? 0 : produits.fold(0.0, (sum, p) => sum + p.prixVente) / produits.length;
@@ -614,7 +739,7 @@ class ExcelGenerator {
     summarySheet.setColumnWidth(0, 30);
     summarySheet.setColumnWidth(1, 20);
 
-    final directory = await getApplicationDocumentsDirectory();
+    final directory = await getExportDirectory();
     final fileName = 'Produits_${DateTime.now().year}${DateTime.now().month.toString().padLeft(2, '0')}${DateTime.now().day.toString().padLeft(2, '0')}_${DateTime.now().millisecondsSinceEpoch}.xlsx';
     final filePath = '${directory.path}/$fileName';
 
@@ -740,7 +865,7 @@ class ExcelGenerator {
     summarySheet.setColumnWidth(0, 30);
     summarySheet.setColumnWidth(1, 20);
 
-    final directory = await getApplicationDocumentsDirectory();
+    final directory = await getExportDirectory();
     final fileName = 'Categories_${DateTime.now().year}${DateTime.now().month.toString().padLeft(2, '0')}${DateTime.now().day.toString().padLeft(2, '0')}_${DateTime.now().millisecondsSinceEpoch}.xlsx';
     final filePath = '${directory.path}/$fileName';
 
@@ -908,7 +1033,7 @@ class ExcelGenerator {
     summarySheet.setColumnWidth(0, 30);
     summarySheet.setColumnWidth(1, 20);
 
-    final directory = await getApplicationDocumentsDirectory();
+    final directory = await getExportDirectory();
     final fileName = 'Remises_${DateTime.now().year}${DateTime.now().month.toString().padLeft(2, '0')}${DateTime.now().day.toString().padLeft(2, '0')}_${DateTime.now().millisecondsSinceEpoch}.xlsx';
     final filePath = '${directory.path}/$fileName';
 
@@ -1050,7 +1175,7 @@ class ExcelGenerator {
     summarySheet.setColumnWidth(0, 30);
     summarySheet.setColumnWidth(1, 20);
 
-    final directory = await getApplicationDocumentsDirectory();
+    final directory = await getExportDirectory();
     final fileName = 'Packs_${DateTime.now().year}${DateTime.now().month.toString().padLeft(2, '0')}${DateTime.now().day.toString().padLeft(2, '0')}_${DateTime.now().millisecondsSinceEpoch}.xlsx';
     final filePath = '${directory.path}/$fileName';
 
@@ -1180,7 +1305,7 @@ class ExcelGenerator {
     summarySheet.setColumnWidth(0, 30);
     summarySheet.setColumnWidth(1, 20);
 
-    final directory = await getApplicationDocumentsDirectory();
+    final directory = await getExportDirectory();
     final fileName = 'SousCategories_${DateTime.now().year}${DateTime.now().month.toString().padLeft(2, '0')}${DateTime.now().day.toString().padLeft(2, '0')}_${DateTime.now().millisecondsSinceEpoch}.xlsx';
     final filePath = '${directory.path}/$fileName';
 
@@ -1338,7 +1463,7 @@ class ExcelGenerator {
     summarySheet.setColumnWidth(0, 30);
     summarySheet.setColumnWidth(1, 20);
 
-    final directory = await getApplicationDocumentsDirectory();
+    final directory = await getExportDirectory();
     final fileName = 'Fournisseurs_${DateTime.now().year}${DateTime.now().month.toString().padLeft(2, '0')}${DateTime.now().day.toString().padLeft(2, '0')}_${DateTime.now().millisecondsSinceEpoch}.xlsx';
     final filePath = '${directory.path}/$fileName';
 
@@ -1406,7 +1531,7 @@ class ExcelGenerator {
       // Type (Entrant/Sortant) - translated
       sheet.cell(CellIndex.indexByColumnRow(columnIndex: 3, rowIndex: rowIndex))
           .value = TextCellValue(
-          versement.sense.toLowerCase() == 'entrant'
+          versement.sense.toLowerCase() == 'entrée'
               ? l10n.incoming
               : l10n.outgoing
       );
@@ -1461,10 +1586,10 @@ class ExcelGenerator {
 
     double totalAmount = versements.fold(0.0, (sum, v) => sum + v.montant);
     double incomingAmount = versements
-        .where((v) => v.sense.toLowerCase() == 'entrant')
+        .where((v) => v.sense.toLowerCase() == 'entrée')
         .fold(0.0, (sum, v) => sum + v.montant);
     double outgoingAmount = versements
-        .where((v) => v.sense.toLowerCase() == 'sortant')
+        .where((v) => v.sense.toLowerCase() == 'sortie')
         .fold(0.0, (sum, v) => sum + v.montant);
     int clientPayments = versements.where((v) => v.typebeneficiare == "Client").length;
     int supplierPayments = versements.where((v) => v.typebeneficiare == "Fournisseur").length;
@@ -1529,198 +1654,8 @@ class ExcelGenerator {
     summarySheet.setColumnWidth(0, 30);
     summarySheet.setColumnWidth(1, 20);
 
-    final directory = await getApplicationDocumentsDirectory();
+    final directory = await getExportDirectory();
     final fileName = 'Versements_${DateTime.now().year}${DateTime.now().month.toString().padLeft(2, '0')}${DateTime.now().day.toString().padLeft(2, '0')}_${DateTime.now().millisecondsSinceEpoch}.xlsx';
-    final filePath = '${directory.path}/$fileName';
-
-    final file = File(filePath);
-    await file.writeAsBytes(excel.encode()!);
-
-    return file;
-  }
-
-  static Future<File> generateEntreesExcel({
-    required List<Entree> entrees,
-    required List<Produit> produits,
-    required List<Fournisseur> fournisseurs,
-    required AppLocalizations l10n,
-    required ListsConstTranslator translator,
-  }) async
-  {
-    var excel = Excel.createExcel();
-
-    var sheet = excel['Entrees'];
-
-    String nomProduit(String code) =>
-        produits.where((p) => p.code == code).firstOrNull?.nom ?? code;
-    String nomFournisseur(String code) =>
-        fournisseurs.where((f) => f.code == code).firstOrNull?.nom ?? code;
-
-    // ALL entry fields - Export everything from the Entree model
-    List<TextCellValue> headers = [
-      TextCellValue(l10n.status),
-      TextCellValue(l10n.entryCode),
-      TextCellValue(l10n.date),
-      TextCellValue(l10n.product),
-      TextCellValue(l10n.productCode),
-      TextCellValue(l10n.supplier),
-      TextCellValue(l10n.supplierCode),
-      TextCellValue(l10n.quantity),
-      TextCellValue(l10n.purchasePrice),
-      TextCellValue(l10n.totalAmount),
-      TextCellValue(l10n.observation),
-      TextCellValue(l10n.createdAt),
-      TextCellValue(l10n.createdBy),
-      TextCellValue(l10n.createdByCode),
-      TextCellValue(l10n.modifiedAt),
-      TextCellValue(l10n.modifiedBy),
-      TextCellValue(l10n.cancelledAt),
-      TextCellValue(l10n.cancelledBy),
-      TextCellValue(l10n.cancellationReason),
-      TextCellValue(l10n.generationDate),
-    ];
-
-    // Add headers
-    for (int i = 0; i < headers.length; i++) {
-      var cell = sheet.cell(CellIndex.indexByColumnRow(columnIndex: i, rowIndex: 0));
-      cell.value = headers[i];
-      cell.cellStyle = CellStyle(
-        bold: true,
-        horizontalAlign: HorizontalAlign.Center,
-      );
-    }
-
-    // Add data rows
-    for (int row = 0; row < entrees.length; row++) {
-      final entree = entrees[row];
-      final rowIndex = row + 1;
-
-      // Status
-      sheet.cell(CellIndex.indexByColumnRow(columnIndex: 0, rowIndex: rowIndex))
-          .value = TextCellValue(entree.etat ? l10n.active : l10n.inactive);
-      // Code
-      sheet.cell(CellIndex.indexByColumnRow(columnIndex: 1, rowIndex: rowIndex))
-          .value = TextCellValue(entree.code);
-      // Date
-      sheet.cell(CellIndex.indexByColumnRow(columnIndex: 2, rowIndex: rowIndex))
-          .value = TextCellValue(_formatDate(entree.date));
-      // Product Name
-      sheet.cell(CellIndex.indexByColumnRow(columnIndex: 3, rowIndex: rowIndex))
-          .value = TextCellValue(nomProduit(entree.produitcode));
-      // Product Code
-      sheet.cell(CellIndex.indexByColumnRow(columnIndex: 4, rowIndex: rowIndex))
-          .value = TextCellValue(entree.produitcode);
-      // Supplier Name
-      sheet.cell(CellIndex.indexByColumnRow(columnIndex: 5, rowIndex: rowIndex))
-          .value = TextCellValue(nomFournisseur(entree.fournisseurCode));
-      // Supplier Code
-      sheet.cell(CellIndex.indexByColumnRow(columnIndex: 6, rowIndex: rowIndex))
-          .value = TextCellValue(entree.fournisseurCode);
-      // Quantity
-      sheet.cell(CellIndex.indexByColumnRow(columnIndex: 7, rowIndex: rowIndex))
-          .value = TextCellValue(entree.quantite.toString());
-      // Purchase Price
-      sheet.cell(CellIndex.indexByColumnRow(columnIndex: 8, rowIndex: rowIndex))
-          .value = TextCellValue(entree.prix.toStringAsFixed(2));
-      // Total Amount
-      sheet.cell(CellIndex.indexByColumnRow(columnIndex: 9, rowIndex: rowIndex))
-          .value = TextCellValue(entree.montant.toStringAsFixed(2));
-      // Observation
-      sheet.cell(CellIndex.indexByColumnRow(columnIndex: 10, rowIndex: rowIndex))
-          .value = TextCellValue(entree.observation ?? '-');
-      // Created At
-      sheet.cell(CellIndex.indexByColumnRow(columnIndex: 11, rowIndex: rowIndex))
-          .value = TextCellValue(_formatDate(entree.dateCree));
-      // Created By
-      sheet.cell(CellIndex.indexByColumnRow(columnIndex: 12, rowIndex: rowIndex))
-          .value = TextCellValue(entree.creeParCode ?? '-');
-      // Created By Code
-      sheet.cell(CellIndex.indexByColumnRow(columnIndex: 13, rowIndex: rowIndex))
-          .value = TextCellValue(entree.creeParCode ?? '-');
-      // Modified At
-      sheet.cell(CellIndex.indexByColumnRow(columnIndex: 14, rowIndex: rowIndex))
-          .value = TextCellValue(_formatDate(entree.dateModif));
-      // Modified By
-      sheet.cell(CellIndex.indexByColumnRow(columnIndex: 15, rowIndex: rowIndex))
-          .value = TextCellValue(entree.modifParCode ?? '-');
-      // Cancelled At
-      sheet.cell(CellIndex.indexByColumnRow(columnIndex: 16, rowIndex: rowIndex))
-          .value = TextCellValue(_formatDate(entree.dateAnnul));
-      // Cancelled By
-      sheet.cell(CellIndex.indexByColumnRow(columnIndex: 17, rowIndex: rowIndex))
-          .value = TextCellValue(entree.annulParCode ?? '-');
-      // Cancellation Reason
-      sheet.cell(CellIndex.indexByColumnRow(columnIndex: 18, rowIndex: rowIndex))
-          .value = TextCellValue(entree.motifAnnul ?? '-');
-      // Generation Date
-      sheet.cell(CellIndex.indexByColumnRow(columnIndex: 19, rowIndex: rowIndex))
-          .value = TextCellValue(_formatDateTime(DateTime.now()));
-    }
-
-    // Set column widths
-    for (int i = 0; i < headers.length; i++) {
-      sheet.setColumnWidth(i, 20);
-    }
-
-    // Create summary sheet
-    var summarySheet = excel['Summary'];
-
-    double totalQuantity = entrees.fold(0.0, (sum, e) => sum + e.quantite);
-    double totalAmount = entrees.fold(0.0, (sum, e) => sum + e.montant);
-    int activeEntrees = entrees.where((e) => e.etat).length;
-    int inactiveEntrees = entrees.where((e) => !e.etat).length;
-    double avgPrice = entrees.isEmpty ? 0 : entrees.fold(0.0, (sum, e) => sum + e.prix) / entrees.length;
-    double avgQuantity = entrees.isEmpty ? 0 : totalQuantity / entrees.length;
-
-    var titleCell = summarySheet.cell(CellIndex.indexByColumnRow(columnIndex: 0, rowIndex: 0));
-    titleCell.value = TextCellValue(l10n.summary);
-    titleCell.cellStyle = CellStyle(bold: true, fontSize: 14);
-
-    summarySheet.cell(CellIndex.indexByColumnRow(columnIndex: 0, rowIndex: 2))
-        .value = TextCellValue(l10n.totalEntries);
-    summarySheet.cell(CellIndex.indexByColumnRow(columnIndex: 1, rowIndex: 2))
-        .value = TextCellValue(entrees.length.toString());
-
-    summarySheet.cell(CellIndex.indexByColumnRow(columnIndex: 0, rowIndex: 3))
-        .value = TextCellValue(l10n.active);
-    summarySheet.cell(CellIndex.indexByColumnRow(columnIndex: 1, rowIndex: 3))
-        .value = TextCellValue(activeEntrees.toString());
-
-    summarySheet.cell(CellIndex.indexByColumnRow(columnIndex: 0, rowIndex: 4))
-        .value = TextCellValue(l10n.inactive);
-    summarySheet.cell(CellIndex.indexByColumnRow(columnIndex: 1, rowIndex: 4))
-        .value = TextCellValue(inactiveEntrees.toString());
-
-    summarySheet.cell(CellIndex.indexByColumnRow(columnIndex: 0, rowIndex: 5))
-        .value = TextCellValue(l10n.totalQuantity);
-    summarySheet.cell(CellIndex.indexByColumnRow(columnIndex: 1, rowIndex: 5))
-        .value = TextCellValue(totalQuantity.toStringAsFixed(2));
-
-    summarySheet.cell(CellIndex.indexByColumnRow(columnIndex: 0, rowIndex: 6))
-        .value = TextCellValue(l10n.totalAmount);
-    summarySheet.cell(CellIndex.indexByColumnRow(columnIndex: 1, rowIndex: 6))
-        .value = TextCellValue(totalAmount.toStringAsFixed(2));
-
-    summarySheet.cell(CellIndex.indexByColumnRow(columnIndex: 0, rowIndex: 7))
-        .value = TextCellValue(l10n.averagePrice);
-    summarySheet.cell(CellIndex.indexByColumnRow(columnIndex: 1, rowIndex: 7))
-        .value = TextCellValue(avgPrice.toStringAsFixed(2));
-
-    summarySheet.cell(CellIndex.indexByColumnRow(columnIndex: 0, rowIndex: 8))
-        .value = TextCellValue(l10n.averageQuantity);
-    summarySheet.cell(CellIndex.indexByColumnRow(columnIndex: 1, rowIndex: 8))
-        .value = TextCellValue(avgQuantity.toStringAsFixed(2));
-
-    summarySheet.cell(CellIndex.indexByColumnRow(columnIndex: 0, rowIndex: 10))
-        .value = TextCellValue(l10n.generationDate);
-    summarySheet.cell(CellIndex.indexByColumnRow(columnIndex: 1, rowIndex: 10))
-        .value = TextCellValue(_formatDateTime(DateTime.now()));
-
-    summarySheet.setColumnWidth(0, 30);
-    summarySheet.setColumnWidth(1, 20);
-
-    final directory = await getApplicationDocumentsDirectory();
-    final fileName = 'Entrees_${DateTime.now().year}${DateTime.now().month.toString().padLeft(2, '0')}${DateTime.now().day.toString().padLeft(2, '0')}_${DateTime.now().millisecondsSinceEpoch}.xlsx';
     final filePath = '${directory.path}/$fileName';
 
     final file = File(filePath);
@@ -1731,10 +1666,17 @@ class ExcelGenerator {
 
   static Future<File> generateSmartScansExcel({
     required List<SmartScan> smartScans,
+    required List<Verssement> versements,
     required AppLocalizations l10n,
     required ListsConstTranslator translator,
   }) async
   {
+    // Montant versé/reste par smart scan : calculé dynamiquement à partir
+    // des versements liés (la colonne paye/reste n'existe plus sur le scan).
+    final verseParSmartScan = SmartScanServices.verseParSmartScan(versements);
+    double verseDe(SmartScan s) => verseParSmartScan[s.code] ?? 0;
+    double resteDe(SmartScan s) => s.montant - verseDe(s);
+
     var excel = Excel.createExcel();
 
     var sheet = excel['SmartScans'];
@@ -1744,15 +1686,11 @@ class ExcelGenerator {
       TextCellValue(l10n.status),
       TextCellValue(l10n.scanCode),
       TextCellValue(l10n.date),
-      TextCellValue(l10n.activity),
       TextCellValue(l10n.supplier),
       TextCellValue(l10n.products),
-      TextCellValue(l10n.calculatedProducts),
-      TextCellValue(l10n.quantity),
-      TextCellValue(l10n.calculatedQuantity),
       TextCellValue(l10n.amount),
-      TextCellValue(l10n.calculatedAmount),
-      TextCellValue(l10n.gap),
+      TextCellValue(l10n.paye),
+      TextCellValue(l10n.reste),
       TextCellValue(l10n.observation),
       TextCellValue(l10n.createdAt),
       TextCellValue(l10n.createdBy),
@@ -1788,59 +1726,47 @@ class ExcelGenerator {
       // Date
       sheet.cell(CellIndex.indexByColumnRow(columnIndex: 2, rowIndex: rowIndex))
           .value = TextCellValue(_formatDate(scan.date));
-      // Activity
-      sheet.cell(CellIndex.indexByColumnRow(columnIndex: 3, rowIndex: rowIndex))
-          .value = TextCellValue(scan.activity ?? '-');
       // Supplier
-      sheet.cell(CellIndex.indexByColumnRow(columnIndex: 4, rowIndex: rowIndex))
+      sheet.cell(CellIndex.indexByColumnRow(columnIndex: 3, rowIndex: rowIndex))
           .value = TextCellValue(scan.fournisseurCode);
-      // Number of Products (actual)
+      // Number of Products
+      sheet.cell(CellIndex.indexByColumnRow(columnIndex: 4, rowIndex: rowIndex))
+          .value = TextCellValue(scan.nbrProduit.toString());
+      // Amount
       sheet.cell(CellIndex.indexByColumnRow(columnIndex: 5, rowIndex: rowIndex))
-          .value = TextCellValue(scan.nbrProduit?.toString() ?? '0');
-      // Number of Products (calculated)
-      sheet.cell(CellIndex.indexByColumnRow(columnIndex: 6, rowIndex: rowIndex))
-          .value = TextCellValue(scan.nbrProduitCalcul?.toString() ?? '0');
-      // Quantity of Articles (actual)
-      sheet.cell(CellIndex.indexByColumnRow(columnIndex: 7, rowIndex: rowIndex))
-          .value = TextCellValue(scan.quantiteArticle?.toString() ?? '0');
-      // Quantity of Articles (calculated)
-      sheet.cell(CellIndex.indexByColumnRow(columnIndex: 8, rowIndex: rowIndex))
-          .value = TextCellValue(scan.quantiteArticleCalcul?.toString() ?? '0');
-      // Amount (actual)
-      sheet.cell(CellIndex.indexByColumnRow(columnIndex: 9, rowIndex: rowIndex))
           .value = TextCellValue(scan.montant.toStringAsFixed(2));
-      // Amount (calculated)
-      sheet.cell(CellIndex.indexByColumnRow(columnIndex: 10, rowIndex: rowIndex))
-          .value = TextCellValue((scan.montantCalcul ?? 0).toStringAsFixed(2));
-      // Gap (has discrepancy)
-      sheet.cell(CellIndex.indexByColumnRow(columnIndex: 11, rowIndex: rowIndex))
-          .value = TextCellValue(scan.ecart ? l10n.yes : l10n.no);
+      // Payé
+      sheet.cell(CellIndex.indexByColumnRow(columnIndex: 6, rowIndex: rowIndex))
+          .value = TextCellValue(verseDe(scan).toStringAsFixed(2));
+      // Reste
+      sheet.cell(CellIndex.indexByColumnRow(columnIndex: 7, rowIndex: rowIndex))
+          .value = TextCellValue(resteDe(scan).toStringAsFixed(2));
       // Observation
-      sheet.cell(CellIndex.indexByColumnRow(columnIndex: 12, rowIndex: rowIndex))
+      sheet.cell(CellIndex.indexByColumnRow(columnIndex: 8, rowIndex: rowIndex))
           .value = TextCellValue(scan.observation ?? '-');
       // Created At
-      sheet.cell(CellIndex.indexByColumnRow(columnIndex: 13, rowIndex: rowIndex))
+      sheet.cell(CellIndex.indexByColumnRow(columnIndex: 9, rowIndex: rowIndex))
           .value = TextCellValue(_formatDate(scan.dateCree));
       // Created By
-      sheet.cell(CellIndex.indexByColumnRow(columnIndex: 14, rowIndex: rowIndex))
+      sheet.cell(CellIndex.indexByColumnRow(columnIndex: 10, rowIndex: rowIndex))
           .value = TextCellValue(scan.creeParCode ?? '-');
       // Modified At
-      sheet.cell(CellIndex.indexByColumnRow(columnIndex: 15, rowIndex: rowIndex))
+      sheet.cell(CellIndex.indexByColumnRow(columnIndex: 11, rowIndex: rowIndex))
           .value = TextCellValue(_formatDate(scan.dateModif));
       // Modified By
-      sheet.cell(CellIndex.indexByColumnRow(columnIndex: 16, rowIndex: rowIndex))
+      sheet.cell(CellIndex.indexByColumnRow(columnIndex: 12, rowIndex: rowIndex))
           .value = TextCellValue(scan.modifParCode ?? '-');
       // Cancelled At
-      sheet.cell(CellIndex.indexByColumnRow(columnIndex: 17, rowIndex: rowIndex))
+      sheet.cell(CellIndex.indexByColumnRow(columnIndex: 13, rowIndex: rowIndex))
           .value = TextCellValue(_formatDate(scan.dateAnnul));
       // Cancelled By
-      sheet.cell(CellIndex.indexByColumnRow(columnIndex: 18, rowIndex: rowIndex))
+      sheet.cell(CellIndex.indexByColumnRow(columnIndex: 14, rowIndex: rowIndex))
           .value = TextCellValue(scan.annulParCode ?? '-');
       // Cancellation Reason
-      sheet.cell(CellIndex.indexByColumnRow(columnIndex: 19, rowIndex: rowIndex))
+      sheet.cell(CellIndex.indexByColumnRow(columnIndex: 15, rowIndex: rowIndex))
           .value = TextCellValue(scan.motifAnnul ?? '-');
       // Generation Date
-      sheet.cell(CellIndex.indexByColumnRow(columnIndex: 20, rowIndex: rowIndex))
+      sheet.cell(CellIndex.indexByColumnRow(columnIndex: 16, rowIndex: rowIndex))
           .value = TextCellValue(_formatDateTime(DateTime.now()));
     }
 
@@ -1853,12 +1779,9 @@ class ExcelGenerator {
     var summarySheet = excel['Summary'];
 
     double totalAmount = smartScans.fold(0.0, (sum, s) => sum + s.montant);
-    double totalCalculatedAmount = smartScans.fold(0.0, (sum, s) => sum + (s.montantCalcul ?? 0));
-    int totalProducts = smartScans.fold(0, (sum, s) => sum + (s.nbrProduit ?? 0));
-    int totalCalculatedProducts = smartScans.fold(0, (sum, s) => sum + (s.nbrProduitCalcul ?? 0));
-    double totalQuantity = smartScans.fold(0, (sum, s) => sum + (s.quantiteArticle ?? 0));
-    double totalCalculatedQuantity = smartScans.fold(0, (sum, s) => sum + (s.quantiteArticleCalcul ?? 0));
-    int scansWithGap = smartScans.where((s) => s.ecart).length;
+    double totalPaye = smartScans.fold(0.0, (sum, s) => sum + verseDe(s));
+    double totalReste = smartScans.fold(0.0, (sum, s) => sum + resteDe(s));
+    int totalProducts = smartScans.fold(0, (sum, s) => sum + s.nbrProduit);
     int activeScans = smartScans.where((s) => s.etat).length;
     int inactiveScans = smartScans.where((s) => !s.etat).length;
     double avgAmount = smartScans.isEmpty ? 0 : totalAmount / smartScans.length;
@@ -1888,49 +1811,34 @@ class ExcelGenerator {
         .value = TextCellValue(totalAmount.toStringAsFixed(2));
 
     summarySheet.cell(CellIndex.indexByColumnRow(columnIndex: 0, rowIndex: 6))
-        .value = TextCellValue(l10n.totalCalculatedAmount);
-    summarySheet.cell(CellIndex.indexByColumnRow(columnIndex: 1, rowIndex: 6))
-        .value = TextCellValue(totalCalculatedAmount.toStringAsFixed(2));
-
-    summarySheet.cell(CellIndex.indexByColumnRow(columnIndex: 0, rowIndex: 7))
         .value = TextCellValue(l10n.totalProducts);
-    summarySheet.cell(CellIndex.indexByColumnRow(columnIndex: 1, rowIndex: 7))
+    summarySheet.cell(CellIndex.indexByColumnRow(columnIndex: 1, rowIndex: 6))
         .value = TextCellValue(totalProducts.toString());
 
+    summarySheet.cell(CellIndex.indexByColumnRow(columnIndex: 0, rowIndex: 7))
+        .value = TextCellValue(l10n.paye);
+    summarySheet.cell(CellIndex.indexByColumnRow(columnIndex: 1, rowIndex: 7))
+        .value = TextCellValue(totalPaye.toStringAsFixed(2));
+
     summarySheet.cell(CellIndex.indexByColumnRow(columnIndex: 0, rowIndex: 8))
-        .value = TextCellValue(l10n.totalCalculatedProducts);
+        .value = TextCellValue(l10n.reste);
     summarySheet.cell(CellIndex.indexByColumnRow(columnIndex: 1, rowIndex: 8))
-        .value = TextCellValue(totalCalculatedProducts.toString());
+        .value = TextCellValue(totalReste.toStringAsFixed(2));
 
     summarySheet.cell(CellIndex.indexByColumnRow(columnIndex: 0, rowIndex: 9))
-        .value = TextCellValue(l10n.totalQuantity);
-    summarySheet.cell(CellIndex.indexByColumnRow(columnIndex: 1, rowIndex: 9))
-        .value = TextCellValue(totalQuantity.toString());
-
-    summarySheet.cell(CellIndex.indexByColumnRow(columnIndex: 0, rowIndex: 10))
-        .value = TextCellValue(l10n.totalCalculatedQuantity);
-    summarySheet.cell(CellIndex.indexByColumnRow(columnIndex: 1, rowIndex: 10))
-        .value = TextCellValue(totalCalculatedQuantity.toString());
-
-    summarySheet.cell(CellIndex.indexByColumnRow(columnIndex: 0, rowIndex: 11))
-        .value = TextCellValue(l10n.scansWithGap);
-    summarySheet.cell(CellIndex.indexByColumnRow(columnIndex: 1, rowIndex: 11))
-        .value = TextCellValue(scansWithGap.toString());
-
-    summarySheet.cell(CellIndex.indexByColumnRow(columnIndex: 0, rowIndex: 12))
         .value = TextCellValue(l10n.averageAmount);
-    summarySheet.cell(CellIndex.indexByColumnRow(columnIndex: 1, rowIndex: 12))
+    summarySheet.cell(CellIndex.indexByColumnRow(columnIndex: 1, rowIndex: 9))
         .value = TextCellValue(avgAmount.toStringAsFixed(2));
 
-    summarySheet.cell(CellIndex.indexByColumnRow(columnIndex: 0, rowIndex: 14))
+    summarySheet.cell(CellIndex.indexByColumnRow(columnIndex: 0, rowIndex: 11))
         .value = TextCellValue(l10n.generationDate);
-    summarySheet.cell(CellIndex.indexByColumnRow(columnIndex: 1, rowIndex: 14))
+    summarySheet.cell(CellIndex.indexByColumnRow(columnIndex: 1, rowIndex: 11))
         .value = TextCellValue(_formatDateTime(DateTime.now()));
 
     summarySheet.setColumnWidth(0, 30);
     summarySheet.setColumnWidth(1, 20);
 
-    final directory = await getApplicationDocumentsDirectory();
+    final directory = await getExportDirectory();
     final fileName = 'SmartScans_${DateTime.now().year}${DateTime.now().month.toString().padLeft(2, '0')}${DateTime.now().day.toString().padLeft(2, '0')}_${DateTime.now().millisecondsSinceEpoch}.xlsx';
     final filePath = '${directory.path}/$fileName';
 
@@ -2160,7 +2068,7 @@ class ExcelGenerator {
     summarySheet.setColumnWidth(0, 30);
     summarySheet.setColumnWidth(1, 20);
 
-    final directory = await getApplicationDocumentsDirectory();
+    final directory = await getExportDirectory();
     final fileName = 'Sorties_${DateTime.now().year}${DateTime.now().month.toString().padLeft(2, '0')}${DateTime.now().day.toString().padLeft(2, '0')}_${DateTime.now().millisecondsSinceEpoch}.xlsx';
     final filePath = '${directory.path}/$fileName';
 
@@ -2353,7 +2261,7 @@ class ExcelGenerator {
     summarySheet.setColumnWidth(0, 30);
     summarySheet.setColumnWidth(1, 20);
 
-    final directory = await getApplicationDocumentsDirectory();
+    final directory = await getExportDirectory();
     final fileName = 'Retours_${DateTime.now().year}${DateTime.now().month.toString().padLeft(2, '0')}${DateTime.now().day.toString().padLeft(2, '0')}_${DateTime.now().millisecondsSinceEpoch}.xlsx';
     final filePath = '${directory.path}/$fileName';
 
@@ -2542,7 +2450,7 @@ class ExcelGenerator {
     summarySheet.setColumnWidth(0, 30);
     summarySheet.setColumnWidth(1, 20);
 
-    final directory = await getApplicationDocumentsDirectory();
+    final directory = await getExportDirectory();
     final fileName = 'BesoinLists_${DateTime.now().year}${DateTime.now().month.toString().padLeft(2, '0')}${DateTime.now().day.toString().padLeft(2, '0')}_${DateTime.now().millisecondsSinceEpoch}.xlsx';
     final filePath = '${directory.path}/$fileName';
 
@@ -2790,7 +2698,7 @@ class ExcelGenerator {
     summarySheet.setColumnWidth(0, 30);
     summarySheet.setColumnWidth(1, 20);
 
-    final directory = await getApplicationDocumentsDirectory();
+    final directory = await getExportDirectory();
     final fileName = 'Mouvements_${DateTime.now().year}${DateTime.now().month.toString().padLeft(2, '0')}${DateTime.now().day.toString().padLeft(2, '0')}_${DateTime.now().millisecondsSinceEpoch}.xlsx';
     final filePath = '${directory.path}/$fileName';
 
@@ -2954,7 +2862,7 @@ class ExcelGenerator {
     summarySheet.setColumnWidth(0, 30);
     summarySheet.setColumnWidth(1, 20);
 
-    final directory = await getApplicationDocumentsDirectory();
+    final directory = await getExportDirectory();
     final fileName = 'Utilisateurs_${DateTime.now().year}${DateTime.now().month.toString().padLeft(2, '0')}${DateTime.now().day.toString().padLeft(2, '0')}_${DateTime.now().millisecondsSinceEpoch}.xlsx';
     final filePath = '${directory.path}/$fileName';
 
@@ -3080,138 +2988,8 @@ class ExcelGenerator {
     summarySheet.setColumnWidth(0, 30);
     summarySheet.setColumnWidth(1, 20);
 
-    final directory = await getApplicationDocumentsDirectory();
+    final directory = await getExportDirectory();
     final fileName = 'Roles_${DateTime.now().year}${DateTime.now().month.toString().padLeft(2, '0')}${DateTime.now().day.toString().padLeft(2, '0')}_${DateTime.now().millisecondsSinceEpoch}.xlsx';
-    final filePath = '${directory.path}/$fileName';
-
-    final file = File(filePath);
-    await file.writeAsBytes(excel.encode()!);
-
-    return file;
-  }
-
-  static Future<File> generateMagasinsExcel({
-    required List<Magasin> magasins,
-    required AppLocalizations l10n,
-  }) async
-  {
-    var excel = Excel.createExcel();
-
-    var sheet = excel['Magasins'];
-
-    // ALL store fields - Export everything from the Magasin model
-    List<TextCellValue> headers = [
-      TextCellValue(l10n.status),
-      TextCellValue(l10n.storeCode),
-      TextCellValue(l10n.storeName),
-      TextCellValue(l10n.address),
-      TextCellValue(l10n.observation),
-      TextCellValue(l10n.createdAt),
-      TextCellValue(l10n.createdBy),
-      TextCellValue(l10n.modifiedAt),
-      TextCellValue(l10n.modifiedBy),
-      TextCellValue(l10n.cancelledAt),
-      TextCellValue(l10n.cancelledBy),
-      TextCellValue(l10n.cancellationReason),
-      TextCellValue(l10n.generationDate),
-    ];
-
-    // Add headers
-    for (int i = 0; i < headers.length; i++) {
-      var cell = sheet.cell(CellIndex.indexByColumnRow(columnIndex: i, rowIndex: 0));
-      cell.value = headers[i];
-      cell.cellStyle = CellStyle(
-        bold: true,
-        horizontalAlign: HorizontalAlign.Center,
-      );
-    }
-
-    // Add data rows
-    for (int row = 0; row < magasins.length; row++) {
-      final magasin = magasins[row];
-      final rowIndex = row + 1;
-
-      // Status
-      sheet.cell(CellIndex.indexByColumnRow(columnIndex: 0, rowIndex: rowIndex))
-          .value = TextCellValue(magasin.etat ? l10n.active : l10n.inactive);
-      // Code
-      sheet.cell(CellIndex.indexByColumnRow(columnIndex: 1, rowIndex: rowIndex))
-          .value = TextCellValue(magasin.code);
-      // Name
-      sheet.cell(CellIndex.indexByColumnRow(columnIndex: 2, rowIndex: rowIndex))
-          .value = TextCellValue(magasin.nom);
-      // Address
-      sheet.cell(CellIndex.indexByColumnRow(columnIndex: 3, rowIndex: rowIndex))
-          .value = TextCellValue(magasin.adresse ?? '-');
-      // Observation
-      sheet.cell(CellIndex.indexByColumnRow(columnIndex: 4, rowIndex: rowIndex))
-          .value = TextCellValue(magasin.observation ?? '-');
-      // Created At
-      sheet.cell(CellIndex.indexByColumnRow(columnIndex: 5, rowIndex: rowIndex))
-          .value = TextCellValue(_formatDate(magasin.dateCree));
-      // Created By
-      sheet.cell(CellIndex.indexByColumnRow(columnIndex: 6, rowIndex: rowIndex))
-          .value = TextCellValue(magasin.creeParCode ?? '-');
-      // Modified At
-      sheet.cell(CellIndex.indexByColumnRow(columnIndex: 7, rowIndex: rowIndex))
-          .value = TextCellValue(_formatDate(magasin.dateModif));
-      // Modified By
-      sheet.cell(CellIndex.indexByColumnRow(columnIndex: 8, rowIndex: rowIndex))
-          .value = TextCellValue(magasin.modifParCode ?? '-');
-      // Cancelled At
-      sheet.cell(CellIndex.indexByColumnRow(columnIndex: 9, rowIndex: rowIndex))
-          .value = TextCellValue(_formatDate(magasin.dateAnnul));
-      // Cancelled By
-      sheet.cell(CellIndex.indexByColumnRow(columnIndex: 10, rowIndex: rowIndex))
-          .value = TextCellValue(magasin.annulParCode ?? '-');
-      // Cancellation Reason
-      sheet.cell(CellIndex.indexByColumnRow(columnIndex: 11, rowIndex: rowIndex))
-          .value = TextCellValue(magasin.motifAnnul ?? '-');
-      // Generation Date
-      sheet.cell(CellIndex.indexByColumnRow(columnIndex: 12, rowIndex: rowIndex))
-          .value = TextCellValue(_formatDateTime(DateTime.now()));
-    }
-
-    // Set column widths
-    for (int i = 0; i < headers.length; i++) {
-      sheet.setColumnWidth(i, 20);
-    }
-
-    // Create summary sheet
-    var summarySheet = excel['Summary'];
-
-    int activeStores = magasins.where((m) => m.etat).length;
-    int inactiveStores = magasins.where((m) => !m.etat).length;
-
-    var titleCell = summarySheet.cell(CellIndex.indexByColumnRow(columnIndex: 0, rowIndex: 0));
-    titleCell.value = TextCellValue(l10n.summary);
-    titleCell.cellStyle = CellStyle(bold: true, fontSize: 14);
-
-    summarySheet.cell(CellIndex.indexByColumnRow(columnIndex: 0, rowIndex: 2))
-        .value = TextCellValue(l10n.totalStores);
-    summarySheet.cell(CellIndex.indexByColumnRow(columnIndex: 1, rowIndex: 2))
-        .value = TextCellValue(magasins.length.toString());
-
-    summarySheet.cell(CellIndex.indexByColumnRow(columnIndex: 0, rowIndex: 3))
-        .value = TextCellValue(l10n.active);
-    summarySheet.cell(CellIndex.indexByColumnRow(columnIndex: 1, rowIndex: 3))
-        .value = TextCellValue(activeStores.toString());
-
-    summarySheet.cell(CellIndex.indexByColumnRow(columnIndex: 0, rowIndex: 4))
-        .value = TextCellValue(l10n.inactive);
-    summarySheet.cell(CellIndex.indexByColumnRow(columnIndex: 1, rowIndex: 4))
-        .value = TextCellValue(inactiveStores.toString());
-
-    summarySheet.cell(CellIndex.indexByColumnRow(columnIndex: 0, rowIndex: 10))
-        .value = TextCellValue(l10n.generationDate);
-    summarySheet.cell(CellIndex.indexByColumnRow(columnIndex: 1, rowIndex: 10))
-        .value = TextCellValue(_formatDateTime(DateTime.now()));
-
-    summarySheet.setColumnWidth(0, 30);
-    summarySheet.setColumnWidth(1, 20);
-
-    final directory = await getApplicationDocumentsDirectory();
-    final fileName = 'Magasins_${DateTime.now().year}${DateTime.now().month.toString().padLeft(2, '0')}${DateTime.now().day.toString().padLeft(2, '0')}_${DateTime.now().millisecondsSinceEpoch}.xlsx';
     final filePath = '${directory.path}/$fileName';
 
     final file = File(filePath);
@@ -3365,7 +3143,7 @@ class ExcelGenerator {
     summarySheet.setColumnWidth(0, 30);
     summarySheet.setColumnWidth(1, 20);
 
-    final directory = await getApplicationDocumentsDirectory();
+    final directory = await getExportDirectory();
     final fileName = 'Caisses_${DateTime.now().year}${DateTime.now().month.toString().padLeft(2, '0')}${DateTime.now().day.toString().padLeft(2, '0')}_${DateTime.now().millisecondsSinceEpoch}.xlsx';
     final filePath = '${directory.path}/$fileName';
 
@@ -3484,7 +3262,7 @@ class ExcelGenerator {
     summarySheet.setColumnWidth(0, 30);
     summarySheet.setColumnWidth(1, 20);
 
-    final directory = await getApplicationDocumentsDirectory();
+    final directory = await getExportDirectory();
     final fileName = 'Historiques_${DateTime.now().year}${DateTime.now().month.toString().padLeft(2, '0')}${DateTime.now().day.toString().padLeft(2, '0')}_${DateTime.now().millisecondsSinceEpoch}.xlsx';
     final filePath = '${directory.path}/$fileName';
 
@@ -3661,7 +3439,7 @@ class ExcelGenerator {
     summarySheet.setColumnWidth(0, 30);
     summarySheet.setColumnWidth(1, 20);
 
-    final directory = await getApplicationDocumentsDirectory();
+    final directory = await getExportDirectory();
     final fileName = 'Zakat_${DateTime.now().year}${DateTime.now().month.toString().padLeft(2, '0')}${DateTime.now().day.toString().padLeft(2, '0')}_${DateTime.now().millisecondsSinceEpoch}.xlsx';
     final filePath = '${directory.path}/$fileName';
 
@@ -3670,6 +3448,278 @@ class ExcelGenerator {
 
     return file;
   }
+  static Future<File> generateMargeParPannierExcel({
+    required List<Pannier> panniers,
+    required List<Client> clients,
+    required List<Utilisateur> utilisateurs,
+    required AppLocalizations l10n,
+  }) async {
+    var excel = Excel.createExcel();
+    var sheet = excel['MargeParPannier'];
+
+    final headers = [
+      l10n.cashRegisterCode,
+      l10n.panierCode,
+      l10n.date,
+      l10n.client,
+      l10n.amount,
+      l10n.marge,
+      l10n.cashier,
+      l10n.status,
+    ];
+    for (int i = 0; i < headers.length; i++) {
+      final cell = sheet.cell(CellIndex.indexByColumnRow(columnIndex: i, rowIndex: 0));
+      cell.value = TextCellValue(headers[i]);
+      cell.cellStyle = CellStyle(bold: true, horizontalAlign: HorizontalAlign.Center);
+    }
+
+    for (int row = 0; row < panniers.length; row++) {
+      final p = panniers[row];
+      final client = clients.firstWhereOrNull((c) => c.code == p.client_code);
+      final caissier = utilisateurs.firstWhereOrNull((u) => u.code == p.caissier_code);
+      final values = [
+        p.caisse_code,
+        p.code,
+        _formatDate(p.date),
+        client?.nom ?? p.client_code ?? '-',
+        p.montant.toStringAsFixed(2),
+        p.marge.toStringAsFixed(2),
+        caissier?.username ?? p.caissier_code,
+        p.etat ? l10n.active : l10n.inactive,
+      ];
+      for (int col = 0; col < values.length; col++) {
+        sheet.cell(CellIndex.indexByColumnRow(columnIndex: col, rowIndex: row + 1)).value =
+            TextCellValue(values[col]);
+      }
+    }
+
+    for (int i = 0; i < headers.length; i++) {
+      sheet.setColumnWidth(i, 20);
+    }
+
+    var summarySheet = excel['Summary'];
+    final totalMontant = panniers.fold(0.0, (s, p) => s + p.montant);
+    final totalMarge = panniers.fold(0.0, (s, p) => s + p.marge);
+
+    final titleCell = summarySheet.cell(CellIndex.indexByColumnRow(columnIndex: 0, rowIndex: 0));
+    titleCell.value = TextCellValue(l10n.summary);
+    titleCell.cellStyle = CellStyle(bold: true, fontSize: 14);
+
+    final summaryRows = [
+      [l10n.numberOfSales, panniers.length.toString()],
+      [l10n.totalAmount, totalMontant.toStringAsFixed(2)],
+      [l10n.marge, totalMarge.toStringAsFixed(2)],
+      [l10n.generationDate, _formatDateTime(DateTime.now())],
+    ];
+    for (int i = 0; i < summaryRows.length; i++) {
+      summarySheet.cell(CellIndex.indexByColumnRow(columnIndex: 0, rowIndex: i + 2)).value =
+          TextCellValue(summaryRows[i][0]);
+      summarySheet.cell(CellIndex.indexByColumnRow(columnIndex: 1, rowIndex: i + 2)).value =
+          TextCellValue(summaryRows[i][1]);
+    }
+    summarySheet.setColumnWidth(0, 30);
+    summarySheet.setColumnWidth(1, 20);
+
+    final directory = await getExportDirectory();
+    final fileName = 'MargeParPannier_${DateTime.now().year}${DateTime.now().month.toString().padLeft(2, '0')}${DateTime.now().day.toString().padLeft(2, '0')}_${DateTime.now().millisecondsSinceEpoch}.xlsx';
+    final file = File('${directory.path}/$fileName');
+    await file.writeAsBytes(excel.encode()!);
+    return file;
+  }
+
+  static Future<File> generateMargeParPeriodeExcel({
+    required List<LigneMargePeriode> lignes,
+    required AppLocalizations l10n,
+  }) async {
+    var excel = Excel.createExcel();
+    var sheet = excel['MargeParPeriode'];
+
+    final headers = [l10n.cashRegisterCode, l10n.date, l10n.amount, l10n.marge];
+    for (int i = 0; i < headers.length; i++) {
+      final cell = sheet.cell(CellIndex.indexByColumnRow(columnIndex: i, rowIndex: 0));
+      cell.value = TextCellValue(headers[i]);
+      cell.cellStyle = CellStyle(bold: true, horizontalAlign: HorizontalAlign.Center);
+    }
+
+    for (int row = 0; row < lignes.length; row++) {
+      final l = lignes[row];
+      final values = [
+        l.codeCaisse,
+        _formatDate(l.date),
+        l.montantJour.toStringAsFixed(2),
+        l.margeJour.toStringAsFixed(2),
+      ];
+      for (int col = 0; col < values.length; col++) {
+        sheet.cell(CellIndex.indexByColumnRow(columnIndex: col, rowIndex: row + 1)).value =
+            TextCellValue(values[col]);
+      }
+    }
+
+    for (int i = 0; i < headers.length; i++) {
+      sheet.setColumnWidth(i, 20);
+    }
+
+    var summarySheet = excel['Summary'];
+    final totalMontant = lignes.fold(0.0, (s, l) => s + l.montantJour);
+    final totalMarge = lignes.fold(0.0, (s, l) => s + l.margeJour);
+
+    final titleCell = summarySheet.cell(CellIndex.indexByColumnRow(columnIndex: 0, rowIndex: 0));
+    titleCell.value = TextCellValue(l10n.summary);
+    titleCell.cellStyle = CellStyle(bold: true, fontSize: 14);
+
+    final summaryRows = [
+      [l10n.numberOfDays, lignes.length.toString()],
+      [l10n.totalAmount, totalMontant.toStringAsFixed(2)],
+      [l10n.marge, totalMarge.toStringAsFixed(2)],
+      [l10n.generationDate, _formatDateTime(DateTime.now())],
+    ];
+    for (int i = 0; i < summaryRows.length; i++) {
+      summarySheet.cell(CellIndex.indexByColumnRow(columnIndex: 0, rowIndex: i + 2)).value =
+          TextCellValue(summaryRows[i][0]);
+      summarySheet.cell(CellIndex.indexByColumnRow(columnIndex: 1, rowIndex: i + 2)).value =
+          TextCellValue(summaryRows[i][1]);
+    }
+    summarySheet.setColumnWidth(0, 30);
+    summarySheet.setColumnWidth(1, 20);
+
+    final directory = await getExportDirectory();
+    final fileName = 'MargeParPeriode_${DateTime.now().year}${DateTime.now().month.toString().padLeft(2, '0')}${DateTime.now().day.toString().padLeft(2, '0')}_${DateTime.now().millisecondsSinceEpoch}.xlsx';
+    final file = File('${directory.path}/$fileName');
+    await file.writeAsBytes(excel.encode()!);
+    return file;
+  }
+
+  static Future<File> generateInventaireExcel({
+    required List<LigneInventaire> lignes,
+    required AppLocalizations l10n,
+  }) async {
+    var excel = Excel.createExcel();
+    var sheet = excel['Inventaire'];
+
+    final headers = [
+      l10n.code,
+      l10n.products,
+      l10n.category,
+      l10n.quantity,
+      l10n.purchasePrice,
+      l10n.purchaseValue,
+      l10n.saleValue,
+      l10n.averagePurchasePrice,
+      l10n.averageSalePrice,
+      l10n.potentialMargin,
+      l10n.status,
+    ];
+    for (int i = 0; i < headers.length; i++) {
+      final cell = sheet.cell(CellIndex.indexByColumnRow(columnIndex: i, rowIndex: 0));
+      cell.value = TextCellValue(headers[i]);
+      cell.cellStyle = CellStyle(bold: true, horizontalAlign: HorizontalAlign.Center);
+    }
+
+    for (int row = 0; row < lignes.length; row++) {
+      final l = lignes[row];
+      final values = [
+        l.codeProduit,
+        l.nomProduit,
+        l.nomCategorie,
+        l.quantite.toStringAsFixed(0),
+        l.prixAchat.toStringAsFixed(2),
+        l.valeurAchat.toStringAsFixed(2),
+        l.valeurVente.toStringAsFixed(2),
+        l.prixMoyenAchat.toStringAsFixed(2),
+        l.prixMoyenVente.toStringAsFixed(2),
+        l.margePotentielle.toStringAsFixed(2),
+        l.quantite > 0 ? l10n.available : l10n.outOfStock,
+      ];
+      for (int col = 0; col < values.length; col++) {
+        sheet.cell(CellIndex.indexByColumnRow(columnIndex: col, rowIndex: row + 1)).value =
+            TextCellValue(values[col]);
+      }
+    }
+
+    for (int i = 0; i < headers.length; i++) {
+      sheet.setColumnWidth(i, 20);
+    }
+
+    var summarySheet = excel['Summary'];
+    final quantiteTotale = lignes.fold(0.0, (s, l) => s + l.quantite);
+    final valeurAchatTotale = lignes.fold(0.0, (s, l) => s + l.valeurAchat);
+    final valeurVenteTotale = lignes.fold(0.0, (s, l) => s + l.valeurVente);
+    final margeTotale = lignes.fold(0.0, (s, l) => s + l.margePotentielle);
+
+    final titleCell = summarySheet.cell(CellIndex.indexByColumnRow(columnIndex: 0, rowIndex: 0));
+    titleCell.value = TextCellValue(l10n.summary);
+    titleCell.cellStyle = CellStyle(bold: true, fontSize: 14);
+
+    final summaryRows = [
+      [l10n.products, lignes.length.toString()],
+      [l10n.quantity, quantiteTotale.toStringAsFixed(0)],
+      [l10n.purchaseValue, valeurAchatTotale.toStringAsFixed(2)],
+      [l10n.saleValue, valeurVenteTotale.toStringAsFixed(2)],
+      [l10n.potentialMargin, margeTotale.toStringAsFixed(2)],
+      [l10n.generationDate, _formatDateTime(DateTime.now())],
+    ];
+    for (int i = 0; i < summaryRows.length; i++) {
+      summarySheet.cell(CellIndex.indexByColumnRow(columnIndex: 0, rowIndex: i + 2)).value =
+          TextCellValue(summaryRows[i][0]);
+      summarySheet.cell(CellIndex.indexByColumnRow(columnIndex: 1, rowIndex: i + 2)).value =
+          TextCellValue(summaryRows[i][1]);
+    }
+    summarySheet.setColumnWidth(0, 30);
+    summarySheet.setColumnWidth(1, 20);
+
+    final directory = await getExportDirectory();
+    final fileName = 'Inventaire_${DateTime.now().year}${DateTime.now().month.toString().padLeft(2, '0')}${DateTime.now().day.toString().padLeft(2, '0')}_${DateTime.now().millisecondsSinceEpoch}.xlsx';
+    final file = File('${directory.path}/$fileName');
+    await file.writeAsBytes(excel.encode()!);
+    return file;
+  }
+
+  /// Export Excel générique pour un tableau "opérations" (date/type/
+  /// référence/débit/crédit/solde/description) — réutilisé par la situation
+  /// fournisseur et la situation client, dont le tableau est identique
+  /// (voir SituationFournisseurDataSource / SituationClientDataSource).
+  static Future<File> generateOperationsExcel({
+    required String title,
+    required List<String> headers,
+    required List<List<String>> rows,
+    required AppLocalizations l10n,
+  }) async {
+    var excel = Excel.createExcel();
+    var sheet = excel['Operations'];
+
+    for (int i = 0; i < headers.length; i++) {
+      final cell = sheet.cell(CellIndex.indexByColumnRow(columnIndex: i, rowIndex: 0));
+      cell.value = TextCellValue(headers[i]);
+      cell.cellStyle = CellStyle(bold: true, horizontalAlign: HorizontalAlign.Center);
+    }
+
+    for (int row = 0; row < rows.length; row++) {
+      for (int col = 0; col < rows[row].length; col++) {
+        sheet.cell(CellIndex.indexByColumnRow(columnIndex: col, rowIndex: row + 1)).value =
+            TextCellValue(rows[row][col]);
+      }
+    }
+
+    for (int i = 0; i < headers.length; i++) {
+      sheet.setColumnWidth(i, 20);
+    }
+
+    var summarySheet = excel['Summary'];
+    final titleCell = summarySheet.cell(CellIndex.indexByColumnRow(columnIndex: 0, rowIndex: 0));
+    titleCell.value = TextCellValue(title);
+    titleCell.cellStyle = CellStyle(bold: true, fontSize: 14);
+    summarySheet.cell(CellIndex.indexByColumnRow(columnIndex: 0, rowIndex: 2)).value =
+        TextCellValue(l10n.generationDate);
+    summarySheet.cell(CellIndex.indexByColumnRow(columnIndex: 1, rowIndex: 2)).value =
+        TextCellValue(_formatDateTime(DateTime.now()));
+
+    final directory = await getExportDirectory();
+    final fileName = 'Operations_${DateTime.now().year}${DateTime.now().month.toString().padLeft(2, '0')}${DateTime.now().day.toString().padLeft(2, '0')}_${DateTime.now().millisecondsSinceEpoch}.xlsx';
+    final file = File('${directory.path}/$fileName');
+    await file.writeAsBytes(excel.encode()!);
+    return file;
+  }
+
   static String _formatDate(DateTime? date) {
     if (date == null) return '-';
 
@@ -3703,8 +3753,8 @@ class ExcelGenerator {
         return l10n.purchase;
       case "Retour":
         return l10n.return_;
-      case "Déstockage":
-        return l10n.destocking;
+      case "Sortie":
+        return l10n.exit;
       default:
         return type;
     }

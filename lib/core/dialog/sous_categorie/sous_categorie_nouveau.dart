@@ -20,6 +20,7 @@ import 'package:caisse_dz/core/theme/app_style.dart';
 import 'package:caisse_dz/core/widget/code_generateur.dart'; // ✅ Ajout de l'import
 import '../../widget/button/ajouter_manuel.dart';
 import '../../widget/button/main_button.dart';
+import '../../widget/champ/affichage_champ.dart';
 import '../../widget/champ/champ_avec_label.dart';
 import '../../widget/champ/liste_champ.dart';
 import '../../widget/champ/text_champ_l.dart';
@@ -188,6 +189,11 @@ Future<void> SousCategorieNouveau(BuildContext context) async {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
+                        ChampAvecLabel(
+                          label: l10n.reference,
+                          child: AffichageChamp(text: code),
+                        ),
+                        const SizedBox(height: 20),
                         ChampAvecLabel(
                           obligatoire: true,
                           label: l10n.name,
@@ -420,6 +426,7 @@ void _ouvrirInsertionProduit(
     context: context,
     builder: (_) => InsertionProduitDialog(
       multiselection: true,
+      newButton:false,
       produits: produitsTest,
       onProduitSelected: (Produit produit) {
         Future.microtask(() {

@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:caisse_dz/core/theme/app_style.dart';
 import '../../../l10n/app_localizations.dart';
 import '../../tableau/caisse/tableau_caisse.dart';
+import 'package:caisse_dz/core/utilis/number_format.dart';
 
 class TableauEncaissementBLSC extends StatelessWidget {
   final double height;
@@ -97,7 +98,7 @@ class TableauEncaissementBLSC extends StatelessWidget {
                           ),
                         ),
                       ),
-                      Expanded(flex: 2, child: Text("${p.prix.toStringAsFixed(2)}", style: Appstyle.textpop_S)),
+                      Expanded(flex: 2, child: Text("${NumberFormatUtil.formatMontant(p.prix, decimales: 2)}", style: Appstyle.textpop_S)),
                       Expanded(flex: 1, child: Text(p.qte.toString(), style: Appstyle.textpop_SB)),
                       Expanded(
                         flex: 1,
@@ -109,7 +110,7 @@ class TableauEncaissementBLSC extends StatelessWidget {
                           ),
                         ),
                       ),
-                      Expanded(flex: 2, child: Text("${p.montant.toStringAsFixed(2)}", style: Appstyle.textpop_SB)),
+                      Expanded(flex: 2, child: Text("${NumberFormatUtil.formatMontant(p.montant, decimales: 2)}", style: Appstyle.textpop_SB)),
                     ],
                   ),
                 );
@@ -130,14 +131,14 @@ class TableauEncaissementBLSC extends StatelessWidget {
                 // ✅ Afficher la remise si elle est active
                 if (remiseActive && remiseValue != null && remiseValue! > 0)
                   Text(
-                    "${l10n.discount} : -${remiseValue!.toStringAsFixed(2)} ${l10n.currency}",
+                    "${l10n.discount} : -${NumberFormatUtil.formatMontant(remiseValue!, decimales: 2)} ${l10n.currency}",
                     style: Appstyle.textpop_S.copyWith(color: Colors.green),
                   ),
 
                 // ✅ Afficher le TOTAL (avant remise) - devient "Total" ou "Sous-total"
                 if (remiseActive && remiseValue != null && remiseValue! > 0)
                   Text(
-                    "${l10n.totalBeforeDiscount} : ${total.toStringAsFixed(2)} ${l10n.currency}",
+                    "${l10n.totalBeforeDiscount} : ${NumberFormatUtil.formatMontant(total, decimales: 2)} ${l10n.currency}",
                     style: Appstyle.textpop_S.copyWith(
                       color: Appstyle.TgrisF,
                       fontSize: 12,
@@ -149,7 +150,7 @@ class TableauEncaissementBLSC extends StatelessWidget {
 
                 // ✅ TOTAL FINAL (après remise)
                 Text(
-                  "${l10n.totalFinal} : ${totalApresRemise.toStringAsFixed(2)} ${l10n.currency}",
+                  "${l10n.totalFinal} : ${NumberFormatUtil.formatMontant(totalApresRemise, decimales: 2)} ${l10n.currency}",
                   style: Appstyle.textpop_LB.copyWith(
                     fontSize: 18,
                     color: remiseActive && remiseValue != null && remiseValue! > 0

@@ -1,22 +1,24 @@
 import 'package:caisse_dz/core/dialog/client/client_detail.dart';
 
 import 'package:caisse_dz/core/theme/app_style.dart';
-import 'package:caisse_dz/core/widget/button/main_button.dart';
 import 'package:caisse_dz/data/models/client.dart';
+import 'package:caisse_dz/data/models/utilisateur.dart';
 import 'package:caisse_dz/l10n/app_localizations.dart';
 import 'package:flutter/material.dart';
 import 'package:syncfusion_flutter_core/theme.dart';
 import 'package:syncfusion_flutter_datagrid/datagrid.dart';
-import 'package:caisse_dz/core/widget/tableau/paginated.dart';
+import '../filter_icon_builder.dart';
 import 'client_source.dart';
 
 class TableauClientAdvanced extends StatefulWidget {
   final List<Client> clients;
+  final List<Utilisateur> utilisateurs;
   final void Function(List<Client>)? onSelectionChanged;
 
   const TableauClientAdvanced({
     super.key,
     required this.clients,
+    this.utilisateurs = const [],
     this.onSelectionChanged,
   });
 
@@ -31,24 +33,9 @@ class _TableauClientAdvancedState extends State<TableauClientAdvanced> {
   late ClientDataSource dataSource;
 
   final Map<String, double> columnWidths = {};
-  int rowsPerPage = 15;
-  int currentPage = 1;
+  int _rowsPerPage = 15;
+  static const List<int> _rowsPerPageOptions = [10, 15, 20, 30, 50];
   bool selectAll = false;
-
-  // ================= PAGINATION =================
-  List<Client> get paginatedData {
-    final start = (currentPage - 1) * rowsPerPage;
-    final end = (start + rowsPerPage).clamp(0, widget.clients.length);
-    if (start >= widget.clients.length) return [];
-    return widget.clients.sublist(start, end);
-  }
-
-  int get totalPages =>
-      widget.clients.isEmpty
-          ? 1
-          : (widget.clients.length / rowsPerPage)
-          .ceil()
-          .clamp(1, 9999);
 
   late Map<String, Map<String, dynamic>> columnVisibility;
 
@@ -103,42 +90,71 @@ class _TableauClientAdvancedState extends State<TableauClientAdvanced> {
     final l10n = AppLocalizations.of(context)!;
 
     dataSource = ClientDataSource(
-      clients: paginatedData,
+      clients: widget.clients,
       columnConfig: columnVisibility,
       l10n: l10n,
+      utilisateurs: widget.utilisateurs,
     );
+    dataSource.onRowDoubleTap = (client) => ClientDetail(context, client);
 
     dataSource.addListener(() {
-      widget.onSelectionChanged?.call(dataSource.getSelectedRows());
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted) return;
+        setState(() {});
+        widget.onSelectionChanged?.call(dataSource.getSelectedRows());
+      });
     });
+  }
+
+  @override
+  void didUpdateWidget(covariant TableauClientAdvanced oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.clients != widget.clients) {
+      dataSource.update(widget.clients);
+    }
   }
 
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
 
+    final pageCount = (dataSource.items.length / _rowsPerPage).ceil().clamp(1, 9999).toDouble();
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.end,
       children: [
         Expanded(child: _buildTable(l10n)),
         const SizedBox(height: 12),
-        PaginationBar(
-          currentPage: currentPage,
-          totalPages: totalPages,
-          rowsPerPage: rowsPerPage,
-          onPageChanged: (page) {
-            setState(() {
-              currentPage = page;
-              dataSource.update(paginatedData);
-            });
-          },
-          onRowsPerPageChanged: (v) {
-            setState(() {
-              rowsPerPage = v;
-              currentPage = 1;
-              dataSource.update(paginatedData);
-            });
-          },
+        Container(
+          padding: const EdgeInsets.symmetric(vertical: 6, horizontal: 12),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(14),
+            boxShadow: const [BoxShadow(color: Colors.black12, blurRadius: 10)],
+          ),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              SfDataPager(
+                delegate: dataSource,
+                pageCount: pageCount,
+                direction: Axis.horizontal,
+                itemWidth: 36,
+                itemHeight: 36,
+              ),
+              const SizedBox(width: 20),
+              DropdownButton<int>(
+                value: _rowsPerPage,
+                items: _rowsPerPageOptions
+                    .map((e) => DropdownMenuItem(value: e, child: Text("$e ${l10n.rowsPerPage}")))
+                    .toList(),
+                onChanged: (v) {
+                  if (v == null) return;
+                  setState(() => _rowsPerPage = v);
+                },
+              ),
+            ],
+          ),
         ),
       ],
     );
@@ -159,24 +175,20 @@ class _TableauClientAdvancedState extends State<TableauClientAdvanced> {
           data: SfDataGridThemeData(
            headerColor: Appstyle.violet.withOpacity(0.7),
             sortIconColor: Appstyle.Tblanc,
-            filterIconColor: Appstyle.Tblanc,
+            filterIcon: Builder(builder: (context) => buildFilterIcon(context, dataSource)),
             gridLineColor: Colors.grey.shade300,
             gridLineStrokeWidth: 0.4,
           ),
           child: SfDataGrid(
             source: dataSource,
+            rowsPerPage: _rowsPerPage,
             headerRowHeight: 36,
             rowHeight: 38,
             selectionMode: SelectionMode.single,
             allowSorting: true,
             allowFiltering: true,
-
-            onCellDoubleTap: (details) {
-              if (details.rowColumnIndex.rowIndex <= 0) return;
-              final rowIndex = details.rowColumnIndex.rowIndex - 1;
-              final Client client = paginatedData[rowIndex];
-              ClientDetail(context, client);
-            },
+            // Sélection au clic + double-clic pour le détail gérés dans
+            // BaseTableDataSource.buildRow.
 
             columnWidthMode: ColumnWidthMode.none,
             allowColumnsResizing: true,

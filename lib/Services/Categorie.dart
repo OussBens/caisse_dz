@@ -34,7 +34,8 @@ class CategorieServices{
     try {
       final data = categorie.toMap()
         ..remove('id')
-        ..remove('code');
+        ..remove('code')
+        ..['date_modif'] = DateTime.now().toIso8601String();
 
       final rows = await db.update(
         'categories',

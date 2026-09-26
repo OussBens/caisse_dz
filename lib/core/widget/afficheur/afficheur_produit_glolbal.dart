@@ -137,7 +137,8 @@ class _AfficheurProduitsGlobalWidgetState extends State<AfficheurProduitsGlobalW
     );
   }
 
-  Widget _space() => const SizedBox(width: 14);
+  // ✅ Espace réduit de 14 à 10 (70%)
+  Widget _space() => const SizedBox(width: 10);
 
   Widget _statCard({
     required Color color,
@@ -152,10 +153,11 @@ class _AfficheurProduitsGlobalWidgetState extends State<AfficheurProduitsGlobalW
       child: FadeTransition(
         opacity: animation,
         child: Container(
-          padding: const EdgeInsets.all(20),
+          // ✅ Padding réduit de 20 à 14 (70%)
+          padding: const EdgeInsets.all(14),
           decoration: BoxDecoration(
-            color: Colors.white, // ✅ Fond blanc
-            borderRadius: BorderRadius.circular(24),
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(18), // ✅ Réduit de 24 à 18
             boxShadow: [
               BoxShadow(
                 color: color.withOpacity(0.1),
@@ -171,31 +173,33 @@ class _AfficheurProduitsGlobalWidgetState extends State<AfficheurProduitsGlobalW
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Icône avec fond coloré
+              // ✅ Icone padding réduit de 10 à 7
               Container(
-                padding: const EdgeInsets.all(10),
+                padding: const EdgeInsets.all(7),
                 decoration: BoxDecoration(
-                  color: color.withOpacity(0.12), // ✅ Fond coloré léger
-                  borderRadius: BorderRadius.circular(16),
+                  color: color.withOpacity(0.12),
+                  borderRadius: BorderRadius.circular(12), // ✅ Réduit de 16 à 12
                 ),
                 child: Icon(
                   icon,
-                  color: color, // ✅ Icône prend la couleur de la stat
-                  size: 28,
+                  color: color,
+                  size: 20, // ✅ Réduit de 28 à 20
                 ),
               ),
-              const SizedBox(height: 16),
+              // ✅ Espace réduit de 16 à 11
+              const SizedBox(height: 11),
 
               // Titre
               Text(
                 title,
                 style: Appstyle.textSB.copyWith(
-                  color: color, // ✅ Texte prend la couleur de la stat
+                  color: color,
                   fontWeight: FontWeight.w600,
-                  letterSpacing: 0.5,
+                  letterSpacing: 0.4, // ✅ Réduit de 0.5 à 0.4
                 ),
               ),
-              const SizedBox(height: 8),
+              // ✅ Espace réduit de 8 à 6
+              const SizedBox(height: 6),
 
               // Valeur avec animation de comptage
               Row(
@@ -204,38 +208,43 @@ class _AfficheurProduitsGlobalWidgetState extends State<AfficheurProduitsGlobalW
                   _AnimatedCounter(
                     value: value,
                     style: Appstyle.textXXLB.copyWith(
-                      color: color, // ✅ Chiffre prend la couleur de la stat
+                      color: color,
                       fontWeight: FontWeight.bold,
-                      fontSize: 36,
+                      fontSize: 26, // ✅ Réduit de 36 à 26
                       height: 1,
                     ),
                     animation: animation,
                   ),
-                  const SizedBox(width: 4),
+                  // ✅ Espace réduit de 4 à 3
+                  const SizedBox(width: 3),
                   Text(
                     " $suffix",
                     style: Appstyle.textSB.copyWith(
-                      color: color.withOpacity(0.7), // ✅ Suffixe prend la couleur de la stat
+                      color: color.withOpacity(0.7),
                       fontWeight: FontWeight.w600,
                     ),
                   ),
                 ],
               ),
-              const SizedBox(height: 8),
+              // ✅ Espace réduit de 8 à 6
+              const SizedBox(height: 6),
 
               // Sous-titre
               Text(
                 subtitle,
                 style: Appstyle.textXS.copyWith(
-                  color: color.withOpacity(0.8), // ✅ Sous-titre prend la couleur de la stat
+                  color: color.withOpacity(0.8),
                   fontWeight: FontWeight.w400,
+                  fontSize: 10, // ✅ Taille réduite
                 ),
               ),
 
+              // ✅ Espace réduit de 12 à 8
+              const SizedBox(height: 8),
+
               // Barre de progression décorative colorée
-              const SizedBox(height: 12),
               Container(
-                height: 3,
+                height: 2, // ✅ Réduit de 3 à 2
                 width: double.infinity,
                 decoration: BoxDecoration(
                   gradient: LinearGradient(

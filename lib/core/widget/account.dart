@@ -1,8 +1,11 @@
+import 'package:caisse_dz/core/Auth/auth_state.dart';
+import 'package:caisse_dz/core/dialog/compte/mon_compte.dart';
 import 'package:caisse_dz/core/locale/locale_provider.dart';
 
 import 'package:caisse_dz/core/theme/app_style.dart';
 import 'package:caisse_dz/l10n/app_localizations.dart';
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 
 class AccountWidget extends StatelessWidget {
@@ -31,22 +34,54 @@ class AccountWidget extends StatelessWidget {
         ),
         elevation: 4,
         onSelected: (value) {
-          // Handle menu selection
+          switch (value) {
+            case 'compte':
+              MonCompteDialog(context);
+              break;
+            case 'settings':
+              context.go('/parametre');
+              break;
+            case 'logout':
+              final auth = Provider.of<AuthState>(context, listen: false);
+              auth.logout(
+                username: auth.username ?? '',
+                userCode: auth.userCode ?? '',
+              );
+              context.go('/login');
+              break;
+          }
         },
         itemBuilder: (context) => [
-          // Uncomment when you add menu items:
-          // PopupMenuItem(
-          //   value: 'profile',
-          //   child: Text(l10n.profile),
-          // ),
-          // PopupMenuItem(
-          //   value: 'settings',
-          //   child: Text(l10n.settings),
-          // ),
-          // PopupMenuItem(
-          //   value: 'logout',
-          //   child: Text(l10n.logout),
-          // ),
+          PopupMenuItem(
+            value: 'compte',
+            child: Row(
+              children: [
+                const Icon(Icons.person, size: 18, color: Colors.black54),
+                const SizedBox(width: 10),
+                Text(l10n.compte),
+              ],
+            ),
+          ),
+          PopupMenuItem(
+            value: 'settings',
+            child: Row(
+              children: [
+                const Icon(Icons.settings, size: 18, color: Colors.black54),
+                const SizedBox(width: 10),
+                Text(l10n.settings),
+              ],
+            ),
+          ),
+          PopupMenuItem(
+            value: 'logout',
+            child: Row(
+              children: [
+                const Icon(Icons.logout, size: 18, color: Colors.red),
+                const SizedBox(width: 10),
+                Text(l10n.logout, style: const TextStyle(color: Colors.red)),
+              ],
+            ),
+          ),
         ],
         child: Container(
           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),

@@ -1,20 +1,26 @@
 import 'package:caisse_dz/core/dialog/transfert/transfert_detail.dart';
 import 'package:caisse_dz/core/tableau/transfert/transfert_source.dart';
 import 'package:caisse_dz/core/theme/app_style.dart';
+import 'package:caisse_dz/data/models/gestion_caisse.dart';
 import 'package:caisse_dz/data/models/transfert.dart';
+import 'package:caisse_dz/data/models/utilisateur.dart';
 import 'package:caisse_dz/l10n/app_localizations.dart';
 import 'package:flutter/material.dart';
 import 'package:syncfusion_flutter_core/theme.dart';
 import 'package:syncfusion_flutter_datagrid/datagrid.dart';
-import 'package:caisse_dz/core/widget/tableau/paginated.dart';
+import '../filter_icon_builder.dart';
 
 class TableauTransfertCaisseAdvanced extends StatefulWidget {
   final List<TransfertCaisse> transferts;
+  final List<CaisseGestion> caisses;
+  final List<Utilisateur> utilisateurs;
   final void Function(List<TransfertCaisse>)? onSelectionChanged;
 
   const TableauTransfertCaisseAdvanced({
     super.key,
     required this.transferts,
+    this.caisses = const [],
+    this.utilisateurs = const [],
     this.onSelectionChanged,
   });
 
@@ -28,26 +34,13 @@ class _TableauTransfertCaisseAdvancedState
   late TransfertCaisseDataSource dataSource;
 
   final Map<String, double> columnWidths = {};
-  int rowsPerPage = 15;
-  int currentPage = 1;
+  int _rowsPerPage = 15;
+  static const List<int> _rowsPerPageOptions = [10, 15, 20, 30, 50];
   bool selectAll = false;
   late final Map<String, bool> colonnesParDefaut;
   bool garderSelectionColonnes = true;
 
   late Map<String, Map<String, dynamic>> columnVisibility;
-
-  // ================= PAGINATION =================
-  List<TransfertCaisse> get paginatedData {
-    final start = (currentPage - 1) * rowsPerPage;
-    final end = (start + rowsPerPage).clamp(0, widget.transferts.length);
-    if (start >= widget.transferts.length) return [];
-    return widget.transferts.sublist(start, end);
-  }
-
-  int get totalPages =>
-      widget.transferts.isEmpty
-          ? 1
-          : (widget.transferts.length / rowsPerPage).ceil();
 
   @override
   void initState() {
@@ -81,41 +74,71 @@ class _TableauTransfertCaisseAdvancedState
     final l10n = AppLocalizations.of(context)!;
 
     dataSource = TransfertCaisseDataSource(
-      transferts: paginatedData,
+      transferts: widget.transferts,
       columnConfig: columnVisibility,
       l10n: l10n,
+      caisses: widget.caisses,
+      utilisateurs: widget.utilisateurs,
     );
+    dataSource.onRowDoubleTap = (t) => TransfertCaisseDetail(context, t);
 
     dataSource.addListener(() {
-      widget.onSelectionChanged?.call(dataSource.getSelectedRows());
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted) return;
+        setState(() {});
+        widget.onSelectionChanged?.call(dataSource.getSelectedRows());
+      });
     });
+  }
+
+  @override
+  void didUpdateWidget(covariant TableauTransfertCaisseAdvanced oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.transferts != widget.transferts) {
+      dataSource.update(widget.transferts);
+    }
   }
 
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
 
+    final pageCount = (dataSource.items.length / _rowsPerPage).ceil().clamp(1, 9999).toDouble();
+
     return Column(
       children: [
         Expanded(child: _buildTable(l10n)),
         const SizedBox(height: 12),
-        PaginationBar(
-          currentPage: currentPage,
-          totalPages: totalPages,
-          rowsPerPage: rowsPerPage,
-          onPageChanged: (page) {
-            setState(() {
-              currentPage = page;
-              dataSource.update(paginatedData);
-            });
-          },
-          onRowsPerPageChanged: (v) {
-            setState(() {
-              rowsPerPage = v;
-              currentPage = 1;
-              dataSource.update(paginatedData);
-            });
-          },
+        Container(
+          padding: const EdgeInsets.symmetric(vertical: 6, horizontal: 12),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(14),
+            boxShadow: const [BoxShadow(color: Colors.black12, blurRadius: 10)],
+          ),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              SfDataPager(
+                delegate: dataSource,
+                pageCount: pageCount,
+                direction: Axis.horizontal,
+                itemWidth: 36,
+                itemHeight: 36,
+              ),
+              const SizedBox(width: 20),
+              DropdownButton<int>(
+                value: _rowsPerPage,
+                items: _rowsPerPageOptions
+                    .map((e) => DropdownMenuItem(value: e, child: Text("$e ${l10n.rowsPerPage}")))
+                    .toList(),
+                onChanged: (v) {
+                  if (v == null) return;
+                  setState(() => _rowsPerPage = v);
+                },
+              ),
+            ],
+          ),
         ),
       ],
     );
@@ -136,26 +159,23 @@ class _TableauTransfertCaisseAdvancedState
         borderRadius: BorderRadius.circular(16),
         child: SfDataGridTheme(
           data: SfDataGridThemeData(
-            headerColor: Appstyle.violet.withOpacity(0.7),
+            headerColor: Appstyle.indigo.withOpacity(0.7),
             sortIconColor: Appstyle.Tblanc,
-            filterIconColor: Appstyle.Tblanc,
+            filterIcon: Builder(builder: (context) => buildFilterIcon(context, dataSource)),
           ),
           child: SfDataGrid(
             source: dataSource,
+            rowsPerPage: _rowsPerPage,
             headerRowHeight: 36,
             rowHeight: 38,
             allowSorting: true,
             allowFiltering: true,
             selectionMode: SelectionMode.single,
-            columnWidthMode: ColumnWidthMode.none,
+            columnWidthMode: ColumnWidthMode.fill,
             allowColumnsResizing: true,
             columnResizeMode: ColumnResizeMode.onResize,
-            onCellDoubleTap: (details) {
-              if (details.rowColumnIndex.rowIndex <= 0) return;
-              final rowIndex = details.rowColumnIndex.rowIndex - 1;
-              final TransfertCaisse transfertCaisse = paginatedData[rowIndex];
-              TransfertCaisseDetail(context, transfertCaisse);
-            },
+            // Sélection au clic + double-clic pour le détail gérés dans
+            // BaseTableDataSource.buildRow.
             onColumnResizeUpdate: (details) {
               double w = details.width.clamp(150, 1000);
               setState(() => columnWidths[details.column.columnName] = w);
@@ -177,6 +197,7 @@ class _TableauTransfertCaisseAdvancedState
               ),
               GridColumn(
                 columnName: 'select',
+                width: 55,
                 allowSorting: false,
                 allowFiltering: false,
                 label: Center(
@@ -196,7 +217,7 @@ class _TableauTransfertCaisseAdvancedState
                   .map(
                     (e) => GridColumn(
                   columnName: e.key,
-                  width: columnWidths[e.key] ?? 180,
+                  width: columnWidths[e.key] ?? double.nan,
                   label: _header(_getTranslatedLabel(e.value['label'], l10n)),
                 ),
               ),

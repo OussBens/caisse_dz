@@ -14,6 +14,7 @@ class CategorieDataSource extends BaseTableDataSource<Categorie> {
     required List<Categorie> categories,
     required super.columnConfig,
     required this.l10n,
+    super.utilisateurs = const [],
   }) : super(items: categories);
 
   String formatDate(DateTime? date) {
@@ -39,15 +40,15 @@ class CategorieDataSource extends BaseTableDataSource<Categorie> {
       case 'dateCree':
         return formatDate(cat.dateCree);
       case 'creeParCode':
-        return cat.creeParCode;
+        return nomUtilisateur(cat.creeParCode);
       case 'dateModif':
         return formatDate(cat.dateModif);
       case 'modifParCode':
-        return cat.modifParCode ?? '';
+        return nomUtilisateur(cat.modifParCode);
       case 'dateAnnul':
         return formatDate(cat.dateAnnul);
       case 'annulParCode':
-        return cat.annulParCode ?? '';
+        return nomUtilisateur(cat.annulParCode);
       case 'motifAnnul':
         return cat.motifAnnul ?? '';
       default:

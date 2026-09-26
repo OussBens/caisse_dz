@@ -190,11 +190,10 @@ class _RoleCreationDialogState extends State<RoleCreationDialog> {
     PermissionItem(key: 'stock', label: 'Stock', icon: Icons.warehouse),
     PermissionItem(key: 'besoin', label: 'Besoins', icon: Icons.assignment),
     PermissionItem(key: 'utilisateur', label: 'Utilisateurs', icon: Icons.person),
-    PermissionItem(key: 'magasin', label: 'Magasins', icon: Icons.store),
     PermissionItem(key: 'gestionCaisse', label: 'Gestion Caisse', icon: Icons.local_grocery_store),
     PermissionItem(key: 'zakat', label: 'Zakat', icon: Icons.mosque),
-    PermissionItem(key: 'parametre', label: 'Paramètres', icon: Icons.settings),
-    PermissionItem(key: 'historique', label: 'Historique', icon: Icons.history),
+    PermissionItem(key: 'parametre', label: 'Paramètres', icon: Icons.settings, isLocked: true),
+    PermissionItem(key: 'historique', label: 'Historique', icon: Icons.history, isLocked: true),
   ];
 
   @override
@@ -218,7 +217,6 @@ class _RoleCreationDialogState extends State<RoleCreationDialog> {
       stock: false,
       besoin: false,
       utilisateur: false,
-      magasin: false,
       gestionCaisse: false,
       zakat: false,
       parametre: false,
@@ -273,9 +271,6 @@ class _RoleCreationDialogState extends State<RoleCreationDialog> {
         case 'utilisateur':
           _roleDetail.utilisateur = value;
           break;
-        case 'magasin':
-          _roleDetail.magasin = value;
-          break;
         case 'gestionCaisse':
           _roleDetail.gestionCaisse = value;
           break;
@@ -319,8 +314,6 @@ class _RoleCreationDialogState extends State<RoleCreationDialog> {
         return _roleDetail.besoin;
       case 'utilisateur':
         return _roleDetail.utilisateur;
-      case 'magasin':
-        return _roleDetail.magasin;
       case 'gestionCaisse':
         return _roleDetail.gestionCaisse;
       case 'zakat':
@@ -335,6 +328,8 @@ class _RoleCreationDialogState extends State<RoleCreationDialog> {
   }
 
   // Method to select/deselect all permissions
+  // ✅ 'parametre'/'historique' sont réservées à Admin (voir PermissionItem.isLocked) :
+  // exclues du calcul et jamais assignées par "Tout sélectionner".
   void _toggleAllPermissions() {
     setState(() {
       bool allTrue = _roleDetail.dash &&
@@ -349,11 +344,8 @@ class _RoleCreationDialogState extends State<RoleCreationDialog> {
           _roleDetail.stock &&
           _roleDetail.besoin &&
           _roleDetail.utilisateur &&
-          _roleDetail.magasin &&
           _roleDetail.gestionCaisse &&
-          _roleDetail.zakat &&
-          _roleDetail.parametre &&
-          _roleDetail.historique;
+          _roleDetail.zakat;
 
       bool newValue = !allTrue;
 
@@ -369,11 +361,8 @@ class _RoleCreationDialogState extends State<RoleCreationDialog> {
       _roleDetail.stock = newValue;
       _roleDetail.besoin = newValue;
       _roleDetail.utilisateur = newValue;
-      _roleDetail.magasin = newValue;
       _roleDetail.gestionCaisse = newValue;
       _roleDetail.zakat = newValue;
-      _roleDetail.parametre = newValue;
-      _roleDetail.historique = newValue;
     });
   }
 
@@ -390,16 +379,25 @@ class _RoleCreationDialogState extends State<RoleCreationDialog> {
         _roleDetail.stock &&
         _roleDetail.besoin &&
         _roleDetail.utilisateur &&
-        _roleDetail.magasin &&
         _roleDetail.gestionCaisse &&
-        _roleDetail.zakat &&
-        _roleDetail.parametre &&
-        _roleDetail.historique;
+        _roleDetail.zakat;
   }
 
   // ✅ Méthode pour sauvegarder le rôle (appelée depuis le bouton Save)
   Future<void> _saveRole() async {
     final l10n = AppLocalizations.of(context);
+
+    // ✅ Unicité du nom du rôle avant toute création.
+    final roleNomExistant = await RoleServices.findRoleByNom(_nomRoleController.text);
+    if (roleNomExistant != null) {
+      await InformationDialog(
+        context: context,
+        titre_type_message: l10n.error,
+        titre_concerne: l10n.role,
+        message: l10n.roleNameAlreadyExists,
+      );
+      return;
+    }
 
     // Créer l'objet Role
     Role role = Role(
@@ -473,7 +471,6 @@ class _RoleCreationDialogState extends State<RoleCreationDialog> {
       _roleDetail.stock = false;
       _roleDetail.besoin = false;
       _roleDetail.utilisateur = false;
-      _roleDetail.magasin = false;
       _roleDetail.gestionCaisse = false;
       _roleDetail.zakat = false;
       _roleDetail.parametre = false;
@@ -733,7 +730,11 @@ class _RoleCreationDialogState extends State<RoleCreationDialog> {
             itemCount: _permissionsList.length,
             itemBuilder: (context, index) {
               final permission = _permissionsList[index];
-              final isSelected = _getPermissionValue(permission.key);
+              // ✅ Verrouillée à false en permanence pour 'parametre'/'historique'
+              // (réservé au rôle Admin) : ni sélectionnable ni affichée comme
+              // sélectionnée.
+              final isSelected = !permission.isLocked && _getPermissionValue(permission.key);
+              final isLocked = permission.isLocked;
 
               return Card(
                 elevation: 2,
@@ -746,9 +747,11 @@ class _RoleCreationDialogState extends State<RoleCreationDialog> {
                   ),
                 ),
                 child: InkWell(
-                  onTap: () {
-                    _updatePermission(permission.key, !isSelected);
-                  },
+                  onTap: isLocked
+                      ? null
+                      : () {
+                          _updatePermission(permission.key, !isSelected);
+                        },
                   borderRadius: BorderRadius.circular(8),
                   child: Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
@@ -756,9 +759,9 @@ class _RoleCreationDialogState extends State<RoleCreationDialog> {
                       children: [
                         Icon(
                           permission.icon,
-                          color: isSelected
-                              ? Appstyle.violet
-                              : Colors.grey,
+                          color: isLocked
+                              ? Colors.grey.shade400
+                              : (isSelected ? Appstyle.violet : Colors.grey),
                           size: 20,
                         ),
                         const SizedBox(width: 12),
@@ -770,17 +773,24 @@ class _RoleCreationDialogState extends State<RoleCreationDialog> {
                               fontWeight: isSelected
                                   ? FontWeight.w500
                                   : FontWeight.normal,
-                              color: isSelected
-                                  ? Appstyle.violet
-                                  : Colors.grey[700],
+                              color: isLocked
+                                  ? Colors.grey.shade400
+                                  : (isSelected ? Appstyle.violet : Colors.grey[700]),
                             ),
                           ),
                         ),
+                        if (isLocked)
+                          Padding(
+                            padding: const EdgeInsets.only(right: 8),
+                            child: Icon(Icons.lock_outline, size: 16, color: Colors.grey.shade400),
+                          ),
                         Checkbox(
                           value: isSelected,
-                          onChanged: (bool? value) {
-                            _updatePermission(permission.key, value ?? false);
-                          },
+                          onChanged: isLocked
+                              ? null
+                              : (bool? value) {
+                                  _updatePermission(permission.key, value ?? false);
+                                },
                           activeColor: Appstyle.violet,
                           materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
                         ),
@@ -814,10 +824,14 @@ class PermissionItem {
   final String key;
   final String label;
   final IconData icon;
+  // ✅ Réservé au rôle Admin (seedé au démarrage) : jamais assignable à un
+  // rôle personnalisé créé depuis ce formulaire.
+  final bool isLocked;
 
   PermissionItem({
     required this.key,
     required this.label,
     required this.icon,
+    this.isLocked = false,
   });
 }

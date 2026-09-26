@@ -1,12 +1,19 @@
 import 'package:caisse_dz/Services/Categorie.dart';
+import 'package:caisse_dz/Services/Produits.dart' hide ApiResponse;
+import 'package:caisse_dz/Services/Mouvement.dart';
+import 'package:caisse_dz/DBCreate.dart';
 import 'package:caisse_dz/l10n/app_localizations.dart';
 import 'package:collection/collection.dart';
 import 'package:flutter/material.dart';
 import 'package:caisse_dz/core/theme/app_style.dart';
+import '../../../data/models/produit.dart';
 import '../../../data/models/sous_categorie.dart';
 import '../../widget/detail_widget.dart';
 import '../../widget/section_decoration.dart';
+import '../../widget/stats_card.dart';
 import '../base_dialog.dart';
+import '../produits_liste_dialog.dart';
+import 'package:caisse_dz/core/utilis/number_format.dart';
 
 Future<void> SousCategorieDetail(
   BuildContext context,
@@ -56,10 +63,16 @@ Future<void> SousCategorieDetail(
                 Chip(
                   label: Text(
                     sousCategorie.etat ? l10n.active : l10n.inactive,
-                    style: Appstyle.textSB.copyWith(color: Appstyle.Tblanc),
+                    style: Appstyle.textSB.copyWith(
+                      color: sousCategorie.etat ? Appstyle.Tblanc : Appstyle.Tnoir, // ou une autre couleur
+                    ),
                   ),
-                  backgroundColor: Appstyle.crevete,
-                ),
+                  backgroundColor: sousCategorie.etat
+                      ? Appstyle.violet.withOpacity(0.8)
+                      : Appstyle.crevete.withOpacity(0.7), // ou rouge, orange, etc.
+                  labelPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                  elevation: sousCategorie.etat ? 2 : 0,
+                )
               ],
             ),
             const SizedBox(height: 16),
@@ -117,40 +130,119 @@ Future<void> SousCategorieDetail(
           ),
         ),
 
-        footer: Align(
-          alignment: Alignment.centerRight,
-          child: ElevatedButton.icon(
-            icon: const Icon(Icons.close),
-            label: Text(l10n.close),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Appstyle.violet,
-              foregroundColor: Colors.white,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(10),
+        footer: Row(
+          mainAxisAlignment: MainAxisAlignment.end,
+          children: [
+            ElevatedButton.icon(
+              icon: const Icon(Icons.list),
+              label: Text(l10n.productList),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Appstyle.crevete,
+                foregroundColor: Colors.white,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(10),
+                ),
               ),
+              onPressed: () {
+                showSousCategorieProductsListDialog(context, sousCategorie, l10n);
+              },
             ),
-            onPressed: () => Navigator.pop(context),
-          ),
+            const SizedBox(width: 10),
+            ElevatedButton.icon(
+              icon: const Icon(Icons.close),
+              label: Text(l10n.close),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Appstyle.violet,
+                foregroundColor: Colors.white,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(10),
+                ),
+              ),
+              onPressed: () => Navigator.pop(context),
+            ),
+          ],
         ),
       );
     },
   );
 }
 
+// ================= Dialogue Liste des produits de la sous-catégorie =================
+// Aligné sur le style "liste des produits" utilisé par les packs
+// (showPackProductsListDialog), réutilisé par SousCategorieDetail et AfficheurSousCategorie.
+Future<void> showSousCategorieProductsListDialog(
+    BuildContext context,
+    SousCategorie sousCategorie,
+    AppLocalizations l10n,
+    ) async {
+  final db = await DbCreator.openDb();
+  final service = ProduitServices(db);
+  final produits = await service.getProduitsBySousCategorieId(sousCategorie.id);
+  // Quantité par produit calculée depuis le journal des mouvements — voir
+  // produit_screen.dart pour le même mécanisme. Remplace Produit.quantite.
+  final quantites = (await MouvementsServices.totauxParProduit()).quantites;
+  double qte(Produit p) => quantites[p.code] ?? 0;
+
+  final quantiteTotale = produits.fold(0.0, (sum, p) => sum + qte(p));
+  final valeurTotale = produits.fold(0.0, (sum, p) => sum + (qte(p) * p.prixVente));
+
+  if (!context.mounted) return;
+  return ProduitsListeDialog.afficher(
+    context: context,
+    titre: l10n.productsOfSubCategory(sousCategorie.code ?? ''),
+    sousTitre: [
+      Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Text("${l10n.subcategory} : ${sousCategorie.nom}", style: Appstyle.textSB),
+          Text(
+            "${l10n.total} : ${NumberFormatUtil.formatMontant(valeurTotale, decimales: 2)} ${l10n.currency}",
+            style: Appstyle.textSB.copyWith(color: Appstyle.violet, fontWeight: FontWeight.bold),
+          ),
+        ],
+      ),
+    ],
+    stats: [
+      StatBadge(label: l10n.productCount, valeur: "${produits.length}"),
+      StatBadge(label: l10n.totalQuantity, valeur: NumberFormatUtil.formatMontant(quantiteTotale, decimales: 0)),
+      StatBadge(
+        label: l10n.total,
+        valeur: "${NumberFormatUtil.formatMontant(valeurTotale, decimales: 2)} ${l10n.currency}",
+        couleur: Appstyle.crevete,
+      ),
+    ],
+    colonnes: [
+      DataColumn(label: Text(l10n.productCode)),
+      DataColumn(label: Text(l10n.productName)),
+      DataColumn(label: Text(l10n.unitPrice), numeric: true),
+      DataColumn(label: Text(l10n.quantity), numeric: true),
+      DataColumn(label: Text(l10n.total), numeric: true),
+    ],
+    lignes: produits.map((p) {
+      return DataRow(
+        cells: [
+          DataCell(Text(p.code, style: Appstyle.textSB)),
+          DataCell(Text(p.nom, style: Appstyle.textSB)),
+          DataCell(pilluleCellule("${NumberFormatUtil.formatMontant(p.prixVente, decimales: 2)} ${l10n.currency}", Appstyle.violet)),
+          DataCell(pilluleCellule(NumberFormatUtil.formatMontant(qte(p), decimales: 0), Appstyle.crevete)),
+          DataCell(Text(
+            "${NumberFormatUtil.formatMontant((qte(p) * p.prixVente), decimales: 2)} ${l10n.currency}",
+            style: Appstyle.textSB.copyWith(fontWeight: FontWeight.bold, color: Appstyle.crevete),
+          )),
+        ],
+      );
+    }).toList(),
+    messageVide: l10n.noProduct,
+  );
+}
+
+// sous_categorie_detail.dart - Remplacer _resumeSousCategorie
 Widget _resumeSousCategorie(SousCategorie sc, AppLocalizations l10n, int nombreProduits) {
-  return Container(
-    decoration: BoxDecoration(
-      color: Appstyle.violet.withOpacity(0.6),
-      borderRadius: BorderRadius.circular(10),
-    ),
-    padding: const EdgeInsets.all(10),
-    child: Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-      children: [
-        detailbadge("ID", sc.id),
-        detailbadge(l10n.productCount, nombreProduits),
-        detailbadge(l10n.status, sc.etat ? l10n.active : l10n.inactive),
-      ],
-    ),
+  return StatsCard(
+    items: [
+      StatsItem(label: l10n.code, value: sc.code),
+      StatsItem(label: l10n.productCount, value: nombreProduits),
+      StatsItem(label: l10n.categorie, value: sc.categorieCode ),
+    ],
   );
 }

@@ -4,6 +4,7 @@ import 'package:caisse_dz/core/theme/app_style.dart';
 import '../../../data/models/categorie.dart';
 import '../../widget/detail_widget.dart';
 import '../../widget/section_decoration.dart';
+import '../../widget/stats_card.dart';
 import '../base_dialog.dart';
 
 Future<void> CategorieDetail(
@@ -54,10 +55,17 @@ Future<void> CategorieDetail(
                 Chip(
                   label: Text(
                     categorie.etat ? l10n.active : l10n.inactive,
-                    style: Appstyle.textSB.copyWith(color: Appstyle.Tblanc),
+                    style: Appstyle.textSB.copyWith(
+                      color: categorie.etat ? Appstyle.Tblanc : Appstyle.Tnoir, // ou une autre couleur
+                    ),
                   ),
-                  backgroundColor: Appstyle.crevete,
-                ),
+                  backgroundColor: categorie.etat
+                      ? Appstyle.violet.withOpacity(0.8)
+                      : Appstyle.crevete.withOpacity(0.7), // ou rouge, orange, etc.
+                  labelPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                  elevation: categorie.etat ? 2 : 0,
+                )
+
               ],
             ),
 
@@ -143,20 +151,13 @@ Future<void> CategorieDetail(
   );
 }
 
+// categorie_detail.dart - Remplacer _resumeCategorie
 Widget _resumeCategorie(Categorie c, AppLocalizations l10n, int nombreSousCategories) {
-  return Container(
-    decoration: BoxDecoration(
-      color: Appstyle.violet.withOpacity(0.6),
-      borderRadius: BorderRadius.circular(10),
-    ),
-    padding: const EdgeInsets.all(10),
-    child: Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-      children: [
-        detailbadge(l10n.id, c.id),
-        detailbadge(l10n.subcategories, nombreSousCategories),
-        detailbadge(l10n.status, c.etat ? l10n.active : l10n.inactive),
-      ],
-    ),
+  return StatsCard(
+    items: [
+      StatsItem(label: l10n.code, value: c.code),
+      StatsItem(label: l10n.subcategories, value: nombreSousCategories),
+      StatsItem(label: l10n.status, value: c.etat ? l10n.active : l10n.inactive),
+    ],
   );
 }

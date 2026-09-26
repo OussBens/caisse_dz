@@ -1,21 +1,24 @@
 import 'package:caisse_dz/core/dialog/gestion_caisse/gestion_caisse_detail.dart';
 
 import 'package:caisse_dz/core/theme/app_style.dart';
-import 'package:caisse_dz/core/widget/tableau/paginated.dart';
 import 'package:caisse_dz/data/models/gestion_caisse.dart';
+import 'package:caisse_dz/data/models/utilisateur.dart';
 import 'package:caisse_dz/l10n/app_localizations.dart';
 import 'package:flutter/material.dart';
 import 'package:syncfusion_flutter_core/theme.dart';
 import 'package:syncfusion_flutter_datagrid/datagrid.dart';
+import '../filter_icon_builder.dart';
 import 'gestion_caisse_source.dart';
 
 class TableauCaisseGestionAdvanced extends StatefulWidget {
   final List<CaisseGestion> caisses;
+  final List<Utilisateur> utilisateurs;
   final void Function(List<CaisseGestion>)? onSelectionChanged;
 
   const TableauCaisseGestionAdvanced({
     super.key,
     required this.caisses,
+    this.utilisateurs = const [],
     this.onSelectionChanged,
   });
 
@@ -32,24 +35,9 @@ class _TableauCaisseGestionAdvancedState
   late final Map<String, bool> colonnesParDefaut;
 
   final Map<String, double> columnWidths = {};
-  int rowsPerPage = 15;
-  int currentPage = 1;
+  int _rowsPerPage = 15;
+  static const List<int> _rowsPerPageOptions = [10, 15, 20, 30, 50];
   bool selectAll = false;
-
-  // ================= PAGINATION =================
-  List<CaisseGestion> get paginatedData {
-    final start = (currentPage - 1) * rowsPerPage;
-    final end = (start + rowsPerPage).clamp(0, widget.caisses.length);
-    if (start >= widget.caisses.length) return [];
-    return widget.caisses.sublist(start, end);
-  }
-
-  int get totalPages =>
-      widget.caisses.isEmpty
-          ? 1
-          : (widget.caisses.length / rowsPerPage)
-          .ceil()
-          .clamp(1, 9999);
 
   late Map<String, Map<String, dynamic>> columnVisibility;
 
@@ -89,41 +77,70 @@ class _TableauCaisseGestionAdvancedState
     final l10n = AppLocalizations.of(context)!;
 
     dataSource = CaisseGestionDataSource(
-      caisses: paginatedData,
+      caisses: widget.caisses,
       columnConfig: columnVisibility,
       l10n: l10n,
+      utilisateurs: widget.utilisateurs,
     );
+    dataSource.onRowDoubleTap = (caisse) => CaisseGestionDetail(context, caisse);
 
     dataSource.addListener(() {
-      widget.onSelectionChanged?.call(dataSource.getSelectedRows());
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted) return;
+        setState(() {});
+        widget.onSelectionChanged?.call(dataSource.getSelectedRows());
+      });
     });
+  }
+
+  @override
+  void didUpdateWidget(covariant TableauCaisseGestionAdvanced oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.caisses != widget.caisses) {
+      dataSource.update(widget.caisses);
+    }
   }
 
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
 
+    final pageCount = (dataSource.items.length / _rowsPerPage).ceil().clamp(1, 9999).toDouble();
+
     return Column(
       children: [
         Expanded(child: _buildTable(l10n)),
         const SizedBox(height: 12),
-        PaginationBar(
-          currentPage: currentPage,
-          totalPages: totalPages,
-          rowsPerPage: rowsPerPage,
-          onPageChanged: (page) {
-            setState(() {
-              currentPage = page;
-              dataSource.update(paginatedData);
-            });
-          },
-          onRowsPerPageChanged: (v) {
-            setState(() {
-              rowsPerPage = v;
-              currentPage = 1;
-              dataSource.update(paginatedData);
-            });
-          },
+        Container(
+          padding: const EdgeInsets.symmetric(vertical: 6, horizontal: 12),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(14),
+            boxShadow: const [BoxShadow(color: Colors.black12, blurRadius: 10)],
+          ),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              SfDataPager(
+                delegate: dataSource,
+                pageCount: pageCount,
+                direction: Axis.horizontal,
+                itemWidth: 36,
+                itemHeight: 36,
+              ),
+              const SizedBox(width: 20),
+              DropdownButton<int>(
+                value: _rowsPerPage,
+                items: _rowsPerPageOptions
+                    .map((e) => DropdownMenuItem(value: e, child: Text("$e ${l10n.rowsPerPage}")))
+                    .toList(),
+                onChanged: (v) {
+                  if (v == null) return;
+                  setState(() => _rowsPerPage = v);
+                },
+              ),
+            ],
+          ),
         ),
       ],
     );
@@ -144,30 +161,26 @@ class _TableauCaisseGestionAdvancedState
         borderRadius: BorderRadius.circular(16),
         child: SfDataGridTheme(
           data: SfDataGridThemeData(
-            headerColor: Appstyle.red.withOpacity(0.7),
+            headerColor: Appstyle.violet.withOpacity(0.7),
             sortIconColor: Appstyle.Tblanc,
-            filterIconColor: Appstyle.Tblanc,
+            filterIcon: Builder(builder: (context) => buildFilterIcon(context, dataSource)),
             gridLineColor: Colors.grey.shade300,
             gridLineStrokeWidth: 0.4,
           ),
           child: SfDataGrid(
             source: dataSource,
+            rowsPerPage: _rowsPerPage,
             headerRowHeight: 36,
             rowHeight: 38,
             allowSorting: true,
             allowFiltering: true,
             selectionMode: SelectionMode.single,
 
-            columnWidthMode: ColumnWidthMode.none,
+            columnWidthMode: ColumnWidthMode.fill,
             allowColumnsResizing: true,
             columnResizeMode: ColumnResizeMode.onResize,
-
-            onCellDoubleTap: (details) {
-              if (details.rowColumnIndex.rowIndex <= 0) return;
-              final rowIndex = details.rowColumnIndex.rowIndex - 1;
-              final CaisseGestion caisse = paginatedData[rowIndex];
-              CaisseGestionDetail(context, caisse);
-            },
+            // Sélection au clic + double-clic pour le détail gérés dans
+            // BaseTableDataSource.buildRow.
 
             onColumnResizeUpdate: (details) {
               double w = details.width;
@@ -213,7 +226,7 @@ class _TableauCaisseGestionAdvancedState
                   .map(
                     (e) => GridColumn(
                   columnName: e.key,
-                  width: columnWidths[e.key] ?? 180,
+                  width: columnWidths[e.key] ?? double.nan,
                   label: _header(_getTranslatedLabel(e.value['label'], l10n)),
                 ),
               ),

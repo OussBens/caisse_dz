@@ -89,11 +89,11 @@ BEGIN
     BEGIN
         BLOCK "040904e4"
         BEGIN
-            VALUE "CompanyName", "com.example" "\0"
+            VALUE "CompanyName", "BENS-DS" "\0"
             VALUE "FileDescription", "caisse_dz" "\0"
             VALUE "FileVersion", VERSION_AS_STRING "\0"
             VALUE "InternalName", "caisse_dz" "\0"
-            VALUE "LegalCopyright", "Copyright (C) 2026 com.example. All rights reserved." "\0"
+            VALUE "LegalCopyright", "Copyright (C) 2026 BENS-DS. All rights reserved." "\0"
             VALUE "OriginalFilename", "caisse_dz.exe" "\0"
             VALUE "ProductName", "caisse_dz" "\0"
             VALUE "ProductVersion", VERSION_AS_STRING "\0"

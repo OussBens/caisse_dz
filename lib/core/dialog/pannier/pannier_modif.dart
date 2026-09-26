@@ -7,17 +7,15 @@ import 'package:caisse_dz/DBCreate.dart';
 
 import 'package:caisse_dz/Services/PannierProduit.dart' hide ApiResponse;
 import 'package:caisse_dz/Services/Historique.dart' hide ApiResponse;
-import 'package:caisse_dz/Services/Mouvement.dart' hide ApiResponse;
 import 'package:caisse_dz/Services/Client.dart' hide ApiResponse;
 import 'package:caisse_dz/Services/Pannier.dart';
 import 'package:caisse_dz/Services/Produits.dart' hide ApiResponse;
-import 'package:caisse_dz/Services/Magasin.dart' hide ApiResponse;
 import 'package:caisse_dz/Services/MagasinDetail.dart';
+import 'package:caisse_dz/Services/Verssement.dart' hide ApiResponse;
 
 import 'package:caisse_dz/data/models/histore.dart';
-import 'package:caisse_dz/data/models/mouvement.dart';
 import 'package:caisse_dz/data/models/produit.dart';
-import 'package:caisse_dz/data/models/produit_magasin_detail.dart';
+import 'package:caisse_dz/data/models/verssement.dart';
 
 import 'package:caisse_dz/core/theme/app_style.dart';
 import 'package:caisse_dz/core/dialog/base_dialog.dart';
@@ -25,10 +23,10 @@ import 'package:caisse_dz/core/Auth/auth_state.dart';
 
 import 'package:caisse_dz/core/widget/button/main_button.dart';
 import 'package:caisse_dz/core/widget/champ/champ_avec_label.dart';
-import 'package:caisse_dz/core/widget/champ/date_champ.dart';
 import 'package:caisse_dz/core/widget/champ/liste_champ.dart';
 import 'package:caisse_dz/core/widget/champ/text_champ_l.dart';
 import 'package:caisse_dz/core/widget/title/titre_avec_ligne.dart';
+import 'package:caisse_dz/core/widget/code_generateur.dart';
 
 import 'package:caisse_dz/data/constant.dart';
 
@@ -37,8 +35,11 @@ import 'package:caisse_dz/data/models/pannier.dart';
 import 'package:caisse_dz/data/models/pannier_produit.dart';
 import 'package:caisse_dz/data/models/utilisateur.dart';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
+import 'package:collection/collection.dart';
 
 import '../../utilis/api_response.dart';
+import '../../utilis/quantite_format.dart';
+import 'package:caisse_dz/core/utilis/number_format.dart';
 
 List<PannierProduit> pannierProduitsTest = [];
 List<Client> clientsTest = [];
@@ -65,7 +66,6 @@ final TextEditingController dateController = TextEditingController();
 final TextEditingController verseController = TextEditingController();
 final TextEditingController resteController = TextEditingController();
 
-String? selectedEtatR;
 String? selectedModePaiement;
 String? selectedClient;
 
@@ -100,44 +100,61 @@ Future<void> _addHistorique({
 }
 
 // ✅ Fonction pour mettre à jour le stock (sans transaction)
-Future<void> _updateMagasinStock({
+// ancienneQuantite/nouvelleQuantite = quantité réservée par CE panier pour ce
+// produit (avant/après modification, 0 si le produit n'y était pas / n'y est
+// plus). Augmenter la quantité réservée par le panier consomme du stock ;
+// la diminuer (ou supprimer le produit du panier) en restitue.
+//
+// Conservée exportée : utilisée par pannier_actif.dart (annulation d'un
+// panier) pour restituer le stock, même si ce dialog ne modifie plus lui-même
+// le contenu d'un panier déjà encaissé (voir PannierServices.updatePannier).
+Future<void> updateMagasinStock({
   required String produitCode,
   required double ancienneQuantite,
   required double nouvelleQuantite,
+  // Second stock parallèle "Nombre" (Paramètres > Nombre et Quantité) —
+  // restitué en même temps que quantite si fourni. Null si le paramètre est
+  // inactif ou la ligne n'a pas de nombre renseigné : ignoré dans ce cas.
+  double? ancienNombre,
+  double? nouveauNombre,
+  // Magasin où la vente d'origine a été faite (celui du Mouvement annulé) —
+  // repli sur le magasin système pour les mouvements antérieurs à l'ajout
+  // de cette colonne (magasinCode alors NULL).
+  String? magasinCode,
 }) async {
   try {
     final db = await DbCreator.openDb();
     final service = ProduitMagasinDetailServices(db);
-    final magasinService = MagasinServices(db);
-
-    final systemMagasin = await magasinService.getMagasinByNom("Magasin System");
-    if (systemMagasin == null) return;
 
     final magasinDetail = await service.getSingleByProduitAndMagasin(
         produitCode,
-        systemMagasin.code
+        magasinCode ?? 'MAG0000'
     );
 
     if (magasinDetail != null) {
-      final diff = nouvelleQuantite - ancienneQuantite;
-      final nouvelleQuantiteStock = magasinDetail.quantite + diff;
+      if (ancienNombre != null || nouveauNombre != null) {
+        final diffNombre = (ancienNombre ?? 0) - (nouveauNombre ?? 0);
+        final nouveauNombreStock = magasinDetail.nombre + diffNombre;
+        await service.updateNombre(magasinDetail.id, nouveauNombreStock < 0 ? 0 : nouveauNombreStock);
+      }
 
-      await service.updateQuantite(magasinDetail.id, nouvelleQuantiteStock);
-
-      print('✅ Stock mis à jour pour $produitCode: ${magasinDetail.quantite} -> $nouvelleQuantiteStock');
+      print('✅ Stock (nombre) mis à jour pour $produitCode');
     }
   } catch (e) {
-    print('❌ Erreur _updateMagasinStock: $e');
+    print('❌ Erreur updateMagasinStock: $e');
   }
 }
 
 // ✅ Fonction pour mettre à jour le produit (sans transaction)
-Future<void> _updateProduct({
+// Conservée exportée : utilisée par pannier_actif.dart, voir updateMagasinStock ci-dessus.
+Future<void> updateProduct({
   required String produitCode,
   required double ancienneQuantite,
   required double nouvelleQuantite,
   required double ancienMontant,
   required double nouveauMontant,
+  double? ancienNombre,
+  double? nouveauNombre,
 }) async {
   try {
     final db = await DbCreator.openDb();
@@ -146,8 +163,11 @@ Future<void> _updateProduct({
     final produit = await service.getProduitByCode(produitCode);
     if (produit == null) return;
 
-    final diffQuantite = nouvelleQuantite - ancienneQuantite;
-    produit.quantite = produit.quantite + diffQuantite;
+    if (!produit.service) {
+      if (ancienNombre != null || nouveauNombre != null) {
+        produit.nombre = produit.nombre + ((ancienNombre ?? 0) - (nouveauNombre ?? 0));
+      }
+    }
 
 
 
@@ -163,14 +183,18 @@ Future<void> _updateProduct({
 }
 
 // ✅ Fonction avec retry pour la modification du panier
+//
+// Le contenu fiscal de la vente (produits, quantités, prix, montant, date)
+// est verrouillé dès l'encaissement (conformité art. 51 bis — voir
+// PannierServices.updatePannier) : seules les métadonnées non fiscales
+// (client, mode de paiement, montant versé) restent modifiables ici. Toute
+// correction du contenu vendu doit passer par un Retour.
 Future<ApiResponse<int>> _UpdatePannierWithRetry({
   required String userName,
   required String userCode,
   required Pannier panniere,
-  required List<PannierProduit> produits,
-  required List<PannierProduit> produitOr,
-  required double nouveauMontant,
-  required double ancienMontant,
+  required double ancienVerse,
+  required double nouveauVerse,
 }) async {
   int attempts = 0;
   const maxAttempts = 5;
@@ -181,10 +205,8 @@ Future<ApiResponse<int>> _UpdatePannierWithRetry({
         userName: userName,
         userCode: userCode,
         panniere: panniere,
-        produits: produits,
-        produitOr: produitOr,
-        nouveauMontant: nouveauMontant,
-        ancienMontant: ancienMontant,
+        ancienVerse: ancienVerse,
+        nouveauVerse: nouveauVerse,
       );
     } catch (e) {
       attempts++;
@@ -207,152 +229,89 @@ Future<ApiResponse<int>> _UpdatePannierWithRetry({
   );
 }
 
-// ✅ Modifier le panier SANS transaction globale
+// ✅ Modifier les métadonnées du panier (client, mode de paiement, montant
+// versé) SANS transaction globale — le contenu vendu n'est plus touché ici.
 Future<ApiResponse<int>> _UpdatePannier({
   required String userName,
   required String userCode,
   required Pannier panniere,
-  required List<PannierProduit> produits,
-  required List<PannierProduit> produitOr,
-  required double nouveauMontant,
-  required double ancienMontant,
+  required double ancienVerse,
+  required double nouveauVerse,
 }) async {
   final db = await DbCreator.openDb();
 
   try {
-    final servicem = MouvementsServices(db);
     final services = PannierServices(db);
     final serviceC = ClientServices(db);
-    final servicep = PPServices(db);
+    final serviceV = VerssementServices(db);
 
     final clients = await ClientServices.getAllClients();
     final client = clients.where((e) => e.code == panniere.client_code).first;
 
-    final mouvements = await MouvementsServices.getAllMouvementsByCodeOper(panniere.code);
-
-    final diffMontant = nouveauMontant - ancienMontant;
-
-    // 1. Mettre à jour le panier
+    // 1. Mettre à jour les métadonnées du panier
     final response = await services.updatePannier(panniere);
-
-    // 2. Parcourir les produits
-    for (var prodO in produitOr) {
-      final exists = produits.any((p) => p.id == prodO.id);
-
-      if (!exists) {
-        // Produit supprimé : AJOUTER au stock
-        await _updateMagasinStock(
-          produitCode: prodO.codeProduit,
-          ancienneQuantite: 0,
-          nouvelleQuantite: prodO.quantite,
-        );
-
-        await _updateProduct(
-          produitCode: prodO.codeProduit,
-          ancienneQuantite: prodO.quantite,
-          nouvelleQuantite: 0,
-          ancienMontant: prodO.total,
-          nouveauMontant: 0,
-        );
-
-        final mouv = mouvements.where((e) => e.codeProduit == prodO.codeProduit).firstOrNull;
-        if (mouv != null) {
-          await MouvementsServices.deleteMouvement(mouv.id);
-        }
-
-        await servicep.deletePP(prodO.id);
-
-        await _addHistorique(
-          type: 'pannierProduit',
-          desc: "L'utilisateur $userName a supprimé le produit ${_nomProduit(prodO.codeProduit)} du panier ${panniere.code}",
-          userName: userName,
-          userCode: userCode,
-        );
-      } else {
-        final prod = produits.where((e) => e.id == prodO.id).first;
-        final diffQte = prod.quantite - prodO.quantite;
-
-        if (diffQte != 0) {
-          await _updateMagasinStock(
-            produitCode: prod.codeProduit,
-            ancienneQuantite: prodO.quantite,
-            nouvelleQuantite: prod.quantite,
-          );
-
-          await _updateProduct(
-            produitCode: prod.codeProduit,
-            ancienneQuantite: prodO.quantite,
-            nouvelleQuantite: prod.quantite,
-            ancienMontant: prodO.total,
-            nouveauMontant: prod.total,
-          );
-
-          final mouv = mouvements.where((e) => e.codeProduit == prod.codeProduit).firstOrNull;
-          if (mouv != null) {
-            mouv.dateModif = DateTime.now();
-            mouv.prixVente = prod.prix;
-            mouv.quantite = prod.quantite;
-            mouv.modifParCode = userCode;
-            mouv.clientCode = panniere.client_code;
-            mouv.date = panniere.date;
-            await servicem.updateMouvement(mouv);
-          }
-
-          await servicep.updatePP(prod);
-
-          await _addHistorique(
-            type: 'pannierProduit',
-            desc: "L'utilisateur $userName a modifié ${_nomProduit(prod.codeProduit)}: qté ${prodO.quantite}->${prod.quantite}",
-            userName: userName,
-            userCode: userCode,
-          );
-        }
-      }
+    if (!response.success) {
+      return response;
     }
 
-    // 3. Vérifier les nouveaux produits
-    for (var prod in produits) {
-      final exists = produitOr.any((p) => p.id == prod.id);
-      if (!exists) {
-        // Nouveau produit : DIMINUER le stock
-        await _updateMagasinStock(
-          produitCode: prod.codeProduit,
-          ancienneQuantite: 0,
-          nouvelleQuantite: -prod.quantite,
-        );
+    // 2. Répercuter le nouveau montant versé sur le versement client lié à ce panier
+    final diffVerse = nouveauVerse - ancienVerse;
+    if (diffVerse != 0) {
+      final versementsPannier = await serviceV.getVerssementsByCodeOperation(panniere.code);
+      final versementClient = versementsPannier
+          .where((v) => v.typebeneficiare == 'Client' && v.sense == 'Entrée')
+          .firstOrNull;
 
-        await _updateProduct(
-          produitCode: prod.codeProduit,
-          ancienneQuantite: 0,
-          nouvelleQuantite: prod.quantite,
-          ancienMontant: 0,
-          nouveauMontant: prod.total,
+      if (versementClient != null) {
+        versementClient.montant = nouveauVerse;
+        versementClient.etat = nouveauVerse > 0;
+        versementClient.dateModif = DateTime.now();
+        versementClient.modifParCode = userCode;
+        await serviceV.updateVerssement(versementClient);
+      } else if (nouveauVerse > 0) {
+        final nextVerssementId = await VerssementServices.getNextVerssementId(db);
+        final nouveauVersement = Verssement(
+          id: nextVerssementId,
+          code: CodeGenerator.generateCode(
+            prefix: CodePrefix.verssement,
+            id: nextVerssementId,
+            digitCount: 6,
+          ),
+          date: DateTime.now(),
+          typebeneficiare: "Client",
+          beneficiareCode: client.code,
+          montant: nouveauVerse,
+          etat: true,
+          mode_paiement: panniere.modePaiement ?? "Espèce",
+          sense: 'Entrée',
+          type: "Paiement",
+          dateCree: DateTime.now(),
+          creeParCode: userCode,
+          caisse: panniere.caisse,
+          codeOperation: panniere.code,
         );
+        await serviceV.addverssement(nouveauVersement);
       }
-    }
-
-    // 4. Mettre à jour le client
-    if (diffMontant != 0) {
-      client.dernierAchat = DateTime.now();
-      client.dateModif = DateTime.now();
-      client.modifParCode = userCode;
-      await serviceC.updateClient(client);
 
       await _addHistorique(
-        type: 'Client',
-        desc: "L'utilisateur $userName a modifié le client ${client.nom}",
+        type: 'Versement',
+        desc: "L'utilisateur $userName a modifié le montant versé du panier ${panniere.code}: $ancienVerse->$nouveauVerse",
         userName: userName,
         userCode: userCode,
       );
     }
 
-    // 6. Historique principal du panier
+    // 3. Historique principal du panier
     await _addHistorique(
       type: 'panniers',
-      desc: "L'utilisateur $userName a modifié le panier ${panniere.code}: montant $ancienMontant->$nouveauMontant",
+      desc: "L'utilisateur $userName a modifié le panier ${panniere.code} (client/mode de paiement/versement)",
       userName: userName,
       userCode: userCode,
     );
+
+    client.dateModif = DateTime.now();
+    client.modifParCode = userCode;
+    await serviceC.updateClient(client);
 
     return response;
   } catch (e) {
@@ -364,7 +323,11 @@ Future<ApiResponse<int>> _UpdatePannier({
   }
 }
 
-Future<void> PannierModif(BuildContext context, Pannier panier) async {
+Future<void> PannierModif(
+    BuildContext context,
+    Pannier panier, {
+      VoidCallback? onSuccess, // 👈 Ajouter ce callback
+    }) async {
   await _LoadAllData();
   final auth = Provider.of<AuthState>(context, listen: false);
   final userName = auth.username!;
@@ -381,18 +344,24 @@ Future<void> PannierModif(BuildContext context, Pannier panier) async {
     return;
   }
 
-  final double ancienMontant = panier.montant;
+  final db = await DbCreator.openDb();
+  final serviceV = VerssementServices(db);
+  final versementsPannier = await serviceV.getVerssementsByCodeOperation(panier.code);
+  // Montant versé = somme des versements actifs liés à ce panier (calcul
+  // dynamique, la colonne verse/reste n'existe plus sur le panier).
+  final double ancienVerse = versementsPannier
+      .where((v) => v.etat)
+      .fold(0.0, (s, v) => s + v.montant);
 
   dateController.text = panier.date.toString();
-  verseController.text = panier.verse.toStringAsFixed(2);
-  resteController.text = ((panier.montant) - (panier.verse)).toStringAsFixed(2);
+  verseController.text = ancienVerse.toStringAsFixed(2);
+  resteController.text = ((panier.montant) - ancienVerse).toStringAsFixed(2);
   selectedModePaiement = panier.modePaiement ?? "Espèce";
   selectedClient = clientsTest.where((c) => c.code == panier.client_code).firstOrNull?.nom;
-  selectedEtatR = panier.etat ? 'Actif' : 'Inactif';
 
-  List<PannierProduit> produitsDuPanier = pannierProduitsTest
+  // Contenu vendu — affichage seul, non modifiable (voir PannierServices.updatePannier).
+  final List<PannierProduit> produitsDuPanier = pannierProduitsTest
       .where((p) => p.codePannier == panier.code).toList();
-  List<PannierProduit> Orignal = List.from(produitsDuPanier);
 
   return showDialog(
     context: context,
@@ -402,22 +371,14 @@ Future<void> PannierModif(BuildContext context, Pannier panier) async {
       return StatefulBuilder(
         builder: (context, setState) {
           final l10n = AppLocalizations.of(context)!;
-          double nouveauMontant = panier.montant;
 
           void _updateReste() {
             double verse = double.tryParse(verseController.text) ?? 0;
-            double montant = nouveauMontant;
-            resteController.text = (montant - verse).toStringAsFixed(2);
-          }
-
-          void _recalculerTotal() {
-            double total = 0;
-            for (var p in produitsDuPanier) {
-              total += p.quantite * p.prix;
+            if (verse > panier.montant) {
+              verse = panier.montant;
+              verseController.text = verse.toStringAsFixed(2);
             }
-            nouveauMontant = total;
-            panier.montant = total;
-            _updateReste();
+            resteController.text = (panier.montant - verse).toStringAsFixed(2);
           }
 
           return ClipRect(
@@ -450,34 +411,11 @@ Future<void> PannierModif(BuildContext context, Pannier panier) async {
                                 ),
                                 const SizedBox(height: 10),
                                 ChampAvecLabel(
-                                  label: l10n.status,
-                                  child: TextListe(
-                                    value: selectedEtatR,
-                                    items: [l10n.active, l10n.inactive],
-                                    onChanged: (v) => setState(() {
-                                      selectedEtatR = v;
-                                    }),
-                                  ),
-                                ),
-                                const SizedBox(height: 10),
-                                ChampAvecLabel(
                                   label: l10n.date,
-                                  child: TextDate(
+                                  child: TextChampL(
                                     controller: dateController,
-                                    hint: l10n.selectDatew,
-                                    onTap: () async {
-                                      DateTime? pickedDate = await showDatePicker(
-                                        initialDate: panier.dateCree,
-                                        firstDate: DateTime(2000),
-                                        lastDate: DateTime(2100),
-                                        context: context,
-                                      );
-                                      if (pickedDate != null) {
-                                        setState(() {
-                                          dateController.text = pickedDate.toString();
-                                        });
-                                      }
-                                    },
+                                    enabled: false,
+                                    hint: '',
                                   ),
                                 ),
                                 const SizedBox(height: 10),
@@ -485,7 +423,7 @@ Future<void> PannierModif(BuildContext context, Pannier panier) async {
                                   label: l10n.numberOfItems,
                                   child: TextChampL(
                                     controller: TextEditingController(
-                                        text: panier.nombreArticle?.toString() ?? "0"),
+                                        text: (panier.nombreArticle ?? produitsDuPanier.length).toString()),
                                     hint: '',
                                     enabled: false,
                                   ),
@@ -495,7 +433,7 @@ Future<void> PannierModif(BuildContext context, Pannier panier) async {
                                   label: l10n.totalAmount,
                                   child: TextChampL(
                                     controller: TextEditingController(
-                                        text: nouveauMontant.toStringAsFixed(2)),
+                                        text: panier.montant.toStringAsFixed(2)),
                                     hint: '',
                                     enabled: false,
                                   ),
@@ -586,64 +524,18 @@ Future<void> PannierModif(BuildContext context, Pannier panier) async {
                                   DataColumn(label: Text(l10n.productCode)),
                                   DataColumn(label: Text(l10n.productName)),
                                   DataColumn(label: Text(l10n.quantity)),
+                                  DataColumn(label: Text(l10n.numberField)),
                                   DataColumn(label: Text(l10n.price)),
                                   DataColumn(label: Text(l10n.total)),
-                                  DataColumn(label: Text(l10n.delete)),
                                 ],
                                 rows: produitsDuPanier.map((p) {
-                                  final quantiteController = TextEditingController(text: p.quantite.toString());
-                                  final prixController = TextEditingController(text: p.prix.toStringAsFixed(2));
-
-                                  void _updateTotal() {
-                                    double q = double.tryParse(quantiteController.text) ?? 0;
-                                    double pr = double.tryParse(prixController.text) ?? 0;
-                                    setState(() {
-                                      p.quantite = q;
-                                      p.prix = pr;
-                                      p.total = q * pr;
-                                      _recalculerTotal();
-                                    });
-                                  }
-
                                   return DataRow(cells: [
                                     DataCell(Text(p.codeProduit)),
                                     DataCell(Text(_nomProduit(p.codeProduit))),
-                                    DataCell(
-                                      SizedBox(
-                                        width: 60,
-                                        child: TextField(
-                                          keyboardType: TextInputType.number,
-                                          controller: quantiteController,
-                                          onChanged: (_) {
-                                            _updateTotal();
-                                          },
-                                        ),
-                                      ),
-                                    ),
-                                    DataCell(
-                                      SizedBox(
-                                        width: 80,
-                                        child: TextField(
-                                          keyboardType: TextInputType.number,
-                                          controller: prixController,
-                                          onChanged: (_) {
-                                            _updateTotal();
-                                          },
-                                        ),
-                                      ),
-                                    ),
-                                    DataCell(Text((p.total).toStringAsFixed(2))),
-                                    DataCell(
-                                      IconButton(
-                                        icon: const Icon(Icons.delete, color: Colors.red),
-                                        onPressed: () {
-                                          setState(() {
-                                            produitsDuPanier.remove(p);
-                                            _recalculerTotal();
-                                          });
-                                        },
-                                      ),
-                                    ),
+                                    DataCell(Text(QuantiteFormat.format(p.quantite))),
+                                    DataCell(Text(p.nombre != null ? QuantiteFormat.format(p.nombre!) : '-')),
+                                    DataCell(Text(p.prix.toStringAsFixed(2))),
+                                    DataCell(Text(NumberFormatUtil.formatMontant(p.total, decimales: 2))),
                                   ]);
                                 }).toList(),
                               ),
@@ -661,14 +553,17 @@ Future<void> PannierModif(BuildContext context, Pannier panier) async {
                       text: l10n.cancel,
                       icon: Icons.cancel,
                       color: Appstyle.gris,
-                      onPressed: () => Navigator.pop(context),
+                      onPressed: () {
+                        Navigator.pop(context);
+                      },
                     ),
                     const SizedBox(width: 10),
                     MainButton(
                       text: l10n.modify,
                       color: Appstyle.violet,
                       onPressed: () async {
-                        // Mise à jour du panier
+                        // Mise à jour des métadonnées uniquement — le contenu vendu
+                        // (produits/qté/prix/montant/date) reste inchangé.
                         panier.modePaiement = selectedModePaiement;
                         panier.dateModif = DateTime.now();
                         panier.modifParCode = userCode;
@@ -676,12 +571,7 @@ Future<void> PannierModif(BuildContext context, Pannier panier) async {
                             .where((c) => c.nom == selectedClient)
                             .firstOrNull
                             ?.code;
-                        panier.verse = double.tryParse(verseController.text) ?? 0;
-                        panier.reste = nouveauMontant - panier.verse;
-                        panier.date = DateTime.parse(dateController.text);
-                        panier.montant = nouveauMontant;
-                        panier.nombreArticle = produitsDuPanier.length;
-                        panier.etat = selectedEtatR == 'Actif';
+                        final nouveauVerse = double.tryParse(verseController.text) ?? 0;
 
                         ScaffoldMessenger.of(context).showSnackBar(
                           const SnackBar(
@@ -694,13 +584,13 @@ Future<void> PannierModif(BuildContext context, Pannier panier) async {
                           panniere: panier,
                           userCode: userCode,
                           userName: userName,
-                          produits: produitsDuPanier,
-                          produitOr: Orignal,
-                          nouveauMontant: nouveauMontant,
-                          ancienMontant: ancienMontant,
+                          ancienVerse: ancienVerse,
+                          nouveauVerse: nouveauVerse,
                         );
 
                         if (!response.success) {
+
+
                           ScaffoldMessenger.of(context).showSnackBar(
                             SnackBar(
                               content: Text(response.message ?? "Erreur"),
@@ -709,6 +599,9 @@ Future<void> PannierModif(BuildContext context, Pannier panier) async {
                             ),
                           );
                           return;
+                        }
+                        if (onSuccess != null) {
+                          onSuccess();
                         }
 
                         ScaffoldMessenger.of(context).showSnackBar(

@@ -1,8 +1,7 @@
-// lib/core/widget/tableau/magasin/magasin_data_source.dart
-
 import 'package:flutter/material.dart';
 import 'package:syncfusion_flutter_datagrid/datagrid.dart';
-import '../../../../data/models/magasin.dart';
+
+import '../../../data/models/magasin.dart';
 import '../../../l10n/app_localizations.dart';
 import '../../widget/status_badge.dart';
 import '../base_table_data_source.dart';
@@ -14,6 +13,7 @@ class MagasinDataSource extends BaseTableDataSource<Magasin> {
     required List<Magasin> magasins,
     required super.columnConfig,
     required this.l10n,
+    super.utilisateurs = const [],
   }) : super(items: magasins);
 
   String formatDate(DateTime? date) {
@@ -33,26 +33,26 @@ class MagasinDataSource extends BaseTableDataSource<Magasin> {
         return magasin.code;
       case 'nom':
         return magasin.nom;
-      case 'observation':
-        return magasin.observation;
       case 'adresse':
         return magasin.adresse;
       case 'etat':
         return magasin.etat ? l10n.active : l10n.inactive;
+      case 'observation':
+        return magasin.observation;
 
       // Audit
       case 'dateCree':
         return formatDate(magasin.dateCree);
       case 'creeParCode':
-        return magasin.creeParCode;
+        return nomUtilisateur(magasin.creeParCode);
       case 'dateModif':
         return formatDate(magasin.dateModif);
       case 'modifParCode':
-        return magasin.modifParCode;
+        return nomUtilisateur(magasin.modifParCode);
       case 'dateAnnul':
         return formatDate(magasin.dateAnnul);
       case 'annulParCode':
-        return magasin.annulParCode;
+        return nomUtilisateur(magasin.annulParCode);
       case 'motifAnnul':
         return magasin.motifAnnul;
 
@@ -66,6 +66,7 @@ class MagasinDataSource extends BaseTableDataSource<Magasin> {
     if (columnName == 'etat') {
       return Center(child: EtatBadge(isActive: item.etat));
     }
+
     return null;
   }
 

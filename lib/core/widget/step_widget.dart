@@ -4,8 +4,9 @@ import 'package:flutter/material.dart';
 import 'package:caisse_dz/core/theme/app_style.dart';
 
 class StepIndicator extends StatelessWidget {
-  final int activeStep; // 1,2,3
-  const StepIndicator({super.key, required this.activeStep});
+  final int activeStep; // 1..totalSteps
+  final int totalSteps;
+  const StepIndicator({super.key, required this.activeStep, this.totalSteps = 3});
 
   Color getColor(int step) {
     return step <= activeStep ? Appstyle.violet : Appstyle.gris; // violet / gris
@@ -15,16 +16,10 @@ class StepIndicator extends StatelessWidget {
   Widget build(BuildContext context) {
     return Row(
       children: [
-        // --- Step 1 ---
-        _buildCircle(1),
-        _buildLine(1),
-
-        // --- Step 2 ---
-        _buildCircle(2),
-        _buildLine(2),
-
-        // --- Step 3 ---
-        _buildCircle(3),
+        for (int step = 1; step <= totalSteps; step++) ...[
+          _buildCircle(step),
+          if (step < totalSteps) _buildLine(step),
+        ],
       ],
     );
   }

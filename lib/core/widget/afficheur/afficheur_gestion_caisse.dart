@@ -2,6 +2,7 @@ import 'package:caisse_dz/data/models/gestion_caisse.dart';
 import 'package:caisse_dz/l10n/app_localizations.dart';
 import 'package:flutter/material.dart';
 import 'package:caisse_dz/core/theme/app_style.dart';
+import 'package:caisse_dz/core/utilis/number_format.dart';
 
 class AfficheurCaisseGestion extends StatelessWidget {
 
@@ -238,7 +239,7 @@ class AfficheurCaisseGestion extends StatelessWidget {
 
           Text(
             customText ??
-                "${value.toStringAsFixed(0)}${suffix ?? ""}",
+                "${NumberFormatUtil.formatMontant(value, decimales: 0)}${suffix ?? ""}",
 
             style: TextStyle(
               fontWeight: FontWeight.bold,

@@ -1,5 +1,6 @@
 import 'dart:ui';
 import 'package:caisse_dz/DBCreate.dart';
+import 'package:caisse_dz/Services/CatalogSyncService.dart';
 import 'package:caisse_dz/Services/Historique.dart';
 import 'package:caisse_dz/Services/MagasinDetail.dart';
 import 'package:caisse_dz/Services/Mouvement.dart';
@@ -12,7 +13,6 @@ import 'package:caisse_dz/l10n/app_localizations.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../../../data/models/produit.dart';
-import '../../../Services/Magasin.dart';
 import '../../../Services/Pack.dart';
 import '../../../Services/Remise.dart';
 import '../../../Services/SousCategories.dart';
@@ -53,7 +53,6 @@ Future<void> DeleteProduit({
   final sousCategorieService = SousCategoriesServices(db);
   final remiseService = RemiseServices(db);
   final packService = PackServices(db);
-  final magasinService = MagasinServices(db);
   final servicep = await ProduitPackDetailServices(db);
   final servicem = await ProduitMagasinDetailServices(db);
   final serviceh = await HistoriqueServices(db);
@@ -96,6 +95,7 @@ Future<void> DeleteProduit({
     await serviceh.addHistorique(histM);
 
     await servicep.deleteAllDetailes2(produit.code);
+    await CatalogSyncService().deleteSyncRow(produit.code);
     await services.deleteProduitt(produit.id);
 
     final int idH = await _GetNextHistoriqueId();
@@ -132,6 +132,8 @@ Future<void> AnnulerProduit(
   List<String>? produitsAvecMouvement = await havemovment(produits: produitsSelectionnes);
 
   if (produitsAvecMouvement == null || produitsAvecMouvement.isEmpty) {
+    // ✅ Quantités calculées depuis le journal des mouvements — remplace Produit.quantite.
+    final quantites = (await MouvementsServices.totauxParProduit()).quantites;
     return showDialog(
       context: context,
       barrierDismissible: false,
@@ -180,7 +182,7 @@ Future<void> AnnulerProduit(
                                     ),
                                   ),
                                   Text(
-                                    "${l10n.quantity}: ${p.quantite}",
+                                    "${l10n.quantity}: ${quantites[p.code] ?? 0}",
                                     style: Appstyle.textSB.copyWith(
                                       color: Appstyle.violet,
                                     ),

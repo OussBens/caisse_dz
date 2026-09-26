@@ -1,4 +1,6 @@
 import 'dart:ui';
+import 'package:caisse_dz/DBCreate.dart';
+import 'package:caisse_dz/Services/TransfertCaisse.dart';
 import 'package:caisse_dz/core/Auth/auth_state.dart';
 import 'package:caisse_dz/l10n/app_localizations.dart';
 import 'package:flutter/material.dart';
@@ -10,6 +12,18 @@ import '../../widget/button/main_button.dart';
 import '../../widget/title/titre_avec_ligne.dart';
 import '../base_dialog.dart';
 import '../information_dialog.dart';
+import 'package:caisse_dz/core/utilis/number_format.dart';
+
+Future<int> _deleteTransferts(List<TransfertCaisse> transferts) async {
+  final db = await DbCreator.openDb();
+  final services = TransfertcaisseServices(db);
+  int i = 0;
+  for (var transfert in transferts) {
+    await services.deleteTransfertcaisse(transfert.id);
+    i++;
+  }
+  return i;
+}
 
 Future<void> AnnulerTransfertCaisse(
     BuildContext context,
@@ -80,7 +94,7 @@ Future<void> AnnulerTransfertCaisse(
                                     "- ${l10n.code}: ${t.code} "
                                     "- ${l10n.from}: ${t.caisseExpCode} "
                                     "- ${l10n.to}: ${t.caisseDestCode} "
-                                    "- ${l10n.amount}: ${t.montant.toStringAsFixed(2)} ${l10n.currency} "
+                                    "- ${l10n.amount}: ${NumberFormatUtil.formatMontant(t.montant, decimales: 2)} ${l10n.currency} "
                                     "- ${l10n.date}: ${t.dateTransfert.toLocal().toString().split(' ')[0]}",
                                 style: Appstyle.textSB.copyWith(
                                   color: Appstyle.Tnoir,
@@ -125,6 +139,18 @@ Future<void> AnnulerTransfertCaisse(
                           titre: l10n.transfers,
                           message: l10n.confirmCancelTransfers,
                           onConfirmer: () async {
+                            final response = await _deleteTransferts(transfertsSelectionnes);
+
+                            if (response == 0) {
+                              await InformationDialog(
+                                context: context,
+                                titre_type_message: l10n.information,
+                                titre_concerne: l10n.transfers,
+                                message: l10n.noTransferSelected ?? "Aucun transfert sélectionné !",
+                              );
+                              return;
+                            }
+
                             await InformationDialog(
                                 context: context,
                                 titre_type_message: l10n.success,

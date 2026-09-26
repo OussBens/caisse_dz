@@ -1,5 +1,10 @@
 import 'dart:ui';
 
+import 'package:caisse_dz/Services/ExcelPreviewDialog.dart';
+import 'package:caisse_dz/Services/PDFPreviewDialog.dart';
+import 'package:caisse_dz/Services/excel_generator.dart';
+import 'package:caisse_dz/Services/pdf_generator_latin.dart';
+import 'package:caisse_dz/Services/pdf_table_generator.dart';
 import 'package:caisse_dz/core/Auth/auth_state.dart';
 import 'package:caisse_dz/core/tableau/operation/tableau_operation_f.dart';
 import 'package:caisse_dz/l10n/app_localizations.dart';
@@ -18,9 +23,157 @@ import '../../widget/button/main_button.dart';
 import '../../widget/champ/champ_avec_label.dart';
 import '../../widget/champ/date_champ.dart';
 import '../../widget/champ/liste_champ.dart';
+import '../../widget/filtre/periode_rapide_filter.dart';
 import '../../widget/title/titre_avec_ligne.dart';
 import '../base_dialog.dart';
 import '../information_dialog.dart';
+import 'package:caisse_dz/core/utilis/number_format.dart';
+
+String _typeOperationFournisseurLabel(TypeOperationFournisseur type, AppLocalizations l10n) {
+  switch (type) {
+    case TypeOperationFournisseur.achat:
+      return l10n.purchase;
+    case TypeOperationFournisseur.retour:
+      return l10n.return_;
+    case TypeOperationFournisseur.versement_ENT:
+    case TypeOperationFournisseur.versement_SRT:
+      return l10n.payment;
+  }
+}
+
+List<List<String>> _lignesOperationsFournisseur(List<OperationFournisseur> operations, AppLocalizations l10n) {
+  double running = 0;
+  return operations.map((op) {
+    running += op.credit - op.debit;
+    return [
+      _formatDate(op.date),
+      _typeOperationFournisseurLabel(op.type, l10n),
+      op.reference,
+      NumberFormatUtil.formatMontant(op.debit, decimales: 2),
+      NumberFormatUtil.formatMontant(op.credit, decimales: 2),
+      NumberFormatUtil.formatMontant(running, decimales: 2),
+      op.description,
+    ];
+  }).toList();
+}
+
+Future<void> _exportSituationFournisseurPdf(
+  BuildContext context,
+  AppLocalizations l10n,
+  Fournisseur fournisseur,
+  List<OperationFournisseur> operations,
+  String periode,
+) async {
+  if (operations.isEmpty) {
+    await InformationDialog(
+      context: context,
+      titre_type_message: l10n.information,
+      titre_concerne: l10n.fournisseur,
+      message: l10n.noDataToExport,
+    );
+    return;
+  }
+
+  final headers = [l10n.date, l10n.type, l10n.ref, l10n.debit, l10n.credit, l10n.balance, l10n.description];
+  final rows = _lignesOperationsFournisseur(operations, l10n);
+
+  final pdfBytes = await PDFTableGenerator.generateTableReport(
+    title: l10n.supplierSituation(fournisseur.nom),
+    subtitleLines: [periode],
+    headers: headers,
+    rows: rows,
+  );
+
+  if (!context.mounted) return;
+  showDialog(
+    context: context,
+    barrierDismissible: false,
+    builder: (context) => PDFPreviewDialog(
+      pdfBytes: pdfBytes,
+      l10n: l10n,
+      onPrint: () async {
+        Navigator.pop(context);
+        await PDFGeneratorLatin.printPDF(pdfBytes);
+      },
+      onSave: () async {
+        final file = await PDFGeneratorLatin.savePDF(
+          pdfBytes,
+          'SituationFournisseur_${fournisseur.code}_${DateTime.now().millisecondsSinceEpoch}.pdf',
+        );
+        Navigator.pop(context);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(l10n.exportSuccess), backgroundColor: Colors.green),
+        );
+        await PDFGeneratorLatin.openPDF(file);
+      },
+      onShare: () => Navigator.pop(context),
+      onCancel: () => Navigator.pop(context),
+    ),
+  );
+}
+
+Future<void> _exportSituationFournisseurExcel(
+  BuildContext context,
+  AppLocalizations l10n,
+  Fournisseur fournisseur,
+  List<OperationFournisseur> operations,
+) async {
+  if (operations.isEmpty) {
+    await InformationDialog(
+      context: context,
+      titre_type_message: l10n.information,
+      titre_concerne: l10n.fournisseur,
+      message: l10n.noDataToExport,
+    );
+    return;
+  }
+
+  try {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => const Center(child: CircularProgressIndicator()),
+    );
+
+    final headers = [l10n.date, l10n.type, l10n.ref, l10n.debit, l10n.credit, l10n.balance, l10n.description];
+    final rows = _lignesOperationsFournisseur(operations, l10n);
+
+    final excelFile = await ExcelGenerator.generateOperationsExcel(
+      title: l10n.supplierSituation(fournisseur.nom),
+      headers: headers,
+      rows: rows,
+      l10n: l10n,
+    );
+
+    if (!context.mounted) return;
+    Navigator.pop(context);
+
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => ExcelPreviewDialog(
+        data: rows,
+        headers: headers,
+        title: fournisseur.nom,
+        l10n: l10n,
+        excelFile: excelFile,
+        onSave: () {
+          Navigator.pop(context);
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text(l10n.exportSuccess), backgroundColor: Colors.green),
+          );
+        },
+        onShare: () => Navigator.pop(context),
+        onCancel: () => Navigator.pop(context),
+      ),
+    );
+  } catch (e) {
+    if (Navigator.canPop(context)) Navigator.pop(context);
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text('${l10n.exportError}: $e'), backgroundColor: Colors.red),
+    );
+  }
+}
 
 Future<void> SituationFournisseurDialog(
     BuildContext context, {
@@ -46,6 +199,7 @@ Future<void> SituationFournisseurDialog(
   DateTime dateDebut = DateTime.now().subtract(const Duration(days: 30));
   DateTime dateFin = DateTime.now();
   TypeOperationFournisseur? typeFilter;
+  String? periodeRapide;
 
   final dateDebutCtrl = TextEditingController(text: _formatDate(dateDebut));
   final dateFinCtrl = TextEditingController(text: _formatDate(dateFin));
@@ -143,6 +297,29 @@ Future<void> SituationFournisseurDialog(
                         const SizedBox(width: 12),
 
                         Expanded(
+                          child: PeriodeRapideDropdown(
+                            l10n: l10n,
+                            value: periodeRapide,
+                            onSelected: (key) {
+                              final periode = calculerPeriodeRapide(key);
+                              setState(() {
+                                periodeRapide = key;
+                                dateDebut = periode.debut;
+                                dateFin = periode.fin;
+                                dateDebutCtrl.text = _formatDate(periode.debut);
+                                dateFinCtrl.text = _formatDate(periode.fin);
+                              });
+                            },
+                          ),
+                        ),
+                      ],
+                    ),
+
+                    const SizedBox(height: 12),
+
+                    Row(
+                      children: [
+                        Expanded(
                           child: ChampAvecLabel(
                             label: l10n.type,
                             child: TextListe(
@@ -206,6 +383,30 @@ Future<void> SituationFournisseurDialog(
                 footer: Row(
                   mainAxisAlignment: MainAxisAlignment.end,
                   children: [
+                    MainButton(
+                      text: l10n.extract,
+                      textColor: Colors.green,
+                      iconColor: Colors.green,
+                      color: Appstyle.Tblanc,
+                      icon: Icons.download,
+                      onPressed: () => _exportSituationFournisseurExcel(context, l10n, fournisseur, operations),
+                    ),
+                    const SizedBox(width: 10),
+                    MainButton(
+                      text: l10n.extractPdf,
+                      textColor: Colors.red,
+                      iconColor: Colors.red,
+                      color: Appstyle.Tblanc,
+                      icon: Icons.picture_as_pdf,
+                      onPressed: () => _exportSituationFournisseurPdf(
+                        context,
+                        l10n,
+                        fournisseur,
+                        operations,
+                        "${l10n.from}: ${dateDebutCtrl.text}    ${l10n.to}: ${dateFinCtrl.text}",
+                      ),
+                    ),
+                    const SizedBox(width: 10),
                     MainButton(
                       text: l10n.close,
                       color: Appstyle.gris,

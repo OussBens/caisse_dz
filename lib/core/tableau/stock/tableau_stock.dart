@@ -6,11 +6,12 @@ import 'package:caisse_dz/data/models/sous_categorie.dart';
 import 'package:caisse_dz/data/models/remise.dart';
 import 'package:caisse_dz/data/models/fournisseur.dart';
 import 'package:caisse_dz/data/models/produit.dart';
+import 'package:caisse_dz/data/models/utilisateur.dart';
 import 'package:caisse_dz/l10n/app_localizations.dart';
 import 'package:flutter/material.dart';
 import 'package:syncfusion_flutter_core/theme.dart';
 import 'package:syncfusion_flutter_datagrid/datagrid.dart';
-import 'package:caisse_dz/core/widget/tableau/paginated.dart';
+import '../filter_icon_builder.dart';
 
 class TableauStockAdvanced extends StatefulWidget {
   final List<Produit> produits;
@@ -18,6 +19,13 @@ class TableauStockAdvanced extends StatefulWidget {
   final List<SousCategorie> sousCategories;
   final List<Remise> remises;
   final List<Fournisseur> fournisseurs;
+  final List<Utilisateur> utilisateurs;
+  final double seuilMinimum;
+
+  /// Quantité par produit calculée depuis le journal des mouvements — voir
+  /// TableauProduitAdvanced.quantites (même mécanisme, même source de
+  /// données partagée ProduitDataSource).
+  final Map<String, double> quantites;
   final void Function(List<Produit>)? onSelectionChanged;
 
   const TableauStockAdvanced({
@@ -27,6 +35,9 @@ class TableauStockAdvanced extends StatefulWidget {
     required this.sousCategories,
     required this.remises,
     required this.fournisseurs,
+    this.utilisateurs = const [],
+    this.seuilMinimum = 0,
+    this.quantites = const {},
     this.onSelectionChanged,
   });
 
@@ -40,18 +51,8 @@ class _TableauStockAdvancedState extends State<TableauStockAdvanced> {
 
   late ProduitDataSource dataSource;
   final Map<String, double> columnWidths = {};
-  int rowsPerPage = 15;
-  int currentPage = 1;
-
-  List<Produit> get paginatedData {
-    final start = (currentPage - 1) * rowsPerPage;
-    final end = (start + rowsPerPage).clamp(0, widget.produits.length);
-    if (start >= widget.produits.length) return [];
-    return widget.produits.sublist(start, end);
-  }
-
-  int get totalPages =>
-      (widget.produits.isEmpty) ? 1 : (widget.produits.length / rowsPerPage).ceil().clamp(1, 9999);
+  int _rowsPerPage = 15;
+  static const List<int> _rowsPerPageOptions = [10, 15, 20, 30, 50];
 
   bool selectAll = false;
 
@@ -83,8 +84,6 @@ class _TableauStockAdvancedState extends State<TableauStockAdvanced> {
       'uniteMesure': {'visible': true, 'label': 'unit', 'field': 'uniteMesure'},
       'emballage1': {'visible': false, 'label': 'packaging1', 'field': 'emballage1'},
       'emballage2': {'visible': false, 'label': 'packaging2', 'field': 'emballage2'},
-      'seuilMin': {'visible': false, 'label': 'minThreshold', 'field': 'seuilMin'},
-      'seuilMax': {'visible': false, 'label': 'maxThreshold', 'field': 'seuilMax'},
 
       'codeBarre': {'visible': false, 'label': 'barcode', 'field': 'codeBarre'},
       'numeroSerie': {'visible': false, 'label': 'serialNumber', 'field': 'numeroSerie'},
@@ -95,7 +94,6 @@ class _TableauStockAdvancedState extends State<TableauStockAdvanced> {
       'margeTauxPrct': {'visible': false, 'label': 'marginRatePercent', 'field': 'margeTauxPrct'},
       'tva': {'visible': false, 'label': 'vat', 'field': 'tva'},
       'dateEmpreint': {'visible': false, 'label': 'dateBorrowed', 'field': 'dateEmpreint'},
-      'seuilBool': {'visible': false, 'label': 'thresholdBool', 'field': 'seuilBool'},
 
       'dateCree': {'visible': true, 'label': 'createdAt', 'field': 'dateCree'},
       'creeParCode': {'visible': true, 'label': 'createdBy', 'field': 'creeParCode'},
@@ -118,7 +116,7 @@ class _TableauStockAdvancedState extends State<TableauStockAdvanced> {
     final l10n = AppLocalizations.of(context)!;
 
     dataSource = ProduitDataSource(
-      produits: paginatedData,
+      produits: widget.produits,
       columnConfig: columnVisibility.map((k, v) => MapEntry(k, {
         'visible': v['visible'],
         'label': v['label'],
@@ -129,16 +127,37 @@ class _TableauStockAdvancedState extends State<TableauStockAdvanced> {
       sousCategories: widget.sousCategories,
       remises: widget.remises,
       fournisseurs: widget.fournisseurs,
+      seuilMinimum: widget.seuilMinimum,
+      utilisateurs: widget.utilisateurs,
+      quantites: widget.quantites,
     );
+    dataSource.onRowDoubleTap = (produit) => StockDetail(context, produit);
 
     dataSource.addListener(() {
-      widget.onSelectionChanged?.call(dataSource.getSelectedRows());
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted) return;
+        setState(() {});
+        widget.onSelectionChanged?.call(dataSource.getSelectedRows());
+      });
     });
+  }
+
+  @override
+  void didUpdateWidget(covariant TableauStockAdvanced oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.produits != widget.produits) {
+      dataSource.updateProduits(widget.produits);
+    }
+    if (oldWidget.quantites != widget.quantites) {
+      dataSource.updateQuantites(widget.quantites);
+    }
   }
 
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
+
+    final pageCount = (dataSource.items.length / _rowsPerPage).ceil().clamp(1, 9999).toDouble();
 
     return Column(
       children: [
@@ -170,25 +189,22 @@ class _TableauStockAdvancedState extends State<TableauStockAdvanced> {
                       ),
                       child: SfDataGridTheme(
                         data: SfDataGridThemeData(
-                          headerColor: Appstyle.blueC.withOpacity(0.8),
+                          headerColor: Appstyle.violet.withOpacity(0.7),
                           gridLineColor: Colors.grey.shade300,
                           gridLineStrokeWidth: 0.4,
                           sortIconColor: Appstyle.Tblanc,
-                          filterIconColor: Appstyle.Tblanc,
+                          filterIcon: Builder(builder: (context) => buildFilterIcon(context, dataSource)),
                         ),
                         child: SfDataGrid(
                           headerRowHeight: 36,
                           rowHeight: 38,
                           source: dataSource,
+                          rowsPerPage: _rowsPerPage,
                           selectionMode: SelectionMode.multiple,
                           allowSorting: true,
                           allowFiltering: true,
-                          onCellDoubleTap: (details) {
-                            if (details.rowColumnIndex.rowIndex <= 0) return;
-                            final rowIndex = details.rowColumnIndex.rowIndex - 1;
-                            final Produit produit = paginatedData[rowIndex];
-                            StockDetail(context, produit);
-                          },
+                          // Sélection au clic + double-clic pour le détail gérés
+                          // dans BaseTableDataSource.buildRow.
 
                           columnWidthMode: ColumnWidthMode.none,
                           allowColumnsResizing: true,
@@ -259,23 +275,36 @@ class _TableauStockAdvancedState extends State<TableauStockAdvanced> {
           ),
         ),
         const SizedBox(height: 12),
-        PaginationBar(
-          currentPage: currentPage,
-          totalPages: totalPages,
-          rowsPerPage: rowsPerPage,
-          onPageChanged: (page) {
-            setState(() {
-              currentPage = page;
-              dataSource.updateProduits(paginatedData);
-            });
-          },
-          onRowsPerPageChanged: (v) {
-            setState(() {
-              rowsPerPage = v;
-              currentPage = 1;
-              dataSource.updateProduits(paginatedData);
-            });
-          },
+        Container(
+          padding: const EdgeInsets.symmetric(vertical: 6, horizontal: 12),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(14),
+            boxShadow: const [BoxShadow(color: Colors.black12, blurRadius: 10)],
+          ),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              SfDataPager(
+                delegate: dataSource,
+                pageCount: pageCount,
+                direction: Axis.horizontal,
+                itemWidth: 36,
+                itemHeight: 36,
+              ),
+              const SizedBox(width: 20),
+              DropdownButton<int>(
+                value: _rowsPerPage,
+                items: _rowsPerPageOptions
+                    .map((e) => DropdownMenuItem(value: e, child: Text("$e ${l10n.rowsPerPage}")))
+                    .toList(),
+                onChanged: (v) {
+                  if (v == null) return;
+                  setState(() => _rowsPerPage = v);
+                },
+              ),
+            ],
+          ),
         ),
       ],
     );
@@ -300,8 +329,6 @@ class _TableauStockAdvancedState extends State<TableauStockAdvanced> {
       case 'unit': return l10n.unit;
       case 'packaging1': return l10n.packaging1;
       case 'packaging2': return l10n.packaging2;
-      case 'minThreshold': return l10n.minThreshold;
-      case 'maxThreshold': return l10n.maxThreshold;
       case 'barcode': return l10n.barcode;
       case 'serialNumber': return l10n.serialNumber;
       case 'multicode': return l10n.multicode;
@@ -311,7 +338,6 @@ class _TableauStockAdvancedState extends State<TableauStockAdvanced> {
       case 'marginRatePercent': return l10n.marginRatePercent;
       case 'vat': return l10n.vat;
       case 'dateBorrowed': return l10n.dateBorrowed;
-      case 'thresholdBool': return l10n.thresholdBool;
       case 'createdAt': return l10n.createdAt;
       case 'createdBy': return l10n.createdBy;
       case 'cancelledBy': return l10n.cancelledBy;

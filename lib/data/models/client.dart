@@ -31,6 +31,11 @@ class Client {
   String?   observation;
   DateTime? dernierAchat;
 
+  // Programme de bonus/fidélité : solde de points accumulés, dénommé
+  // directement en équivalent monétaire (DA) — utilisable comme mode de
+  // paiement "Points" (voir VerssementServices.addverssement).
+  double    soldeBonus;
+
   // Audit
   DateTime  dateCree;
   String    creeParCode;
@@ -70,6 +75,7 @@ class Client {
     this.dateModif,
     this.motifAnnul,
     this.dernierAchat,
+    this.soldeBonus = 0,
 
   });
 
@@ -107,6 +113,7 @@ class Client {
       dernierAchat  : map['dernier_achat'] != null
           ? DateTime.parse(map['dernier_achat'])
           : null,
+      soldeBonus    : (map['solde_bonus'] as num?)?.toDouble() ?? 0,
       dateAnnul     : map['date_annul'] != null
           ? DateTime.parse(map['date_annul'])
           : null,
@@ -138,6 +145,7 @@ class Client {
       'rib'           : rib,
       'banque'        : banque,
       'dernier_achat' : dernierAchat?.toIso8601String(),
+      'solde_bonus'   : soldeBonus,
       'date_modif'    : dateModif?.toIso8601String(),
       'modif_par_code'     : modifParCode,
       'date_annul'    : dateAnnul?.toIso8601String(),

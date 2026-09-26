@@ -30,6 +30,10 @@ class AppConst {
   static const String msgErreurServeur = "Erreur du serveur !";
   static const String msgAucunResultat = "Aucun résultat trouvé.";
   static const double FontSizeTable = 13;
+  // Fournisseur système par défaut (seedé dans DBCreate._insertDefaultData),
+  // utilisé quand aucun fournisseur n'est renseigné (ex: bon de réception
+  // envoyé depuis le mobile sans fournisseur sélectionné).
+  static const String fournisseurGeneralCode = 'FOR0000';
 }
 // Ajoutez cette classe dans votre fichier constant.dart (après les autres classes)
 
@@ -56,11 +60,18 @@ class CodePrefix {
   static const String caisse = "CS";
   static const String retour = "RET";
   static const String transfert = "TRF";
+  static const String transfertMagasin = "TRM"; // Transfert de marchandise entre magasins
   static const String zakat = "ZKT";
   static const String entree = "EN"; // ✅ Ajout pour les entrées
   static const String role = "ROL"; // ✅ Ajout pour les entrées
   static const String smartscan = "SS"; // ✅ Ajout pour les entrées
   static const String sortie = "SRT"; // ✅ Ajout pour les entrées
+  static const String barcode = "CDZ"; // Préfixe des codes barre auto-générés
+  static const String besoinListe = "BL"; // Préfixe pour la liste de besoins
+  static const String journalFiscal = "JF"; // Préfixe pour le registre fiscal append-only
+  static const String clotureCaisse = "CLT"; // Préfixe pour les clôtures de caisse (rapport Z)
+  static const String caisseSession = "SES"; // Préfixe pour les sessions de caisse (ouverture/clôture)
+  static const String caisseMouvement = "MVC"; // Préfixe pour le grand-livre des mouvements de caisse
 
   // Obtenir la liste complète des préfixes
   static List<String> get allPrefixes => [
@@ -86,7 +97,12 @@ class CodePrefix {
     entree,
     role,
     smartscan,
-    sortie
+    sortie,
+    besoinListe,
+    journalFiscal,
+    clotureCaisse,
+    caisseSession,
+    caisseMouvement,
   ];
 
   // Obtenir la liste des préfixes avec leurs descriptions
@@ -113,7 +129,12 @@ class CodePrefix {
     entree:"Entrée",
     role:"Role",
     smartscan:"Role",
-    sortie:"Sortie"
+    sortie:"Sortie",
+    besoinListe:"Liste de besoins",
+    journalFiscal:"Registre fiscal",
+    clotureCaisse:"Clôture de caisse",
+    caisseSession:"Session de caisse",
+    caisseMouvement:"Mouvement de caisse",
   };
 }
 // -----------------------------
@@ -292,25 +313,26 @@ class ListsConstTranslator {
   ];
 
   // ==================== TYPE PANIER ====================
+  // BL et BL_SC sont regroupés sous le libellé "Facture" (facturation) —
+  // seule la valeur stockée en base reste BL/BL_SC pour compatibilité avec
+  // les panniers déjà enregistrés.
   String translateTypePannier(String frenchValue) {
     switch (frenchValue) {
-      case 'BL': return l10n.bl;
-      case 'BL_SC': return l10n.blSc;
+      case 'BL': return l10n.facture;
+      case 'BL_SC': return l10n.facture;
       case 'Ticket': return l10n.ticket;
       default: return frenchValue;
     }
   }
 
   String typePannierToFrench(String translatedValue) {
-    if (translatedValue == l10n.bl) return 'BL';
-    if (translatedValue == l10n.blSc) return 'BL_SC';
+    if (translatedValue == l10n.facture) return 'BL_SC';
     if (translatedValue == l10n.ticket) return 'Ticket';
     return translatedValue;
   }
 
   List<String> get typePannierDisplayList => [
-    l10n.bl,
-    l10n.blSc,
+    l10n.facture,
     l10n.ticket,
   ];
 
@@ -367,6 +389,7 @@ class ListsConstTranslator {
       case 'Carte'    : return l10n.carte;
       case 'Chèque'   : return l10n.cheque;
       case 'Virement' : return l10n.virement;
+      case 'Points'   : return l10n.loyaltyPoints;
       default: return frenchValue;
     }
   }
@@ -376,6 +399,7 @@ class ListsConstTranslator {
     if (translatedValue == l10n.carte)    return 'Carte';
     if (translatedValue == l10n.cheque)   return 'Chèque';
     if (translatedValue == l10n.virement) return 'Virement';
+    if (translatedValue == l10n.loyaltyPoints) return 'Points';
     return translatedValue;
   }
 
@@ -384,6 +408,7 @@ class ListsConstTranslator {
     l10n.carte,
     l10n.cheque,
     l10n.virement,
+    l10n.loyaltyPoints,
   ];
 
   // ==================== TYPE FOURNISSEUR ====================
@@ -459,19 +484,23 @@ class ListsConstTranslator {
   // ==================== TYPE MOUVEMENT ====================
   String translateTypeMouvement(String frenchValue) {
     switch (frenchValue) {
-      case 'Vente'      : return l10n.vente;
-      case 'Achat'      : return l10n.achat;
-      case 'Retour'     : return l10n.retour;
-      case 'Déstockage' : return l10n.destockage;
+      case 'Vente'  : return l10n.vente;
+      case 'Achat'  : return l10n.achat;
+      case 'Retour' : return l10n.retour;
+      case 'Sortie' : return l10n.exit;
+      case 'Distribution' : return l10n.productDistribution;
+      case 'Transfert' : return l10n.transfer;
       default: return frenchValue;
     }
   }
 
   String typeMouvementToFrench(String translatedValue) {
-    if (translatedValue == l10n.vente)      return 'Vente';
-    if (translatedValue == l10n.achat)      return 'Achat';
-    if (translatedValue == l10n.retour)     return 'Retour';
-    if (translatedValue == l10n.destockage) return 'Déstockage';
+    if (translatedValue == l10n.vente)  return 'Vente';
+    if (translatedValue == l10n.achat)  return 'Achat';
+    if (translatedValue == l10n.retour) return 'Retour';
+    if (translatedValue == l10n.exit)   return 'Sortie';
+    if (translatedValue == l10n.productDistribution) return 'Distribution';
+    if (translatedValue == l10n.transfer) return 'Transfert';
     return translatedValue;
   }
 
@@ -479,7 +508,7 @@ class ListsConstTranslator {
     l10n.vente,
     l10n.achat,
     l10n.retour,
-    l10n.destockage,
+    l10n.exit,
   ];
 
   // ==================== TYPE RETOUR ====================
@@ -803,7 +832,6 @@ class ListsConst {
     "Magasin",
     "Pack",
     "Pannier",
-    "Pannier",
     "Paramétre",
     "Paramétre produit",
     "Paramétre caisse",
@@ -817,11 +845,6 @@ class ListsConst {
     "Utilisateur",
     "Versement",
     "Zakat",
-  ];
-
-  static const List<String> typeactivitySmartScan = [
-    "achat",
-    "vente"
   ];
 
   static const List<String> colis = [
@@ -911,6 +934,7 @@ class ListsConst {
     "Carte",
     "Chèque",
     "Virement",
+    "Points",
   ];
 
   static const List<String> typeFournisseur = [
@@ -937,12 +961,62 @@ class ListsConst {
     "Vente",
     "Achat",
     "Retour",
-    "Déstockage",
+    "Sortie",
+    // Ajouté en fin de liste (jamais inséré) : plusieurs fichiers indexent
+    // ce tableau par position (typeMouvement[0]..[3]) pour les 4 types
+    // historiques — un ajout en fin ne perturbe aucun de ces index.
+    "Distribution",
+    "Transfert",
   ];
 
   static const List<String> typeRetour = [
     "Client",
     "Fournisseur",
+  ];
+
+  /// Types de mouvements du grand-livre de caisse (caisse_mouvement.type).
+  /// "transfert" est réservé pour une phase ultérieure (mouvement entre deux
+  /// caisses) — aucun flux ne l'utilise encore.
+  static const List<String> typeMouvementCaisse = [
+    "ouverture",
+    "cloture",
+    "encaissement_vente",
+    "decaissement_achat",
+    "versement_client",
+    "retour_client",
+    "retour_fournisseur",
+    "versement_fournisseur",
+    "entree_manuelle",
+    "sortie_manuelle",
+    "transfert",
+  ];
+
+  /// Libellé affichable d'un type de caisse_mouvement (voir typeMouvementCaisse
+  /// ci-dessus) — partagé entre mouvement_caisse_tab.dart (Dashboard) et
+  /// l'onglet "Mouvements" de GestionCaisseScreen, pour ne pas dupliquer ce
+  /// switch à deux endroits.
+  static String labelTypeMouvementCaisse(String type) {
+    switch (type) {
+      case 'encaissement_vente': return 'Vente';
+      case 'decaissement_achat': return 'Achat';
+      case 'retour_client': return 'Retour Client';
+      case 'retour_fournisseur': return 'Retour Fournisseur';
+      case 'versement_client': return 'Versement Client';
+      case 'versement_fournisseur': return 'Versement Fournisseur';
+      case 'entree_manuelle': return 'Entrée manuelle';
+      case 'sortie_manuelle': return 'Sortie manuelle';
+      case 'ouverture': return 'Ouverture de caisse';
+      case 'cloture': return 'Clôture de caisse';
+      case 'transfert': return 'Transfert';
+      default: return type;
+    }
+  }
+
+  /// Sens d'un mouvement de caisse (caisse_mouvement.sens), même convention
+  /// que Verssement.sense.
+  static const List<String> sensMouvementCaisse = [
+    "Entrée",
+    "Sortie",
   ];
 
   static const List<String> typeVersement = [

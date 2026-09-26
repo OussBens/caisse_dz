@@ -55,7 +55,11 @@ class BesoinList {
       nombreArticle : map['nomber_article'],
       quantite      : map['quantite'],
       fournisseurCode : map['fournisseur_code'],
-      etat          : map['etat'] == 1 ,
+      // La colonne besionList.etat est de type TEXT (pas INTEGER comme
+      // partout ailleurs) : SQLite stocke l'entier inséré comme texte
+      // ('1'/'0'), donc `map['etat'] == 1` échoue toujours (String != int)
+      // et affichait tout besoin comme "Inactif" quel que soit son état réel.
+      etat          : map['etat'].toString() == '1',
       observation   : map['observation'],
       dateCree      : DateTime.parse(map['date_cree']),
       creeParCode   : map['cree_par_code'],

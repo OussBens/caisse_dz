@@ -1,3 +1,4 @@
+import 'package:caisse_dz/core/theme/app_style.dart';
 import 'package:caisse_dz/l10n/app_localizations.dart';
 import 'package:flutter/material.dart';
 
@@ -42,7 +43,7 @@ class EtatBadge extends StatelessWidget {
     return StatusBadge(
 
       text: isActive ? l10n.actif : l10n.inactif,
-      color: isActive ? Colors.green : Colors.red,
+      color: isActive ? Appstyle.success : Appstyle.danger,
     );
   }
 }

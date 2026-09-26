@@ -1,39 +1,39 @@
+import 'dart:async';
 import 'dart:io';
 import 'dart:ui';
 import 'package:collection/collection.dart';
 import 'package:caisse_dz/DBCreate.dart';
 import 'package:caisse_dz/Services/Categorie.dart' hide ApiResponse;
-import 'package:caisse_dz/Services/Fournisseur.dart' hide ApiResponse;
 import 'package:caisse_dz/Services/Historique.dart' hide ApiResponse;
-import 'package:caisse_dz/Services/Magasin.dart' hide ApiResponse;
-import 'package:caisse_dz/Services/MagasinDetail.dart';
 import 'package:caisse_dz/Services/Pack.dart' hide ApiResponse;
 import 'package:caisse_dz/Services/PackDetailes.dart';
 import 'package:caisse_dz/Services/Paramters.dart';
+import 'package:caisse_dz/Services/CatalogService.dart';
+import 'package:caisse_dz/Services/CatalogSyncService.dart';
+import 'package:caisse_dz/Services/OpenFoodFactsService.dart';
+import 'package:caisse_dz/Services/Mouvement.dart';
 import 'package:caisse_dz/Services/Produits.dart';
 import 'package:caisse_dz/Services/Remise.dart';
 import 'package:caisse_dz/Services/SousCategories.dart' hide ApiResponse;
 import 'package:caisse_dz/core/Auth/auth_state.dart';
 import 'package:caisse_dz/core/dialog/insertion_categorie.dart';
-import 'package:caisse_dz/core/dialog/insertion_fournisseur.dart';
-import 'package:caisse_dz/core/dialog/insertion_magasin.dart';
 import 'package:caisse_dz/core/dialog/insertion_pack.dart';
 import 'package:caisse_dz/core/dialog/insertion_remise.dart';
 import 'package:caisse_dz/core/dialog/insertion_souscategorie.dart';
 import 'package:caisse_dz/core/theme/app_style.dart';
+import 'package:caisse_dz/core/utilis/prix_vente_calculator.dart';
 import 'package:caisse_dz/core/widget/champ/affichage_champ.dart';
 import 'package:caisse_dz/core/widget/champ/champ_avec_label.dart';
 import 'package:caisse_dz/core/widget/champ/date_champ.dart';
 import 'package:caisse_dz/core/widget/champ/text_champ_l.dart';
 import 'package:caisse_dz/core/widget/button/main_button.dart';
+import 'package:caisse_dz/core/widget/ai_smart_icon.dart';
 import 'package:caisse_dz/data/constant.dart';
 import 'package:caisse_dz/data/models/categorie.dart';
-import 'package:caisse_dz/data/models/fournisseur.dart';
 import 'package:caisse_dz/data/models/histore.dart';
 import 'package:caisse_dz/data/models/paramters.dart';
 import 'package:caisse_dz/data/models/produit.dart';
 import 'package:caisse_dz/data/models/produit_code_detail.dart';
-import 'package:caisse_dz/data/models/produit_magasin_detail.dart';
 import 'package:caisse_dz/data/models/produit_pack_detail.dart';
 import 'package:caisse_dz/data/models/remise.dart';
 import 'package:caisse_dz/data/models/sous_categorie.dart';
@@ -43,33 +43,31 @@ import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 import '../../../Services/Photos.dart';
-import '../../../data/models/magasin.dart';
 import '../../../data/models/pack.dart';
 import '../../utilis/api_response.dart';
+import '../../utilis/barcode_scan_listener.dart';
 import '../../widget/button/button_add_photo.dart';
 import '../../widget/champ/liste_champ.dart';
 import '../../widget/champ/radio_champ.dart';
 import '../../widget/code_generateur.dart';
 import '../../widget/title/title_small.dart';
 import '../../widget/title/titre_avec_ligne.dart';
+import '../../widget/internet_status_widget.dart';
 import '../base_dialog.dart';
 import '../information_dialog.dart';
 import '../insertion_codebar.dart';
+import 'produit_barcode_generator.dart';
+import 'package:caisse_dz/core/utilis/number_format.dart';
+
+// Le choix du fournisseur a été retiré de l'interface : tout produit est
+// désormais rattaché au fournisseur système "Général" (FOR0000).
+const String kSystemFournisseurCode = 'FOR0000';
 
 Future<int> _GetNextHistoriqueId() async {
   final db = await DbCreator.openDb();
   int id = 0;
   await db.transaction((txn) async {
     id = await HistoriqueServices.getNextHistoriqueId(txn);
-  });
-  return id;
-}
-
-Future<int> _GetNextMagasinDetailId() async {
-  final db = await DbCreator.openDb();
-  int id = 0;
-  await db.transaction((txn) async {
-    id = await ProduitMagasinDetailServices.getNextId(txn);
   });
   return id;
 }
@@ -219,49 +217,11 @@ Future<void> _saveProduitPackDetailes({
     await serviceh.addHistorique(histo);
   }
 }
-Future<void> _savePrduitMagasinDetail({
-  required Produit produit,
-  required List<Magasin> magasins,
-  required String userName,
-  required String userCode,
-}) async {
-  final db = await DbCreator.openDb();
-  final service = ProduitMagasinDetailServices(db);
-  final magasinService = MagasinServices(db);
-
-  // Filtrer pour exclure le magasin System car il est déjà créé automatiquement
-  final magasinsToSave = magasins.where((m) => m.nom != "System").toList();
-
-  for (var magasin in magasinsToSave) {
-    final ProduitMagasinDetail detail = ProduitMagasinDetail(
-      magasinCode: magasin.code,
-      produitCode: produit.code,
-      dateCree: DateTime.now(),
-      id: await _GetNextMagasinDetailId(),
-      creeParCode: userCode,
-      quantite: 0, // Initialiser à 0
-    );
-    await service.addProduitMagasinDetail(detail);
-
-    final int idH = await _GetNextHistoriqueId();
-    final db = await DbCreator.openDb();
-    final serviceh = HistoriqueServices(db);
-    final Historique histo = Historique(
-        id: idH,
-        code: "HS$idH ${DateTime.now().microsecondsSinceEpoch}",
-        desc: "l'utilisateur $userName a ajouter le ProduitMagasinDetail de Magasin ${magasin.nom} de produit ${produit.nom}",
-        type: "ProduitMagasinDetail",
-        oper: ListsConst.typeHisto[0],
-        dateCree: DateTime.now(),
-        creeParCode: userCode);
-    await serviceh.addHistorique(histo);
-  }
-}
 // Ajoutez cette fonction après les autres fonctions comme _GetNextHistoriqueId, etc.
 Future<String?> _saveProductPhoto(String productCode, String? tempPhoto) async {
   if (tempPhoto == null || tempPhoto.isEmpty) return null;
 
-  if (tempPhoto.startsWith('temp_')) {
+  if (PhotoService.isTempPhoto(tempPhoto)) {
     final tempFile = File(tempPhoto);
     if (await tempFile.exists()) {
       // Sauvegarder la nouvelle photo
@@ -308,16 +268,12 @@ Future<int> _GetNextId() async {
 Future<void> loadAllData() async {
   try {
     final sous = await SousCategoriesServices.getAllSousCategorie();
-    final fournisseur = await FournisseurServices.getAllFournisseurs();
     final remise = await RemiseServices.getAllRemise();
     final categorie = await CategorieServices.getAllCategorie();
-    final magasin = await MagasinServices.getAllMagasins();
     final pack = await PackServices.getAllPacks();
     final Param = await ParamServices.getParam();
 
-    fournisseursTest = fournisseur;
     categoriesTest = categorie;
-    magasinsTest = magasin;
     remisesTest = remise;
     paramters = Param;
     packsTest = pack;
@@ -376,7 +332,7 @@ String _calculerPrixParPiece(String quantiteText, String prixText) {
   if (quantite <= 0 || prix <= 0) return "0.00";
 
   final prixParPiece = prix / quantite;
-  return prixParPiece.toStringAsFixed(2);
+  return NumberFormatUtil.formatMontant(prixParPiece, decimales: 2);
 }
 void resetProduitForm() {
   dateController.clear();
@@ -398,34 +354,101 @@ void resetProduitForm() {
   jeu2PrixController.clear();
   tvaController.clear();
   multicodeController.clear();
-  selectedFournisseur = null;
   selectedRemise = null;
   selectedCategorie = null;
   selectedSousCategorie = null;
   selectedUnitemesure = ListsConst.uniteMesureList.first;
   productPhoto = null;
   service = false;
-  merge = false;
-  seuil = true;
+  nombreActif = false;
+  merge = true;
   multicodebar = false;
-
-  // Ne pas vider complètement, garder seulement le magasin System
-  final systemMagasin = magasinsSelectionnes.firstWhere(
-        (m) => m.nom == "Magasin System",
-    orElse: () => Magasin(
-      id: 0,
-      nom: "Magasin System",
-      code: "MAG0000",
-      etat: true,
-      creeParCode: "SYS001",
-      dateCree: DateTime.now(),
-    ),
-  );
-  magasinsSelectionnes.clear();
-  magasinsSelectionnes.add(systemMagasin);
+  sansCodeBar = false;
+  aiBarcodeController.clear();
+  aiLoading = false;
+  aiNotFound = false;
+  aiError = null;
+  aiResult = null;
+  aiExistingLocal = null;
 
   packsSelectionnes.clear();
   barcodes.clear();
+  afficherErreursTabsProduit = false;
+}
+
+// ✅ Mode détaillé (onglets) : indicateur "point rouge" sur l'onglet contenant
+// un champ obligatoire invalide, affiché après une tentative de sauvegarde
+// échouée pour orienter l'utilisateur — recalculé à chaque frappe/sélection.
+bool afficherErreursTabsProduit = false;
+
+bool _emballagePrixInvalide(TextEditingController qteController, TextEditingController prixController2) {
+  final prixEmballageTotal = double.tryParse(prixController2.text.replaceAll(',', '.'));
+  final quantite = double.tryParse(qteController.text.replaceAll(',', '.'));
+  final prixAchat = double.tryParse(prixController.text.replaceAll(',', '.'));
+
+  if (prixController2.text.trim().isEmpty) return true;
+  if (prixEmballageTotal == null || prixEmballageTotal <= 0) return true;
+  if (quantite == null || quantite <= 0) return true;
+  if (prixAchat != null && (prixEmballageTotal / quantite) < prixAchat) return true;
+  return false;
+}
+
+Set<int> _tabsAvecErreursProduit() {
+  final erreurs = <int>{};
+
+  // Onglet 0 : Informations générales
+  if (nomController.text.trim().isEmpty ||
+      marqueController.text.trim().isEmpty) {
+    erreurs.add(0);
+  }
+
+  // Onglet 2 : Catégorie & Remise
+  if (selectedCategorie == null || selectedCategorie!.isEmpty ||
+      selectedSousCategorie == null || selectedSousCategorie!.isEmpty) {
+    erreurs.add(2);
+  }
+
+  // Onglet 3 : Prix & Taxes
+  final prixAchat = double.tryParse(prixController.text.replaceAll(',', '.'));
+  final prixVente = double.tryParse(prixController2.text.replaceAll(',', '.'));
+  if (prixController.text.trim().isEmpty || prixAchat == null || prixAchat <= 0 ||
+      tvaController.text.trim().isEmpty ||
+      prixController2.text.trim().isEmpty || prixVente == null ||
+      (prixAchat != null && prixVente != null && prixVente < prixAchat)) {
+    erreurs.add(3);
+  }
+
+  // Onglet 4 : Stock & Emballage
+  if (selectedUnite == null || selectedUnite!.isEmpty) {
+    erreurs.add(4);
+  } else if (emballage1Actif && _emballagePrixInvalide(jeu1Controller, jeu1PrixController)) {
+    erreurs.add(4);
+  } else if (emballage2Actif && _emballagePrixInvalide(jeu2Controller, jeu2PrixController)) {
+    erreurs.add(4);
+  }
+
+  return erreurs;
+}
+
+Widget _tabAvecIndicateur(String text, bool showErreur) {
+  return Tab(
+    child: Stack(
+      clipBehavior: Clip.none,
+      children: [
+        Text(text),
+        if (showErreur)
+          Positioned(
+            right: -8,
+            top: -4,
+            child: Container(
+              width: 8,
+              height: 8,
+              decoration: const BoxDecoration(color: Colors.red, shape: BoxShape.circle),
+            ),
+          ),
+      ],
+    ),
+  );
 }
 
 Future<void> calculPrixVenteAuto() async {
@@ -433,14 +456,11 @@ Future<void> calculPrixVenteAuto() async {
   double prixVente = prixAchat;
 
   if (merge) {
-    final tauxMontant = margetauxPrmtre;
-    final tauxPercentage = margetauxPrmtre;
-
-    if (margeTypePrmtre == "Montant") {
-      prixVente = prixAchat + tauxMontant;
-    } else {
-      prixVente = prixAchat + (prixAchat * tauxPercentage / 100);
-    }
+    prixVente = PrixVenteCalculator.calculAuto(
+      prixAchat,
+      margeType: margeTypePrmtre,
+      margeTaux: margetauxPrmtre,
+    );
   } else {
     final margeMontant = double.tryParse(margeController.text.replaceAll(',', '.')) ?? 0;
     final margePercentage = double.tryParse(margePController.text.replaceAll(',', '.')) ?? 0;
@@ -448,7 +468,7 @@ Future<void> calculPrixVenteAuto() async {
     if (margeMontant > 0) {
       prixVente = prixAchat + margeMontant;
     } else if (margePercentage > 0) {
-      prixVente = prixAchat + (prixAchat * margePercentage / 100);
+      prixVente = PrixVenteCalculator.arrondirAuMultipleDe5(prixAchat + (prixAchat * margePercentage / 100));
     }
   }
 
@@ -458,7 +478,6 @@ String? productPhoto;
 
 int id = 0;
 String code = "";
-List<Fournisseur> fournisseursTest = [];
 List<Categorie> categoriesTest = [];
 List<SousCategorie> sousCategoriesTest = [];
 
@@ -466,10 +485,21 @@ String? _codeCategorieByNom(String? nom) =>
     nom == null ? null : categoriesTest.where((c) => c.nom == nom).firstOrNull?.code;
 List<Remise> remisesTest = [];
 List<Pack> packsTest = [];
-List<Magasin> magasinsTest = [];
 List<Pack> packsSelectionnes = [];
-List<Magasin> magasinsSelectionnes = [];
 List<String> barcodes = [];
+
+// ✅ Nouveau produit : seules les catégories actives contenant au moins une
+// sous-catégorie active sont proposées, pour éviter de rattacher un produit
+// à une catégorie qui n'a aucune sous-catégorie sélectionnable.
+List<Categorie> _categoriesActives() => categoriesTest
+    .where((c) => c.etat && sousCategoriesTest.any((sc) => sc.etat && sc.categorieCode == c.code))
+    .toList();
+
+List<SousCategorie> _sousCategoriesActivesPour(String? categorieNom) => sousCategoriesTest
+    .where((sc) => sc.etat && sc.categorieCode == _codeCategorieByNom(categorieNom))
+    .toList();
+
+List<Pack> _packsActifs() => packsTest.where((p) => p.etat).toList();
 late Paramters paramters;
 
 int? selectedCategorieid;
@@ -477,14 +507,10 @@ int? selectedSousCategorieid;
 int? remiseId;
 int? packId;
 
-double MaxPrmtre = 0;
-double MinPrmtre = 0;
 double margetauxPrmtre = 0;
 String margeTypePrmtre = "Montant";
 
 final TextEditingController multicodeController = TextEditingController();
-final TextEditingController seuilMaxController = TextEditingController();
-final TextEditingController seuilMinController = TextEditingController();
 final TextEditingController margeController = TextEditingController();
 final TextEditingController margePController = TextEditingController();
 final TextEditingController dateController = TextEditingController();
@@ -506,14 +532,101 @@ final TextEditingController jeu1PrixController = TextEditingController();
 final TextEditingController jeu2PrixController = TextEditingController();
 final TextEditingController tvaController = TextEditingController();
 
+// ✅ Onglet IA : recherche produit par code-barres (scanner ou saisie manuelle)
+final TextEditingController aiBarcodeController = TextEditingController();
+// Évite de relancer la recherche IA à chaque rebuild du StatefulBuilder :
+// remis à false à chaque ouverture du dialog (voir ProduitNouveau).
+bool _aiAutoLookupTriggered = false;
+bool aiLoading = false;
+bool aiNotFound = false;
+String? aiError;
+ProduitAISuggestion? aiResult;
+Produit? aiExistingLocal;
+double aiExistingLocalQuantite = 0;
+final CatalogService _catalogService = CatalogService();
+BarcodeScanListener? _aiScanListener;
+void Function(void Function())? _aiSetState;
+
+/// Recherche le produit dans la cascade complète (local -> catalogue
+/// CaisseDZ -> Open Food Facts -> Open Pet Food Facts -> Open Beauty
+/// Facts), voir [CatalogService].
+Future<void> _lookupProduitIA(String barcode) async {
+  _aiSetState?.call(() {
+    aiLoading = true;
+    aiNotFound = false;
+    aiError = null;
+    aiResult = null;
+    aiExistingLocal = null;
+    aiExistingLocalQuantite = 0;
+  });
+
+  // CatalogService avale déjà les échecs techniques source par source pour
+  // passer au maillon suivant de la cascade ; seul un "introuvable partout"
+  // remonte ici (aiNotFound), pas d'exception à intercepter.
+  final result = await _catalogService.lookupByBarcode(barcode);
+  // Quantité calculée depuis le journal des mouvements — remplace Produit.quantite.
+  final quantiteExistante = (result != null && result.source == CatalogLookupSource.local && result.existingProduit != null)
+      ? await MouvementsServices.quantiteProduit(result.existingProduit!.code)
+      : 0.0;
+  _aiSetState?.call(() {
+    aiLoading = false;
+    if (result == null) {
+      aiNotFound = true;
+    } else if (result.source == CatalogLookupSource.local) {
+      aiExistingLocal = result.existingProduit;
+      aiExistingLocalQuantite = quantiteExistante;
+    } else {
+      aiResult = result.suggestion;
+    }
+  });
+}
+
+Future<void> _appliquerSuggestionIA(ProduitAISuggestion suggestion) async {
+  nomController.text = suggestion.nom ?? nomController.text;
+  if (suggestion.marque != null) marqueController.text = suggestion.marque!;
+  if (suggestion.codeBarre != null) codeController.text = suggestion.codeBarre!;
+  if (suggestion.taille != null) tailleController.text = suggestion.taille!;
+  if (suggestion.couleur != null) couleurController.text = suggestion.couleur!;
+
+  // ✅ Catégorie suggérée : on ne la sélectionne que si elle existe déjà
+  // dans la base locale (comparaison par nom, insensible à la casse). Si
+  // elle n'existe pas localement, on garde le repli "Sans Categorie" /
+  // "Sans Sous-Catego" déjà positionné à l'ouverture du dialog.
+  if (suggestion.categorie != null && suggestion.categorie!.trim().isNotEmpty) {
+    final categorieLocale = categoriesTest.firstWhereOrNull(
+      (c) => c.nom.trim().toLowerCase() == suggestion.categorie!.trim().toLowerCase(),
+    );
+    if (categorieLocale != null) {
+      selectedCategorie = categorieLocale.nom;
+      selectedCategorieid = categorieLocale.id;
+      final sousCategorieParDefaut = sousCategoriesTest.firstWhereOrNull(
+        (sc) => sc.categorieCode == categorieLocale.code && sc.nom == 'Sans Sous-Catego',
+      );
+      selectedSousCategorie = sousCategorieParDefaut?.nom;
+      selectedSousCategorieid = sousCategorieParDefaut?.id;
+    }
+  }
+
+  if (suggestion.photoUrl != null) {
+    final tempPhotoPath = await OpenFoodFactsService.downloadAndCompressPhoto(suggestion.photoUrl!);
+    if (tempPhotoPath != null) productPhoto = tempPhotoPath;
+  }
+}
+
 bool service = false;
-bool merge = false;
-bool seuil = true;
+bool nombreActif = false;
+
+// ✅ "Nombre" (stock parallèle en pièces) n'a de sens que pour un produit
+// vendu au poids/volume (Kg/Litre) — pour un produit déjà vendu à la pièce,
+// quantité == nombre, ça n'apporterait rien.
+bool _uniteEligibleNombre(String? uniteMesureFrench) =>
+    uniteMesureFrench == 'Kg' || uniteMesureFrench == 'Litre';
+bool merge = true;
 bool multicodebar = false;
+bool sansCodeBar = false;
 bool emballage1Actif = false;
 bool emballage2Actif = false;
 String? selectedUnitemesure = ListsConst.uniteMesureList[1];
-String? selectedFournisseur;
 String? selectedRemise;
 String? selectedCategorie;
 String? selectedSousCategorie;
@@ -547,7 +660,11 @@ void supprimerBarcode(
   });
 }
 
-Future<void> ProduitNouveau(BuildContext context) async {
+Future<void> ProduitNouveau(
+  BuildContext context, {
+  String? initialCodeBarre,
+  void Function(Produit)? onCreated,
+}) async {
   await loadAllData();
   final auth = Provider.of<AuthState>(context, listen: false);
   final userName = auth.username!;
@@ -565,14 +682,39 @@ Future<void> ProduitNouveau(BuildContext context) async {
   }
 
   id = await _GetNextId();
-  code = "PRD$id${DateTime.now().millisecondsSinceEpoch}";
+  code = CodeGenerator.generateCode(prefix: CodePrefix.produit, id: id, digitCount: 6);
+  codeController.text = initialCodeBarre ?? '';
+  // ✅ Pré-remplit aussi le champ code-barres de l'onglet IA (par défaut à
+  // l'ouverture) avec le code scanné en caisse, pour lancer la recherche
+  // automatiquement au lieu de forcer une re-saisie manuelle.
+  aiBarcodeController.text = initialCodeBarre ?? '';
+  _aiAutoLookupTriggered = false;
+
+  // ✅ Catégorie/sous-catégorie par défaut : "Sans Categorie" / "Sans Sous-Catego"
+  final categorieParDefaut = categoriesTest.firstWhereOrNull((c) => c.nom == 'Sans Categorie');
+  selectedCategorie = categorieParDefaut?.nom;
+  selectedCategorieid = categorieParDefaut?.id;
+  final sousCategorieParDefaut = sousCategoriesTest.firstWhereOrNull(
+    (sc) => sc.categorieCode == categorieParDefaut?.code && sc.nom == 'Sans Sous-Catego',
+  );
+  selectedSousCategorie = sousCategorieParDefaut?.nom;
+  selectedSousCategorieid = sousCategorieParDefaut?.id;
+
+  _aiScanListener?.stop();
+  _aiScanListener = BarcodeScanListener(onScan: (code) {
+    aiBarcodeController.text = code;
+    _lookupProduitIA(code);
+  })
+    ..start();
 
   return showDialog(
     context: context,
     barrierDismissible: false,
     barrierColor: Appstyle.gris.withOpacity(0.2),
     builder: (_) {
-      bool isRapide = true;
+      // ✅ Démarre sur "rapide" plutôt que "ia" : l'onglet IA nécessite une
+      // connexion internet, autant éviter un onglet inutilisable par défaut.
+      String modeActif = "rapide"; // "ia" | "rapide" | "detaille"
       margeTypePrmtre = paramters.typeMarge;
       if (margeTypePrmtre == "Montant") {
         margetauxPrmtre = paramters.TauxMargeMontant;
@@ -584,6 +726,18 @@ Future<void> ProduitNouveau(BuildContext context) async {
         builder: (context, setState) {
           final l10n = AppLocalizations.of(context)!;
           final translator = ListsConstTranslator(l10n);
+          _aiSetState = setState;
+
+          // ✅ Un code-barres pré-rempli (venant d'un scan en caisse) lance
+          // la recherche IA automatiquement, comme le ferait un scan en
+          // direct — après le build en cours pour ne pas appeler setState
+          // pendant que ce StatefulBuilder est lui-même en train de builder.
+          if (!_aiAutoLookupTriggered && initialCodeBarre != null && initialCodeBarre.isNotEmpty) {
+            _aiAutoLookupTriggered = true;
+            WidgetsBinding.instance.addPostFrameCallback((_) {
+              _lookupProduitIA(initialCodeBarre);
+            });
+          }
 
           return ClipRect(
             child: BackdropFilter(
@@ -610,62 +764,40 @@ Future<void> ProduitNouveau(BuildContext context) async {
                             mainAxisAlignment: MainAxisAlignment.center,
                             children: [
                               GestureDetector(
-                                onTap: () => setState(() => isRapide = true),
-                                child: Container(
-                                  padding: const EdgeInsets.symmetric(
-                                    horizontal: 25,
-                                    vertical: 10,
-                                  ),
-                                  decoration: BoxDecoration(
-                                    color: isRapide
-                                        ? Appstyle.crevete
-                                        : Colors.transparent,
-                                    borderRadius: BorderRadius.circular(8),
-                                  ),
-                                  child: Text(
-                                    l10n.quickMode,
-                                    style: TextStyle(
-                                      color: isRapide
-                                          ? Colors.white
-                                          : Colors.black,
-                                      fontSize: 16,
-                                      fontWeight: FontWeight.w600,
-                                    ),
-                                  ),
+                                onTap: () => setState(() => modeActif = "ia"),
+                                child: AiSmartIcon(
+                                  iconPath: "assets/icons/smart_icon.png",
+                                  width: 120,
+                                  height: 60,
+                                  active: modeActif == "ia",
                                 ),
                               ),
                               const SizedBox(width: 10),
-                              GestureDetector(
-                                onTap: () => setState(() => isRapide = false),
-                                child: Container(
-                                  padding: const EdgeInsets.symmetric(
-                                    horizontal: 25,
-                                    vertical: 10,
-                                  ),
-                                  decoration: BoxDecoration(
-                                    color: !isRapide
-                                        ? Appstyle.crevete
-                                        : Colors.transparent,
-                                    borderRadius: BorderRadius.circular(8),
-                                  ),
-                                  child: Text(
-                                    l10n.detailedMode,
-                                    style: TextStyle(
-                                      color: !isRapide
-                                          ? Colors.white
-                                          : Colors.black,
-                                      fontSize: 16,
-                                      fontWeight: FontWeight.w600,
-                                    ),
-                                  ),
-                                ),
+                              _modePill(
+                                label: l10n.quickMode,
+                                actif: modeActif == "rapide",
+                                onTap: () => setState(() => modeActif = "rapide"),
+                              ),
+                              const SizedBox(width: 10),
+                              _modePill(
+                                label: l10n.detailedMode,
+                                actif: modeActif == "detaille",
+                                onTap: () => setState(() => modeActif = "detaille"),
                               ),
                             ],
                           ),
                         ),
                         const SizedBox(height: 20),
 
-                        if (isRapide)
+                        if (modeActif == "ia")
+                          _buildFormIA(
+                            setState,
+                            context,
+                            l10n,
+                            translator,
+                            onSuggestionApplied: () => setState(() => modeActif = "rapide"),
+                          )
+                        else if (modeActif == "rapide")
                           _buildFormRapide(setState, context, l10n, translator)
                         else
                           _buildFormDetaille(setState, context, l10n, translator),
@@ -679,6 +811,7 @@ Future<void> ProduitNouveau(BuildContext context) async {
                     MainButton(
                       text: l10n.cancel,
                       onPressed: () {
+                        _aiScanListener?.stop();
                         resetProduitForm();
                         Navigator.pop(context);
                       },
@@ -690,6 +823,7 @@ Future<void> ProduitNouveau(BuildContext context) async {
                       text: l10n.save,
                       onPressed: () async {
                         if (!produitFormKey.currentState!.validate()) {
+                          setState(() => afficherErreursTabsProduit = true);
                           await InformationDialog(
                             context: context,
                             titre_type_message: l10n.error,
@@ -699,19 +833,44 @@ Future<void> ProduitNouveau(BuildContext context) async {
                           return;
                         }
 
+                        // ✅ Unicité du nom du produit avant toute création.
+                        final produitNomExistant = await ProduitServices.findProduitByNom(nomController.text);
+                        if (produitNomExistant != null) {
+                          await InformationDialog(
+                            context: context,
+                            titre_type_message: l10n.error,
+                            titre_concerne: l10n.product,
+                            message: l10n.productNameAlreadyExists,
+                          );
+                          return;
+                        }
+
+                        // ✅ Unicité du/des code(s)-barres (produits.code_barre
+                        // ET produit_code_detail) avant toute création.
+                        final codesAVerifier = multicodebar
+                            ? barcodes
+                            : (!sansCodeBar && codeController.text.trim().isNotEmpty
+                                ? [codeController.text.trim()]
+                                : <String>[]);
+                        for (final code in codesAVerifier) {
+                          final conflit = await ProduitServices.findProduitUsingBarcode(code);
+                          if (conflit != null) {
+                            await InformationDialog(
+                              context: context,
+                              titre_type_message: l10n.error,
+                              titre_concerne: l10n.product,
+                              message: l10n.barcodeAlreadyUsed(conflit.nom),
+                            );
+                            return;
+                          }
+                        }
+
                         double toDouble(TextEditingController c, {double def = 0}) {
                           final text = c.text.trim().replaceAll(',', '.');
                           if (text.isEmpty) return def;
                           return double.tryParse(text) ?? def;
                         }
 
-                        if (seuil) {
-                          MinPrmtre = paramters.Minimum;
-                          MaxPrmtre = paramters.Maximum;
-                        } else {
-                          MinPrmtre = toDouble(seuilMinController);
-                          MaxPrmtre = toDouble(seuilMaxController);
-                        }
                         // ✅ Récupérer l'ID au moment de la sauvegarde
                         final int newId = await _GetNextId();
                         // ✅ Générer le code produit avec le même format que le client
@@ -731,7 +890,7 @@ Future<void> ProduitNouveau(BuildContext context) async {
                           codeBarre: codeController.text,
                           code: newCode,
                           numeroSerie: numserieController.text,
-                          fournisseurCode: fournisseursTest.firstWhereOrNull((f) => f.nom == selectedFournisseur)?.code,
+                          fournisseurCode: kSystemFournisseurCode,
                           categorieId: selectedCategorieid!,
                           sousCategorieId: selectedSousCategorieid!,
                           remiseId: remiseId ?? 0,
@@ -747,16 +906,13 @@ Future<void> ProduitNouveau(BuildContext context) async {
                           emballageP1: toDouble(jeu1PrixController),
                           emballageP2: toDouble(jeu2PrixController),
                           uniteMesure: selectedUnitemesure!,
-                          quantite: 0,
-                          seuilBool: seuil,
-                          seuilMin: MinPrmtre,
-                          seuilMax: MaxPrmtre,
                           observation: observcontroller.text,
                           dateEmpreint: DateTime.tryParse(dateController.text),
                           etat: true,
                           dateCree: DateTime.now(),
                           creeParcode: userCode,
                           service: service,
+                          nombreActif: nombreActif,
                           photo: null, // Initialiser avec une liste vide
                           taille: tailleController.text,
                           couleur: couleurController.text,
@@ -778,6 +934,31 @@ Future<void> ProduitNouveau(BuildContext context) async {
                           return;
                         }
 
+                        // Pousse le nouveau produit vers le catalogue distant
+                        // bensds.com en tâche de fond : ne doit jamais faire
+                        // échouer ni ralentir la sauvegarde locale, qui reste
+                        // la source de vérité (architecture offline-first).
+                        // Le ScaffoldMessenger est capturé maintenant (avant
+                        // que ce dialogue ne se ferme) pour pouvoir afficher
+                        // une notification discrète même si le résultat de
+                        // la synchronisation arrive après coup.
+                        // Un produit "sans code barre" n'a pas d'identifiant
+                        // fiable pour le catalogue partagé : il reste local
+                        // uniquement, jamais poussé vers le serveur.
+                        if (!sansCodeBar) {
+                          final catalogSyncFailedMessage = l10n.catalogSyncFailed;
+                          final messenger = ScaffoldMessenger.of(context);
+                          unawaited(
+                            CatalogSyncService()
+                                .pushProduitToCatalog(produit, barcodesSupplementaires: barcodes)
+                                .then((success) {
+                              if (!success) {
+                                messenger.showSnackBar(SnackBar(content: Text(catalogSyncFailedMessage)));
+                              }
+                            }),
+                          );
+                        }
+
                         final int idH = await _GetNextHistoriqueId();
                         final db = await DbCreator.openDb();
                         final serviceh = await HistoriqueServices(db);
@@ -795,13 +976,6 @@ Future<void> ProduitNouveau(BuildContext context) async {
                         );
 
                         await serviceh.addHistorique(histo);
-
-                        await _savePrduitMagasinDetail(
-                          produit: produit,
-                          magasins: magasinsSelectionnes,
-                          userName: userName,
-                          userCode: userCode,
-                        );
 
                         await _saveProduitPackDetailes(
                           produit: produit,
@@ -822,7 +996,9 @@ Future<void> ProduitNouveau(BuildContext context) async {
 
                         await InformationDialog(
                           onTerminer: () {
+                            _aiScanListener?.stop();
                             Navigator.pop(context);
+                            onCreated?.call(produit);
                           },
                           context: context,
                           titre_type_message: l10n.success,
@@ -841,6 +1017,233 @@ Future<void> ProduitNouveau(BuildContext context) async {
         },
       );
     },
+  );
+}
+
+Widget _modePill({
+  required String label,
+  required bool actif,
+  required VoidCallback onTap,
+}) {
+  return GestureDetector(
+    onTap: onTap,
+    child: Container(
+      padding: const EdgeInsets.symmetric(horizontal: 25, vertical: 0),
+      decoration: BoxDecoration(
+        color: actif ? Appstyle.crevete : Colors.transparent,
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(18.0),
+        child: Text(
+          label,
+          style: TextStyle(
+            color: actif ? Colors.white : Colors.black,
+            fontSize: 16,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+      ),
+    ),
+  );
+}
+
+/// Onglet IA : recherche produit par code-barres scanné (ou saisi
+/// manuellement) via Open Food Facts, avec confirmation avant remplissage.
+Widget _buildFormIA(
+    void Function(VoidCallback fn) setState,
+    BuildContext context,
+    AppLocalizations l10n,
+    ListsConstTranslator translator, {
+      required VoidCallback onSuggestionApplied,
+    }) {
+  return Column(
+    crossAxisAlignment: CrossAxisAlignment.start,
+    children: [
+      Text(
+        l10n.aiScanInstructions,
+        style: Appstyle.textSB.copyWith(color: Appstyle.gris),
+      ),
+      const SizedBox(height: 15),
+      Row(
+        crossAxisAlignment: CrossAxisAlignment.end,
+        children: [
+          Expanded(
+            child: ChampAvecLabel(
+              label: l10n.barcode,
+              child: TextChampL(
+                controller: aiBarcodeController,
+                hint: l10n.barcodeHint,
+                numeric: true,
+              ),
+            ),
+          ),
+          const SizedBox(width: 12),
+          MainButton(
+            text: l10n.search,
+            icon: Icons.search,
+            color: Appstyle.violet,
+            onPressed: aiLoading
+                ? null
+                : () async {
+              final barcode = aiBarcodeController.text.trim();
+              if (barcode.isEmpty) return;
+              // ✅ La recherche IA interroge des API cloud (catalogue,
+              // Open Food Facts...) : prévenir plutôt qu'échouer en silence.
+              if (!await hasInternetConnection()) {
+                if (!context.mounted) return;
+                await InformationDialog(
+                  context: context,
+                  titre_type_message: l10n.attention,
+                  titre_concerne: '',
+                  message: l10n.internetDisconnected,
+                );
+                return;
+              }
+              await _lookupProduitIA(barcode);
+            },
+          ),
+        ],
+      ),
+      const SizedBox(height: 20),
+      if (aiLoading)
+        const Center(child: CircularProgressIndicator())
+      else if (aiError != null)
+        Text(
+          aiError!,
+          style: Appstyle.textSB.copyWith(color: Appstyle.crevete, fontWeight: FontWeight.bold),
+        )
+      else if (aiNotFound)
+        Text(
+          l10n.productNotFoundBarcode,
+          style: Appstyle.textSB.copyWith(color: Appstyle.crevete, fontWeight: FontWeight.bold),
+        )
+      else if (aiExistingLocal != null)
+        _aiExistingLocalCard(l10n, aiExistingLocal!, aiExistingLocalQuantite)
+      else if (aiResult != null)
+        _aiResultCard(setState, l10n, aiResult!, onSuggestionApplied),
+    ],
+  );
+}
+
+/// Carte affichée quand le produit scanné existe déjà en local (onglet IA) —
+/// donne assez d'infos (code, stock, prix) pour que l'utilisateur comprenne
+/// pourquoi la création est refusée, sans devoir rouvrir la fiche produit.
+Widget _aiExistingLocalCard(AppLocalizations l10n, Produit produit, double quantiteExistante) {
+  Widget champ(String label, String valeur) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(label, style: Appstyle.textXS.copyWith(color: Appstyle.gris)),
+        Text(valeur, style: Appstyle.textSB.copyWith(fontWeight: FontWeight.bold)),
+      ],
+    );
+  }
+
+  return Container(
+    padding: const EdgeInsets.all(16),
+    decoration: BoxDecoration(
+      color: Appstyle.grisSC,
+      borderRadius: BorderRadius.circular(12),
+      border: Border.all(color: Appstyle.crevete.withOpacity(0.3)),
+    ),
+    child: Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          l10n.productAlreadyExistsLocally(produit.nom),
+          style: Appstyle.textSB.copyWith(color: Appstyle.crevete, fontWeight: FontWeight.bold),
+        ),
+        const SizedBox(height: 12),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            champ(l10n.code, produit.code),
+            champ(l10n.quantity, NumberFormatUtil.formatMontant(quantiteExistante, decimales: 2)),
+            champ(l10n.purchasePrice, NumberFormatUtil.formatMontant(produit.prixAchat, decimales: 2)),
+            champ(l10n.salePrice, NumberFormatUtil.formatMontant(produit.prixVente, decimales: 2)),
+          ],
+        ),
+      ],
+    ),
+  );
+}
+
+Widget _aiResultCard(
+    void Function(VoidCallback fn) setState,
+    AppLocalizations l10n,
+    ProduitAISuggestion suggestion,
+    VoidCallback onSuggestionApplied,
+    ) {
+  return Container(
+    padding: const EdgeInsets.all(16),
+    decoration: BoxDecoration(
+      color: Appstyle.grisSC,
+      borderRadius: BorderRadius.circular(12),
+      border: Border.all(color: Appstyle.violet.withOpacity(0.3)),
+    ),
+    child: Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        if (suggestion.photoUrl != null)
+          ClipRRect(
+            borderRadius: BorderRadius.circular(10),
+            child: Image.network(
+              suggestion.photoUrl!,
+              width: 100,
+              height: 100,
+              fit: BoxFit.cover,
+              errorBuilder: (_, __, ___) => Container(
+                width: 100,
+                height: 100,
+                color: Appstyle.grisC,
+                child: const Icon(Icons.image_not_supported),
+              ),
+            ),
+          ),
+        const SizedBox(width: 16),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                suggestion.nom ?? '',
+                style: Appstyle.textMB.copyWith(fontWeight: FontWeight.bold),
+              ),
+              if (suggestion.sourceLabel != null)
+                Text(suggestion.sourceLabel!, style: Appstyle.textSB.copyWith(color: Appstyle.violet)),
+              if (suggestion.marque != null)
+                Text("${l10n.brand}: ${suggestion.marque}", style: Appstyle.textSB),
+              if (suggestion.categorie != null)
+                Text("${l10n.category}: ${suggestion.categorie}", style: Appstyle.textSB),
+              if (suggestion.taille != null)
+                Text("${l10n.size}: ${suggestion.taille}", style: Appstyle.textSB),
+              const SizedBox(height: 12),
+              Row(
+                children: [
+                  MainButton(
+                    text: l10n.confirmThisProduct,
+                    icon: Icons.check,
+                    color: Appstyle.green,
+                    onPressed: () async {
+                      await _appliquerSuggestionIA(suggestion);
+                      onSuggestionApplied();
+                    },
+                  ),
+                  const SizedBox(width: 10),
+                  MainButton(
+                    text: l10n.cancel,
+                    icon: Icons.close,
+                    color: Appstyle.gris,
+                    onPressed: () => setState(() => aiResult = null),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+      ],
+    ),
   );
 }
 
@@ -864,10 +1267,11 @@ Widget _buildFormRapide(
             border: Border.all(color: Appstyle.grisC, width: 1.5),
           ),
           child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               ChampAvecLabel(
-                label: l10n.reference,
-                child: AffichageChamp(text: "Généré automatiquement"),  // ✅ Texte temporaire
+                label: l10n.code,
+                child: AffichageChamp(text: code),
               ),
               const SizedBox(height: 20),
               ChampAvecLabel(
@@ -898,38 +1302,12 @@ Widget _buildFormRapide(
                 ),
               ),
               const SizedBox(height: 10),
-              // Dans _buildFormRapide, remplacez le ChampAvecLabel du fournisseur par :
-
               ChampAvecLabel(
-                label: l10n.supplier,
-                obligatoire: true,  // ✅ Ajouter obligatoire
-                buttonAjout: true,
-                onAjoutPressed: () async {
-                  await showDialog(
-                    context: context,
-                    barrierColor: Appstyle.gris.withOpacity(0.25),
-                    builder: (_) {
-                      return InsertionFournisseurDialog(
-                        fournisseurs: fournisseursTest,
-                        onFournisseurSelected: (fournisseur) {
-                          setState(() {
-                            selectedFournisseur = fournisseur.nom;
-                          });
-                        },
-                      );
-                    },
-                  );
-                },
-                child: TextListe(
-                  obligatoire: true,  // ✅ Ajouter obligatoire
-                  clearable: false,
-                  value: selectedFournisseur ?? "",
-                  items: fournisseursTest.map((c) => c.nom).toList(),
-                  onChanged: (v) {
-                    setState(() {
-                      selectedFournisseur = v;
-                    });
-                  },
+                label: l10n.barcode,
+                child: TextChampL(
+                  controller: codeController,
+                  hint: l10n.barcodeHint,
+                  numeric: true,
                 ),
               ),
               const SizedBox(height: 30),
@@ -943,7 +1321,7 @@ Widget _buildFormRapide(
                     barrierColor: Appstyle.gris.withOpacity(0.25),
                     builder: (_) {
                       return InsertionCategorieDialog(
-                        categories: categoriesTest,
+                        categories: _categoriesActives(),
                         onCategorieSelected: (categorie) {
                           setState(() {
                             selectedCategorie = categorie.nom;
@@ -957,7 +1335,7 @@ Widget _buildFormRapide(
                 child: TextListe(
                   obligatoire: true,
                   value: selectedCategorie ?? "",
-                  items: categoriesTest.map((c) => c.nom).toList(),
+                  items: _categoriesActives().map((c) => c.nom).toList(),
                   onChanged: (v) {
                     setState(() {
                       selectedCategorie = v;
@@ -965,9 +1343,7 @@ Widget _buildFormRapide(
                       if (v == null || v.isEmpty) {
                         selectedSousCategorie = "";
                       } else {
-                        final sousCats = sousCategoriesTest
-                            .where((sc) => sc.categorieCode == _codeCategorieByNom(v))
-                            .toList();
+                        final sousCats = _sousCategoriesActivesPour(v);
 
                         if (sousCats.isNotEmpty) {
                           selectedSousCategorie = sousCats.first.nom;
@@ -991,9 +1367,7 @@ Widget _buildFormRapide(
                     barrierColor: Appstyle.gris.withOpacity(0.25),
                     builder: (_) {
                       return InsertionSousCategorieDialog(
-                        sousCategories: sousCategoriesTest
-                            .where((sc) => sc.categorieCode == _codeCategorieByNom(selectedCategorie))
-                            .toList(),
+                        sousCategories: _sousCategoriesActivesPour(selectedCategorie),
                         onSousCategorieSelected: (souscategorie) {
                           setState(() {
                             selectedSousCategorie = souscategorie.nom;
@@ -1007,10 +1381,7 @@ Widget _buildFormRapide(
                 child: TextListe(
                   obligatoire: true,
                   value: selectedSousCategorie,
-                  items: sousCategoriesTest
-                      .where((sc) => sc.categorieCode == _codeCategorieByNom(selectedCategorie))
-                      .map((sc) => sc.nom)
-                      .toList(),
+                  items: _sousCategoriesActivesPour(selectedCategorie).map((sc) => sc.nom).toList(),
                   onChanged: (v) {
                     setState(() {
                       selectedSousCategorie = v ?? "";
@@ -1091,6 +1462,13 @@ Widget _buildFormRapide(
                   onChanged: (_) {
                     produitFormKey.currentState!.validate();
                   },
+                  validator: (value) {
+                    final prixAchat = double.tryParse((value ?? '').replaceAll(',', '.'));
+                    if (prixAchat == null || prixAchat <= 0) {
+                      return l10n.invalidPrice;
+                    }
+                    return null;
+                  },
                 ),
               ),
               const SizedBox(height: 10),
@@ -1107,7 +1485,10 @@ Widget _buildFormRapide(
                   },
                   validator: (value) {
                     final prixAchat = double.tryParse(prixController.text) ?? 0;
-                    final prixVente = double.tryParse(value ?? "") ?? 0;
+                    final prixVente = double.tryParse((value ?? '').replaceAll(',', '.'));
+                    if (prixVente == null || prixVente <= 0) {
+                      return l10n.invalidPrice;
+                    }
                     if (prixVente < prixAchat) {
                       return l10n.salePriceLowerThanPurchase;
                     }
@@ -1183,645 +1564,425 @@ Widget _buildFormDetaille(
     AppLocalizations l10n,
     ListsConstTranslator translator) {
 
-  // Initialiser le magasin System au chargement du formulaire
-  Future<void> initSystemMagasin() async {
-    if (magasinsSelectionnes.isEmpty) {
-      final db = await DbCreator.openDb();
-      final magasinService = MagasinServices(db);
-      final systemMagasin = await magasinService.getMagasinByNom("Magasin System");
-
-      if (systemMagasin != null) {
-        setState(() {
-          magasinsSelectionnes.add(systemMagasin);
-        });
-      }
-    }
+  Widget tabPage(List<Widget> children) {
+    return SingleChildScrollView(
+      padding: const EdgeInsets.symmetric(vertical: 4),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: children,
+      ),
+    );
   }
-  // Initialiser le magasin System une seule fois
-  WidgetsBinding.instance.addPostFrameCallback((_) {
-    initSystemMagasin();
-  });
-  return Row(
-    crossAxisAlignment: CrossAxisAlignment.start,
-    children: [
-      Expanded(
-        child: Column(
-          children: [
-            Container(
-              padding: const EdgeInsets.symmetric(vertical: 15, horizontal: 10),
-              decoration: BoxDecoration(
-                color: Appstyle.Tblanc,
-                borderRadius: BorderRadius.circular(14),
-                border: Border.all(color: Appstyle.grisC, width: 1.5),
-              ),
-              child: Column(
-                children: [
-                  TitleSmall(
-                    imageSize: 24,
-                    imagePath: "assets/icons/info_icon.png",
-                    text: l10n.generalInformation,
-                    couleur: Appstyle.Tblue,
-                    opacity: 0.85,
-                  ),
-                  const SizedBox(height: 20),
-                  ChampAvecLabel(
-                    label: l10n.reference,
-                    child: AffichageChamp(text: code),
-                  ),
-                  const SizedBox(height: 10),
 
-                  ChampAvecLabel(
-                    label: l10n.name,
-                    obligatoire: true,
-                    child: TextChampL(
-                      obligatoire: true,
-                      color: colorchamp,
-                      colorEnabled: colorchampenabled,
-                      controller: nomController,
-                      hint: l10n.productNameHint,
-                    ),
-                  ),
-                  const SizedBox(height: 10),
-                  ChampAvecLabel(
-                    label: l10n.description,
-                    child: TextChampL(
-                      color: colorchamp,
-                      colorEnabled: colorchampenabled,
-                      controller: descontroller,
-                      hint: l10n.descriptionHint,
-                    ),
-                  ),
-                  const SizedBox(height: 10),
-                  ChampAvecLabel(
-                    label: l10n.brand,
-                    obligatoire: true,
-                    child: TextChampL(
-                      obligatoire: true,
-                      color: colorchamp,
-                      colorEnabled: colorchampenabled,
-                      controller: marqueController,
-                      hint: l10n.brandHint,
-                    ),
-                  ),
-                  const SizedBox(height: 10),
-                  ChampAvecLabel(
-                    label: l10n.size,
-                    child: TextChampL(
-                      color: colorchamp,
-                      colorEnabled: colorchampenabled,
-                      controller: tailleController,
-                      hint: l10n.sizeHint,
-                    ),
-                  ),
-                  const SizedBox(height: 10),
-                  ChampAvecLabel(
-                    label: l10n.color,
-                    child: TextChampL(
-                      color: colorchamp,
-                      colorEnabled: colorchampenabled,
-                      controller: couleurController,
-                      hint: l10n.colorHint,
-                    ),
-                  ),
-                  const SizedBox(height: 10),
-                  // Dans _buildFormDetaille, remplacez le ChampAvecLabel du fournisseur par :
+  final erreursTabs = afficherErreursTabsProduit ? _tabsAvecErreursProduit() : <int>{};
 
-                  ChampAvecLabel(
-                    label: l10n.supplier,
-                    obligatoire: true,  // ✅ Ajouter obligatoire
-                    buttonAjout: true,
-                    onAjoutPressed: () async {
-                      await showDialog(
-                        context: context,
-                        barrierColor: Appstyle.gris.withOpacity(0.25),
-                        builder: (_) {
-                          return InsertionFournisseurDialog(
-                            fournisseurs: fournisseursTest,
-                            onFournisseurSelected: (fournisseur) {
-                              setState(() {
-                                selectedFournisseur = fournisseur.nom;
-                              });
-                            },
-                          );
-                        },
-                      );
-                    },
-                    child: TextListe(
-                      obligatoire: true,  // ✅ Ajouter obligatoire
-                      clearable: false,
-                      value: selectedFournisseur ?? "",
-                      items: fournisseursTest.map((c) => c.nom).toList(),
-                      onChanged: (v) {
-                        setState(() {
-                          selectedFournisseur = v;
-                        });
-                      },
-                    ),
-                  ), ],
-              ),
+  return DefaultTabController(
+    length: 7,
+    child: Column(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Container(
+          decoration: BoxDecoration(
+            color: Appstyle.grisC.withOpacity(0.15),
+            borderRadius: BorderRadius.circular(12),
+          ),
+          padding: const EdgeInsets.all(4),
+          child: TabBar(
+            isScrollable: true,
+            indicator: BoxDecoration(
+              color: Appstyle.violet,
+              borderRadius: BorderRadius.circular(10),
             ),
-            const SizedBox(height: 30),
-            Container(
-              padding: const EdgeInsets.symmetric(vertical: 15, horizontal: 10),
-              decoration: BoxDecoration(
-                color: Appstyle.Tblanc,
-                borderRadius: BorderRadius.circular(14),
-                border: Border.all(color: Appstyle.grisC, width: 1.5),
-              ),
-              child: Column(
-                children: [
-                  TitleSmall(
-                    imageSize: 24,
-                    imagePath: "assets/icons/reference_icon.png",
-                    text: l10n.codeReference,
-                    couleur: Appstyle.Tblue,
-                    opacity: 0.85,
-                  ),
-                  const SizedBox(height: 20),
-                  ChampAvecLabel(
-                    label: l10n.serialNumber,
-                    child: TextChampL(
-                      controller: numserieController,
-                      hint: l10n.serialNumberHint,
-                    ),
-                  ),
-                  const SizedBox(height: 10),
-                  ChampAvecLabel(
-                    label: l10n.barcode,
+            labelColor: Colors.white,
+            unselectedLabelColor: Appstyle.gris,
+            dividerColor: Colors.transparent,
+            indicatorSize: TabBarIndicatorSize.tab,
+            labelStyle: Appstyle.textSB.copyWith(fontWeight: FontWeight.w600),
+            unselectedLabelStyle: Appstyle.textSB.copyWith(fontWeight: FontWeight.w500),
+            tabs: [
+              _tabAvecIndicateur(l10n.generalInformation, erreursTabs.contains(0)),
+              _tabAvecIndicateur(l10n.codeReference, erreursTabs.contains(1)),
+              _tabAvecIndicateur(l10n.categoryDiscount, erreursTabs.contains(2)),
+              _tabAvecIndicateur(l10n.priceTaxes, erreursTabs.contains(3)),
+              _tabAvecIndicateur(l10n.unitPackaging, erreursTabs.contains(4)),
+              _tabAvecIndicateur(l10n.packStore, erreursTabs.contains(5)),
+              _tabAvecIndicateur(l10n.observation, erreursTabs.contains(6)),
+            ],
+          ),
+        ),
+        const SizedBox(height: 16),
+        SizedBox(
+          height: 480,
+          child: TabBarView(
+            children: [
+              // ── Informations générales ──
+              tabPage([
+                ChampAvecLabel(
+                  label: l10n.reference,
+                  child: AffichageChamp(text: code),
+                ),
+                const SizedBox(height: 10),
+                ChampAvecLabel(
+                  label: l10n.name,
+                  obligatoire: true,
+                  child: TextChampL(
                     obligatoire: true,
-                    child: multicodebar
-                        ? buildMultiBarcodeEditor(context,setState, l10n)
-                        : TextChampL(
-                      controller: codeController,
-                      hint: l10n.barcodeHint,
-                      numeric: true,
-                    ),
+                    color: colorchamp,
+                    colorEnabled: colorchampenabled,
+                    controller: nomController,
+                    hint: l10n.productNameHint,
+                    onChanged: (_) { if (afficherErreursTabsProduit) setState(() {}); },
                   ),
-                  const SizedBox(height: 10),
-                  ChampAvecLabel(
-                    label: l10n.multicode,
-                    alignmentStart: true,
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        TextRadio(
-                          value: multicodebar,
-                          onChanged: (v) {
-                            setState(() {
-                              multicodebar = v ?? false;
-                            });
-                          },
-                        ),
-                      ],
-                    ),
+                ),
+                const SizedBox(height: 10),
+                ChampAvecLabel(
+                  label: l10n.description,
+                  child: TextChampL(
+                    color: colorchamp,
+                    colorEnabled: colorchampenabled,
+                    controller: descontroller,
+                    hint: l10n.descriptionHint,
                   ),
+                ),
+                const SizedBox(height: 10),
+                ChampAvecLabel(
+                  label: l10n.brand,
+                  obligatoire: true,
+                  child: TextChampL(
+                    obligatoire: true,
+                    color: colorchamp,
+                    colorEnabled: colorchampenabled,
+                    controller: marqueController,
+                    hint: l10n.brandHint,
+                    onChanged: (_) { if (afficherErreursTabsProduit) setState(() {}); },
+                  ),
+                ),
+                const SizedBox(height: 10),
+                ChampAvecLabel(
+                  label: l10n.size,
+                  child: TextChampL(
+                    color: colorchamp,
+                    colorEnabled: colorchampenabled,
+                    controller: tailleController,
+                    hint: l10n.sizeHint,
+                  ),
+                ),
+                const SizedBox(height: 10),
+                ChampAvecLabel(
+                  label: l10n.color,
+                  child: TextChampL(
+                    color: colorchamp,
+                    colorEnabled: colorchampenabled,
+                    controller: couleurController,
+                    hint: l10n.colorHint,
+                  ),
+                ),
+                const SizedBox(height: 10),
+                ChampAvecLabel(
+                  label: l10n.photos,
+                  child: ButtonAddPhoto(
+                    photo: productPhoto,
+                    onPhotoChanged: (newPhoto) {
+                      setState(() {
+                        productPhoto = newPhoto;
+                      });
+                    },
+                    isEditMode: true,
+                  ),
+                ),
+              ]),
 
+              // ── Code & Référence ──
+              tabPage([
+                ChampAvecLabel(
+                  label: l10n.serialNumber,
+                  child: TextChampL(
+                    controller: numserieController,
+                    hint: l10n.serialNumberHint,
+                  ),
+                ),
+                const SizedBox(height: 10),
+                ChampAvecLabel(
+                  label: multicodebar ? l10n.multipleBarcodeLabel : l10n.barcode,
+                  obligatoire: !multicodebar && !sansCodeBar,
+                  child: multicodebar
+                      ? buildMultiBarcodeEditor(context,setState, l10n)
+                      : TextChampL(
+                    controller: codeController,
+                    hint: l10n.barcodeHint,
+                    numeric: true,
+                    enabled: !sansCodeBar,
+                    obligatoire: !sansCodeBar,
+                  ),
+                ),
+                if (!multicodebar) ...[
+                  const SizedBox(height: 10),
+                  ProduitBarcodeGenerator(
+                    barcodeController: codeController,
+                    sansCodeBar: sansCodeBar,
+                    onSansCodeBarChanged: (v) {
+                      setState(() {
+                        sansCodeBar = v;
+                        codeController.clear();
+                      });
+                    },
+                  ),
                 ],
-              ),
-            ),
-            const SizedBox(height: 30),
-            Container(
-              padding: const EdgeInsets.symmetric(vertical: 15, horizontal: 10),
-              decoration: BoxDecoration(
-                color: Appstyle.Tblanc,
-                borderRadius: BorderRadius.circular(14),
-                border: Border.all(color: Appstyle.grisC, width: 1.5),
-              ),
-              child: Column(
-                children: [
-                  TitleSmall(
-                    imageSize: 24,
-                    imagePath: "assets/icons/cardwidget/categorie_icon.png",
-                    text: l10n.categoryDiscount,
-                    couleur: Appstyle.Tblue,
-                    opacity: 0.85,
-                  ),
-                  const SizedBox(height: 20),
-                  ChampAvecLabel(
-                    label: l10n.category,
-                    buttonAjout: true,
-                    obligatoire: true,
-                    onAjoutPressed: () async {
-                      await showDialog(
-                        context: context,
-                        barrierColor: Appstyle.gris.withOpacity(0.25),
-                        builder: (_) {
-                          return InsertionCategorieDialog(
-                            categories: categoriesTest,
-                            onCategorieSelected: (categorie) {
-                              setState(() {
-                                selectedCategorie = categorie.nom;
-                                selectedCategorieid = categorie.id;
-                              });
-                            },
-                          );
+                const SizedBox(height: 10),
+                ChampAvecLabel(
+                  label: l10n.multicode,
+                  distance: 200,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      TextRadio(
+                        value: multicodebar,
+                        onChanged: (v) {
+                          setState(() {
+                            multicodebar = v ?? false;
+                          });
                         },
-                      );
-                    },
-                    child: TextListe(
-                      obligatoire: true,
-                      value: selectedCategorie ?? "",
-                      items: categoriesTest.map((c) => c.nom).toList(),
-                      onChanged: (v) {
-                        setState(() {
-                          selectedCategorie = v;
-                          selectedCategorieid = categoriesTest.where((sc) => sc.nom == v).first.id;
-                          if (v == null || v.isEmpty) {
-                            selectedSousCategorie = "";
-                          } else {
-                            final sousCats = sousCategoriesTest
-                                .where((sc) => sc.categorieCode == _codeCategorieByNom(v))
-                                .toList();
+                      ),
+                    ],
+                  ),
+                ),
+              ]),
 
-                            if (sousCats.isNotEmpty) {
-                              selectedSousCategorie = sousCats.first.nom;
-                              selectedSousCategorieid = sousCats.first.id;
-                            } else {
-                              selectedSousCategorie = "";
-                            }
-                          }
-                        });
-                      },
-                    ),
-                  ),
-                  const SizedBox(height: 10),
-                  ChampAvecLabel(
-                    label: l10n.subcategory,
-                    obligatoire: true,
-                    buttonAjout: true,
-                    onAjoutPressed: () async {
-                      await showDialog(
-                        context: context,
-                        barrierColor: Appstyle.gris.withOpacity(0.25),
-                        builder: (_) {
-                          return InsertionSousCategorieDialog(
-                            sousCategories: sousCategoriesTest
-                                .where((sc) => sc.categorieCode == _codeCategorieByNom(selectedCategorie))
-                                .toList(),
-                            onSousCategorieSelected: (souscategorie) {
-                              setState(() {
-                                selectedSousCategorie = souscategorie.nom;
-                                selectedSousCategorieid = souscategorie.id;
-                              });
-                            },
-                          );
-                        },
-                      );
-                    },
-                    child: TextListe(
-                      obligatoire: true,
-                      value: selectedSousCategorie,
-                      items: sousCategoriesTest
-                          .where((sc) => sc.categorieCode == _codeCategorieByNom(selectedCategorie))
-                          .map((sc) => sc.nom)
-                          .toList(),
-                      onChanged: (v) {
-                        setState(() {
-                          selectedSousCategorie = v ?? "";
-                          selectedSousCategorieid = sousCategoriesTest.where((sc) => sc.nom == v).first.id;
-                        });
-                      },
-                    ),
-                  ),
-                  const SizedBox(height: 10),
-                  ChampAvecLabel(
-                    label: l10n.discount,
-                    buttonAjout: true,
-                    onAjoutPressed: () async {
-                      await showDialog(
-                        context: context,
-                        barrierColor: Appstyle.gris.withOpacity(0.25),
-                        builder: (_) {
-                          return InsertionRemiseDialog(
-                            multiselection: false,
-                            remises: remisesTest
-                                .where((r) => r.type == "Par Produit")
-                                .toList(),
-                            onRemiseSelected: (remise) {
-                              setState(() {
-                                selectedRemise = remise.nom;
-                                remiseId = remise.id;
-                              });
-                            },
-                          );
-                        },
-                      );
-                    },
-                    child: Builder(
-                      builder: (context) {
-                        final remiseItems = remisesTest
-                            .where((r) => r.type == "Par Produit")
-                            .map((r) => r.nom.trim())
-                            .toSet()
-                            .toList();
-
-                        return TextListe(
-                          value: selectedRemise,
-                          items: remiseItems,
-                          onChanged: (v) {
+              // ── Catégorie & Remise ──
+              tabPage([
+                ChampAvecLabel(
+                  label: l10n.category,
+                  buttonAjout: true,
+                  obligatoire: true,
+                  onAjoutPressed: () async {
+                    await showDialog(
+                      context: context,
+                      barrierColor: Appstyle.gris.withOpacity(0.25),
+                      builder: (_) {
+                        return InsertionCategorieDialog(
+                          categories: _categoriesActives(),
+                          onCategorieSelected: (categorie) {
                             setState(() {
-                              selectedRemise = v;
-                              remiseId = remisesTest.where((sc) => sc.nom == v).first.id;
+                              selectedCategorie = categorie.nom;
+                              selectedCategorieid = categorie.id;
                             });
                           },
                         );
                       },
-                    ),
-                  ),
-                  const SizedBox(height: 15),
-                ],
-              ),
-            ),
-            const SizedBox(height: 30),
-            // Dans _buildFormDetaille, remplacez la section "unitPackaging" par :
-
-            Container(
-              padding: const EdgeInsets.symmetric(vertical: 15, horizontal: 10),
-              decoration: BoxDecoration(
-                color: Appstyle.Tblanc,
-                borderRadius: BorderRadius.circular(14),
-                border: Border.all(color: Appstyle.grisC, width: 1.5),
-              ),
-              child: Column(
-                children: [
-                  TitleSmall(
-                    imageSize: 24,
-                    imagePath: "assets/icons/sidebar/produit_icon.png",
-                    text: l10n.unitPackaging,
-                    couleur: Appstyle.Tblue,
-                    opacity: 0.85,
-                  ),
-                  const SizedBox(height: 20),
-                  ChampAvecLabel(
-                    label: l10n.unitOfMeasure,
-                    obligatoire: true,
-                    child: TextListe(
-                      obligatoire: true,
-                      value: selectedUnite,
-                      items: translator.uniteMesureDisplayList,
-                      clearable: false,
-                      onChanged: (v) {
-                        setState(() {
-                          selectedUnite       = v;
-                          selectedUnitemesure = translator.uniteMesureToFrench(v!);
-                        });
-                      },
-                    ),
-                  ),
-                  const SizedBox(height: 10),
-
-                  // ✅ Emballage 1 (Boîte)
-                  ChampAvecLabel(
-                    label: l10n.packaging1,
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Row(
-                          children: [
-                            Expanded(
-                              child: TextChampL(
-                                width: 120,
-                                controller: jeu1Controller,
-                                color: colorchamp,
-                                colorEnabled: colorchampenabled,
-                                hint: l10n.packaging1Hint,
-                                numeric: true,
-                                onChanged: (value) {
-                                  setState(() {
-                                    emballage1Actif = value.trim().isNotEmpty;
-                                    if (!emballage1Actif) {
-                                      jeu1PrixController.clear();
-                                    }
-                                  });
-                                },
-                              ),
-                            ),
-                            const SizedBox(width: 20),
-                            Expanded(
-                              child: TextChampL(
-                                width: 120,
-                                controller: jeu1PrixController,
-                                color: colorchamp,
-                                colorEnabled: colorchampenabled,
-                                hint: l10n.packagingPrice1Hint,
-                                numeric: true,
-                                enabled: emballage1Actif,
-                                obligatoire: emballage1Actif,
-                                validator: (value) {
-                                  if (emballage1Actif && (value == null || value.isEmpty)) {
-                                    return l10n.requiredField;
-                                  }
-                                  return null;
-                                },
-                                onChanged: (_) => setState(() {}), // Pour recalculer
-                              ),
-                            ),
-                          ],
-                        ),
-                        // ✅ Affichage du prix par pièce pour l'emballage 1
-                        if (emballage1Actif && jeu1Controller.text.isNotEmpty && jeu1PrixController.text.isNotEmpty)
-                          Padding(
-                            padding: const EdgeInsets.only(top: 8.0, left: 8.0),
-                            child: Text(
-                              "💰 Prix par pièce : ${_calculerPrixParPiece(jeu1Controller.text, jeu1PrixController.text)} DA",
-                              style: Appstyle.textpop_S.copyWith(
-                                color: Appstyle.violet,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                          ),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(height: 10),
-
-                  // ✅ Emballage 2 (Carton)
-                  ChampAvecLabel(
-                    label: l10n.packaging2,
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Row(
-                          children: [
-                            Expanded(
-                              child: TextChampL(
-                                width: 120,
-                                controller: jeu2Controller,
-                                color: colorchamp,
-                                colorEnabled: colorchampenabled,
-                                hint: l10n.packaging2Hint,
-                                numeric: true,
-                                onChanged: (value) {
-                                  setState(() {
-                                    emballage2Actif = value.trim().isNotEmpty;
-                                    if (!emballage2Actif) {
-                                      jeu2PrixController.clear();
-                                    }
-                                  });
-                                },
-                              ),
-                            ),
-                            const SizedBox(width: 20),
-                            Expanded(
-                              child: TextChampL(
-                                width: 120,
-                                controller: jeu2PrixController,
-                                color: colorchamp,
-                                colorEnabled: colorchampenabled,
-                                hint: l10n.packagingPrice2Hint,
-                                numeric: true,
-                                enabled: emballage2Actif,
-                                obligatoire: emballage2Actif,
-                                validator: (value) {
-                                  if (emballage2Actif && (value == null || value.isEmpty)) {
-                                    return l10n.requiredField;
-                                  }
-                                  return null;
-                                },
-                                onChanged: (_) => setState(() {}), // Pour recalculer
-                              ),
-                            ),
-                          ],
-                        ),
-                        // ✅ Affichage du prix par pièce pour l'emballage 2
-                        if (emballage2Actif && jeu2Controller.text.isNotEmpty && jeu2PrixController.text.isNotEmpty)
-                          Padding(
-                            padding: const EdgeInsets.only(top: 8.0, left: 8.0),
-                            child: Text(
-                              "💰 Prix par pièce : ${_calculerPrixParPiece(jeu2Controller.text, jeu2PrixController.text)} DA",
-                              style: Appstyle.textpop_S.copyWith(
-                                color: Appstyle.violet,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                          ),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ],
-        ),
-      ),
-      const SizedBox(width: 20),
-      Expanded(
-        child: Column(
-          children: [
-            Container(
-              padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 10),
-              decoration: BoxDecoration(
-                color: Appstyle.Tblanc,
-                borderRadius: BorderRadius.circular(14),
-                border: Border.all(color: Appstyle.grisC, width: 1.5),
-              ),
-              child: ChampAvecLabel(
-                label: l10n.photos,
-                child: ButtonAddPhoto(
-                  photo: productPhoto,
-                  onPhotoChanged: (newPhoto) {
-                    setState(() {
-                      productPhoto = newPhoto;
-                    });
+                    );
                   },
-                  isEditMode: true,
-                ),
-              ),
-            ),
-            const SizedBox(height: 30),
-            Container(
-              padding: const EdgeInsets.symmetric(vertical: 15, horizontal: 10),
-              decoration: BoxDecoration(
-                color: Appstyle.Tblanc,
-                borderRadius: BorderRadius.circular(14),
-                border: Border.all(color: Appstyle.grisC, width: 1.5),
-              ),
-              child: Column(
-                children: [
-                  TitleSmall(
-                    imageSize: 24,
-                    imagePath: "assets/icons/devise_icon.png",
-                    text: l10n.priceTaxes,
-                    couleur: Appstyle.Tblue,
-                    opacity: 0.85,
-                  ),
-                  const SizedBox(height: 20),
-                  ChampAvecLabel(
-                    label: l10n.purchasePrice,
+                  child: TextListe(
                     obligatoire: true,
-                    child: TextChampL(
-                      obligatoire: true,
-                      color: colorchamp,
-                      colorEnabled: colorchampenabled,
-                      onChanged: (_) {
+                    value: selectedCategorie ?? "",
+                    items: _categoriesActives().map((c) => c.nom).toList(),
+                    onChanged: (v) {
+                      setState(() {
+                        selectedCategorie = v;
+                        selectedCategorieid = categoriesTest.where((sc) => sc.nom == v).first.id;
+                        if (v == null || v.isEmpty) {
+                          selectedSousCategorie = "";
+                        } else {
+                          final sousCats = _sousCategoriesActivesPour(v);
+
+                          if (sousCats.isNotEmpty) {
+                            selectedSousCategorie = sousCats.first.nom;
+                            selectedSousCategorieid = sousCats.first.id;
+                          } else {
+                            selectedSousCategorie = "";
+                          }
+                        }
+                      });
+                    },
+                  ),
+                ),
+                const SizedBox(height: 10),
+                ChampAvecLabel(
+                  label: l10n.subcategory,
+                  obligatoire: true,
+                  buttonAjout: true,
+                  onAjoutPressed: () async {
+                    await showDialog(
+                      context: context,
+                      barrierColor: Appstyle.gris.withOpacity(0.25),
+                      builder: (_) {
+                        return InsertionSousCategorieDialog(
+                          sousCategories: _sousCategoriesActivesPour(selectedCategorie),
+                          onSousCategorieSelected: (souscategorie) {
+                            setState(() {
+                              selectedSousCategorie = souscategorie.nom;
+                              selectedSousCategorieid = souscategorie.id;
+                            });
+                          },
+                        );
+                      },
+                    );
+                  },
+                  child: TextListe(
+                    obligatoire: true,
+                    value: selectedSousCategorie,
+                    items: _sousCategoriesActivesPour(selectedCategorie).map((sc) => sc.nom).toList(),
+                    onChanged: (v) {
+                      setState(() {
+                        selectedSousCategorie = v ?? "";
+                        selectedSousCategorieid = sousCategoriesTest.where((sc) => sc.nom == v).first.id;
+                      });
+                    },
+                  ),
+                ),
+                const SizedBox(height: 10),
+                ChampAvecLabel(
+                  label: l10n.discount,
+                  buttonAjout: true,
+                  onAjoutPressed: () async {
+                    await showDialog(
+                      context: context,
+                      barrierColor: Appstyle.gris.withOpacity(0.25),
+                      builder: (_) {
+                        return InsertionRemiseDialog(
+                          multiselection: false,
+                          remises: remisesTest
+                              .where((r) => r.type == "Par Produit")
+                              .toList(),
+                          onRemiseSelected: (remise) {
+                            setState(() {
+                              selectedRemise = remise.nom;
+                              remiseId = remise.id;
+                            });
+                          },
+                        );
+                      },
+                    );
+                  },
+                  child: Builder(
+                    builder: (context) {
+                      final remiseItems = remisesTest
+                          .where((r) => r.type == "Par Produit")
+                          .map((r) => r.nom.trim())
+                          .toSet()
+                          .toList();
+
+                      return TextListe(
+                        value: selectedRemise,
+                        items: remiseItems,
+                        onChanged: (v) {
+                          setState(() {
+                            selectedRemise = v;
+                            remiseId = remisesTest.where((sc) => sc.nom == v).first.id;
+                          });
+                        },
+                      );
+                    },
+                  ),
+                ),
+              ]),
+
+              // ── Prix & Taxes ──
+              tabPage([
+                ChampAvecLabel(
+                  label: l10n.purchasePrice,
+                  obligatoire: true,
+                  child: TextChampL(
+                    obligatoire: true,
+                    color: colorchamp,
+                    colorEnabled: colorchampenabled,
+                    onChanged: (_) {
+                      setState(() {
                         produitFormKey.currentState!.validate();
                         calculPrixVenteAuto();
-                      },
-                      controller: prixController,
-                      hint: '150 ${l10n.currency}',
-                      numeric: true,
-                    ),
+                      });
+                    },
+                    controller: prixController,
+                    hint: '150 ${l10n.currency}',
+                    numeric: true,
+                    validator: (value) {
+                      final prixAchat = double.tryParse((value ?? '').replaceAll(',', '.'));
+                      if (prixAchat == null || prixAchat <= 0) {
+                        return l10n.invalidPrice;
+                      }
+                      return null;
+                    },
                   ),
-                  const SizedBox(height: 10),
-                  ChampAvecLabel(
-                    alignmentStart: true,
-                    label: l10n.margin,
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        TextRadio(
-                          value: merge,
-                          onChanged: (v) {
-                            setState(() {
-                              merge = v ?? false;
-                            });
-                            calculPrixVenteAuto();
-                          },
-                          auto: true,
+                ),
+                const SizedBox(height: 10),
+                ChampAvecLabel(
+                  alignmentStart: true,
+                  label: l10n.margin,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      TextRadio(
+                        value: merge,
+                        onChanged: (v) {
+                          setState(() {
+                            merge = v ?? false;
+                          });
+                          calculPrixVenteAuto();
+                        },
+                        auto: true,
+                      ),
+                      if (merge)
+                        Padding(
+                          padding: const EdgeInsets.only(top: 6),
+                          child: Row(
+                            children: [
+                              Icon(Icons.info_outline, size: 14, color: Appstyle.gris),
+                              const SizedBox(width: 4),
+                              Text(
+                                "${l10n.typeCalcul}: ${translator.translateTypeCalcul(margeTypePrmtre)}  •  "
+                                "${l10n.marginRate}: ${margeTypePrmtre == "Montant" ? "$margetauxPrmtre ${l10n.currency}" : "$margetauxPrmtre%"}",
+                                style: Appstyle.textXS.copyWith(
+                                  color: Appstyle.gris,
+                                  fontStyle: FontStyle.italic,
+                                ),
+                              ),
+                            ],
+                          ),
                         ),
-                        if (!merge) ...[
-                          const SizedBox(height: 10),
-                          ChampAvecLabel(
-                            label: l10n.marginAmount,
-                            child: TextChampL(
-                              controller: margeController,
-                              hint: "100 ${l10n.currency}",
-                              numeric: true,
-                              onChanged: (_) {
-                                margePController.clear();
-                                calculPrixVenteAuto();
-                              },
-                            ),
+                      if (!merge) ...[
+                        const SizedBox(height: 10),
+                        ChampAvecLabel(
+                          label: l10n.marginAmount,
+                          child: TextChampL(
+                            controller: margeController,
+                            hint: "100 ${l10n.currency}",
+                            numeric: true,
+                            onChanged: (_) {
+                              margePController.clear();
+                              calculPrixVenteAuto();
+                            },
                           ),
-                          const SizedBox(height: 10),
-                          ChampAvecLabel(
-                            label: l10n.marginPercentage,
-                            child: TextChampL(
-                              controller: margePController,
-                              hint: "5 %",
-                              maxValue: 100,
-                              numeric: true,
-                              onChanged: (_) {
-                                margeController.clear();
-                                calculPrixVenteAuto();
-                              },
-                            ),
+                        ),
+                        const SizedBox(height: 10),
+                        ChampAvecLabel(
+                          label: l10n.marginPercentage,
+                          child: TextChampL(
+                            controller: margePController,
+                            hint: "5 %",
+                            maxValue: 100,
+                            numeric: true,
+                            onChanged: (_) {
+                              margeController.clear();
+                              calculPrixVenteAuto();
+                            },
                           ),
-                        ],
+                        ),
                       ],
-                    ),
+                    ],
                   ),
-                  const SizedBox(height: 10),
-                  ChampAvecLabel(
-                    label: l10n.vat,
-                    obligatoire: true,
-                    child: TextChampL(
-                      color: colorchamp,
-                      colorEnabled: colorchampenabled,
-                      controller: tvaController,
-                      hint: '20%',
-                      numeric: true,
-                      onChanged: (value) {
+                ),
+                const SizedBox(height: 10),
+                ChampAvecLabel(
+                  label: l10n.vat,
+                  obligatoire: true,
+                  child: TextChampL(
+                    color: colorchamp,
+                    colorEnabled: colorchampenabled,
+                    controller: tvaController,
+                    hint: '20%',
+                    numeric: true,
+                    onChanged: (value) {
+                      setState(() {
                         String cleaned = value.replaceAll(RegExp(r'[^0-9]'), '');
                         if (cleaned.isNotEmpty) {
                           int number = int.parse(cleaned);
@@ -1834,290 +1995,363 @@ Widget _buildFormDetaille(
                             );
                           }
                         }
-                      },
-                    ),
+                      });
+                    },
                   ),
-                  const SizedBox(height: 10),
-                  ChampAvecLabel(
-                    label: l10n.salePrice,
+                ),
+                const SizedBox(height: 10),
+                ChampAvecLabel(
+                  label: l10n.salePrice,
+                  obligatoire: true,
+                  child: TextChampL(
+                    controller: prixController2,
+                    enabled: false,
                     obligatoire: true,
-                    child: TextChampL(
-                      controller: prixController2,
-                      enabled: false,
-                      obligatoire: true,
-                      hint: '250 ${l10n.currency}',
-                      numeric: true,
-                      onChanged: (_) {
+                    hint: '250 ${l10n.currency}',
+                    numeric: true,
+                    onChanged: (_) {
+                      setState(() {
                         produitFormKey.currentState!.validate();
                         calculPrixVenteAuto();
-                      },
-                      validator: (value) {
-                        final prixAchat = double.tryParse(prixController.text) ?? 0;
-                        final prixVente = double.tryParse(value ?? "") ?? 0;
-                        if (prixVente < prixAchat) {
-                          return l10n.salePriceLowerThanPurchase;
-                        }
-                        return null;
-                      },
-                    ),
+                      });
+                    },
+                    validator: (value) {
+                      final prixAchat = double.tryParse(prixController.text) ?? 0;
+                      final prixVente = double.tryParse((value ?? '').replaceAll(',', '.'));
+                      if (prixVente == null || prixVente <= 0) {
+                        return l10n.invalidPrice;
+                      }
+                      if (prixVente < prixAchat) {
+                        return l10n.salePriceLowerThanPurchase;
+                      }
+                      return null;
+                    },
                   ),
-                ],
-              ),
-            ),
-            const SizedBox(height: 30),
-            Container(
-              padding: const EdgeInsets.symmetric(vertical: 15, horizontal: 10),
-              decoration: BoxDecoration(
-                color: Appstyle.Tblanc,
-                borderRadius: BorderRadius.circular(14),
-                border: Border.all(color: Appstyle.grisC, width: 1.5),
-              ),
-              child: Column(
-                children: [
-                  TitleSmall(
-                    imageSize: 24,
-                    imagePath: "assets/icons/sidebar/stock_icon.png",
-                    text: l10n.storage,
-                    couleur: Appstyle.Tblue,
-                    opacity: 0.85,
-                  ),
-                  const SizedBox(height: 20),
-                  ChampAvecLabel(
-                    label: l10n.service,
-                    alignmentStart: true,
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        TextRadio(
-                          value: service,
-                          onChanged: (v) {
-                            setState(() {
-                              service = v ?? false;
-                            });
-                          },
-                          auto: false,
-                        ),
-                      ],
-                    ),
-                  ),
+                ),
+              ]),
 
-                  const SizedBox(height: 10),
-                  ChampAvecLabel(
-                    label: l10n.threshold,
-                    alignmentStart: true,
+              // ── Stock & Emballage ──
+              tabPage([
+                ChampAvecLabel(
+                  label: l10n.unitOfMeasure,
+                  obligatoire: true,
+                  child: TextListe(
                     obligatoire: true,
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        TextRadio(
-                          value: seuil,
-                          onChanged: (v) {
-                            setState(() {
-                              seuil = v ?? false;
-                            });
-                          },
-                          auto: true,
-                        ),
-                        if (!seuil) ...[
-                          const SizedBox(height: 10),
-                          ChampAvecLabel(
-                            label: l10n.minThreshold,
-                            obligatoire: true,
+                    value: selectedUnite,
+                    items: translator.uniteMesureDisplayList,
+                    clearable: false,
+                    onChanged: (v) {
+                      setState(() {
+                        selectedUnite       = v;
+                        selectedUnitemesure = translator.uniteMesureToFrench(v!);
+                        // ✅ "Nombre" n'a de sens que pour un produit vendu au
+                        // poids/volume (Kg/Litre) : si l'unité change pour
+                        // autre chose, on désactive l'option pour éviter un
+                        // état incohérent (toggle verrouillé mais resté actif).
+                        if (!_uniteEligibleNombre(selectedUnitemesure)) {
+                          nombreActif = false;
+                        }
+                      });
+                    },
+                  ),
+                ),
+                const SizedBox(height: 10),
+                // ✅ Emballage 1 (Boîte)
+                // ✅ Emballage 1 (Boîte)
+                ChampAvecLabel(
+                  label: l10n.packaging1,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          Expanded(
                             child: TextChampL(
-                              obligatoire: !seuil,
-                              controller: seuilMinController,
-                              hint: "5",
+                              width: 120,
+                              controller: jeu1Controller,
+                              color: colorchamp,
+                              colorEnabled: colorchampenabled,
+                              hint: l10n.packaging1Hint,
                               numeric: true,
-                              onChanged: (_) {
-                                produitFormKey.currentState!.validate();
+                              onChanged: (value) {
+                                setState(() {
+                                  emballage1Actif = value.trim().isNotEmpty;
+                                  if (!emballage1Actif) {
+                                    jeu1PrixController.clear();
+                                  }
+                                });
+                                // Valider après changement
+                                produitFormKey.currentState?.validate();
                               },
                             ),
                           ),
-                          const SizedBox(height: 10),
-                          ChampAvecLabel(
-                            label: l10n.maxThreshold,
-                            obligatoire: true,
+                          const SizedBox(width: 20),
+                          Expanded(
                             child: TextChampL(
-                              obligatoire: !seuil,
-                              controller: seuilMaxController,
-                              hint: "50",
+                              width: 120,
+                              controller: jeu1PrixController,
+                              color: colorchamp,
+                              colorEnabled: colorchampenabled,
+                              hint: l10n.packagingPrice1Hint,
                               numeric: true,
-                              onChanged: (_) {
-                                produitFormKey.currentState!.validate();
-                              },
+                              enabled: emballage1Actif,
+                              obligatoire: emballage1Actif,
                               validator: (value) {
-                                final seuilmin = double.tryParse(seuilMinController.text) ?? 0;
-                                final seuilmax = double.tryParse(value ?? "") ?? 0;
-                                if (seuilmin > seuilmax) {
-                                  return l10n.maxThresholdLowerThanMin;
+                                if (emballage1Actif) {
+                                  if (value == null || value.isEmpty) {
+                                    return l10n.requiredField;
+                                  }
+
+                                  final prixEmballageTotal = double.tryParse(value.replaceAll(',', '.'));
+                                  final quantite = double.tryParse(jeu1Controller.text.replaceAll(',', '.'));
+                                  final prixAchat = double.tryParse(prixController.text.replaceAll(',', '.'));
+
+                                  if (prixEmballageTotal == null || prixEmballageTotal <= 0) {
+                                    return l10n.invalidPrice;
+                                  }
+
+                                  if (quantite == null || quantite <= 0) {
+                                    return l10n.invalidQuantity;
+                                  }
+
+                                  // ✅ Calcul du prix par pièce
+                                  final prixParPiece = prixEmballageTotal / quantite;
+
+                                  if (prixAchat != null && prixParPiece < prixAchat) {
+                                    return l10n.packagingPricePerPieceLowerThanPurchase(prixParPiece.toStringAsFixed(2));
+                                  }
                                 }
                                 return null;
                               },
+                              onChanged: (_) => setState(() => produitFormKey.currentState?.validate()),
                             ),
                           ),
                         ],
-                      ],
-                    ),
+                      ),
+                      // ✅ Affichage du prix par pièce pour l'emballage 1
+                      if (emballage1Actif && jeu1Controller.text.isNotEmpty && jeu1PrixController.text.isNotEmpty)
+                        Padding(
+                          padding: const EdgeInsets.only(top: 8.0, left: 8.0),
+                          child: Text(
+                            "💰 Prix par pièce : ${_calculerPrixParPiece(jeu1Controller.text, jeu1PrixController.text)} DA",
+                            style: Appstyle.textpop_S.copyWith(
+                              color: Appstyle.violet,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ),
+                    ],
                   ),
-                  const SizedBox(height: 10),
-                  ChampAvecLabel(
-                    label: l10n.expiryDate,
-                    child: TextDate(
-                      hint: "15 nov 2025",
-                      controller: dateController,
-                      onTap: () => pickDate(context, dateController),
-                    ),
-                  ),
-                  const SizedBox(height: 10),
-                ],
-              ),
-            ),
-            const SizedBox(height: 30),
-            Container(
-              padding: const EdgeInsets.symmetric(vertical: 15, horizontal: 10),
-              decoration: BoxDecoration(
-                color: Appstyle.Tblanc,
-                borderRadius: BorderRadius.circular(14),
-                border: Border.all(color: Appstyle.grisC, width: 1.5),
-              ),
-              child: Column(
-                children: [
-                  TitleSmall(
-                    imageSize: 24,
-                    imagePath: "assets/icons/cardwidget/remise_icon.png",
-                    text: l10n.packStore,
-                    couleur: Appstyle.Tblue,
-                    opacity: 0.85,
-                  ),
-                  const SizedBox(height: 20),
-                  const SizedBox(height: 15),
-                  ChampAvecLabel(
-                    label: l10n.packs,
-                    distance: 100,
-                    alignmentStart: true,
-                    child: chipsSelector<Pack>(
-                      values: packsSelectionnes,
-                      label: (p) => p.nom,
-                      l10n: l10n,
-                      onAdd: () async {
-                        await showDialog(
-                          context: context,
-                          barrierColor: Appstyle.gris.withOpacity(0.25),
-                          builder: (_) {
-                            return InsertionPackDialog(
-                              multiselection: true,
-                              packs: packsTest,
-                              onPackSelected: (pack) {
+                ),
+                const SizedBox(height: 10),
+
+// ✅ Emballage 2 (Carton)
+                ChampAvecLabel(
+                  label: l10n.packaging2,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          Expanded(
+                            child: TextChampL(
+                              width: 120,
+                              controller: jeu2Controller,
+                              color: colorchamp,
+                              colorEnabled: colorchampenabled,
+                              hint: l10n.packaging2Hint,
+                              numeric: true,
+                              onChanged: (value) {
                                 setState(() {
-                                  if (!packsSelectionnes.any((p) => p.code == pack.code)) {
-                                    packsSelectionnes.add(pack);
-                                    packId = pack.id;
+                                  emballage2Actif = value.trim().isNotEmpty;
+                                  if (!emballage2Actif) {
+                                    jeu2PrixController.clear();
                                   }
                                 });
+                                produitFormKey.currentState?.validate();
                               },
-                            );
-                          },
-                        );
-                      },
-                      onRemove: (p) {
-                        setState(() {
-                          packsSelectionnes.remove(p);
-                        });
-                      },
-                    ),
+                            ),
+                          ),
+                          const SizedBox(width: 20),
+                          Expanded(
+                            child: TextChampL(
+                              width: 120,
+                              controller: jeu2PrixController,
+                              color: colorchamp,
+                              colorEnabled: colorchampenabled,
+                              hint: l10n.packagingPrice2Hint,
+                              numeric: true,
+                              enabled: emballage2Actif,
+                              obligatoire: emballage2Actif,
+                              validator: (value) {
+                                if (emballage2Actif) {
+                                  if (value == null || value.isEmpty) {
+                                    return l10n.requiredField;
+                                  }
+
+                                  final prixEmballageTotal = double.tryParse(value.replaceAll(',', '.'));
+                                  final quantite = double.tryParse(jeu2Controller.text.replaceAll(',', '.'));
+                                  final prixAchat = double.tryParse(prixController.text.replaceAll(',', '.'));
+
+                                  if (prixEmballageTotal == null || prixEmballageTotal <= 0) {
+                                    return l10n.invalidPrice;
+                                  }
+
+                                  if (quantite == null || quantite <= 0) {
+                                    return l10n.invalidQuantity;
+                                  }
+
+                                  // ✅ Calcul du prix par pièce
+                                  final prixParPiece = prixEmballageTotal / quantite;
+
+                                  if (prixAchat != null && prixParPiece < prixAchat) {
+                                    return l10n.packagingPricePerPieceLowerThanPurchase(prixParPiece.toStringAsFixed(2));
+                                  }
+                                }
+                                return null;
+                              },
+                              onChanged: (_) => setState(() => produitFormKey.currentState?.validate()),
+                            ),
+                          ),
+                        ],
+                      ),
+                      // ✅ Affichage du prix par pièce pour l'emballage 2
+                      if (emballage2Actif && jeu2Controller.text.isNotEmpty && jeu2PrixController.text.isNotEmpty)
+                        Padding(
+                          padding: const EdgeInsets.only(top: 8.0, left: 8.0),
+                          child: Text(
+                            "💰 Prix par pièce : ${_calculerPrixParPiece(jeu2Controller.text, jeu2PrixController.text)} DA",
+                            style: Appstyle.textpop_S.copyWith(
+                              color: Appstyle.violet,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ),
+                    ],
                   ),
-                  const SizedBox(height: 10),
-                  // Dans _buildFormDetaille, remplacez l'appel chipsSelector pour les magasins :
+                ),
+                const SizedBox(height: 10),
+                ChampAvecLabel(
+                  label: l10n.service,
+                  distance: 200,
+                  alignmentStart: true,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      TextRadio(
+                        value: service,
+                        onChanged: (v) {
+                          final nouveauService = v ?? false;
+                          setState(() {
+                            service = nouveauService;
+                          });
+                          if (nouveauService) {
+                            InformationDialog(
+                              context: context,
+                              titre_type_message: l10n.information,
+                              titre_concerne: l10n.service,
+                              message: l10n.serviceModeInfo,
+                            );
+                          }
+                        },
+                        auto: false,
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 10),
+                ChampAvecLabel(
+                  label: l10n.nombreActifLabel,
+                  distance: 200,
+                  alignmentStart: true,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      TextRadio(
+                        value: nombreActif,
+                        enabled: _uniteEligibleNombre(selectedUnitemesure),
+                        onChanged: (v) {
+                          setState(() {
+                            nombreActif = v ?? false;
+                          });
+                        },
+                        auto: false,
+                      ),
+                      Text(
+                        _uniteEligibleNombre(selectedUnitemesure)
+                            ? l10n.nombreActifHint
+                            : l10n.nombreActifUniteRequiredHint,
+                        style: Appstyle.textS.copyWith(color: Appstyle.gris),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 10),
+                ChampAvecLabel(
+                  label: l10n.expiryDate,
+                  child: TextDate(
+                    hint: "15 nov 2025",
+                    controller: dateController,
+                    onTap: () => pickDate(context, dateController),
+                  ),
+                ),
+              ]),
 
-                  ChampAvecLabel(
-                    label: l10n.stores,
-                    distance: 100,
-                    alignmentStart: true,
-                    child: chipsSelector<Magasin>(
-                      values: magasinsSelectionnes,
-                      label: (p) => p.nom,
-                      l10n: l10n,
-                      nonRemovableItems: magasinsSelectionnes
-                          .where((m) => m.nom == "Magasin System")
-                          .toList(), // Le magasin System n'est pas supprimable
-                      onAdd: () async {
-                        // Filtrer pour ne pas pouvoir ajouter le magasin System (déjà présent)
-                        final magasinsDisponibles = magasinsTest
-                            .where((m) => m.nom != "Magasin System" &&
-                            !magasinsSelectionnes.any((s) => s.code == m.code))
-                            .toList();
 
-                        if (magasinsDisponibles.isEmpty) {
-                          await InformationDialog(
-                            context: context,
-                            titre_type_message: l10n.information,
-                            titre_concerne: l10n.stores,
-                            message: l10n.noStoreAvailable,
+              // ── Pack & Magasin ──
+              tabPage([
+                ChampAvecLabel(
+                  label: l10n.pack,
+                  distance: 100,
+                  alignmentStart: true,
+                  child: chipsSelector<Pack>(
+                    values: packsSelectionnes,
+                    label: (p) => p.nom,
+                    l10n: l10n,
+                    onAdd: () async {
+                      await showDialog(
+                        context: context,
+                        barrierColor: Appstyle.gris.withOpacity(0.25),
+                        builder: (_) {
+                          return InsertionPackDialog(
+                            multiselection: true,
+                            packs: _packsActifs(),
+                            onPackSelected: (pack) {
+                              setState(() {
+                                if (!packsSelectionnes.any((p) => p.code == pack.code)) {
+                                  packsSelectionnes.add(pack);
+                                  packId = pack.id;
+                                }
+                              });
+                            },
                           );
-                          return;
-                        }
+                        },
+                      );
+                    },
+                    onRemove: (p) {
+                      setState(() {
+                        packsSelectionnes.remove(p);
+                      });
+                    },
+                  ),
+                ),
+              ]),
 
-                        await showDialog(
-                          context: context,
-                          barrierColor: Appstyle.gris.withOpacity(0.25),
-                          builder: (_) {
-                            return InsertionMagasinDialog(
-                              multiselection: true,
-                              magasins: magasinsDisponibles,
-                              onMagasinSelected: (magasin) {
-                                setState(() {
-                                  if (!magasinsSelectionnes.any((p) => p.code == magasin.code)) {
-                                    magasinsSelectionnes.add(magasin);
-                                  }
-                                });
-                              },
-                            );
-                          },
-                        );
-                      },
-                      onRemove: (p) {
-                        setState(() {
-                          magasinsSelectionnes.remove(p);
-                        });
-                      },
-                    ),
+              // ── Observation ──
+              tabPage([
+                ChampAvecLabel(
+                  label: l10n.observation,
+                  child: TextChampL(
+                    controller: observcontroller,
+                    hint: l10n.observationHint,
                   ),
-                  const SizedBox(height: 10),
-                ],
-              ),
-            ),
-            const SizedBox(height: 30),
-            Container(
-              padding: const EdgeInsets.symmetric(vertical: 15, horizontal: 10),
-              decoration: BoxDecoration(
-                color: Appstyle.Tblanc,
-                borderRadius: BorderRadius.circular(14),
-                border: Border.all(color: Appstyle.grisC, width: 1.5),
-              ),
-              child: Column(
-                children: [
-                  TitleSmall(
-                    imageSize: 24,
-                    imagePath: "assets/icons/info_icon.png",
-                    text: l10n.observation,
-                    couleur: Appstyle.Tblue,
-                    opacity: 0.85,
-                  ),
-                  const SizedBox(height: 20),
-                  ChampAvecLabel(
-                    label: l10n.observation,
-                    child: TextChampL(
-                      controller: observcontroller,
-                      hint: l10n.observationHint,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ],
+                ),
+              ]),
+            ],
+          ),
         ),
-      ),
-    ],
+      ],
+    ),
   );
 }
 

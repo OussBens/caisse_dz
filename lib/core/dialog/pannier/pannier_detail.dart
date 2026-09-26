@@ -1,18 +1,24 @@
 import 'package:caisse_dz/DBCreate.dart';
 import 'package:caisse_dz/Services/Client.dart';
+import 'package:caisse_dz/Services/Pannier.dart';
 import 'package:caisse_dz/Services/PannierProduit.dart';
 import 'package:caisse_dz/Services/Produits.dart';
+import 'package:caisse_dz/Services/Retour.dart';
 import 'package:caisse_dz/Services/Utilisateur.dart';
+import 'package:caisse_dz/Services/Verssement.dart';
 import 'package:caisse_dz/core/dialog/base_dialog.dart';
 import 'package:caisse_dz/core/theme/app_style.dart';
+import 'package:caisse_dz/core/utilis/number_format.dart';
 import 'package:caisse_dz/core/widget/detail_widget.dart';
+import 'package:caisse_dz/core/widget/status_badge.dart';
 import 'package:caisse_dz/data/models/pannier.dart';
-import 'package:caisse_dz/data/models/pannier_produit.dart';
 import 'package:caisse_dz/l10n/app_localizations.dart';
 import 'package:collection/collection.dart';
 import 'package:flutter/material.dart';
 
 import '../../widget/section_decoration.dart';
+import '../../widget/stats_card.dart';
+import '../produits_liste_dialog.dart';
 
 // ✅ Supprimer cette variable globale si elle n'est pas utilisée ailleurs
 // List<PannierProduit> pannierProduitsTest = [];
@@ -24,10 +30,20 @@ import '../../widget/section_decoration.dart';
 
 Future<void> PannierDetail(BuildContext context, Pannier pannier) async {
   final l10n = AppLocalizations.of(context)!;
+  final db = await DbCreator.openDb();
+  final serviceV = VerssementServices(db);
   final clients = await ClientServices.getAllClients();
   final utilisateurs = await UtilisateurServices.getAllUtilisateurs();
+  final versementsPannier = await serviceV.getVerssementsByCodeOperation(pannier.code);
   final nomClient = clients.firstWhereOrNull((c) => c.code == pannier.client_code)?.nom ?? '';
   final nomCaissier = utilisateurs.firstWhereOrNull((u) => u.code == pannier.caissier_code)?.username ?? pannier.caissier_code;
+  final hasRetour = (await RetourServices.getRetoursByPannierCode(pannier.code)).isNotEmpty;
+
+  // Montant versé / reste / nombre de versements : calculés dynamiquement à
+  // partir des versements liés à ce panier (plus de colonnes statiques).
+  final double verse = PannierServices.calculerVerse(versementsPannier, pannier.code);
+  final double reste = pannier.montant - verse;
+  final int nbrVersement = PannierServices.calculerNbrVersement(versementsPannier, pannier.code);
 
   return showDialog(
     context: context,
@@ -67,18 +83,29 @@ Future<void> PannierDetail(BuildContext context, Pannier pannier) async {
 
                 const Spacer(),
 
+                if (hasRetour) ...[
+                  StatusBadge(text: l10n.hasReturn, color: Colors.orange),
+                  const SizedBox(width: 8),
+                ],
                 Chip(
                   label: Text(
                     pannier.etat ? l10n.active : l10n.inactive,
-                    style: Appstyle.textSB.copyWith(color: Appstyle.Tblanc),
+                    style: Appstyle.textSB.copyWith(
+                      color: pannier.etat ? Appstyle.Tblanc : Appstyle.Tnoir, // ou une autre couleur
+                    ),
                   ),
-                  backgroundColor: Appstyle.crevete,
-                ),
+                  backgroundColor: pannier.etat
+                      ? Appstyle.violet.withOpacity(0.8)
+                      : Appstyle.crevete.withOpacity(0.7), // ou rouge, orange, etc.
+                  labelPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                  elevation: pannier.etat ? 2 : 0,
+                )
+
               ],
             ),
 
             const SizedBox(height: 16),
-            _resumeChiffrePannier(pannier, l10n),
+            _resumeChiffrePannier(pannier, verse, reste, nbrVersement, l10n),
           ],
         ),
 
@@ -116,8 +143,9 @@ Future<void> PannierDetail(BuildContext context, Pannier pannier) async {
                   detailinfo(l10n.totalAmount, "${pannier.montant} ${l10n.currency}"),
                   detailinfo(l10n.totalAchat, "${pannier.montantAchat} ${l10n.currency}"),
                   detailinfo(l10n.marge, "${pannier.marge} ${l10n.currency}"),
-                  detailinfo(l10n.amountPaid, "${pannier.verse} ${l10n.currency}"),
-                  detailinfo(l10n.remaining, "${pannier.reste} ${l10n.currency}"),
+                  detailinfo(l10n.amountPaid, "$verse ${l10n.currency}"),
+                  detailinfo(l10n.remaining, "$reste ${l10n.currency}"),
+                  detailinfo(l10n.numberOfPayments, nbrVersement),
                   detailinfo(l10n.paymentMethod, pannier.modePaiement),
                 ]),
               ),
@@ -144,6 +172,7 @@ Future<void> PannierDetail(BuildContext context, Pannier pannier) async {
                   detailinfo(l10n.cancelledBy, pannier.annulParCode),
                   detailinfo(l10n.cancelledAt, pannier.dateAnnul?.toString().split(" ").first),
                   detailinfo(l10n.cancellationReason, pannier.motifAnnul),
+                  detailinfo(l10n.fiscalHash, pannier.hash),
                 ]),
               ),
             ],
@@ -156,7 +185,7 @@ Future<void> PannierDetail(BuildContext context, Pannier pannier) async {
           children: [
             ElevatedButton.icon(
               icon: const Icon(Icons.list),
-              label: Text(l10n.productsList),
+              label: Text(l10n.productList),
               style: ElevatedButton.styleFrom(
                 backgroundColor: Appstyle.crevete,
                 foregroundColor: Colors.white,
@@ -188,23 +217,36 @@ Future<void> PannierDetail(BuildContext context, Pannier pannier) async {
     },
   );
 }
-
-Widget _resumeChiffrePannier(Pannier p, AppLocalizations l10n) {
-  return Container(
-    decoration: BoxDecoration(
-      color: Appstyle.violet.withOpacity(0.6),
-      borderRadius: BorderRadius.circular(10),
-    ),
-    padding: const EdgeInsets.all(8),
-    child: Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-      children: [
-        detailbadge(l10n.numberOfItems, p.nombreArticle),
-        detailbadge(l10n.productQuantity, p.quantiteProduit),
-        detailbadge(l10n.totalAmount, "${p.montant ?? 0} ${l10n.currency}"),
-        detailbadge(l10n.remaining, "${p.reste ?? 0} ${l10n.currency}"),
-      ],
-    ),
+// Dans pannier_detail.dart
+Widget _resumeChiffrePannier(
+    Pannier p, double verse, double reste, int nbrVersement, AppLocalizations l10n) {
+  return StatsCard(
+    items: [
+      StatsItem(
+        label: l10n.numberOfItems,
+        value: p.nombreArticle,
+      ),
+      StatsItem(
+        label: l10n.productQuantity,
+        value: p.quantiteProduit,
+      ),
+      StatsItem(
+        label: l10n.totalAmount,
+        value: "${p.montant} ${l10n.currency}",
+      ),
+      StatsItem(
+        label: l10n.amountPaid,
+        value: "$verse ${l10n.currency}",
+      ),
+      StatsItem(
+        label: l10n.numberOfPayments,
+        value: nbrVersement,
+      ),
+      StatsItem(
+        label: l10n.remaining,
+        value: "$reste ${l10n.currency}",
+      ),
+    ],
   );
 }
 /// Dialogue partagé pour afficher la liste des produits d'un panier
@@ -222,106 +264,43 @@ Future<void> showProductsListDialog(
   final catalogueClients = await ClientServices.getAllClients();
   final nomClient = catalogueClients.firstWhereOrNull((c) => c.code == pannier.client_code)?.nom ?? '';
 
-  showDialog(
+  return ProduitsListeDialog.afficher(
     context: context,
-    barrierColor: Appstyle.gris.withOpacity(0.4),
-    builder: (_) {
-      return BaseDialog(
-        width: 700,
-        height: 550,
-
-        header: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              l10n.productsOfCart(pannier.code),
-              style: Appstyle.textLB,
-            ),
-            const SizedBox(height: 8),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Text("${l10n.client} : $nomClient", style: Appstyle.textSB),
-                Text("${l10n.date} : ${pannier.date.toString().split(" ").first}", style: Appstyle.textSB),
-              ],
-            ),
-            Text("${l10n.total} : ${pannier.montant ?? 0} ${l10n.currency}",
-                style: Appstyle.textSB.copyWith(color: Appstyle.violet)),
-          ],
-        ),
-
-        content: produits.isEmpty
-            ? Center(
-          child: Text(
-            l10n.noProducts,
-            style: Appstyle.textSB.copyWith(color: Appstyle.gris),
-          ),
-        )
-            : LayoutBuilder(
-          builder: (context, constraints) {
-            return SingleChildScrollView(
-              scrollDirection: Axis.vertical,
-              child: ConstrainedBox(
-                constraints: BoxConstraints(minWidth: constraints.maxWidth),
-                child: DataTable(
-                  headingRowColor: MaterialStateProperty.all(Appstyle.violet.withOpacity(0.1)),
-                  headingTextStyle: Appstyle.textSB.copyWith(color: Appstyle.violet),
-                  columns: [
-                    DataColumn(label: Text(l10n.productCode)),
-                    DataColumn(label: Text(l10n.productName)),
-                    DataColumn(label: Text(l10n.quantity), numeric: true),
-                    DataColumn(label: Text(l10n.price), numeric: true),
-                    DataColumn(label: Text(l10n.total), numeric: true),
-                  ],
-                  rows: produits.map((p) {
-                    return DataRow(
-                      cells: [
-                        DataCell(Text(p.codeProduit ?? "")),
-                        DataCell(Text(nomProduit(p.codeProduit))),
-                        DataCell(
-                          Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                            decoration: BoxDecoration(
-                              color: Appstyle.violet.withOpacity(0.1),
-                              borderRadius: BorderRadius.circular(12),
-                            ),
-                            child: Text(
-                              "${p.quantite ?? 0}",
-                              style: Appstyle.textSB.copyWith(color: Appstyle.violet),
-                            ),
-                          ),
-                        ),
-                        DataCell(Text("${p.prix?.toStringAsFixed(2) ?? '0.00'}")),
-                        DataCell(
-                          Text(
-                            "${p.total?.toStringAsFixed(2) ?? '0.00'}",
-                            style: Appstyle.textSB.copyWith(color: Appstyle.crevete),
-                          ),
-                        ),
-                      ],
-                    );
-                  }).toList(),
-                ),
-              ),
-            );
-          },
-        ),
-
-        footer: Align(
-          alignment: Alignment.centerRight,
-          child: ElevatedButton.icon(
-            icon: Icon(Icons.close, color: Appstyle.Tblanc),
-            label: Text(l10n.close, style: Appstyle.textSB.copyWith(color: Appstyle.Tblanc)),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Appstyle.violet,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(10),
-              ),
-            ),
-            onPressed: () => Navigator.pop(context),
-          ),
-        ),
+    titre: l10n.productsOfCart(pannier.code),
+    sousTitre: [
+      Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Text("${l10n.client} : $nomClient", style: Appstyle.textSB),
+          Text("${l10n.date} : ${pannier.date.toString().split(" ").first}", style: Appstyle.textSB),
+        ],
+      ),
+      Text("${l10n.total} : ${pannier.montant ?? 0} ${l10n.currency}",
+          style: Appstyle.textSB.copyWith(color: Appstyle.violet)),
+    ],
+    colonnes: [
+      DataColumn(label: Text(l10n.productCode)),
+      DataColumn(label: Text(l10n.productName)),
+      DataColumn(label: Text(l10n.quantity), numeric: true),
+      DataColumn(label: Text(l10n.numberField), numeric: true),
+      DataColumn(label: Text(l10n.price), numeric: true),
+      DataColumn(label: Text(l10n.total), numeric: true),
+    ],
+    lignes: produits.map((p) {
+      return DataRow(
+        cells: [
+          DataCell(Text(p.codeProduit ?? "")),
+          DataCell(Text(nomProduit(p.codeProduit))),
+          DataCell(pilluleCellule("${p.quantite ?? 0}", Appstyle.violet)),
+          DataCell(Text(p.nombre != null ? "${p.nombre}" : "-")),
+          DataCell(Text(NumberFormatUtil.formatMontant(p.prix ?? 0, decimales: 2))),
+          DataCell(Text(
+            NumberFormatUtil.formatMontant(p.total ?? 0, decimales: 2),
+            style: Appstyle.textSB.copyWith(color: Appstyle.crevete),
+          )),
+        ],
       );
-    },
+    }).toList(),
+    messageVide: l10n.noProducts,
   );
 }

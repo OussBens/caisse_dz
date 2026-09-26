@@ -9,7 +9,6 @@ class Zakat {
   double    liquidites;  // cash + banque
   double    creances;    // argent à recevoir
   double    dettes;      // dettes à court terme
-  double    dattes;      // ✅ Nouveau champ: valeur des dattes
 
   double    capitalTotal; // (stock + liquidités + créances - dettes + dattes)
 
@@ -49,7 +48,6 @@ class Zakat {
     required this.liquidites,
     required this.creances,
     required this.dettes,
-    required this.dattes, // ✅ Ajout du champ
     required this.capitalTotal,
     required this.nissab,
     required this.taux,
@@ -81,7 +79,6 @@ class Zakat {
       annee         : map['annee'],
       stock         : map['stock'],
       dettes        : map['dettes'],
-      dattes        : map['dattes'] ?? 0.0, // ✅ Ajout avec valeur par défaut
       statut        : map['status'],
       nissab        : map['nissab'],
       dateCree      : DateTime.parse(map['date_cree']),
@@ -120,8 +117,7 @@ class Zakat {
       'annee'           : annee,
       'stock'           : stock,
       'dettes'          : dettes,
-      'dattes'          : dattes, // ✅ Ajout du champ
-      'nissab'          : nissab,
+       'nissab'          : nissab,
       'status'          : statut,
       'creances'        : creances,
       'date_cree'       : dateCree.toIso8601String(),

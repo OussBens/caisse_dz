@@ -11,6 +11,10 @@ class ProduitInsertionDataSource extends DataGridSource {
   final void Function(int index)? onSelectRow;
   final AppLocalizations l10n;
 
+  /// Quantité par produit calculée depuis le journal des mouvements — voir
+  /// produit_screen.dart pour le même mécanisme. Remplace Produit.quantite.
+  Map<String, double> quantites;
+
   final Set<int> selectedIndexes = {}; // indices sélectionnés
   late List<DataGridRow> _rows;
 
@@ -18,12 +22,19 @@ class ProduitInsertionDataSource extends DataGridSource {
     required this.produits,
     this.onSelectRow,
     required this.l10n,
+    this.quantites = const {},
   }) {
     _buildRows();
   }
 
   void update(List<Produit> newProduits) {
     produits = newProduits;
+    _buildRows();
+    notifyListeners();
+  }
+
+  void updateQuantites(Map<String, double> newQuantites) {
+    quantites = newQuantites;
     _buildRows();
     notifyListeners();
   }
@@ -38,7 +49,7 @@ class ProduitInsertionDataSource extends DataGridSource {
         DataGridCell(columnName: 'marque', value: p.marque),
         DataGridCell(columnName: 'description', value: p.description),
         DataGridCell(columnName: 'prixVente', value: p.prixVente),
-        DataGridCell(columnName: 'quantite', value: p.quantite),
+        DataGridCell(columnName: 'quantite', value: quantites[p.code] ?? 0),
       ]);
     });
   }

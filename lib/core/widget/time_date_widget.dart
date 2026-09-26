@@ -1,23 +1,61 @@
 
+import 'dart:async';
 import 'package:caisse_dz/core/theme/app_style.dart';
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
 
-class TimeDateWidget extends StatelessWidget {
-  final String heure;
-  final String date;
+/// Affiche l'heure et la date courantes, mises à jour automatiquement
+/// chaque minute (pas besoin de les passer depuis l'écran parent).
+class TimeDateWidget extends StatefulWidget {
   final String iconHeure;
   final String iconDate;
 
   const TimeDateWidget({
     super.key,
-    required this.heure,
-    required this.date,
     required this.iconHeure,
     required this.iconDate,
   });
 
   @override
+  State<TimeDateWidget> createState() => _TimeDateWidgetState();
+}
+
+class _TimeDateWidgetState extends State<TimeDateWidget> {
+  Timer? _timer;
+  late DateTime _now;
+
+  @override
+  void initState() {
+    super.initState();
+    _now = DateTime.now();
+    _scheduleNextTick();
+  }
+
+  // Aligne le prochain rafraîchissement sur le début de la minute suivante.
+  void _scheduleNextTick() {
+    final msUntilNextMinute =
+        (60 - _now.second) * 1000 - _now.millisecond;
+    _timer = Timer(
+      Duration(milliseconds: msUntilNextMinute.clamp(1000, 60000)),
+      () {
+        if (!mounted) return;
+        setState(() => _now = DateTime.now());
+        _scheduleNextTick();
+      },
+    );
+  }
+
+  @override
+  void dispose() {
+    _timer?.cancel();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
+    final heure = DateFormat('HH:mm').format(_now);
+    final date = DateFormat('dd/MM/yyyy').format(_now);
+
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
       decoration: BoxDecoration(
@@ -36,7 +74,7 @@ class TimeDateWidget extends StatelessWidget {
         children: [
           // Heure
           Image.asset(
-            iconHeure,
+            widget.iconHeure,
             width: 18,
             height: 18,
             fit: BoxFit.contain,
@@ -44,13 +82,13 @@ class TimeDateWidget extends StatelessWidget {
           const SizedBox(width: 8),
           Text(
             heure,
-            style:  Appstyle.textXSB.copyWith(color: Appstyle.Tnoir),
+            style: Appstyle.textXSB.copyWith(color: Appstyle.Tnoir),
           ),
           const SizedBox(width: 25),
 
           // Date
           Image.asset(
-            iconDate,
+            widget.iconDate,
             width: 18,
             height: 18,
             fit: BoxFit.contain,
@@ -58,8 +96,7 @@ class TimeDateWidget extends StatelessWidget {
           const SizedBox(width: 8),
           Text(
             date,
-            style:  Appstyle.textXSB.copyWith(color: Appstyle.Tnoir),
-
+            style: Appstyle.textXSB.copyWith(color: Appstyle.Tnoir),
           ),
         ],
       ),

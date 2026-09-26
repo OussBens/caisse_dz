@@ -106,6 +106,12 @@ abstract class AppLocalizations {
   /// **'Tableau de Bord'**
   String get dashboard;
 
+  /// No description provided for @situation.
+  ///
+  /// In fr, this message translates to:
+  /// **'Situation'**
+  String get situation;
+
   /// No description provided for @salesToday.
   ///
   /// In fr, this message translates to:
@@ -141,6 +147,12 @@ abstract class AppLocalizations {
   /// In fr, this message translates to:
   /// **'Sélectionnez une période'**
   String get selectPeriod;
+
+  /// No description provided for @pleaseSelectTwoDates.
+  ///
+  /// In fr, this message translates to:
+  /// **'Merci de sélectionner deux dates pour avoir un tableau de bord explicatif des statistiques de cette période'**
+  String get pleaseSelectTwoDates;
 
   /// No description provided for @salesByHour.
   ///
@@ -184,6 +196,72 @@ abstract class AppLocalizations {
   /// **'Répartition CA'**
   String get revenueDistribution;
 
+  /// No description provided for @revenueByCart.
+  ///
+  /// In fr, this message translates to:
+  /// **'Recette Caisse par pannier'**
+  String get revenueByCart;
+
+  /// No description provided for @revenueByProductCard.
+  ///
+  /// In fr, this message translates to:
+  /// **'Recette Caisse par produit'**
+  String get revenueByProductCard;
+
+  /// No description provided for @cashRegisterMovement.
+  ///
+  /// In fr, this message translates to:
+  /// **'Mouvement caisse'**
+  String get cashRegisterMovement;
+
+  /// No description provided for @dailyProfitByCart.
+  ///
+  /// In fr, this message translates to:
+  /// **'Bénéfice journalier (marge par pannier)'**
+  String get dailyProfitByCart;
+
+  /// No description provided for @profitByPeriod.
+  ///
+  /// In fr, this message translates to:
+  /// **'Bénéfice période (marge par jour)'**
+  String get profitByPeriod;
+
+  /// No description provided for @inventory.
+  ///
+  /// In fr, this message translates to:
+  /// **'Inventaire'**
+  String get inventory;
+
+  /// No description provided for @net.
+  ///
+  /// In fr, this message translates to:
+  /// **'Net'**
+  String get net;
+
+  /// No description provided for @numberOfDays.
+  ///
+  /// In fr, this message translates to:
+  /// **'Nombre de jours'**
+  String get numberOfDays;
+
+  /// No description provided for @purchaseValue.
+  ///
+  /// In fr, this message translates to:
+  /// **'Valeur d\'achat'**
+  String get purchaseValue;
+
+  /// No description provided for @saleValue.
+  ///
+  /// In fr, this message translates to:
+  /// **'Valeur de vente'**
+  String get saleValue;
+
+  /// No description provided for @potentialMargin.
+  ///
+  /// In fr, this message translates to:
+  /// **'Marge potentielle'**
+  String get potentialMargin;
+
   /// No description provided for @collected.
   ///
   /// In fr, this message translates to:
@@ -225,6 +303,24 @@ abstract class AppLocalizations {
   /// In fr, this message translates to:
   /// **'Produits en Rupture'**
   String get outOfStockProducts;
+
+  /// No description provided for @expiredProducts.
+  ///
+  /// In fr, this message translates to:
+  /// **'Produits Expirés'**
+  String get expiredProducts;
+
+  /// No description provided for @highestQuantityProduct.
+  ///
+  /// In fr, this message translates to:
+  /// **'Plus grande quantité'**
+  String get highestQuantityProduct;
+
+  /// No description provided for @oldestProduct.
+  ///
+  /// In fr, this message translates to:
+  /// **'Produit le plus ancien'**
+  String get oldestProduct;
 
   /// No description provided for @from.
   ///
@@ -460,6 +556,30 @@ abstract class AppLocalizations {
   /// **'Aucun produit sélectionné'**
   String get noProductSelected;
 
+  /// No description provided for @productNotFoundBarcode.
+  ///
+  /// In fr, this message translates to:
+  /// **'Produit n\'existe pas'**
+  String get productNotFoundBarcode;
+
+  /// No description provided for @aiScanInstructions.
+  ///
+  /// In fr, this message translates to:
+  /// **'Scannez un code-barres avec le lecteur, ou saisissez-le manuellement, pour rechercher le produit en ligne.'**
+  String get aiScanInstructions;
+
+  /// No description provided for @confirmThisProduct.
+  ///
+  /// In fr, this message translates to:
+  /// **'C\'est ça'**
+  String get confirmThisProduct;
+
+  /// No description provided for @createNewProduct.
+  ///
+  /// In fr, this message translates to:
+  /// **'Créer nouveau'**
+  String get createNewProduct;
+
   /// No description provided for @cannotDeleteLastCaisse.
   ///
   /// In fr, this message translates to:
@@ -541,7 +661,7 @@ abstract class AppLocalizations {
   /// No description provided for @encaisserBLSC.
   ///
   /// In fr, this message translates to:
-  /// **'Encaisser BL/SC'**
+  /// **'Encaisser Facture'**
   String get encaisserBLSC;
 
   /// No description provided for @annuler.
@@ -664,6 +784,84 @@ abstract class AppLocalizations {
   /// **'logout'**
   String get logout;
 
+  /// No description provided for @loginWelcome.
+  ///
+  /// In fr, this message translates to:
+  /// **'BIENVENUE'**
+  String get loginWelcome;
+
+  /// No description provided for @loginToYourAccount.
+  ///
+  /// In fr, this message translates to:
+  /// **'Connexion à votre compte'**
+  String get loginToYourAccount;
+
+  /// No description provided for @loginInstructions.
+  ///
+  /// In fr, this message translates to:
+  /// **'Veuillez saisir vos identifiants pour vous connecter'**
+  String get loginInstructions;
+
+  /// No description provided for @forgotPassword.
+  ///
+  /// In fr, this message translates to:
+  /// **'Mot de passe oublié ?'**
+  String get forgotPassword;
+
+  /// No description provided for @rememberMe.
+  ///
+  /// In fr, this message translates to:
+  /// **'Rester connecté'**
+  String get rememberMe;
+
+  /// No description provided for @initialSetupTitle.
+  ///
+  /// In fr, this message translates to:
+  /// **'Configuration initiale'**
+  String get initialSetupTitle;
+
+  /// No description provided for @initialSetupSubtitle.
+  ///
+  /// In fr, this message translates to:
+  /// **'Configurez les informations de votre boutique avant de commencer. Vous pourrez toujours les modifier plus tard dans Paramètres.'**
+  String get initialSetupSubtitle;
+
+  /// No description provided for @finish.
+  ///
+  /// In fr, this message translates to:
+  /// **'Terminer'**
+  String get finish;
+
+  /// No description provided for @invalidCredentials.
+  ///
+  /// In fr, this message translates to:
+  /// **'Nom d\'utilisateur ou mot de passe incorrect'**
+  String get invalidCredentials;
+
+  /// No description provided for @signIn.
+  ///
+  /// In fr, this message translates to:
+  /// **'Se connecter'**
+  String get signIn;
+
+  /// No description provided for @appNotActivatedQuestion.
+  ///
+  /// In fr, this message translates to:
+  /// **'Application non activée ?'**
+  String get appNotActivatedQuestion;
+
+  /// No description provided for @activateNow.
+  ///
+  /// In fr, this message translates to:
+  /// **'Activer maintenant'**
+  String get activateNow;
+
+  /// No description provided for @version.
+  ///
+  /// In fr, this message translates to:
+  /// **'Version'**
+  String get version;
+
   /// No description provided for @actif.
   ///
   /// In fr, this message translates to:
@@ -754,6 +952,12 @@ abstract class AppLocalizations {
   /// **'BL_SC'**
   String get blSc;
 
+  /// No description provided for @facture.
+  ///
+  /// In fr, this message translates to:
+  /// **'Facture'**
+  String get facture;
+
   /// No description provided for @physique.
   ///
   /// In fr, this message translates to:
@@ -771,6 +975,78 @@ abstract class AppLocalizations {
   /// In fr, this message translates to:
   /// **'Pièce'**
   String get piece;
+
+  /// No description provided for @purchaseMode.
+  ///
+  /// In fr, this message translates to:
+  /// **'Mode d\'achat'**
+  String get purchaseMode;
+
+  /// No description provided for @perUnitOption.
+  ///
+  /// In fr, this message translates to:
+  /// **'À l\'unité'**
+  String get perUnitOption;
+
+  /// No description provided for @perBoxOption.
+  ///
+  /// In fr, this message translates to:
+  /// **'Par boîte'**
+  String get perBoxOption;
+
+  /// No description provided for @perCartonOption.
+  ///
+  /// In fr, this message translates to:
+  /// **'Par carton'**
+  String get perCartonOption;
+
+  /// No description provided for @piecesUnit.
+  ///
+  /// In fr, this message translates to:
+  /// **'pièce(s)'**
+  String get piecesUnit;
+
+  /// No description provided for @boxesUnit.
+  ///
+  /// In fr, this message translates to:
+  /// **'boîte(s)'**
+  String get boxesUnit;
+
+  /// No description provided for @cartonsUnit.
+  ///
+  /// In fr, this message translates to:
+  /// **'carton(s)'**
+  String get cartonsUnit;
+
+  /// No description provided for @equalToPieces.
+  ///
+  /// In fr, this message translates to:
+  /// **'Soit {count} pièce(s)'**
+  String equalToPieces(Object count);
+
+  /// No description provided for @availableStockPieces.
+  ///
+  /// In fr, this message translates to:
+  /// **'Stock disponible: {count} pièce(s)'**
+  String availableStockPieces(Object count);
+
+  /// No description provided for @insufficientStockDetail.
+  ///
+  /// In fr, this message translates to:
+  /// **'Stock insuffisant !\nDisponible: {disponible} pièce(s)\nDemandé: {demande} pièce(s)'**
+  String insufficientStockDetail(Object demande, Object disponible);
+
+  /// No description provided for @noPhotoAvailable.
+  ///
+  /// In fr, this message translates to:
+  /// **'Aucune photo'**
+  String get noPhotoAvailable;
+
+  /// No description provided for @imageNotFound.
+  ///
+  /// In fr, this message translates to:
+  /// **'Image non trouvée'**
+  String get imageNotFound;
 
   /// No description provided for @litre.
   ///
@@ -1192,6 +1468,12 @@ abstract class AppLocalizations {
   /// **'Veuillez sélectionner une seule remise pour modifier'**
   String get selectSingleDiscountToModify;
 
+  /// No description provided for @noDiscountExists.
+  ///
+  /// In fr, this message translates to:
+  /// **'Aucune remise n\'existe. Créez-en une d\'abord dans l\'onglet Remise.'**
+  String get noDiscountExists;
+
   /// No description provided for @noPackSelected.
   ///
   /// In fr, this message translates to:
@@ -1209,6 +1491,12 @@ abstract class AppLocalizations {
   /// In fr, this message translates to:
   /// **'Veuillez sélectionner un seul pack pour modifier'**
   String get selectSinglePackToModify;
+
+  /// No description provided for @noPackExists.
+  ///
+  /// In fr, this message translates to:
+  /// **'Aucun pack n\'existe. Créez-en un d\'abord dans l\'onglet Pack.'**
+  String get noPackExists;
 
   /// No description provided for @noSubCategorySelected.
   ///
@@ -1312,6 +1600,24 @@ abstract class AppLocalizations {
   /// **'Prix Vente'**
   String get salePrice;
 
+  /// No description provided for @averagePurchasePrice.
+  ///
+  /// In fr, this message translates to:
+  /// **'Prix Moyen Achat'**
+  String get averagePurchasePrice;
+
+  /// No description provided for @averageSalePrice.
+  ///
+  /// In fr, this message translates to:
+  /// **'Prix Moyen Vente'**
+  String get averageSalePrice;
+
+  /// No description provided for @operationCode.
+  ///
+  /// In fr, this message translates to:
+  /// **'Code opération'**
+  String get operationCode;
+
   /// No description provided for @etat.
   ///
   /// In fr, this message translates to:
@@ -1335,6 +1641,18 @@ abstract class AppLocalizations {
   /// In fr, this message translates to:
   /// **'DA'**
   String get currency;
+
+  /// No description provided for @quantityDecimals.
+  ///
+  /// In fr, this message translates to:
+  /// **'Décimales de quantité'**
+  String get quantityDecimals;
+
+  /// No description provided for @quantityDecimalsHint.
+  ///
+  /// In fr, this message translates to:
+  /// **'Nombre de chiffres après la virgule pour les champs quantité (partout dans l\'application)'**
+  String get quantityDecimalsHint;
 
   /// No description provided for @needCategoryToCreateSubCategory.
   ///
@@ -1894,6 +2212,12 @@ abstract class AppLocalizations {
   /// **'CL'**
   String get clear;
 
+  /// No description provided for @viderPanier.
+  ///
+  /// In fr, this message translates to:
+  /// **'Vider'**
+  String get viderPanier;
+
   /// No description provided for @newClient.
   ///
   /// In fr, this message translates to:
@@ -1921,7 +2245,7 @@ abstract class AppLocalizations {
   /// No description provided for @cashBLSC.
   ///
   /// In fr, this message translates to:
-  /// **'Encaisser BL/SC'**
+  /// **'Encaisser Facture'**
   String get cashBLSC;
 
   /// No description provided for @saveTicket.
@@ -1972,6 +2296,12 @@ abstract class AppLocalizations {
   /// **'Tous'**
   String get all;
 
+  /// No description provided for @sansCodeBarre.
+  ///
+  /// In fr, this message translates to:
+  /// **'Sans code-barre'**
+  String get sansCodeBarre;
+
   /// No description provided for @exampleRange.
   ///
   /// In fr, this message translates to:
@@ -2019,6 +2349,12 @@ abstract class AppLocalizations {
   /// In fr, this message translates to:
   /// **'Qt'**
   String get quantity;
+
+  /// No description provided for @quantityPieces.
+  ///
+  /// In fr, this message translates to:
+  /// **'Qté (pce)'**
+  String get quantityPieces;
 
   /// No description provided for @showHideColumns.
   ///
@@ -2187,6 +2523,18 @@ abstract class AppLocalizations {
   /// In fr, this message translates to:
   /// **'Solde initial'**
   String get initialBalance;
+
+  /// No description provided for @finalBalance.
+  ///
+  /// In fr, this message translates to:
+  /// **'Solde final'**
+  String get finalBalance;
+
+  /// No description provided for @extractPdf.
+  ///
+  /// In fr, this message translates to:
+  /// **'Extraire PDF'**
+  String get extractPdf;
 
   /// No description provided for @obs.
   ///
@@ -2551,7 +2899,7 @@ abstract class AppLocalizations {
   /// No description provided for @smartScan.
   ///
   /// In fr, this message translates to:
-  /// **'SmartScan'**
+  /// **'Entrée'**
   String get smartScan;
 
   /// No description provided for @scannedItems.
@@ -2649,6 +2997,150 @@ abstract class AppLocalizations {
   /// In fr, this message translates to:
   /// **'Motif annulation'**
   String get cancellationReason;
+
+  /// No description provided for @fiscalHash.
+  ///
+  /// In fr, this message translates to:
+  /// **'Empreinte fiscale'**
+  String get fiscalHash;
+
+  /// No description provided for @cashRegisterClosures.
+  ///
+  /// In fr, this message translates to:
+  /// **'Clôtures de caisse'**
+  String get cashRegisterClosures;
+
+  /// No description provided for @newClosure.
+  ///
+  /// In fr, this message translates to:
+  /// **'Nouvelle clôture'**
+  String get newClosure;
+
+  /// No description provided for @totalCancelledAmount.
+  ///
+  /// In fr, this message translates to:
+  /// **'Montant annulé'**
+  String get totalCancelledAmount;
+
+  /// No description provided for @cancelledTicketsCount.
+  ///
+  /// In fr, this message translates to:
+  /// **'Tickets annulés'**
+  String get cancelledTicketsCount;
+
+  /// No description provided for @paymentMethodBreakdown.
+  ///
+  /// In fr, this message translates to:
+  /// **'Répartition par mode de paiement'**
+  String get paymentMethodBreakdown;
+
+  /// No description provided for @zReportTitle.
+  ///
+  /// In fr, this message translates to:
+  /// **'Rapport de clôture (Z)'**
+  String get zReportTitle;
+
+  /// No description provided for @confirmClosureMessage.
+  ///
+  /// In fr, this message translates to:
+  /// **'Cette action clôture définitivement la période et verrouille les tickets concernés. Continuer ?'**
+  String get confirmClosureMessage;
+
+  /// No description provided for @closurePeriod.
+  ///
+  /// In fr, this message translates to:
+  /// **'Période à clôturer'**
+  String get closurePeriod;
+
+  /// No description provided for @selectCashRegisterToClose.
+  ///
+  /// In fr, this message translates to:
+  /// **'Sélectionnez la caisse à clôturer'**
+  String get selectCashRegisterToClose;
+
+  /// No description provided for @loyaltyPoints.
+  ///
+  /// In fr, this message translates to:
+  /// **'Points'**
+  String get loyaltyPoints;
+
+  /// No description provided for @loyaltyProgram.
+  ///
+  /// In fr, this message translates to:
+  /// **'Programme de bonus'**
+  String get loyaltyProgram;
+
+  /// No description provided for @activateLoyaltyProgram.
+  ///
+  /// In fr, this message translates to:
+  /// **'Activer le programme de bonus'**
+  String get activateLoyaltyProgram;
+
+  /// No description provided for @bonusRate.
+  ///
+  /// In fr, this message translates to:
+  /// **'Montant (DA) pour 1 point'**
+  String get bonusRate;
+
+  /// No description provided for @loyaltyBalance.
+  ///
+  /// In fr, this message translates to:
+  /// **'Solde de points'**
+  String get loyaltyBalance;
+
+  /// No description provided for @pointsEarned.
+  ///
+  /// In fr, this message translates to:
+  /// **'Points fidélité gagnés'**
+  String get pointsEarned;
+
+  /// No description provided for @numberField.
+  ///
+  /// In fr, this message translates to:
+  /// **'Nombre'**
+  String get numberField;
+
+  /// No description provided for @nombreActifLabel.
+  ///
+  /// In fr, this message translates to:
+  /// **'Nombre actif pour ce produit'**
+  String get nombreActifLabel;
+
+  /// No description provided for @nombreActifHint.
+  ///
+  /// In fr, this message translates to:
+  /// **'Le nombre est uniquement informatif, la base de calcul est basée sur la quantité.'**
+  String get nombreActifHint;
+
+  /// No description provided for @nombreActifUniteRequiredHint.
+  ///
+  /// In fr, this message translates to:
+  /// **'Disponible uniquement si l\'unité de mesure du produit est Kg ou Litre.'**
+  String get nombreActifUniteRequiredHint;
+
+  /// No description provided for @noClosuresYet.
+  ///
+  /// In fr, this message translates to:
+  /// **'Aucune clôture pour l\'instant'**
+  String get noClosuresYet;
+
+  /// No description provided for @fiscalControlExport.
+  ///
+  /// In fr, this message translates to:
+  /// **'Export contrôle fiscal'**
+  String get fiscalControlExport;
+
+  /// No description provided for @fiscalRegistryIntact.
+  ///
+  /// In fr, this message translates to:
+  /// **'Registre fiscal intact'**
+  String get fiscalRegistryIntact;
+
+  /// No description provided for @fiscalRegistryCompromised.
+  ///
+  /// In fr, this message translates to:
+  /// **'Registre fiscal compromis — anomalie détectée'**
+  String get fiscalRegistryCompromised;
 
   /// No description provided for @otherwiseDefaultColumns.
   ///
@@ -2944,6 +3436,12 @@ abstract class AppLocalizations {
   /// **'Service'**
   String get service;
 
+  /// No description provided for @serviceModeInfo.
+  ///
+  /// In fr, this message translates to:
+  /// **'Ce produit est marqué comme service : sa quantité ne sera jamais modifiée par les mouvements de stock (ventes, achats, retours, sorties, etc.).'**
+  String get serviceModeInfo;
+
   /// No description provided for @packaging1.
   ///
   /// In fr, this message translates to:
@@ -2991,6 +3489,24 @@ abstract class AppLocalizations {
   /// In fr, this message translates to:
   /// **'Multicode'**
   String get multicode;
+
+  /// No description provided for @multipleBarcodeLabel.
+  ///
+  /// In fr, this message translates to:
+  /// **'Code Multiple'**
+  String get multipleBarcodeLabel;
+
+  /// No description provided for @noBarcodeProduct.
+  ///
+  /// In fr, this message translates to:
+  /// **'Produit sans code bar'**
+  String get noBarcodeProduct;
+
+  /// No description provided for @generateBarcode.
+  ///
+  /// In fr, this message translates to:
+  /// **'Générer un code barre'**
+  String get generateBarcode;
 
   /// No description provided for @photos.
   ///
@@ -3063,6 +3579,12 @@ abstract class AppLocalizations {
   /// In fr, this message translates to:
   /// **'Fournisseur'**
   String get supplierType;
+
+  /// No description provided for @hasReturn.
+  ///
+  /// In fr, this message translates to:
+  /// **'A un retour'**
+  String get hasReturn;
 
   /// No description provided for @userCount.
   ///
@@ -3328,6 +3850,12 @@ abstract class AppLocalizations {
   /// **'Insertion Remise'**
   String get insertionDiscount;
 
+  /// No description provided for @insertionSession.
+  ///
+  /// In fr, this message translates to:
+  /// **'Insertion Session'**
+  String get insertionSession;
+
   /// No description provided for @insertionSubcategory.
   ///
   /// In fr, this message translates to:
@@ -3369,6 +3897,12 @@ abstract class AppLocalizations {
   /// In fr, this message translates to:
   /// **'Modifier Besoin List'**
   String get modifyNeedList;
+
+  /// No description provided for @menu.
+  ///
+  /// In fr, this message translates to:
+  /// **'Menu'**
+  String get menu;
 
   /// No description provided for @deleteNeeds.
   ///
@@ -3421,7 +3955,7 @@ abstract class AppLocalizations {
   /// No description provided for @productsList.
   ///
   /// In fr, this message translates to:
-  /// **'Liste des produits'**
+  /// **'Liste des produits documentsFolder'**
   String get productsList;
 
   /// No description provided for @addObservation.
@@ -3481,7 +4015,7 @@ abstract class AppLocalizations {
   /// No description provided for @productCode.
   ///
   /// In fr, this message translates to:
-  /// **'Code'**
+  /// **'Code produit'**
   String get productCode;
 
   /// No description provided for @productName.
@@ -3519,6 +4053,12 @@ abstract class AppLocalizations {
   /// In fr, this message translates to:
   /// **'Caisse par défaut'**
   String get defaultCashRegister;
+
+  /// No description provided for @cashRegisterLockedToUser.
+  ///
+  /// In fr, this message translates to:
+  /// **'La caisse est fixée par votre compte utilisateur. Seul un administrateur peut la modifier.'**
+  String get cashRegisterLockedToUser;
 
   /// No description provided for @defaultStore.
   ///
@@ -3568,6 +4108,24 @@ abstract class AppLocalizations {
   /// **'Modifier prix produit'**
   String get modifyProductPrice;
 
+  /// No description provided for @priceChangeScope.
+  ///
+  /// In fr, this message translates to:
+  /// **'Appliquer la modification à'**
+  String get priceChangeScope;
+
+  /// No description provided for @thisTicketOnly.
+  ///
+  /// In fr, this message translates to:
+  /// **'Ce bon uniquement'**
+  String get thisTicketOnly;
+
+  /// No description provided for @entireProduct.
+  ///
+  /// In fr, this message translates to:
+  /// **'Le produit (permanent)'**
+  String get entireProduct;
+
   /// No description provided for @password.
   ///
   /// In fr, this message translates to:
@@ -3579,6 +4137,54 @@ abstract class AppLocalizations {
   /// In fr, this message translates to:
   /// **'Prix invalide'**
   String get invalidPrice;
+
+  /// No description provided for @invalidQuantity.
+  ///
+  /// In fr, this message translates to:
+  /// **'Quantité invalide'**
+  String get invalidQuantity;
+
+  /// Avertissement quand le prix par pièce d'un emballage est inférieur au prix d'achat
+  ///
+  /// In fr, this message translates to:
+  /// **'Prix par pièce ({price}) inférieur au prix d\'achat'**
+  String packagingPricePerPieceLowerThanPurchase(String price);
+
+  /// Erreur quand un code-barre saisi appartient déjà à un autre produit
+  ///
+  /// In fr, this message translates to:
+  /// **'Ce code-barre est déjà utilisé par le produit \"{produit}\"'**
+  String barcodeAlreadyUsed(String produit);
+
+  /// No description provided for @productNameAlreadyExists.
+  ///
+  /// In fr, this message translates to:
+  /// **'Ce nom de produit existe déjà'**
+  String get productNameAlreadyExists;
+
+  /// No description provided for @clientNameAlreadyExists.
+  ///
+  /// In fr, this message translates to:
+  /// **'Ce nom de client existe déjà'**
+  String get clientNameAlreadyExists;
+
+  /// No description provided for @supplierNameAlreadyExists.
+  ///
+  /// In fr, this message translates to:
+  /// **'Ce nom de fournisseur existe déjà'**
+  String get supplierNameAlreadyExists;
+
+  /// No description provided for @usernameAlreadyExists.
+  ///
+  /// In fr, this message translates to:
+  /// **'Ce nom d\'utilisateur existe déjà'**
+  String get usernameAlreadyExists;
+
+  /// No description provided for @roleNameAlreadyExists.
+  ///
+  /// In fr, this message translates to:
+  /// **'Ce nom de rôle existe déjà'**
+  String get roleNameAlreadyExists;
 
   /// No description provided for @passwordRequired.
   ///
@@ -3613,7 +4219,7 @@ abstract class AppLocalizations {
   /// No description provided for @cashPrintBLSC.
   ///
   /// In fr, this message translates to:
-  /// **'Encaisser / Imprimer BLSC'**
+  /// **'Encaisser / Imprimer Facture'**
   String get cashPrintBLSC;
 
   /// No description provided for @cashPrintTicket.
@@ -3625,7 +4231,7 @@ abstract class AppLocalizations {
   /// No description provided for @blNumber.
   ///
   /// In fr, this message translates to:
-  /// **'N° BL'**
+  /// **'N° Facture'**
   String get blNumber;
 
   /// No description provided for @paidAmount.
@@ -4126,6 +4732,12 @@ abstract class AppLocalizations {
   /// **'Aucun magasin supprimé.'**
   String get noStoreDeleted;
 
+  /// No description provided for @storeDeleteSuccess.
+  ///
+  /// In fr, this message translates to:
+  /// **'Magasin(s) supprimé(s) avec succès.'**
+  String get storeDeleteSuccess;
+
   /// No description provided for @noProductsAssociated.
   ///
   /// In fr, this message translates to:
@@ -4246,6 +4858,12 @@ abstract class AppLocalizations {
   /// **'Produits du Pack {code}'**
   String productsOfPack(Object code);
 
+  /// No description provided for @productsOfSubCategory.
+  ///
+  /// In fr, this message translates to:
+  /// **'Produits de la sous-catégorie {code}'**
+  String productsOfSubCategory(Object code);
+
   /// No description provided for @cancelCarts.
   ///
   /// In fr, this message translates to:
@@ -4263,6 +4881,12 @@ abstract class AppLocalizations {
   /// In fr, this message translates to:
   /// **'Modification Panier'**
   String get modifyCart;
+
+  /// No description provided for @insufficientStockAvailable.
+  ///
+  /// In fr, this message translates to:
+  /// **'Stock insuffisant pour {produit} (disponible : {disponible})'**
+  String insufficientStockAvailable(Object disponible, Object produit);
 
   /// No description provided for @cartType.
   ///
@@ -4521,6 +5145,12 @@ abstract class AppLocalizations {
   /// In fr, this message translates to:
   /// **'Date d\'expiration'**
   String get expiryDate;
+
+  /// No description provided for @daysSinceExpiry.
+  ///
+  /// In fr, this message translates to:
+  /// **'Jours depuis expiration'**
+  String get daysSinceExpiry;
 
   /// No description provided for @productNameHint.
   ///
@@ -4936,11 +5566,47 @@ abstract class AppLocalizations {
   /// **'Suppression impossible'**
   String get deletionImpossible;
 
+  /// No description provided for @modificationImpossible.
+  ///
+  /// In fr, this message translates to:
+  /// **'Modification impossible'**
+  String get modificationImpossible;
+
   /// No description provided for @roleHasUsers.
   ///
   /// In fr, this message translates to:
   /// **'Le rôle \'{roleName}\' contient des utilisateurs et ne peut pas être supprimé.'**
   String roleHasUsers(Object roleName);
+
+  /// No description provided for @cannotModifyAdminRole.
+  ///
+  /// In fr, this message translates to:
+  /// **'Le rôle Admin ne peut pas être modifié.'**
+  String get cannotModifyAdminRole;
+
+  /// No description provided for @cannotDeleteAdminRole.
+  ///
+  /// In fr, this message translates to:
+  /// **'Le rôle Admin ne peut pas être supprimé.'**
+  String get cannotDeleteAdminRole;
+
+  /// No description provided for @cannotModifyAdminUser.
+  ///
+  /// In fr, this message translates to:
+  /// **'L\'utilisateur Admin ne peut pas être modifié.'**
+  String get cannotModifyAdminUser;
+
+  /// No description provided for @cannotDeleteAdminUser.
+  ///
+  /// In fr, this message translates to:
+  /// **'L\'utilisateur Admin ne peut pas être supprimé.'**
+  String get cannotDeleteAdminUser;
+
+  /// No description provided for @userHasActivityDeactivated.
+  ///
+  /// In fr, this message translates to:
+  /// **'{username} a déjà des enregistrements liés dans l\'application et ne peut pas être supprimé définitivement — il a été désactivé à la place.'**
+  String userHasActivityDeactivated(Object username);
 
   /// No description provided for @roleName.
   ///
@@ -4987,25 +5653,25 @@ abstract class AppLocalizations {
   /// No description provided for @smartScanHash.
   ///
   /// In fr, this message translates to:
-  /// **'SmartScan'**
+  /// **'Entrée'**
   String get smartScanHash;
 
   /// No description provided for @deleteSmartScan.
   ///
   /// In fr, this message translates to:
-  /// **'Supprimer Smart Scan'**
+  /// **'Supprimer l\'entrée'**
   String get deleteSmartScan;
 
   /// No description provided for @selectedSmartScans.
   ///
   /// In fr, this message translates to:
-  /// **'SmartScan sélectionnés :'**
+  /// **'Entrées sélectionnées :'**
   String get selectedSmartScans;
 
   /// No description provided for @confirmDeleteSmartScans.
   ///
   /// In fr, this message translates to:
-  /// **'Êtes-vous sûr de vouloir supprimer ces SmartScan ?'**
+  /// **'Êtes-vous sûr de vouloir supprimer ces entrées ?'**
   String get confirmDeleteSmartScans;
 
   /// No description provided for @statistics.
@@ -5035,19 +5701,19 @@ abstract class AppLocalizations {
   /// No description provided for @smartScanProducts.
   ///
   /// In fr, this message translates to:
-  /// **'Produits du SmartScan {code}'**
+  /// **'Produits de l\'entrée {code}'**
   String smartScanProducts(Object code);
 
   /// No description provided for @smartScanProductsList.
   ///
   /// In fr, this message translates to:
-  /// **'Produits du Smart Scan'**
+  /// **'Produits de l\'entrée'**
   String get smartScanProductsList;
 
   /// No description provided for @modifySmartScan.
   ///
   /// In fr, this message translates to:
-  /// **'Modification Smart Scan'**
+  /// **'Modification de l\'entrée'**
   String get modifySmartScan;
 
   /// No description provided for @gapDetected.
@@ -5065,19 +5731,19 @@ abstract class AppLocalizations {
   /// No description provided for @smartScanModifiedSuccess.
   ///
   /// In fr, this message translates to:
-  /// **'Smart Scan modifié avec succès.'**
+  /// **'Entrée modifiée avec succès.'**
   String get smartScanModifiedSuccess;
 
   /// No description provided for @newSmartScan.
   ///
   /// In fr, this message translates to:
-  /// **'Nouveau Smart Scan'**
+  /// **'Nouvelle entrée'**
   String get newSmartScan;
 
   /// No description provided for @smartScanSavedSuccess.
   ///
   /// In fr, this message translates to:
-  /// **'Smart Scan enregistré avec succès.'**
+  /// **'Entrée enregistrée avec succès.'**
   String get smartScanSavedSuccess;
 
   /// No description provided for @back.
@@ -5134,6 +5800,12 @@ abstract class AppLocalizations {
   /// **'Merci de sélectionner au moins un produit.'**
   String get atLeastOneProduct;
 
+  /// No description provided for @cartMustKeepOneProduct.
+  ///
+  /// In fr, this message translates to:
+  /// **'Le panier doit contenir au moins un produit. Supprimez plutôt le panier entier si besoin.'**
+  String get cartMustKeepOneProduct;
+
   /// No description provided for @supplierCodeHint.
   ///
   /// In fr, this message translates to:
@@ -5167,7 +5839,7 @@ abstract class AppLocalizations {
   /// No description provided for @productExistsInSmartScan.
   ///
   /// In fr, this message translates to:
-  /// **'Ce produit existe déjà dans le Smart Scan'**
+  /// **'Ce produit existe déjà dans cette entrée'**
   String get productExistsInSmartScan;
 
   /// No description provided for @list.
@@ -5482,6 +6154,36 @@ abstract class AppLocalizations {
   /// **'Transfert modifié avec succès.'**
   String get transferModifiedSuccess;
 
+  /// No description provided for @sourceAndDestinationStoreMustBeDifferent.
+  ///
+  /// In fr, this message translates to:
+  /// **'Le magasin source et le magasin de destination doivent être différents.'**
+  String get sourceAndDestinationStoreMustBeDifferent;
+
+  /// No description provided for @splitEntryAcrossStores.
+  ///
+  /// In fr, this message translates to:
+  /// **'Répartir la réception sur plusieurs magasins'**
+  String get splitEntryAcrossStores;
+
+  /// No description provided for @splitTotalMustMatchQuantity.
+  ///
+  /// In fr, this message translates to:
+  /// **'La somme des quantités réparties doit être égale à la quantité totale.'**
+  String get splitTotalMustMatchQuantity;
+
+  /// No description provided for @duplicateStoreInSplit.
+  ///
+  /// In fr, this message translates to:
+  /// **'Un même magasin ne peut apparaître qu\'une seule fois dans la répartition.'**
+  String get duplicateStoreInSplit;
+
+  /// No description provided for @incompleteStoreSplit.
+  ///
+  /// In fr, this message translates to:
+  /// **'Veuillez choisir un magasin et une quantité pour chaque ligne de répartition.'**
+  String get incompleteStoreSplit;
+
   /// No description provided for @observationOptional.
   ///
   /// In fr, this message translates to:
@@ -5547,6 +6249,54 @@ abstract class AppLocalizations {
   /// In fr, this message translates to:
   /// **'Utilisateur modifié avec succès.'**
   String get userModifiedSuccess;
+
+  /// No description provided for @changePassword.
+  ///
+  /// In fr, this message translates to:
+  /// **'Changer le mot de passe'**
+  String get changePassword;
+
+  /// No description provided for @oldPassword.
+  ///
+  /// In fr, this message translates to:
+  /// **'Ancien mot de passe'**
+  String get oldPassword;
+
+  /// No description provided for @newPassword.
+  ///
+  /// In fr, this message translates to:
+  /// **'Nouveau mot de passe'**
+  String get newPassword;
+
+  /// No description provided for @confirmPassword.
+  ///
+  /// In fr, this message translates to:
+  /// **'Confirmer le mot de passe'**
+  String get confirmPassword;
+
+  /// No description provided for @passwordsDoNotMatch.
+  ///
+  /// In fr, this message translates to:
+  /// **'Les mots de passe ne correspondent pas'**
+  String get passwordsDoNotMatch;
+
+  /// No description provided for @incorrectOldPassword.
+  ///
+  /// In fr, this message translates to:
+  /// **'Ancien mot de passe incorrect'**
+  String get incorrectOldPassword;
+
+  /// No description provided for @confirmChangePassword.
+  ///
+  /// In fr, this message translates to:
+  /// **'Êtes-vous sûr de vouloir changer le mot de passe ?'**
+  String get confirmChangePassword;
+
+  /// No description provided for @passwordChangedSuccess.
+  ///
+  /// In fr, this message translates to:
+  /// **'Mot de passe modifié avec succès.'**
+  String get passwordChangedSuccess;
 
   /// No description provided for @userSavedSuccess.
   ///
@@ -6274,6 +7024,12 @@ abstract class AppLocalizations {
   /// **'Code Panier'**
   String get panierCode;
 
+  /// No description provided for @productRevenue.
+  ///
+  /// In fr, this message translates to:
+  /// **'Recette Prd'**
+  String get productRevenue;
+
   /// No description provided for @totalPanniers.
   ///
   /// In fr, this message translates to:
@@ -6507,6 +7263,18 @@ abstract class AppLocalizations {
   /// In fr, this message translates to:
   /// **'Retours Fournisseurs'**
   String get supplierReturns;
+
+  /// No description provided for @clientReturn.
+  ///
+  /// In fr, this message translates to:
+  /// **'Retour Client'**
+  String get clientReturn;
+
+  /// No description provided for @supplierReturn.
+  ///
+  /// In fr, this message translates to:
+  /// **'Retour Fournisseur'**
+  String get supplierReturn;
 
   /// No description provided for @movementCode.
   ///
@@ -6892,6 +7660,18 @@ abstract class AppLocalizations {
   /// **'Informations utilisateur'**
   String get userInformation;
 
+  /// No description provided for @lastName.
+  ///
+  /// In fr, this message translates to:
+  /// **'Nom'**
+  String get lastName;
+
+  /// No description provided for @firstName.
+  ///
+  /// In fr, this message translates to:
+  /// **'Prénom'**
+  String get firstName;
+
   /// No description provided for @shopInformation.
   ///
   /// In fr, this message translates to:
@@ -6951,6 +7731,288 @@ abstract class AppLocalizations {
   /// In fr, this message translates to:
   /// **'✅ Paramètres enregistrés'**
   String get settingsSaved;
+
+  /// No description provided for @shopAddress.
+  ///
+  /// In fr, this message translates to:
+  /// **'Adresse complète'**
+  String get shopAddress;
+
+  /// No description provided for @shopAddressHint.
+  ///
+  /// In fr, this message translates to:
+  /// **'Adresse complète de la boutique'**
+  String get shopAddressHint;
+
+  /// No description provided for @shopLogo.
+  ///
+  /// In fr, this message translates to:
+  /// **'Logo de la boutique'**
+  String get shopLogo;
+
+  /// No description provided for @changeLogo.
+  ///
+  /// In fr, this message translates to:
+  /// **'Changer le logo'**
+  String get changeLogo;
+
+  /// No description provided for @shopPhone.
+  ///
+  /// In fr, this message translates to:
+  /// **'Téléphone'**
+  String get shopPhone;
+
+  /// No description provided for @shopEmail.
+  ///
+  /// In fr, this message translates to:
+  /// **'Email'**
+  String get shopEmail;
+
+  /// No description provided for @legalInformation.
+  ///
+  /// In fr, this message translates to:
+  /// **'Informations légales (RC / NIF / NIS / Article)'**
+  String get legalInformation;
+
+  /// No description provided for @rcLabel.
+  ///
+  /// In fr, this message translates to:
+  /// **'RC'**
+  String get rcLabel;
+
+  /// No description provided for @nifLabel.
+  ///
+  /// In fr, this message translates to:
+  /// **'NIF'**
+  String get nifLabel;
+
+  /// No description provided for @nisLabel.
+  ///
+  /// In fr, this message translates to:
+  /// **'NIS'**
+  String get nisLabel;
+
+  /// No description provided for @articleLabel.
+  ///
+  /// In fr, this message translates to:
+  /// **'Article d\'impos'**
+  String get articleLabel;
+
+  /// No description provided for @ticketMessage.
+  ///
+  /// In fr, this message translates to:
+  /// **'Message de remerciement (ticket)'**
+  String get ticketMessage;
+
+  /// No description provided for @ticketMessageHint.
+  ///
+  /// In fr, this message translates to:
+  /// **'Ex: Merci pour votre visite !'**
+  String get ticketMessageHint;
+
+  /// No description provided for @paymentMethodsSection.
+  ///
+  /// In fr, this message translates to:
+  /// **'Modes de paiement'**
+  String get paymentMethodsSection;
+
+  /// No description provided for @paymentMethodsHint.
+  ///
+  /// In fr, this message translates to:
+  /// **'Choisissez les modes de paiement proposés en caisse'**
+  String get paymentMethodsHint;
+
+  /// No description provided for @atLeastOnePaymentRequired.
+  ///
+  /// In fr, this message translates to:
+  /// **'Au moins un mode de paiement doit rester actif'**
+  String get atLeastOnePaymentRequired;
+
+  /// No description provided for @devicesSection.
+  ///
+  /// In fr, this message translates to:
+  /// **'Périphériques et impression'**
+  String get devicesSection;
+
+  /// No description provided for @printerType.
+  ///
+  /// In fr, this message translates to:
+  /// **'Type d\'imprimante'**
+  String get printerType;
+
+  /// No description provided for @printerTypeBluetooth.
+  ///
+  /// In fr, this message translates to:
+  /// **'Thermique Bluetooth'**
+  String get printerTypeBluetooth;
+
+  /// No description provided for @printerTypeUsb.
+  ///
+  /// In fr, this message translates to:
+  /// **'Thermique USB (ESC/POS)'**
+  String get printerTypeUsb;
+
+  /// No description provided for @printerTypeReseau.
+  ///
+  /// In fr, this message translates to:
+  /// **'Thermique Réseau (ESC/POS)'**
+  String get printerTypeReseau;
+
+  /// No description provided for @printerTypeNormale.
+  ///
+  /// In fr, this message translates to:
+  /// **'Imprimante normale (Windows)'**
+  String get printerTypeNormale;
+
+  /// No description provided for @selectPrinterLabel.
+  ///
+  /// In fr, this message translates to:
+  /// **'Imprimante'**
+  String get selectPrinterLabel;
+
+  /// No description provided for @ipAddressLabel.
+  ///
+  /// In fr, this message translates to:
+  /// **'Adresse IP'**
+  String get ipAddressLabel;
+
+  /// No description provided for @portLabel.
+  ///
+  /// In fr, this message translates to:
+  /// **'Port'**
+  String get portLabel;
+
+  /// No description provided for @rollWidthLabel.
+  ///
+  /// In fr, this message translates to:
+  /// **'Largeur du rouleau'**
+  String get rollWidthLabel;
+
+  /// No description provided for @refreshPrinters.
+  ///
+  /// In fr, this message translates to:
+  /// **'Actualiser'**
+  String get refreshPrinters;
+
+  /// No description provided for @noPrinterConfigured.
+  ///
+  /// In fr, this message translates to:
+  /// **'Aucune imprimante sélectionnée'**
+  String get noPrinterConfigured;
+
+  /// No description provided for @backupSection.
+  ///
+  /// In fr, this message translates to:
+  /// **'Sauvegarde de la base de données'**
+  String get backupSection;
+
+  /// No description provided for @backupFolder.
+  ///
+  /// In fr, this message translates to:
+  /// **'Dossier de sauvegarde'**
+  String get backupFolder;
+
+  /// No description provided for @documentsFolder.
+  ///
+  /// In fr, this message translates to:
+  /// **'Dossier des stockage (Excel, PDF, factures)'**
+  String get documentsFolder;
+
+  /// No description provided for @chooseFolder.
+  ///
+  /// In fr, this message translates to:
+  /// **'Choisir un dossier'**
+  String get chooseFolder;
+
+  /// No description provided for @backupNow.
+  ///
+  /// In fr, this message translates to:
+  /// **'Sauvegarder maintenant'**
+  String get backupNow;
+
+  /// No description provided for @restoreBackup.
+  ///
+  /// In fr, this message translates to:
+  /// **'Restaurer une sauvegarde'**
+  String get restoreBackup;
+
+  /// No description provided for @autoBackup.
+  ///
+  /// In fr, this message translates to:
+  /// **'Sauvegarde automatique'**
+  String get autoBackup;
+
+  /// No description provided for @backupFrequency.
+  ///
+  /// In fr, this message translates to:
+  /// **'Fréquence'**
+  String get backupFrequency;
+
+  /// No description provided for @frequencyStartup.
+  ///
+  /// In fr, this message translates to:
+  /// **'À chaque démarrage'**
+  String get frequencyStartup;
+
+  /// No description provided for @frequencyDaily.
+  ///
+  /// In fr, this message translates to:
+  /// **'Quotidienne'**
+  String get frequencyDaily;
+
+  /// No description provided for @frequencyWeekly.
+  ///
+  /// In fr, this message translates to:
+  /// **'Hebdomadaire'**
+  String get frequencyWeekly;
+
+  /// No description provided for @lastBackup.
+  ///
+  /// In fr, this message translates to:
+  /// **'Dernière sauvegarde'**
+  String get lastBackup;
+
+  /// No description provided for @neverBackedUp.
+  ///
+  /// In fr, this message translates to:
+  /// **'Jamais'**
+  String get neverBackedUp;
+
+  /// No description provided for @backupSuccess.
+  ///
+  /// In fr, this message translates to:
+  /// **'Sauvegarde créée avec succès'**
+  String get backupSuccess;
+
+  /// No description provided for @backupError.
+  ///
+  /// In fr, this message translates to:
+  /// **'Erreur lors de la sauvegarde'**
+  String get backupError;
+
+  /// No description provided for @restoreConfirmTitle.
+  ///
+  /// In fr, this message translates to:
+  /// **'Restaurer la base de données ?'**
+  String get restoreConfirmTitle;
+
+  /// No description provided for @restoreConfirmMessage.
+  ///
+  /// In fr, this message translates to:
+  /// **'Cette action remplace toutes les données actuelles par celles de la sauvegarde sélectionnée. L\'application doit être redémarrée après. Continuer ?'**
+  String get restoreConfirmMessage;
+
+  /// No description provided for @restoreSuccess.
+  ///
+  /// In fr, this message translates to:
+  /// **'Base restaurée. Veuillez redémarrer l\'application.'**
+  String get restoreSuccess;
+
+  /// No description provided for @restoreError.
+  ///
+  /// In fr, this message translates to:
+  /// **'Erreur lors de la restauration'**
+  String get restoreError;
 
   /// No description provided for @currencye.
   ///
@@ -7072,6 +8134,162 @@ abstract class AppLocalizations {
   /// **'Utilisez le bouton \'Nouveau\' pour scanner un reçu avec l\'IA'**
   String get aiModeDescription;
 
+  /// No description provided for @attachBonFromDisk.
+  ///
+  /// In fr, this message translates to:
+  /// **'Joindre une photo'**
+  String get attachBonFromDisk;
+
+  /// No description provided for @receiveBonFromPhone.
+  ///
+  /// In fr, this message translates to:
+  /// **'Recevoir depuis le téléphone'**
+  String get receiveBonFromPhone;
+
+  /// No description provided for @connectMobileAppTitle.
+  ///
+  /// In fr, this message translates to:
+  /// **'Connecter l\'application mobile CaisseDZ Scanner'**
+  String get connectMobileAppTitle;
+
+  /// No description provided for @receptionNoNetwork.
+  ///
+  /// In fr, this message translates to:
+  /// **'Aucune adresse réseau locale détectée'**
+  String get receptionNoNetwork;
+
+  /// No description provided for @receptionStartServer.
+  ///
+  /// In fr, this message translates to:
+  /// **'Démarrer le serveur'**
+  String get receptionStartServer;
+
+  /// No description provided for @receptionStopServer.
+  ///
+  /// In fr, this message translates to:
+  /// **'Arrêter le serveur'**
+  String get receptionStopServer;
+
+  /// No description provided for @receptionStatusConnected.
+  ///
+  /// In fr, this message translates to:
+  /// **'Téléphone connecté'**
+  String get receptionStatusConnected;
+
+  /// No description provided for @receptionStatusWaiting.
+  ///
+  /// In fr, this message translates to:
+  /// **'En attente de connexion du téléphone…'**
+  String get receptionStatusWaiting;
+
+  /// No description provided for @receptionPhotoMissing.
+  ///
+  /// In fr, this message translates to:
+  /// **'Cette photo est introuvable sur le disque'**
+  String get receptionPhotoMissing;
+
+  /// No description provided for @receptionStatutRecu.
+  ///
+  /// In fr, this message translates to:
+  /// **'Reçu'**
+  String get receptionStatutRecu;
+
+  /// No description provided for @receptionStatutTraite.
+  ///
+  /// In fr, this message translates to:
+  /// **'Traité'**
+  String get receptionStatutTraite;
+
+  /// No description provided for @receptionStatutErreur.
+  ///
+  /// In fr, this message translates to:
+  /// **'Erreur'**
+  String get receptionStatutErreur;
+
+  /// No description provided for @receptionAllStatuses.
+  ///
+  /// In fr, this message translates to:
+  /// **'Tous les statuts'**
+  String get receptionAllStatuses;
+
+  /// No description provided for @receptionDateRangeLabel.
+  ///
+  /// In fr, this message translates to:
+  /// **'Date de réception'**
+  String get receptionDateRangeLabel;
+
+  /// No description provided for @pairingCodeLabel.
+  ///
+  /// In fr, this message translates to:
+  /// **'Code d\'appairage'**
+  String get pairingCodeLabel;
+
+  /// No description provided for @regeneratePairingCode.
+  ///
+  /// In fr, this message translates to:
+  /// **'Régénérer le code'**
+  String get regeneratePairingCode;
+
+  /// No description provided for @pairingCodeCopied.
+  ///
+  /// In fr, this message translates to:
+  /// **'Code copié dans le presse-papiers'**
+  String get pairingCodeCopied;
+
+  /// No description provided for @pairedDevicesSection.
+  ///
+  /// In fr, this message translates to:
+  /// **'Téléphones appairés'**
+  String get pairedDevicesSection;
+
+  /// No description provided for @noPairedDevices.
+  ///
+  /// In fr, this message translates to:
+  /// **'Aucun téléphone appairé'**
+  String get noPairedDevices;
+
+  /// No description provided for @pairingCodeExpiresLabel.
+  ///
+  /// In fr, this message translates to:
+  /// **'Expire dans'**
+  String get pairingCodeExpiresLabel;
+
+  /// No description provided for @pairingCodeExpired.
+  ///
+  /// In fr, this message translates to:
+  /// **'Code expiré — régénérez-le'**
+  String get pairingCodeExpired;
+
+  /// No description provided for @scanOrTypeCode.
+  ///
+  /// In fr, this message translates to:
+  /// **'Scannez le QR code ou saisissez le code d\'appairage sur le téléphone'**
+  String get scanOrTypeCode;
+
+  /// No description provided for @mobileConnectTooltip.
+  ///
+  /// In fr, this message translates to:
+  /// **'Connecter un téléphone'**
+  String get mobileConnectTooltip;
+
+  /// No description provided for @startingServerAutomatically.
+  ///
+  /// In fr, this message translates to:
+  /// **'Préparation de la connexion…'**
+  String get startingServerAutomatically;
+
+  /// No description provided for @advancedConnectionSettings.
+  ///
+  /// In fr, this message translates to:
+  /// **'Paramètres avancés (adresse IP / port)'**
+  String get advancedConnectionSettings;
+
+  /// No description provided for @scanDateRangeLabel.
+  ///
+  /// In fr, this message translates to:
+  /// **'Date de scan'**
+  String get scanDateRangeLabel;
+
   /// No description provided for @aiReceipt.
   ///
   /// In fr, this message translates to:
@@ -7135,13 +8353,13 @@ abstract class AppLocalizations {
   /// No description provided for @quickEntry.
   ///
   /// In fr, this message translates to:
-  /// **'Entrée rapide'**
+  /// **'Entrée'**
   String get quickEntry;
 
   /// No description provided for @cashReceipt.
   ///
   /// In fr, this message translates to:
-  /// **'Recette caisse'**
+  /// **'Recette'**
   String get cashReceipt;
 
   /// No description provided for @cashReceiptTitle.
@@ -7198,6 +8416,24 @@ abstract class AppLocalizations {
   /// **'Le montant de la remise ({amount}) dépasse le total du panier ({total}) !'**
   String discountAmountExceedsTotal(Object amount, Object total);
 
+  /// No description provided for @conditionalDiscountToActivate.
+  ///
+  /// In fr, this message translates to:
+  /// **'Remise conditionnelle : +{amount} {currency} pour activer'**
+  String conditionalDiscountToActivate(Object amount, Object currency);
+
+  /// No description provided for @discountAppliedNamed.
+  ///
+  /// In fr, this message translates to:
+  /// **'✅ Remise \'{nom}\' appliquée !'**
+  String discountAppliedNamed(Object nom);
+
+  /// No description provided for @packAddedToCart.
+  ///
+  /// In fr, this message translates to:
+  /// **'✅ Pack \'{nom}\'{quantiteSuffix} ajouté au panier'**
+  String packAddedToCart(Object nom, Object quantiteSuffix);
+
   /// No description provided for @totalFinal.
   ///
   /// In fr, this message translates to:
@@ -7215,6 +8451,12 @@ abstract class AppLocalizations {
   /// In fr, this message translates to:
   /// **'La quantité doit être supérieure à 0'**
   String get quantityMustBeGreaterThanZero;
+
+  /// No description provided for @numberMustBeGreaterThanZero.
+  ///
+  /// In fr, this message translates to:
+  /// **'Le nombre doit être supérieur à 0'**
+  String get numberMustBeGreaterThanZero;
 
   /// No description provided for @priceMustBeGreaterThanZero.
   ///
@@ -7341,6 +8583,541 @@ abstract class AppLocalizations {
   /// In fr, this message translates to:
   /// **'La caisse source et la caisse de destination doivent être différentes.'**
   String get sourceAndDestinationMustBeDifferent;
+
+  /// No description provided for @reduction.
+  ///
+  /// In fr, this message translates to:
+  /// **'Réduction'**
+  String get reduction;
+
+  /// No description provided for @packactuel.
+  ///
+  /// In fr, this message translates to:
+  /// **'Pack actuel'**
+  String get packactuel;
+
+  /// No description provided for @remiseactuel.
+  ///
+  /// In fr, this message translates to:
+  /// **'Remise actuel'**
+  String get remiseactuel;
+
+  /// No description provided for @categorieactuel.
+  ///
+  /// In fr, this message translates to:
+  /// **'Categorie'**
+  String get categorieactuel;
+
+  /// No description provided for @souscategorieactuel.
+  ///
+  /// In fr, this message translates to:
+  /// **'Sous categorie'**
+  String get souscategorieactuel;
+
+  /// No description provided for @entryrapide.
+  ///
+  /// In fr, this message translates to:
+  /// **'Entrée rapide'**
+  String get entryrapide;
+
+  /// No description provided for @catalog.
+  ///
+  /// In fr, this message translates to:
+  /// **'Catalogue'**
+  String get catalog;
+
+  /// No description provided for @newCatalogProduct.
+  ///
+  /// In fr, this message translates to:
+  /// **'Nouveau produit catalogue'**
+  String get newCatalogProduct;
+
+  /// No description provided for @editCatalogProduct.
+  ///
+  /// In fr, this message translates to:
+  /// **'Modifier le produit catalogue'**
+  String get editCatalogProduct;
+
+  /// No description provided for @deleteCatalogProducts.
+  ///
+  /// In fr, this message translates to:
+  /// **'Supprimer du catalogue'**
+  String get deleteCatalogProducts;
+
+  /// No description provided for @confirmDeleteCatalogProducts.
+  ///
+  /// In fr, this message translates to:
+  /// **'Cette suppression est définitive et affecte le catalogue partagé entre toutes les boutiques CaisseDZ. Voulez-vous continuer ?'**
+  String get confirmDeleteCatalogProducts;
+
+  /// No description provided for @catalogPhotoUrl.
+  ///
+  /// In fr, this message translates to:
+  /// **'URL de la photo'**
+  String get catalogPhotoUrl;
+
+  /// No description provided for @catalogPhotoUrlHint.
+  ///
+  /// In fr, this message translates to:
+  /// **'https://...'**
+  String get catalogPhotoUrlHint;
+
+  /// No description provided for @catalogSyncFailed.
+  ///
+  /// In fr, this message translates to:
+  /// **'Produit enregistré localement, mais la synchronisation avec le catalogue distant a échoué.'**
+  String get catalogSyncFailed;
+
+  /// Message affiché dans l'onglet IA quand le code-barres scanné correspond déjà à un produit du stock local
+  ///
+  /// In fr, this message translates to:
+  /// **'Ce produit existe déjà dans votre stock : \"{produit}\"'**
+  String productAlreadyExistsLocally(String produit);
+
+  /// No description provided for @stockGlobalInsuffisant.
+  ///
+  /// In fr, this message translates to:
+  /// **'Stock global insuffisant !\nDisponible: {disponible} pièce(s)\nDemandé: {demande} pièce(s)'**
+  String stockGlobalInsuffisant(String disponible, String demande);
+
+  /// No description provided for @stockInsuffisantMagasin.
+  ///
+  /// In fr, this message translates to:
+  /// **'Stock insuffisant dans le magasin \'{magasin}\' !\nDisponible: {disponible} pièce(s)\nDemandé: {demande} pièce(s)\n\nVoulez-vous prendre uniquement la quantité disponible ?'**
+  String stockInsuffisantMagasin(
+    String magasin,
+    String disponible,
+    String demande,
+  );
+
+  /// No description provided for @produitAucunMagasin.
+  ///
+  /// In fr, this message translates to:
+  /// **'Ce produit n\'est disponible dans aucun magasin !'**
+  String get produitAucunMagasin;
+
+  /// No description provided for @packSansProduit.
+  ///
+  /// In fr, this message translates to:
+  /// **'Ce pack ne contient aucun produit'**
+  String get packSansProduit;
+
+  /// No description provided for @produitInexistantBase.
+  ///
+  /// In fr, this message translates to:
+  /// **'Le produit \'{code}\' n\'existe pas dans la base de données'**
+  String produitInexistantBase(String code);
+
+  /// No description provided for @stockInsuffisantPourProduit.
+  ///
+  /// In fr, this message translates to:
+  /// **'Stock insuffisant pour le produit \'{code}\'\nDisponible: {disponible} pièce(s)\nNécessaire: {necessaire} pièce(s)'**
+  String stockInsuffisantPourProduit(
+    String code,
+    String disponible,
+    String necessaire,
+  );
+
+  /// No description provided for @produitInexistant.
+  ///
+  /// In fr, this message translates to:
+  /// **'Le produit \'{code}\' n\'existe pas'**
+  String produitInexistant(String code);
+
+  /// No description provided for @aucunPackDisponible.
+  ///
+  /// In fr, this message translates to:
+  /// **'Aucun pack disponible'**
+  String get aucunPackDisponible;
+
+  /// No description provided for @stockInsuffisantDetail.
+  ///
+  /// In fr, this message translates to:
+  /// **'Stock insuffisant !\nDisponible: {disponible} pièce(s)\nDemandé: {demande} pièce(s)'**
+  String stockInsuffisantDetail(String disponible, String demande);
+
+  /// No description provided for @stockInsuffisantRestant.
+  ///
+  /// In fr, this message translates to:
+  /// **'Stock insuffisant !\nPlus que {disponible} pièce(s) disponible(s)'**
+  String stockInsuffisantRestant(String disponible);
+
+  /// No description provided for @stockInsuffisantSupplement.
+  ///
+  /// In fr, this message translates to:
+  /// **'Stock insuffisant !\nDisponible: {disponible} pièce(s)\nDemandé supplément: {demande} pièce(s)'**
+  String stockInsuffisantSupplement(String disponible, String demande);
+
+  /// No description provided for @remiseConditionMessage.
+  ///
+  /// In fr, this message translates to:
+  /// **'La remise \'{nom}\' sera appliquée automatiquement lorsque le total atteindra {montant} DA.'**
+  String remiseConditionMessage(String nom, String montant);
+
+  /// No description provided for @aiScanSavedDetails.
+  ///
+  /// In fr, this message translates to:
+  /// **'Entrée enregistrée avec succès !\n\nCode : {code}\nFournisseur : {fournisseur}\nProduits : {produits}\nTotal : {total} DZD'**
+  String aiScanSavedDetails(
+    String code,
+    String fournisseur,
+    String produits,
+    String total,
+  );
+
+  /// No description provided for @saveFailed.
+  ///
+  /// In fr, this message translates to:
+  /// **'Échec de l\'enregistrement : {error}'**
+  String saveFailed(String error);
+
+  /// No description provided for @confirmModifyClient.
+  ///
+  /// In fr, this message translates to:
+  /// **'Êtes-vous sûr de vouloir modifier ce client ?'**
+  String get confirmModifyClient;
+
+  /// No description provided for @selectClientType.
+  ///
+  /// In fr, this message translates to:
+  /// **'Veuillez sélectionner un type de client'**
+  String get selectClientType;
+
+  /// No description provided for @caisseNotFound.
+  ///
+  /// In fr, this message translates to:
+  /// **'Caisse \'{caisse}\' non trouvée.'**
+  String caisseNotFound(String caisse);
+
+  /// No description provided for @categoryModifiedCascade.
+  ///
+  /// In fr, this message translates to:
+  /// **'Catégorie modifiée avec succès.\n\nToutes les sous-catégories et produits ont été mis à jour.'**
+  String get categoryModifiedCascade;
+
+  /// No description provided for @confirmModifyCaisse.
+  ///
+  /// In fr, this message translates to:
+  /// **'Êtes-vous sûr de vouloir modifier cette caisse ?'**
+  String get confirmModifyCaisse;
+
+  /// No description provided for @confirmModifyFournisseur.
+  ///
+  /// In fr, this message translates to:
+  /// **'Êtes-vous sûr de vouloir modifier ce fournisseur ?'**
+  String get confirmModifyFournisseur;
+
+  /// No description provided for @confirmModifyPack.
+  ///
+  /// In fr, this message translates to:
+  /// **'Êtes-vous sûr de vouloir modifier ce pack ?'**
+  String get confirmModifyPack;
+
+  /// No description provided for @confirmModifyBesoinListe.
+  ///
+  /// In fr, this message translates to:
+  /// **'Êtes-vous sûr de vouloir modifier cette Besoin Liste ?'**
+  String get confirmModifyBesoinListe;
+
+  /// No description provided for @modificationError.
+  ///
+  /// In fr, this message translates to:
+  /// **'Une erreur est survenue lors de la modification.'**
+  String get modificationError;
+
+  /// No description provided for @sellPriceMustBePositive.
+  ///
+  /// In fr, this message translates to:
+  /// **'Le prix de vente doit être supérieur à 0'**
+  String get sellPriceMustBePositive;
+
+  /// No description provided for @sellPriceMustExceedBuyPrice.
+  ///
+  /// In fr, this message translates to:
+  /// **'Le prix de vente doit être supérieur au prix d\'achat'**
+  String get sellPriceMustExceedBuyPrice;
+
+  /// No description provided for @selectStatus.
+  ///
+  /// In fr, this message translates to:
+  /// **'Veuillez sélectionner un statut'**
+  String get selectStatus;
+
+  /// No description provided for @versementLieRetourModif.
+  ///
+  /// In fr, this message translates to:
+  /// **'Ce versement est lié au retour {code}. Modifiez-le depuis ce retour.'**
+  String versementLieRetourModif(String code);
+
+  /// No description provided for @versementLieRetourSuppr.
+  ///
+  /// In fr, this message translates to:
+  /// **'Le versement {code} est lié au retour {codeRetour}. Supprimez-le depuis ce retour.'**
+  String versementLieRetourSuppr(String code, String codeRetour);
+
+  /// No description provided for @loginRequiredChangeCategory.
+  ///
+  /// In fr, this message translates to:
+  /// **'Vous devez être connecté pour changer la catégorie et la sous-catégorie.'**
+  String get loginRequiredChangeCategory;
+
+  /// No description provided for @selectRole.
+  ///
+  /// In fr, this message translates to:
+  /// **'Veuillez sélectionner un rôle'**
+  String get selectRole;
+
+  /// No description provided for @qtyAndBuyPriceMustBePositiveFor.
+  ///
+  /// In fr, this message translates to:
+  /// **'La quantité et le prix d\'achat doivent être supérieurs à 0 pour {produit}'**
+  String qtyAndBuyPriceMustBePositiveFor(String produit);
+
+  /// No description provided for @sellPriceMustExceedBuyPriceFor.
+  ///
+  /// In fr, this message translates to:
+  /// **'Le prix de vente doit être supérieur au prix d\'achat pour {produit}'**
+  String sellPriceMustExceedBuyPriceFor(String produit);
+
+  /// No description provided for @selectPannierForReturn.
+  ///
+  /// In fr, this message translates to:
+  /// **'Veuillez choisir le panier concerné par ce retour.'**
+  String get selectPannierForReturn;
+
+  /// No description provided for @selectEntreeOrSmartScanForReturn.
+  ///
+  /// In fr, this message translates to:
+  /// **'Veuillez choisir l\'entrée concernée par ce retour.'**
+  String get selectEntreeOrSmartScanForReturn;
+
+  /// No description provided for @internetConnected.
+  ///
+  /// In fr, this message translates to:
+  /// **'Connecté à internet'**
+  String get internetConnected;
+
+  /// No description provided for @internetDisconnected.
+  ///
+  /// In fr, this message translates to:
+  /// **'Aucune connexion internet'**
+  String get internetDisconnected;
+
+  /// No description provided for @ouvrirCaisse.
+  ///
+  /// In fr, this message translates to:
+  /// **'Ouvrir la caisse'**
+  String get ouvrirCaisse;
+
+  /// No description provided for @cloturerCaisse.
+  ///
+  /// In fr, this message translates to:
+  /// **'Clôturer la caisse'**
+  String get cloturerCaisse;
+
+  /// No description provided for @mouvementManuel.
+  ///
+  /// In fr, this message translates to:
+  /// **'Mouvement manuel'**
+  String get mouvementManuel;
+
+  /// No description provided for @soldeOuverture.
+  ///
+  /// In fr, this message translates to:
+  /// **'Solde d\'ouverture'**
+  String get soldeOuverture;
+
+  /// No description provided for @soldeOuvertureSuggere.
+  ///
+  /// In fr, this message translates to:
+  /// **'Montant suggéré : {montant}'**
+  String soldeOuvertureSuggere(String montant);
+
+  /// No description provided for @soldeTheorique.
+  ///
+  /// In fr, this message translates to:
+  /// **'Solde théorique'**
+  String get soldeTheorique;
+
+  /// No description provided for @soldeReel.
+  ///
+  /// In fr, this message translates to:
+  /// **'Solde réel (compté)'**
+  String get soldeReel;
+
+  /// No description provided for @ecartCaisse.
+  ///
+  /// In fr, this message translates to:
+  /// **'Écart'**
+  String get ecartCaisse;
+
+  /// No description provided for @ouvertureCaisseSuccess.
+  ///
+  /// In fr, this message translates to:
+  /// **'Caisse ouverte avec succès'**
+  String get ouvertureCaisseSuccess;
+
+  /// No description provided for @clotureCaisseSuccess.
+  ///
+  /// In fr, this message translates to:
+  /// **'Caisse clôturée avec succès'**
+  String get clotureCaisseSuccess;
+
+  /// No description provided for @sessionDejaOuverte.
+  ///
+  /// In fr, this message translates to:
+  /// **'Une session de caisse est déjà ouverte pour \'{caisse}\'.'**
+  String sessionDejaOuverte(String caisse);
+
+  /// No description provided for @aucuneSessionOuverteACloturer.
+  ///
+  /// In fr, this message translates to:
+  /// **'Aucune session ouverte à clôturer pour cette caisse.'**
+  String get aucuneSessionOuverteACloturer;
+
+  /// No description provided for @aucuneSessionOuverte.
+  ///
+  /// In fr, this message translates to:
+  /// **'Aucune session de caisse ouverte pour \'{caisse}\'. Veuillez d\'abord ouvrir la caisse.'**
+  String aucuneSessionOuverte(String caisse);
+
+  /// No description provided for @entreeManuelle.
+  ///
+  /// In fr, this message translates to:
+  /// **'Entrée manuelle'**
+  String get entreeManuelle;
+
+  /// No description provided for @sortieManuelle.
+  ///
+  /// In fr, this message translates to:
+  /// **'Sortie manuelle'**
+  String get sortieManuelle;
+
+  /// No description provided for @motifMouvement.
+  ///
+  /// In fr, this message translates to:
+  /// **'Motif'**
+  String get motifMouvement;
+
+  /// No description provided for @mouvementAjouteSuccess.
+  ///
+  /// In fr, this message translates to:
+  /// **'Mouvement ajouté avec succès'**
+  String get mouvementAjouteSuccess;
+
+  /// No description provided for @sessionCaisseOuverteDepuis.
+  ///
+  /// In fr, this message translates to:
+  /// **'Session ouverte depuis {date}'**
+  String sessionCaisseOuverteDepuis(String date);
+
+  /// No description provided for @sessionCaisseFermee.
+  ///
+  /// In fr, this message translates to:
+  /// **'Caisse fermée'**
+  String get sessionCaisseFermee;
+
+  /// No description provided for @cashRegisterRequired.
+  ///
+  /// In fr, this message translates to:
+  /// **'Veuillez sélectionner une caisse'**
+  String get cashRegisterRequired;
+
+  /// No description provided for @cashSessionsTab.
+  ///
+  /// In fr, this message translates to:
+  /// **'Sessions de caisse'**
+  String get cashSessionsTab;
+
+  /// No description provided for @cashMovementsTab.
+  ///
+  /// In fr, this message translates to:
+  /// **'Mouvements de caisse'**
+  String get cashMovementsTab;
+
+  /// No description provided for @noSessionsYet.
+  ///
+  /// In fr, this message translates to:
+  /// **'Aucune session pour l\'instant'**
+  String get noSessionsYet;
+
+  /// No description provided for @viewMovements.
+  ///
+  /// In fr, this message translates to:
+  /// **'Voir les mouvements'**
+  String get viewMovements;
+
+  /// No description provided for @noSessionSelected.
+  ///
+  /// In fr, this message translates to:
+  /// **'Aucune session sélectionnée'**
+  String get noSessionSelected;
+
+  /// No description provided for @selectSingleSessionForMovements.
+  ///
+  /// In fr, this message translates to:
+  /// **'Veuillez sélectionner une seule session pour voir ses mouvements'**
+  String get selectSingleSessionForMovements;
+
+  /// No description provided for @sessionStatutOuverte.
+  ///
+  /// In fr, this message translates to:
+  /// **'Ouverte'**
+  String get sessionStatutOuverte;
+
+  /// No description provided for @sessionStatutCloturee.
+  ///
+  /// In fr, this message translates to:
+  /// **'Clôturée'**
+  String get sessionStatutCloturee;
+
+  /// No description provided for @cancelSmartScan.
+  ///
+  /// In fr, this message translates to:
+  /// **'Annuler l\'entrée'**
+  String get cancelSmartScan;
+
+  /// No description provided for @confirmCancelSmartScans.
+  ///
+  /// In fr, this message translates to:
+  /// **'Êtes-vous sûr de vouloir annuler ces entrées ?'**
+  String get confirmCancelSmartScans;
+
+  /// No description provided for @smartScanContentLocked.
+  ///
+  /// In fr, this message translates to:
+  /// **'Un achat enregistré ne peut plus être modifié sur son contenu — utilisez une annulation'**
+  String get smartScanContentLocked;
+
+  /// No description provided for @smartScanAlreadyCancelled.
+  ///
+  /// In fr, this message translates to:
+  /// **'Entrée introuvable ou déjà annulée'**
+  String get smartScanAlreadyCancelled;
+
+  /// No description provided for @cancelReturns.
+  ///
+  /// In fr, this message translates to:
+  /// **'Annuler les retours'**
+  String get cancelReturns;
+
+  /// No description provided for @confirmCancelReturns.
+  ///
+  /// In fr, this message translates to:
+  /// **'Êtes-vous sûr de vouloir annuler ces retours ?'**
+  String get confirmCancelReturns;
+
+  /// No description provided for @cancelExits.
+  ///
+  /// In fr, this message translates to:
+  /// **'Annuler les sorties'**
+  String get cancelExits;
+
+  /// No description provided for @confirmCancelExits.
+  ///
+  /// In fr, this message translates to:
+  /// **'Êtes-vous sûr de vouloir annuler ces sorties ?'**
+  String get confirmCancelExits;
 }
 
 class _AppLocalizationsDelegate

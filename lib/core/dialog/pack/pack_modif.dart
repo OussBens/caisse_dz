@@ -26,6 +26,7 @@ import '../base_dialog.dart';
 import '../confirmation_dialog.dart';
 import '../information_dialog.dart';
 import '../insertion_produit.dart';
+import 'package:caisse_dz/core/utilis/number_format.dart';
 
 final TextEditingController packNomController = TextEditingController();
 final TextEditingController packObserController = TextEditingController();
@@ -56,6 +57,13 @@ Future<int> _GetNextPackDetailId() async {
   return id;
 }
 
+Produit? _trouverProduitParCode(String code) {
+  for (final p in produitsTest) {
+    if (p.code == code) return p;
+  }
+  return null;
+}
+
 void _recalculerTotauxPackModif(void Function(void Function()) setState) {
   setState(() {
     int nombreProduits = produitsPackSelectionnes.length;
@@ -79,6 +87,7 @@ Widget _headerTableProduitsPackComplet(AppLocalizations l10n) {
       children: [
         Expanded(flex: 2, child: Text(l10n.code, style: Appstyle.textSB.copyWith(fontWeight: FontWeight.bold))),
         Expanded(flex: 3, child: Text(l10n.product, style: Appstyle.textSB.copyWith(fontWeight: FontWeight.bold))),
+        Expanded(flex: 2, child: Text(l10n.salePrice, style: Appstyle.textSB.copyWith(fontWeight: FontWeight.bold))),
         Expanded(flex: 2, child: Text(l10n.unitPrice, style: Appstyle.textSB.copyWith(fontWeight: FontWeight.bold))),
         const SizedBox(width: 8),
         Expanded(flex: 1, child: Text(l10n.quantity, style: Appstyle.textSB.copyWith(fontWeight: FontWeight.bold))),
@@ -111,7 +120,14 @@ Widget _tableProduitsPackComplet(void Function(void Function()) setState, AppLoc
         child: Row(
           children: [
             Expanded(flex: 2, child: Text(detail.produitCode, style: Appstyle.textSB)),
-            Expanded(flex: 3, child: Text(detail.produitCode, style: Appstyle.textSB)),
+            Expanded(flex: 3, child: Text(_trouverProduitParCode(detail.produitCode)?.nom ?? detail.produitCode, style: Appstyle.textSB)),
+            Expanded(
+              flex: 2,
+              child: Text(
+                '${NumberFormatUtil.formatMontant((_trouverProduitParCode(detail.produitCode)?.prixVente ?? 0), decimales: 2)} ${l10n.currency}',
+                style: Appstyle.textSB,
+              ),
+            ),
             Expanded(
               flex: 2,
               child: SizedBox(
@@ -164,7 +180,7 @@ Widget _tableProduitsPackComplet(void Function(void Function()) setState, AppLoc
             Expanded(
               flex: 2,
               child: Text(
-                '${detail.montant.toStringAsFixed(2)} ${l10n.currency}',
+                '${NumberFormatUtil.formatMontant(detail.montant, decimales: 2)} ${l10n.currency}',
                 style: Appstyle.textSB.copyWith(fontWeight: FontWeight.bold),
               ),
             ),
@@ -198,6 +214,7 @@ void _ajouterProduitPackComplet(
     context: context,
     builder: (_) => InsertionProduitDialog(
       multiselection: true,
+      newButton:false,
       produits: produitsTest,
       onProduitSelected: (produit) async {
         bool existeDeja = produitsPackSelectionnes.any(
@@ -389,6 +406,7 @@ Future<void> PackModif(BuildContext context, Pack pack) async {
                             // Colonne gauche
                             Expanded(
                               child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
                                   ChampAvecLabel(
                                     label: l10n.code,
@@ -504,7 +522,7 @@ Future<void> PackModif(BuildContext context, Pack pack) async {
                         await ConfirmationDialog(
                           context: context,
                           titre: l10n.modifyPack,
-                          message: "Êtes-vous sûr de vouloir modifier ce pack ?",
+                          message: l10n.confirmModifyPack,
                           onConfirmer: () async {
                             try {
                               int nombreProduits = produitsPackSelectionnes.length;
@@ -532,7 +550,7 @@ Future<void> PackModif(BuildContext context, Pack pack) async {
                                   context: context,
                                   titre_type_message: l10n.error,
                                   titre_concerne: l10n.pack,
-                                  message: response.message ?? "Une erreur est survenue lors de la modification.",
+                                  message: response.message ?? l10n.modificationError,
                                 );
                                 return;
                               }
@@ -575,7 +593,7 @@ Future<void> PackModif(BuildContext context, Pack pack) async {
                                 context: context,
                                 titre_type_message: l10n.error,
                                 titre_concerne: l10n.pack,
-                                message: "Erreur lors de la modification : $e",
+                                message: "${l10n.errorOccurred}: $e",
                               );
                             }
                           },

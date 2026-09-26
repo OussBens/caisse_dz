@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:caisse_dz/core/theme/app_style.dart';
 import '../../../../data/models/transfert.dart';
 import '../../../../l10n/app_localizations.dart';
+import 'package:caisse_dz/core/utilis/number_format.dart';
 
 class AfficheurTransfert extends StatelessWidget {
 
@@ -134,7 +135,7 @@ class AfficheurTransfert extends StatelessWidget {
               children: [
                 _infoLine(
                   Icons.account_balance_wallet,
-                  "${transfert.montant.toStringAsFixed(2)} ${l10n.currency}",
+                  "${NumberFormatUtil.formatMontant(transfert.montant, decimales: 2)} ${l10n.currency}",
                 ),
                 _infoLine(
                   Icons.calendar_today,
@@ -219,7 +220,7 @@ class AfficheurTransfert extends StatelessWidget {
           const SizedBox(height: 6),
           Text(
             customText ??
-                "${value.toStringAsFixed(2)}${suffix ?? ""}",
+                "${NumberFormatUtil.formatMontant(value, decimales: 2)}${suffix ?? ""}",
             style: TextStyle(
               fontWeight: FontWeight.bold,
               color: color,

@@ -12,6 +12,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get dashboard => 'Dashboard';
 
   @override
+  String get situation => 'Situation';
+
+  @override
   String get salesToday => 'Sales Today';
 
   @override
@@ -28,6 +31,10 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get selectPeriod => 'Select a period';
+
+  @override
+  String get pleaseSelectTwoDates =>
+      'Please select two dates to get a detailed dashboard of the statistics for that period';
 
   @override
   String get salesByHour => 'Sales by Hour';
@@ -51,6 +58,39 @@ class AppLocalizationsEn extends AppLocalizations {
   String get revenueDistribution => 'Revenue Distribution';
 
   @override
+  String get revenueByCart => 'Cash Revenue by Cart';
+
+  @override
+  String get revenueByProductCard => 'Cash Revenue by Product';
+
+  @override
+  String get cashRegisterMovement => 'Cash Register Movement';
+
+  @override
+  String get dailyProfitByCart => 'Daily Profit (margin by cart)';
+
+  @override
+  String get profitByPeriod => 'Profit by Period (margin by day)';
+
+  @override
+  String get inventory => 'Inventory';
+
+  @override
+  String get net => 'Net';
+
+  @override
+  String get numberOfDays => 'Number of Days';
+
+  @override
+  String get purchaseValue => 'Purchase Value';
+
+  @override
+  String get saleValue => 'Sale Value';
+
+  @override
+  String get potentialMargin => 'Potential Margin';
+
+  @override
   String get collected => 'Collected';
 
   @override
@@ -70,6 +110,15 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get outOfStockProducts => 'Out of Stock Products';
+
+  @override
+  String get expiredProducts => 'Expired Products';
+
+  @override
+  String get highestQuantityProduct => 'Highest Quantity';
+
+  @override
+  String get oldestProduct => 'Oldest Product';
 
   @override
   String get from => 'From';
@@ -189,6 +238,19 @@ class AppLocalizationsEn extends AppLocalizations {
   String get noProductSelected => 'No product selected';
 
   @override
+  String get productNotFoundBarcode => 'Product does not exist';
+
+  @override
+  String get aiScanInstructions =>
+      'Scan a barcode with the reader, or enter it manually, to search for the product online.';
+
+  @override
+  String get confirmThisProduct => 'That\'s it';
+
+  @override
+  String get createNewProduct => 'Create new';
+
+  @override
   String get cannotDeleteLastCaisse => 'Cannot delete the last cash register';
 
   @override
@@ -231,7 +293,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get enregistrer => 'Save';
 
   @override
-  String get encaisserBLSC => 'Cash BL/SC';
+  String get encaisserBLSC => 'Cash Invoice';
 
   @override
   String get annuler => 'Cancel';
@@ -294,6 +356,46 @@ class AppLocalizationsEn extends AppLocalizations {
   String get logout => 'Logout';
 
   @override
+  String get loginWelcome => 'WELCOME';
+
+  @override
+  String get loginToYourAccount => 'Login to your account';
+
+  @override
+  String get loginInstructions => 'Please enter your credentials to sign in';
+
+  @override
+  String get forgotPassword => 'Forgot password?';
+
+  @override
+  String get rememberMe => 'Remember me';
+
+  @override
+  String get initialSetupTitle => 'Initial Setup';
+
+  @override
+  String get initialSetupSubtitle =>
+      'Set up your shop information before you begin. You can always change it later in Settings.';
+
+  @override
+  String get finish => 'Finish';
+
+  @override
+  String get invalidCredentials => 'Incorrect username or password';
+
+  @override
+  String get signIn => 'Sign in';
+
+  @override
+  String get appNotActivatedQuestion => 'Application not activated?';
+
+  @override
+  String get activateNow => 'Activate now';
+
+  @override
+  String get version => 'Version';
+
+  @override
   String get actif => 'Active';
 
   @override
@@ -339,6 +441,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get blSc => 'BL/SC';
 
   @override
+  String get facture => 'Invoice';
+
+  @override
   String get physique => 'Physical';
 
   @override
@@ -346,6 +451,48 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get piece => 'Piece';
+
+  @override
+  String get purchaseMode => 'Purchase Mode';
+
+  @override
+  String get perUnitOption => 'Per Unit';
+
+  @override
+  String get perBoxOption => 'Per Box';
+
+  @override
+  String get perCartonOption => 'Per Carton';
+
+  @override
+  String get piecesUnit => 'piece(s)';
+
+  @override
+  String get boxesUnit => 'box(es)';
+
+  @override
+  String get cartonsUnit => 'carton(s)';
+
+  @override
+  String equalToPieces(Object count) {
+    return 'Equal to $count piece(s)';
+  }
+
+  @override
+  String availableStockPieces(Object count) {
+    return 'Available stock: $count piece(s)';
+  }
+
+  @override
+  String insufficientStockDetail(Object demande, Object disponible) {
+    return 'Insufficient stock!\nAvailable: $disponible piece(s)\nRequested: $demande piece(s)';
+  }
+
+  @override
+  String get noPhotoAvailable => 'No photo';
+
+  @override
+  String get imageNotFound => 'Image not found';
 
   @override
   String get litre => 'Liter';
@@ -562,6 +709,10 @@ class AppLocalizationsEn extends AppLocalizations {
       'Please select a single discount to modify';
 
   @override
+  String get noDiscountExists =>
+      'No discount exists yet. Create one first in the Discount tab.';
+
+  @override
   String get noPackSelected => 'No pack selected';
 
   @override
@@ -571,6 +722,10 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get selectSinglePackToModify =>
       'Please select a single pack to modify';
+
+  @override
+  String get noPackExists =>
+      'No pack exists yet. Create one first in the Pack tab.';
 
   @override
   String get noSubCategorySelected => 'No subcategory selected';
@@ -628,6 +783,15 @@ class AppLocalizationsEn extends AppLocalizations {
   String get salePrice => 'Sale Price';
 
   @override
+  String get averagePurchasePrice => 'Average Purchase Price';
+
+  @override
+  String get averageSalePrice => 'Average Sale Price';
+
+  @override
+  String get operationCode => 'Operation Code';
+
+  @override
   String get etat => 'Status';
 
   @override
@@ -638,6 +802,13 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get currency => 'DZD';
+
+  @override
+  String get quantityDecimals => 'Quantity Decimals';
+
+  @override
+  String get quantityDecimalsHint =>
+      'Number of digits after the decimal point for quantity fields (throughout the app)';
 
   @override
   String get needCategoryToCreateSubCategory =>
@@ -945,6 +1116,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get clear => 'Clear';
 
   @override
+  String get viderPanier => 'Clear Cart';
+
+  @override
   String get newClient => 'New Client';
 
   @override
@@ -957,7 +1131,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get cashTicket => 'Cash Ticket';
 
   @override
-  String get cashBLSC => 'Cash BL/SC';
+  String get cashBLSC => 'Cash Invoice';
 
   @override
   String get saveTicket => 'Save Ticket';
@@ -984,6 +1158,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get all => 'All';
 
   @override
+  String get sansCodeBarre => 'No barcode';
+
+  @override
   String get exampleRange => 'Ex:100->200';
 
   @override
@@ -1006,6 +1183,9 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get quantity => 'Quantity';
+
+  @override
+  String get quantityPieces => 'Qty (pcs)';
 
   @override
   String get showHideColumns => 'Show / Hide Columns';
@@ -1094,6 +1274,12 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get initialBalance => 'Initial balance';
+
+  @override
+  String get finalBalance => 'Final balance';
+
+  @override
+  String get extractPdf => 'Extract PDF';
 
   @override
   String get obs => 'Obs';
@@ -1276,7 +1462,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get appliedRate => 'Applied rate';
 
   @override
-  String get smartScan => 'Smart scan';
+  String get smartScan => 'Entry';
 
   @override
   String get scannedItems => 'Scanned items';
@@ -1325,6 +1511,82 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get cancellationReason => 'Cancellation Reason';
+
+  @override
+  String get fiscalHash => 'Fiscal Seal';
+
+  @override
+  String get cashRegisterClosures => 'Cash Register Closures';
+
+  @override
+  String get newClosure => 'New Closure';
+
+  @override
+  String get totalCancelledAmount => 'Cancelled Amount';
+
+  @override
+  String get cancelledTicketsCount => 'Cancelled Tickets';
+
+  @override
+  String get paymentMethodBreakdown => 'Payment Method Breakdown';
+
+  @override
+  String get zReportTitle => 'Closure Report (Z)';
+
+  @override
+  String get confirmClosureMessage =>
+      'This will permanently close the period and lock the concerned tickets. Continue?';
+
+  @override
+  String get closurePeriod => 'Period to close';
+
+  @override
+  String get selectCashRegisterToClose => 'Select the cash register to close';
+
+  @override
+  String get loyaltyPoints => 'Points';
+
+  @override
+  String get loyaltyProgram => 'Bonus program';
+
+  @override
+  String get activateLoyaltyProgram => 'Activate bonus program';
+
+  @override
+  String get bonusRate => 'Amount (DA) per point';
+
+  @override
+  String get loyaltyBalance => 'Points balance';
+
+  @override
+  String get pointsEarned => 'Loyalty points earned';
+
+  @override
+  String get numberField => 'Number';
+
+  @override
+  String get nombreActifLabel => 'Number field active for this product';
+
+  @override
+  String get nombreActifHint =>
+      'The number is purely informational; calculations are based on quantity.';
+
+  @override
+  String get nombreActifUniteRequiredHint =>
+      'Only available when the product\'s unit of measure is Kg or Litre.';
+
+  @override
+  String get noClosuresYet => 'No closures yet';
+
+  @override
+  String get fiscalControlExport => 'Fiscal Control Export';
+
+  @override
+  String get fiscalRegistryIntact => 'Fiscal registry intact';
+
+  @override
+  String get fiscalRegistryCompromised =>
+      'Fiscal registry compromised — anomaly detected';
 
   @override
   String get otherwiseDefaultColumns =>
@@ -1477,6 +1739,10 @@ class AppLocalizationsEn extends AppLocalizations {
   String get service => 'Service';
 
   @override
+  String get serviceModeInfo =>
+      'This product is marked as a service: its quantity will never be changed by stock movements (sales, purchases, returns, exits, etc.).';
+
+  @override
   String get packaging1 => 'Packaging 1';
 
   @override
@@ -1499,6 +1765,15 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get multicode => 'Multicode';
+
+  @override
+  String get multipleBarcodeLabel => 'Multiple Code';
+
+  @override
+  String get noBarcodeProduct => 'Product without barcode';
+
+  @override
+  String get generateBarcode => 'Generate a barcode';
 
   @override
   String get photos => 'Photos';
@@ -1535,6 +1810,9 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get supplierType => 'Supplier';
+
+  @override
+  String get hasReturn => 'Has a return';
 
   @override
   String get userCount => 'User Count';
@@ -1669,6 +1947,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get insertionDiscount => 'Insertion Discount';
 
   @override
+  String get insertionSession => 'Insertion Session';
+
+  @override
   String get insertionSubcategory => 'Insertion Subcategory';
 
   @override
@@ -1688,6 +1969,9 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get modifyNeedList => 'Modify Need List';
+
+  @override
+  String get menu => 'Menu';
 
   @override
   String get deleteNeeds => 'Delete Needs';
@@ -1746,7 +2030,7 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
-  String get productCode => 'Code';
+  String get productCode => 'Product Code';
 
   @override
   String get productName => 'Product';
@@ -1765,6 +2049,10 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get defaultCashRegister => 'Default cash register';
+
+  @override
+  String get cashRegisterLockedToUser =>
+      'This cash register is set by your user account. Only an administrator can change it.';
 
   @override
   String get defaultStore => 'Default store';
@@ -1791,10 +2079,47 @@ class AppLocalizationsEn extends AppLocalizations {
   String get modifyProductPrice => 'Modify product price';
 
   @override
+  String get priceChangeScope => 'Apply the change to';
+
+  @override
+  String get thisTicketOnly => 'This ticket only';
+
+  @override
+  String get entireProduct => 'The product (permanent)';
+
+  @override
   String get password => 'Password';
 
   @override
   String get invalidPrice => 'Invalid price';
+
+  @override
+  String get invalidQuantity => 'Invalid quantity';
+
+  @override
+  String packagingPricePerPieceLowerThanPurchase(String price) {
+    return 'Price per piece ($price) lower than purchase price';
+  }
+
+  @override
+  String barcodeAlreadyUsed(String produit) {
+    return 'This barcode is already used by product \"$produit\"';
+  }
+
+  @override
+  String get productNameAlreadyExists => 'This product name already exists';
+
+  @override
+  String get clientNameAlreadyExists => 'This client name already exists';
+
+  @override
+  String get supplierNameAlreadyExists => 'This supplier name already exists';
+
+  @override
+  String get usernameAlreadyExists => 'This username already exists';
+
+  @override
+  String get roleNameAlreadyExists => 'This role name already exists';
 
   @override
   String get passwordRequired => 'Password required';
@@ -1812,13 +2137,13 @@ class AppLocalizationsEn extends AppLocalizations {
   String get cashPrint => 'Cash / Print';
 
   @override
-  String get cashPrintBLSC => 'Cash / Print BLSC';
+  String get cashPrintBLSC => 'Cash / Print Invoice';
 
   @override
   String get cashPrintTicket => 'Cash / Print Ticket';
 
   @override
-  String get blNumber => 'BL N°';
+  String get blNumber => 'Invoice N°';
 
   @override
   String get paidAmount => 'Paid amount';
@@ -2089,6 +2414,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get noStoreDeleted => 'No store deleted.';
 
   @override
+  String get storeDeleteSuccess => 'Store(s) deleted successfully.';
+
+  @override
   String get noProductsAssociated => 'No products associated with this store';
 
   @override
@@ -2159,6 +2487,11 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
+  String productsOfSubCategory(Object code) {
+    return 'Products of subcategory $code';
+  }
+
+  @override
   String get cancelCarts => 'Cancel Carts';
 
   @override
@@ -2166,6 +2499,11 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get modifyCart => 'Modify Cart';
+
+  @override
+  String insufficientStockAvailable(Object disponible, Object produit) {
+    return 'Insufficient stock for $produit (available: $disponible)';
+  }
 
   @override
   String get cartType => 'Cart type';
@@ -2309,6 +2647,9 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get expiryDate => 'Expiry Date';
+
+  @override
+  String get daysSinceExpiry => 'Days since expiry';
 
   @override
   String get productNameHint => 'Product name';
@@ -2538,8 +2879,28 @@ class AppLocalizationsEn extends AppLocalizations {
   String get deletionImpossible => 'Deletion impossible';
 
   @override
+  String get modificationImpossible => 'Modification impossible';
+
+  @override
   String roleHasUsers(Object roleName) {
     return 'The role \'$roleName\' contains users and cannot be deleted.';
+  }
+
+  @override
+  String get cannotModifyAdminRole => 'The Admin role cannot be modified.';
+
+  @override
+  String get cannotDeleteAdminRole => 'The Admin role cannot be deleted.';
+
+  @override
+  String get cannotModifyAdminUser => 'The Admin user cannot be modified.';
+
+  @override
+  String get cannotDeleteAdminUser => 'The Admin user cannot be deleted.';
+
+  @override
+  String userHasActivityDeactivated(Object username) {
+    return '$username already has related records in the app and cannot be permanently deleted — it was deactivated instead.';
   }
 
   @override
@@ -2564,17 +2925,17 @@ class AppLocalizationsEn extends AppLocalizations {
   String get roleSavedSuccess => 'Role saved successfully.';
 
   @override
-  String get smartScanHash => 'SmartScan';
+  String get smartScanHash => 'Entry';
 
   @override
-  String get deleteSmartScan => 'Delete Smart Scan';
+  String get deleteSmartScan => 'Delete Entry';
 
   @override
-  String get selectedSmartScans => 'Selected Smart Scans:';
+  String get selectedSmartScans => 'Selected entries:';
 
   @override
   String get confirmDeleteSmartScans =>
-      'Are you sure you want to delete these Smart Scans?';
+      'Are you sure you want to delete these entries?';
 
   @override
   String get statistics => 'Statistics';
@@ -2590,14 +2951,14 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String smartScanProducts(Object code) {
-    return 'Products of SmartScan $code';
+    return 'Products of entry $code';
   }
 
   @override
-  String get smartScanProductsList => 'Smart Scan Products';
+  String get smartScanProductsList => 'Entry Products';
 
   @override
-  String get modifySmartScan => 'Modify Smart Scan';
+  String get modifySmartScan => 'Modify Entry';
 
   @override
   String get gapDetected => 'Gap detected';
@@ -2607,13 +2968,13 @@ class AppLocalizationsEn extends AppLocalizations {
       'A gap has been detected between entered and calculated values.\nDo you want to continue?';
 
   @override
-  String get smartScanModifiedSuccess => 'Smart Scan modified successfully.';
+  String get smartScanModifiedSuccess => 'Entry modified successfully.';
 
   @override
-  String get newSmartScan => 'New Smart Scan';
+  String get newSmartScan => 'New Entry';
 
   @override
-  String get smartScanSavedSuccess => 'Smart Scan saved successfully.';
+  String get smartScanSavedSuccess => 'Entry saved successfully.';
 
   @override
   String get back => 'Back';
@@ -2643,6 +3004,10 @@ class AppLocalizationsEn extends AppLocalizations {
   String get atLeastOneProduct => 'Please select at least one product.';
 
   @override
+  String get cartMustKeepOneProduct =>
+      'The cart must contain at least one product. Delete the whole cart instead if needed.';
+
+  @override
   String get supplierCodeHint => 'Supplier code';
 
   @override
@@ -2660,7 +3025,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get productExistsInSmartScan =>
-      'This product already exists in the Smart Scan';
+      'This product already exists in this entry';
 
   @override
   String get list => 'List';
@@ -2829,6 +3194,26 @@ class AppLocalizationsEn extends AppLocalizations {
   String get transferModifiedSuccess => 'Transfer modified successfully.';
 
   @override
+  String get sourceAndDestinationStoreMustBeDifferent =>
+      'The source store and destination store must be different.';
+
+  @override
+  String get splitEntryAcrossStores =>
+      'Split the receipt across multiple stores';
+
+  @override
+  String get splitTotalMustMatchQuantity =>
+      'The sum of the split quantities must equal the total quantity.';
+
+  @override
+  String get duplicateStoreInSplit =>
+      'The same store cannot appear more than once in the split.';
+
+  @override
+  String get incompleteStoreSplit =>
+      'Please choose a store and a quantity for each split row.';
+
+  @override
   String get observationOptional => 'Observation (optional)';
 
   @override
@@ -2863,6 +3248,31 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get userModifiedSuccess => 'User modified successfully.';
+
+  @override
+  String get changePassword => 'Change Password';
+
+  @override
+  String get oldPassword => 'Old Password';
+
+  @override
+  String get newPassword => 'New Password';
+
+  @override
+  String get confirmPassword => 'Confirm Password';
+
+  @override
+  String get passwordsDoNotMatch => 'Passwords do not match';
+
+  @override
+  String get incorrectOldPassword => 'Incorrect old password';
+
+  @override
+  String get confirmChangePassword =>
+      'Are you sure you want to change the password?';
+
+  @override
+  String get passwordChangedSuccess => 'Password changed successfully.';
 
   @override
   String get userSavedSuccess => 'User saved successfully.';
@@ -3239,6 +3649,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get panierCode => 'Cart Code';
 
   @override
+  String get productRevenue => 'Product Revenue';
+
+  @override
   String get totalPanniers => 'Total Carts';
 
   @override
@@ -3354,6 +3767,12 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get supplierReturns => 'Supplier Returns';
+
+  @override
+  String get clientReturn => 'Client Return';
+
+  @override
+  String get supplierReturn => 'Supplier Return';
 
   @override
   String get movementCode => 'Movement Code';
@@ -3549,6 +3968,12 @@ class AppLocalizationsEn extends AppLocalizations {
   String get userInformation => 'User Information';
 
   @override
+  String get lastName => 'Last name';
+
+  @override
+  String get firstName => 'First name';
+
+  @override
   String get shopInformation => 'Shop Information';
 
   @override
@@ -3577,6 +4002,152 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get settingsSaved => '✅ Settings saved';
+
+  @override
+  String get shopAddress => 'Full address';
+
+  @override
+  String get shopAddressHint => 'Shop\'s full address';
+
+  @override
+  String get shopLogo => 'Shop logo';
+
+  @override
+  String get changeLogo => 'Change logo';
+
+  @override
+  String get shopPhone => 'Phone';
+
+  @override
+  String get shopEmail => 'Email';
+
+  @override
+  String get legalInformation => 'Legal information (RC / NIF / NIS / Article)';
+
+  @override
+  String get rcLabel => 'RC';
+
+  @override
+  String get nifLabel => 'NIF';
+
+  @override
+  String get nisLabel => 'NIS';
+
+  @override
+  String get articleLabel => 'Tax article';
+
+  @override
+  String get ticketMessage => 'Thank-you message (ticket)';
+
+  @override
+  String get ticketMessageHint => 'E.g. Thank you for your visit!';
+
+  @override
+  String get paymentMethodsSection => 'Payment methods';
+
+  @override
+  String get paymentMethodsHint =>
+      'Choose which payment methods are offered at checkout';
+
+  @override
+  String get atLeastOnePaymentRequired =>
+      'At least one payment method must stay active';
+
+  @override
+  String get devicesSection => 'Devices and printing';
+
+  @override
+  String get printerType => 'Printer type';
+
+  @override
+  String get printerTypeBluetooth => 'Bluetooth thermal';
+
+  @override
+  String get printerTypeUsb => 'USB thermal (ESC/POS)';
+
+  @override
+  String get printerTypeReseau => 'Network thermal (ESC/POS)';
+
+  @override
+  String get printerTypeNormale => 'Regular printer (Windows)';
+
+  @override
+  String get selectPrinterLabel => 'Printer';
+
+  @override
+  String get ipAddressLabel => 'IP address';
+
+  @override
+  String get portLabel => 'Port';
+
+  @override
+  String get rollWidthLabel => 'Roll width';
+
+  @override
+  String get refreshPrinters => 'Refresh';
+
+  @override
+  String get noPrinterConfigured => 'No printer selected';
+
+  @override
+  String get backupSection => 'Database backup';
+
+  @override
+  String get backupFolder => 'Backup folder';
+
+  @override
+  String get documentsFolder =>
+      'Storage folder for(Excel, PDF, invoices, receipts)';
+
+  @override
+  String get chooseFolder => 'Choose a folder';
+
+  @override
+  String get backupNow => 'Back up now';
+
+  @override
+  String get restoreBackup => 'Restore a backup';
+
+  @override
+  String get autoBackup => 'Automatic backup';
+
+  @override
+  String get backupFrequency => 'Frequency';
+
+  @override
+  String get frequencyStartup => 'On every startup';
+
+  @override
+  String get frequencyDaily => 'Daily';
+
+  @override
+  String get frequencyWeekly => 'Weekly';
+
+  @override
+  String get lastBackup => 'Last backup';
+
+  @override
+  String get neverBackedUp => 'Never';
+
+  @override
+  String get backupSuccess => 'Backup created successfully';
+
+  @override
+  String get backupError => 'Error while creating backup';
+
+  @override
+  String get restoreConfirmTitle => 'Restore the database?';
+
+  @override
+  String get restoreConfirmMessage =>
+      'This will replace all current data with the selected backup. The application must be restarted afterwards. Continue?';
+
+  @override
+  String get restoreSuccess =>
+      'Database restored. Please restart the application.';
+
+  @override
+  String get restoreError => 'Error while restoring backup';
 
   @override
   String get currencye => 'Currency';
@@ -3640,6 +4211,86 @@ class AppLocalizationsEn extends AppLocalizations {
       'Use the \'New\' button to scan a receipt with AI';
 
   @override
+  String get attachBonFromDisk => 'Attach a photo';
+
+  @override
+  String get receiveBonFromPhone => 'Receive from phone';
+
+  @override
+  String get connectMobileAppTitle => 'Connect the CaisseDZ Scanner mobile app';
+
+  @override
+  String get receptionNoNetwork => 'No local network address detected';
+
+  @override
+  String get receptionStartServer => 'Start server';
+
+  @override
+  String get receptionStopServer => 'Stop server';
+
+  @override
+  String get receptionStatusConnected => 'Phone connected';
+
+  @override
+  String get receptionStatusWaiting => 'Waiting for phone connection…';
+
+  @override
+  String get receptionPhotoMissing => 'This photo could not be found on disk';
+
+  @override
+  String get receptionStatutRecu => 'Received';
+
+  @override
+  String get receptionStatutTraite => 'Processed';
+
+  @override
+  String get receptionStatutErreur => 'Error';
+
+  @override
+  String get receptionAllStatuses => 'All statuses';
+
+  @override
+  String get receptionDateRangeLabel => 'Received date';
+
+  @override
+  String get pairingCodeLabel => 'Pairing code';
+
+  @override
+  String get regeneratePairingCode => 'Regenerate code';
+
+  @override
+  String get pairingCodeCopied => 'Code copied to clipboard';
+
+  @override
+  String get pairedDevicesSection => 'Paired phones';
+
+  @override
+  String get noPairedDevices => 'No paired phone';
+
+  @override
+  String get pairingCodeExpiresLabel => 'Expires in';
+
+  @override
+  String get pairingCodeExpired => 'Code expired — regenerate it';
+
+  @override
+  String get scanOrTypeCode =>
+      'Scan the QR code or type the pairing code on the phone';
+
+  @override
+  String get mobileConnectTooltip => 'Connect a phone';
+
+  @override
+  String get startingServerAutomatically => 'Preparing the connection…';
+
+  @override
+  String get advancedConnectionSettings =>
+      'Advanced settings (IP address / port)';
+
+  @override
+  String get scanDateRangeLabel => 'Scan date';
+
+  @override
   String get aiReceipt => 'AI Receipt';
 
   @override
@@ -3670,13 +4321,13 @@ class AppLocalizationsEn extends AppLocalizations {
   String get actualQty => 'Actuel Quantity';
 
   @override
-  String get quickEntry => 'Quick entry';
+  String get quickEntry => 'Entry';
 
   @override
-  String get cashReceipt => 'Cash receipt';
+  String get cashReceipt => 'Cash ';
 
   @override
-  String get cashReceiptTitle => 'Cash register receipt';
+  String get cashReceiptTitle => 'Cash prdct';
 
   @override
   String get numberOfSales => 'Number of sales';
@@ -3705,6 +4356,21 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
+  String conditionalDiscountToActivate(Object amount, Object currency) {
+    return 'Conditional discount: +$amount $currency to activate';
+  }
+
+  @override
+  String discountAppliedNamed(Object nom) {
+    return '✅ Discount \'$nom\' applied!';
+  }
+
+  @override
+  String packAddedToCart(Object nom, Object quantiteSuffix) {
+    return '✅ Pack \'$nom\'$quantiteSuffix added to cart';
+  }
+
+  @override
   String get totalFinal => 'Final total';
 
   @override
@@ -3713,6 +4379,9 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get quantityMustBeGreaterThanZero =>
       'The quantity must supperoir then 0';
+
+  @override
+  String get numberMustBeGreaterThanZero => 'The number must be greater than 0';
 
   @override
   String get priceMustBeGreaterThanZero => 'The price must be supperior then 0';
@@ -3779,4 +4448,339 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get sourceAndDestinationMustBeDifferent =>
       'Source and destination must be different';
+
+  @override
+  String get reduction => 'Reduction';
+
+  @override
+  String get packactuel => 'Current pack';
+
+  @override
+  String get remiseactuel => 'Current discount';
+
+  @override
+  String get categorieactuel => 'Category';
+
+  @override
+  String get souscategorieactuel => 'subcategory';
+
+  @override
+  String get entryrapide => 'Quick entry';
+
+  @override
+  String get catalog => 'Catalog';
+
+  @override
+  String get newCatalogProduct => 'New catalog product';
+
+  @override
+  String get editCatalogProduct => 'Edit catalog product';
+
+  @override
+  String get deleteCatalogProducts => 'Remove from catalog';
+
+  @override
+  String get confirmDeleteCatalogProducts =>
+      'This deletion is permanent and affects the catalog shared across all CaisseDZ stores. Continue?';
+
+  @override
+  String get catalogPhotoUrl => 'Photo URL';
+
+  @override
+  String get catalogPhotoUrlHint => 'https://...';
+
+  @override
+  String get catalogSyncFailed =>
+      'Product saved locally, but syncing with the remote catalog failed.';
+
+  @override
+  String productAlreadyExistsLocally(String produit) {
+    return 'This product already exists in your stock: \"$produit\"';
+  }
+
+  @override
+  String stockGlobalInsuffisant(String disponible, String demande) {
+    return 'Insufficient global stock!\nAvailable: $disponible piece(s)\nRequested: $demande piece(s)';
+  }
+
+  @override
+  String stockInsuffisantMagasin(
+    String magasin,
+    String disponible,
+    String demande,
+  ) {
+    return 'Insufficient stock in store \'$magasin\'!\nAvailable: $disponible piece(s)\nRequested: $demande piece(s)\n\nDo you want to take only the available quantity?';
+  }
+
+  @override
+  String get produitAucunMagasin =>
+      'This product is not available in any store!';
+
+  @override
+  String get packSansProduit => 'This pack contains no product';
+
+  @override
+  String produitInexistantBase(String code) {
+    return 'Product \'$code\' does not exist in the database';
+  }
+
+  @override
+  String stockInsuffisantPourProduit(
+    String code,
+    String disponible,
+    String necessaire,
+  ) {
+    return 'Insufficient stock for product \'$code\'\nAvailable: $disponible piece(s)\nNeeded: $necessaire piece(s)';
+  }
+
+  @override
+  String produitInexistant(String code) {
+    return 'Product \'$code\' does not exist';
+  }
+
+  @override
+  String get aucunPackDisponible => 'No pack available';
+
+  @override
+  String stockInsuffisantDetail(String disponible, String demande) {
+    return 'Insufficient stock!\nAvailable: $disponible piece(s)\nRequested: $demande piece(s)';
+  }
+
+  @override
+  String stockInsuffisantRestant(String disponible) {
+    return 'Insufficient stock!\nOnly $disponible piece(s) left available';
+  }
+
+  @override
+  String stockInsuffisantSupplement(String disponible, String demande) {
+    return 'Insufficient stock!\nAvailable: $disponible piece(s)\nAdditional requested: $demande piece(s)';
+  }
+
+  @override
+  String remiseConditionMessage(String nom, String montant) {
+    return 'The discount \'$nom\' will be applied automatically when the total reaches $montant DA.';
+  }
+
+  @override
+  String aiScanSavedDetails(
+    String code,
+    String fournisseur,
+    String produits,
+    String total,
+  ) {
+    return 'Entry saved successfully!\n\nCode: $code\nSupplier: $fournisseur\nProducts: $produits\nTotal: $total DZD';
+  }
+
+  @override
+  String saveFailed(String error) {
+    return 'Save failed: $error';
+  }
+
+  @override
+  String get confirmModifyClient =>
+      'Are you sure you want to modify this client?';
+
+  @override
+  String get selectClientType => 'Please select a client type';
+
+  @override
+  String caisseNotFound(String caisse) {
+    return 'Cash register \'$caisse\' not found.';
+  }
+
+  @override
+  String get categoryModifiedCascade =>
+      'Category modified successfully.\n\nAll subcategories and products have been updated.';
+
+  @override
+  String get confirmModifyCaisse =>
+      'Are you sure you want to modify this cash register?';
+
+  @override
+  String get confirmModifyFournisseur =>
+      'Are you sure you want to modify this supplier?';
+
+  @override
+  String get confirmModifyPack => 'Are you sure you want to modify this pack?';
+
+  @override
+  String get confirmModifyBesoinListe =>
+      'Are you sure you want to modify this need list?';
+
+  @override
+  String get modificationError => 'An error occurred during modification.';
+
+  @override
+  String get sellPriceMustBePositive => 'The sale price must be greater than 0';
+
+  @override
+  String get sellPriceMustExceedBuyPrice =>
+      'The sale price must be greater than the purchase price';
+
+  @override
+  String get selectStatus => 'Please select a status';
+
+  @override
+  String versementLieRetourModif(String code) {
+    return 'This payment is linked to return $code. Modify it from that return.';
+  }
+
+  @override
+  String versementLieRetourSuppr(String code, String codeRetour) {
+    return 'Payment $code is linked to return $codeRetour. Delete it from that return.';
+  }
+
+  @override
+  String get loginRequiredChangeCategory =>
+      'You must be logged in to change the category and subcategory.';
+
+  @override
+  String get selectRole => 'Please select a role';
+
+  @override
+  String qtyAndBuyPriceMustBePositiveFor(String produit) {
+    return 'Quantity and purchase price must be greater than 0 for $produit';
+  }
+
+  @override
+  String sellPriceMustExceedBuyPriceFor(String produit) {
+    return 'The sale price must be greater than the purchase price for $produit';
+  }
+
+  @override
+  String get selectPannierForReturn =>
+      'Please choose the cart concerned by this return.';
+
+  @override
+  String get selectEntreeOrSmartScanForReturn =>
+      'Please choose the entry concerned by this return.';
+
+  @override
+  String get internetConnected => 'Connected to internet';
+
+  @override
+  String get internetDisconnected => 'No internet connection';
+
+  @override
+  String get ouvrirCaisse => 'Open cash register';
+
+  @override
+  String get cloturerCaisse => 'Close cash register';
+
+  @override
+  String get mouvementManuel => 'Manual movement';
+
+  @override
+  String get soldeOuverture => 'Opening balance';
+
+  @override
+  String soldeOuvertureSuggere(String montant) {
+    return 'Suggested amount: $montant';
+  }
+
+  @override
+  String get soldeTheorique => 'Expected balance';
+
+  @override
+  String get soldeReel => 'Actual balance (counted)';
+
+  @override
+  String get ecartCaisse => 'Difference';
+
+  @override
+  String get ouvertureCaisseSuccess => 'Cash register opened successfully';
+
+  @override
+  String get clotureCaisseSuccess => 'Cash register closed successfully';
+
+  @override
+  String sessionDejaOuverte(String caisse) {
+    return 'A cash register session is already open for \'$caisse\'.';
+  }
+
+  @override
+  String get aucuneSessionOuverteACloturer =>
+      'No open session to close for this cash register.';
+
+  @override
+  String aucuneSessionOuverte(String caisse) {
+    return 'No open cash register session for \'$caisse\'. Please open the cash register first.';
+  }
+
+  @override
+  String get entreeManuelle => 'Manual entry';
+
+  @override
+  String get sortieManuelle => 'Manual exit';
+
+  @override
+  String get motifMouvement => 'Reason';
+
+  @override
+  String get mouvementAjouteSuccess => 'Movement added successfully';
+
+  @override
+  String sessionCaisseOuverteDepuis(String date) {
+    return 'Session open since $date';
+  }
+
+  @override
+  String get sessionCaisseFermee => 'Cash register closed';
+
+  @override
+  String get cashRegisterRequired => 'Please select a cash register';
+
+  @override
+  String get cashSessionsTab => 'Cash sessions';
+
+  @override
+  String get cashMovementsTab => 'Cash movements';
+
+  @override
+  String get noSessionsYet => 'No sessions yet';
+
+  @override
+  String get viewMovements => 'View movements';
+
+  @override
+  String get noSessionSelected => 'No session selected';
+
+  @override
+  String get selectSingleSessionForMovements =>
+      'Please select a single session to view its movements';
+
+  @override
+  String get sessionStatutOuverte => 'Open';
+
+  @override
+  String get sessionStatutCloturee => 'Closed';
+
+  @override
+  String get cancelSmartScan => 'Cancel entry';
+
+  @override
+  String get confirmCancelSmartScans =>
+      'Are you sure you want to cancel these entries?';
+
+  @override
+  String get smartScanContentLocked =>
+      'A recorded purchase can no longer have its content modified — use a cancellation';
+
+  @override
+  String get smartScanAlreadyCancelled =>
+      'Entry not found or already cancelled';
+
+  @override
+  String get cancelReturns => 'Cancel returns';
+
+  @override
+  String get confirmCancelReturns =>
+      'Are you sure you want to cancel these returns?';
+
+  @override
+  String get cancelExits => 'Cancel exits';
+
+  @override
+  String get confirmCancelExits =>
+      'Are you sure you want to cancel these exits?';
 }

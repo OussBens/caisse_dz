@@ -5,6 +5,7 @@ import '../../../data/models/role.dart';
 import '../../widget/detail_widget.dart';
 import '../../widget/section_decoration.dart';
 import 'package:caisse_dz/l10n/app_localizations.dart';
+import '../../widget/stats_card.dart';
 import '../base_dialog.dart';
 
 Future<void> RoleDetail(BuildContext context, Role role) async {
@@ -53,10 +54,17 @@ Future<void> RoleDetail(BuildContext context, Role role) async {
                 Chip(
                   label: Text(
                     role.etat ? l10n.active : l10n.inactive,
-                    style: Appstyle.textSB.copyWith(color: Appstyle.Tblanc),
+                    style: Appstyle.textSB.copyWith(
+                      color: role.etat ? Appstyle.Tblanc : Appstyle.Tnoir, // ou une autre couleur
+                    ),
                   ),
-                  backgroundColor: Appstyle.crevete,
-                ),
+                  backgroundColor: role.etat
+                      ? Appstyle.violet.withOpacity(0.8)
+                      : Appstyle.crevete.withOpacity(0.7), // ou rouge, orange, etc.
+                  labelPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                  elevation: role.etat ? 2 : 0,
+                )
+
               ],
             ),
 
@@ -132,21 +140,13 @@ Future<void> RoleDetail(BuildContext context, Role role) async {
     },
   );
 }
-
+// role_detail.dart - Remplacer _resumeRole
 Widget _resumeRole(Role r, AppLocalizations l10n, int nombreUtilisateurs) {
-  return Container(
-    decoration: BoxDecoration(
-      color: Appstyle.violet.withOpacity(0.6),
-      borderRadius: BorderRadius.circular(10),
-    ),
-    padding: const EdgeInsets.all(8),
-    child: Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-      children: [
-        detailbadge(l10n.code, r.code ?? "-"),
-        detailbadge(l10n.userCount, nombreUtilisateurs),
-        detailbadge(l10n.status, r.etat ? l10n.active : l10n.inactive),
-      ],
-    ),
+  return StatsCard(
+    items: [
+      StatsItem(label: l10n.code, value: r.code ?? "-"),
+      StatsItem(label: l10n.userCount, value: nombreUtilisateurs),
+      StatsItem(label: l10n.status, value: r.etat ? l10n.active : l10n.inactive),
+    ],
   );
 }

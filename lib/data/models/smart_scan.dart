@@ -3,17 +3,9 @@ class SmartScan {
   String code;
   DateTime date;
   double montant;
-  double paye;
-  double reste;
-  double montantCalcul;
   int nbrProduit;
-  int nbrProduitCalcul;
-  double quantiteArticle;
-  double quantiteArticleCalcul;
-  bool ecart;
   String fournisseurCode;
   bool etat;
-  String activity;
   String? observation;
   String creeParCode;
   DateTime dateCree;
@@ -23,22 +15,22 @@ class SmartScan {
   String? annulParCode;
   String? motifAnnul;
 
+  // Appareil mobile source (POST /api/sync/push/stock-movement), null pour
+  // les SmartScan créés depuis le desktop.
+  String? deviceIdMobile;
+
+  // Photo jointe (bon de livraison/facture) envoyée depuis le mobile via
+  // POST /api/smartscan/upload, chemin relatif comme BonReception.cheminPhoto.
+  String? cheminPhoto;
+
   SmartScan({
     required this.id,
     required this.code,
     required this.date,
     required this.montant,
-    required this.paye,
-    required this.reste,
-    required this.quantiteArticle,
     required this.nbrProduit,
-    required this.montantCalcul,
-    required this.quantiteArticleCalcul,
-    required this.nbrProduitCalcul,
     required this.etat,
     required this.dateCree,
-    required this.activity,
-    required this.ecart,
     required this.creeParCode,
     required this.fournisseurCode,
     this.observation,
@@ -47,6 +39,8 @@ class SmartScan {
     this.dateAnnul,
     this.annulParCode,
     this.modifParCode,
+    this.deviceIdMobile,
+    this.cheminPhoto,
   });
 
   factory SmartScan.fromMap(Map<String, dynamic> map) {
@@ -55,17 +49,9 @@ class SmartScan {
       code: map['code'],
       date: DateTime.parse(map['date']),
       etat: map['etat'] == 1,
-      ecart: map['ecart'] == 1,
       montant: _toDouble(map['montant']),
-      paye: _toDouble(map['paye']),
-      reste: _toDouble(map['reste']),
       nbrProduit: _toInt(map['nbr_produit']),
-      quantiteArticle: _toDouble(map['quantite_article']),
-      montantCalcul: _toDouble(map['montant_calcul']),
-      nbrProduitCalcul: _toInt(map['nbr_produit_calcul']),
-      quantiteArticleCalcul: _toDouble(map['quantite_article_calcul']),
       dateCree: DateTime.parse(map['date_cree']),
-      activity: map['activity'],
       creeParCode: map['cree_par_code'],
       observation: map['observation'],
       fournisseurCode: map['fournisseur_code'],
@@ -74,6 +60,8 @@ class SmartScan {
       dateAnnul: map['date_annul'] != null ? DateTime.parse(map['date_annul']) : null,
       annulParCode: map['annul_par_code'],
       motifAnnul: map['motif_annul'],
+      deviceIdMobile: map['device_id_mobile'],
+      cheminPhoto: map['chemin_photo'],
     );
   }
 
@@ -83,16 +71,8 @@ class SmartScan {
       'code': code,
       'etat': etat ? 1 : 0,
       'date': date.toIso8601String(),
-      'ecart': ecart ? 1 : 0,  // ✅ Fixed: using ecart, not etat
       'montant': montant,
-      'paye': paye,
-      'reste': reste,
       'nbr_produit': nbrProduit,
-      'quantite_article': quantiteArticle,
-      'montant_calcul': montantCalcul,
-      'nbr_produit_calcul': nbrProduitCalcul,
-      'quantite_article_calcul': quantiteArticleCalcul,
-      'activity': activity,
       'date_cree': dateCree.toIso8601String(),
       'observation': observation,
       'cree_par_code': creeParCode,
@@ -102,6 +82,8 @@ class SmartScan {
       'date_annul': dateAnnul?.toIso8601String(),
       'annul_par_code': annulParCode,
       'motif_annul': motifAnnul,
+      'device_id_mobile': deviceIdMobile,
+      'chemin_photo': cheminPhoto,
     };
   }
 

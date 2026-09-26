@@ -13,6 +13,12 @@ class Verssement {
   String    beneficiareCode;
   String    mode_paiement;
 
+  /// Code de l'opération à l'origine de ce versement : panier (client/entrée),
+  /// retour client (client/sortie), retour fournisseur (fournisseur/entrée)
+  /// ou smart scan (fournisseur/sortie). Permet de répercuter une
+  /// modification du montant versé de l'opération correspondante.
+  String    codeOperation;
+
   DateTime  date;
 
   DateTime  dateCree;
@@ -42,6 +48,7 @@ class Verssement {
     required this.code,
     required this.type,
     required this.id,
+    required this.codeOperation,
 
     this.observation,
     this.motifAnnul,
@@ -65,6 +72,7 @@ class Verssement {
         montant         : map['montant'],
         beneficiareCode : map['beneficiare_code'],
         mode_paiement   : map['mode_paiement'],
+        codeOperation   : map['code_operation'],
         dateCree        : DateTime.parse(map['date_cree']),
         creeParCode     : map['cree_par_code'],
         date            : DateTime.parse(map['date']),
@@ -93,6 +101,7 @@ class Verssement {
       'montant'         : montant,
       'beneficiare_code' : beneficiareCode,
       'mode_paiement'   : mode_paiement,
+      'code_operation'  : codeOperation,
       'date'            : date.toIso8601String(),
       'date_cree'       : dateCree.toIso8601String(),
       'cree_par_code'   : creeParCode,

@@ -55,6 +55,17 @@ Future<void> RoleModif(BuildContext context, Role role) async {
     return;
   }
 
+  // ✅ Le rôle Admin ne peut pas être modifié.
+  if (role.rolenom.trim().toLowerCase() == 'admin') {
+    await InformationDialog(
+      context: context,
+      titre_type_message: l10n.modificationImpossible,
+      titre_concerne: l10n.role,
+      message: l10n.cannotModifyAdminRole,
+    );
+    return;
+  }
+
   // Load existing role permissions
   RoleDetail? existingRoleDetail = await RoleDetailServices.getRoleByCode(role.code);
 
@@ -123,7 +134,6 @@ class _RoleModificationDialogState extends State<RoleModificationDialog> {
     PermissionItem(key: 'stock', label: 'Stock', icon: Icons.warehouse),
     PermissionItem(key: 'besoin', label: 'Besoins', icon: Icons.assignment),
     PermissionItem(key: 'utilisateur', label: 'Utilisateurs', icon: Icons.person),
-    PermissionItem(key: 'magasin', label: 'Magasins', icon: Icons.store),
     PermissionItem(key: 'gestionCaisse', label: 'Gestion Caisse', icon: Icons.local_grocery_store),
     PermissionItem(key: 'zakat', label: 'Zakat', icon: Icons.mosque),
     PermissionItem(key: 'parametre', label: 'Paramètres', icon: Icons.settings),
@@ -160,7 +170,6 @@ class _RoleModificationDialogState extends State<RoleModificationDialog> {
         stock: false,
         besoin: false,
         utilisateur: false,
-        magasin: false,
         gestionCaisse: false,
         zakat: false,
         parametre: false,
@@ -229,9 +238,6 @@ class _RoleModificationDialogState extends State<RoleModificationDialog> {
         case 'utilisateur':
           _roleDetail.utilisateur = value;
           break;
-        case 'magasin':
-          _roleDetail.magasin = value;
-          break;
         case 'gestionCaisse':
           _roleDetail.gestionCaisse = value;
           break;
@@ -275,8 +281,6 @@ class _RoleModificationDialogState extends State<RoleModificationDialog> {
         return _roleDetail.besoin;
       case 'utilisateur':
         return _roleDetail.utilisateur;
-      case 'magasin':
-        return _roleDetail.magasin;
       case 'gestionCaisse':
         return _roleDetail.gestionCaisse;
       case 'zakat':
@@ -305,7 +309,6 @@ class _RoleModificationDialogState extends State<RoleModificationDialog> {
           _roleDetail.stock &&
           _roleDetail.besoin &&
           _roleDetail.utilisateur &&
-          _roleDetail.magasin &&
           _roleDetail.gestionCaisse &&
           _roleDetail.zakat &&
           _roleDetail.parametre &&
@@ -325,7 +328,6 @@ class _RoleModificationDialogState extends State<RoleModificationDialog> {
       _roleDetail.stock = newValue;
       _roleDetail.besoin = newValue;
       _roleDetail.utilisateur = newValue;
-      _roleDetail.magasin = newValue;
       _roleDetail.gestionCaisse = newValue;
       _roleDetail.zakat = newValue;
       _roleDetail.parametre = newValue;
@@ -346,7 +348,6 @@ class _RoleModificationDialogState extends State<RoleModificationDialog> {
         _roleDetail.stock &&
         _roleDetail.besoin &&
         _roleDetail.utilisateur &&
-        _roleDetail.magasin &&
         _roleDetail.gestionCaisse &&
         _roleDetail.zakat &&
         _roleDetail.parametre &&
@@ -355,6 +356,21 @@ class _RoleModificationDialogState extends State<RoleModificationDialog> {
 
   Future<void> _updateRole() async {
     final l10n = AppLocalizations.of(context)!;
+
+    // ✅ Unicité du nom du rôle, en excluant ce rôle lui-même.
+    final roleNomExistant = await RoleServices.findRoleByNom(
+      _nomController.text,
+      excludeRoleCode: widget.role.code,
+    );
+    if (roleNomExistant != null) {
+      await InformationDialog(
+        context: context,
+        titre_type_message: l10n.error,
+        titre_concerne: l10n.role,
+        message: l10n.roleNameAlreadyExists,
+      );
+      return;
+    }
 
     // Update role information
     Role updatedRole = Role(

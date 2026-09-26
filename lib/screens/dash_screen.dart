@@ -4,16 +4,29 @@ import 'package:caisse_dz/Services/Fournisseur.dart';
 import 'package:caisse_dz/Services/Pannier.dart';
 import 'package:caisse_dz/Services/PannierProduit.dart';
 import 'package:caisse_dz/Services/Produits.dart';
+import 'package:caisse_dz/Services/Mouvement.dart';
+import 'package:caisse_dz/Services/Paramters.dart';
 import 'package:caisse_dz/Services/SmartScan.dart';
+import 'package:caisse_dz/Services/Verssement.dart';
+import 'package:caisse_dz/data/models/verssement.dart';
 import 'package:caisse_dz/core/Auth/auth_state.dart';
+import 'package:caisse_dz/core/dialog/dash/periode_dashboard_dialog.dart';
 import 'package:caisse_dz/core/locale/locale_provider.dart';
 
 import 'package:caisse_dz/core/theme/app_style.dart';
 import 'package:caisse_dz/core/utilis/constant.dart';
 import 'package:caisse_dz/core/widget/account.dart';
+import 'package:caisse_dz/core/widget/filtre/periode_rapide_filter.dart';
 import 'package:caisse_dz/core/widget/header_module.dart';
+import 'package:caisse_dz/core/widget/situation/mouvement_caisse_tab.dart';
+import 'package:caisse_dz/core/widget/situation/recette_caisse_pannier_tab.dart';
+import 'package:caisse_dz/core/widget/situation/recette_caisse_produit_tab.dart';
+import 'package:caisse_dz/core/widget/situation/marge_pannier_tab.dart';
+import 'package:caisse_dz/core/widget/situation/marge_periode_tab.dart';
+import 'package:caisse_dz/core/widget/situation/inventaire_tab.dart';
 import 'package:caisse_dz/core/widget/side_bar.dart';
 import 'package:caisse_dz/core/widget/time_date_widget.dart';
+import 'package:caisse_dz/core/widget/connection_status_bar.dart';
 import 'package:caisse_dz/data/constant.dart';
 import 'package:caisse_dz/data/models/client.dart';
 import 'package:caisse_dz/data/models/fournisseur.dart';
@@ -24,9 +37,15 @@ import 'package:caisse_dz/data/models/smart_scan.dart';
 import 'package:caisse_dz/l10n/app_localizations.dart';
 import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
+import 'package:pdf/pdf.dart';
+import 'package:pdf/widgets.dart' as pw;
+import 'package:printing/printing.dart';
 import 'package:provider/provider.dart';
 import 'package:intl/intl.dart';
+import 'dart:typed_data';
 import 'dart:ui' as ui;
+import 'package:caisse_dz/core/utilis/number_format.dart';
 
 class DashScreen extends StatefulWidget {
   const DashScreen({Key? key}) : super(key: key);
@@ -133,12 +152,12 @@ double totalMontantPeriode(List<Pannier> list, DateTime start, DateTime end) {
       .fold(0, (s, p) => s + p.montant);
 }
 
-double totalCreditPeriode(List<Pannier> list, DateTime start, DateTime end) {
+double totalCreditPeriode(List<Pannier> list, List<Verssement> versements, DateTime start, DateTime end) {
   final s = start.startOfDay;
   final e = end.endOfDay;
   return list
       .where((p) => !p.date.isBefore(s) && !p.date.isAfter(e))
-      .fold(0, (s, p) => s + p.reste);
+      .fold(0, (s, p) => s + PannierServices.calculerReste(p, versements));
 }
 
 Map<String, double> caParCaissier(List<Pannier> list, DateTime start, DateTime end) {
@@ -155,12 +174,17 @@ Map<String, double> caParCaissier(List<Pannier> list, DateTime start, DateTime e
   return data;
 }
 
-List<Map<String, String>> getProduitsRupture(List<Produit> produits) {
-  final filtered = produits.where((p) => p.quantite < p.seuilMin).toList();
-  filtered.sort((a, b) => a.quantite.compareTo(b.quantite));
+List<Map<String, String>> getProduitsRupture(
+  List<Produit> produits,
+  double seuilMin,
+  Map<String, double> quantites,
+) {
+  double qte(Produit p) => quantites[p.code] ?? 0;
+  final filtered = produits.where((p) => qte(p) < seuilMin).toList();
+  filtered.sort((a, b) => qte(a).compareTo(qte(b)));
   return filtered.take(10).map((p) => {
     "name": p.nom,
-    "value": p.quantite.toStringAsFixed(0),
+    "value": NumberFormatUtil.formatMontant(qte(p), decimales: 0),
   }).toList();
 }
 
@@ -187,12 +211,12 @@ double totalAchat(List<SmartScan> list, DateTime start, DateTime end) {
       .where((ss) => !ss.date.isBefore(s) && !ss.date.isAfter(e))
       .fold(0.0, (s, p) => s + p.montant);
 }
-double totalAchatC(List<SmartScan> list, DateTime start, DateTime end) {
+double totalAchatC(List<SmartScan> list, List<Verssement> versements, DateTime start, DateTime end) {
   final s = start.startOfDay;
   final e = end.endOfDay;
   return list
       .where((ss) => !ss.date.isBefore(s) && !ss.date.isAfter(e))
-      .fold(0.0, (s, p) => s + p.reste);
+      .fold(0.0, (s, p) => s + SmartScanServices.calculerReste(p, versements));
 }
 double totalNet(List<Pannier> list, DateTime start, DateTime end) {
   final s = start.startOfDay;
@@ -204,7 +228,7 @@ double totalNet(List<Pannier> list, DateTime start, DateTime end) {
       !p.date.isAfter(e))
       .fold(0.0, (sum, p) => sum + p.marge);
 }
-double totalCreditC(List<Pannier> list, DateTime start, DateTime end) {
+double totalCreditC(List<Pannier> list, List<Verssement> versements, DateTime start, DateTime end) {
   final s = start.startOfDay;
   final e = end.endOfDay;
 
@@ -212,7 +236,7 @@ double totalCreditC(List<Pannier> list, DateTime start, DateTime end) {
       .where((p) =>
   !p.date.isBefore(s) &&
       !p.date.isAfter(e))
-      .fold(0.0, (sum, p) => sum + p.reste);
+      .fold(0.0, (sum, p) => sum + PannierServices.calculerReste(p, versements));
 }
 
 
@@ -229,14 +253,18 @@ Map<String, dynamic> ventesStats(List<Pannier> panniers, DateTime start, DateTim
   };
 }
 
-double totalStockValue(List<Produit> produits, {bool usePrixVente = true}) {
+double totalStockValue(
+  List<Produit> produits,
+  Map<String, double> quantites, {
+  bool usePrixVente = true,
+}) {
   return produits.fold(0.0, (s, p) {
     final prix = usePrixVente ? p.prixVente : p.prixAchat;
-    return s + p.quantite * prix;
+    return s + (quantites[p.code] ?? 0) * prix;
   });
 }
 
-class _DashScreenState extends State<DashScreen> {
+class _DashScreenState extends State<DashScreen> with SingleTickerProviderStateMixin {
 
   bool _isLoading = true;
   bool _dataLoaded = false;
@@ -244,15 +272,166 @@ class _DashScreenState extends State<DashScreen> {
   List<Fournisseur>     fournisseursTest    = [];
   List<SmartScan>       smartScansTest      = [];
   List<Produit>         produitsTest        = [];
+  // Quantité par produit calculée depuis le journal des mouvements (tous
+  // magasins confondus — pas de filtre magasin sur ce tableau de bord) —
+  // voir produit_screen.dart/stock_screen.dart pour le même mécanisme.
+  Map<String, double>   quantitesTest       = {};
   List<Pannier>         paniersTest         = [];
+  List<Verssement>      versementsTest      = [];
   List<Client>          clientsTest         = [];
+  double                seuilMinimum        = 0;
+
+  late TabController _mainTabController;
+  int? _selectedSituationIndex;
+
+  bool _datesInitialized = false; // ✅ Flag pour éviter la double initialisation
+
+  // ✅ Capture du contenu du dashboard (KPI + graphiques) pour l'export PDF.
+  final GlobalKey _dashboardCaptureKey = GlobalKey();
+  bool _exportEnCours = false;
+
+  // ✅ Découpe l'image capturée en tranches horizontales de pleine largeur,
+  // une par page — évite qu'une page unique au ratio hauteur/largeur
+  // extrême (dashboard très haut) ne soit réduite pour tenir sur une
+  // feuille standard, ce qui laissait des marges vides sur les côtés.
+  Future<List<Uint8List>> _decouperImageEnPages(ui.Image image, double ratioPage) async {
+    final int hauteurTranchePx = (image.width / ratioPage).round().clamp(1, image.height);
+    final int nombrePages = (image.height / hauteurTranchePx).ceil();
+    final List<Uint8List> tranches = [];
+
+    for (int i = 0; i < nombrePages; i++) {
+      final int haut = i * hauteurTranchePx;
+      final int hauteur = (i == nombrePages - 1) ? image.height - haut : hauteurTranchePx;
+      if (hauteur <= 0) continue;
+
+      final recorder = ui.PictureRecorder();
+      final canvas = Canvas(recorder);
+      final srcRect = Rect.fromLTWH(0, haut.toDouble(), image.width.toDouble(), hauteur.toDouble());
+      final dstRect = Rect.fromLTWH(0, 0, image.width.toDouble(), hauteur.toDouble());
+      canvas.drawImageRect(image, srcRect, dstRect, Paint());
+
+      final trancheImage = await recorder.endRecording().toImage(image.width, hauteur);
+      final byteData = await trancheImage.toByteData(format: ui.ImageByteFormat.png);
+      if (byteData != null) tranches.add(byteData.buffer.asUint8List());
+    }
+
+    return tranches;
+  }
+
+  Future<void> _exporterDashboardPDF() async {
+    if (_exportEnCours) return;
+    setState(() => _exportEnCours = true);
+    try {
+      final boundary = _dashboardCaptureKey.currentContext?.findRenderObject() as RenderRepaintBoundary?;
+      if (boundary == null) return;
+
+      final image = await boundary.toImage(pixelRatio: 2.0);
+
+      const pageFormat = PdfPageFormat.a4;
+      final pageLandscape = pageFormat.landscape;
+      final ratioPage = pageLandscape.width / pageLandscape.height;
+
+      final tranches = await _decouperImageEnPages(image, ratioPage);
+
+      final pdf = pw.Document();
+      for (final tranche in tranches) {
+        pdf.addPage(
+          pw.Page(
+            pageFormat: pageLandscape,
+            margin: pw.EdgeInsets.zero,
+            build: (context) => pw.Image(
+              pw.MemoryImage(tranche),
+              fit: pw.BoxFit.fill,
+              width: pageLandscape.width,
+              height: pageLandscape.height,
+            ),
+          ),
+        );
+      }
+
+      await Printing.layoutPdf(
+        name: 'dashboard.pdf',
+        onLayout: (format) async => pdf.save(),
+      );
+    } catch (e) {
+      debugPrint("Erreur export PDF dashboard: $e");
+      if (mounted) {
+        final l10n = AppLocalizations.of(context)!;
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('${l10n.exportError}: $e')),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _exportEnCours = false);
+    }
+  }
+
+  @override
   void initState() {
     super.initState();
-    _initDashboard();
+    _mainTabController = TabController(length: 2, vsync: this);
+    _mainTabController.addListener(() {
+      if (mounted) {
+        setState(() {
+          _selectedSituationIndex = null;
+        });
+      }
+    });
+   _initDashboard();
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (!_datesInitialized) {
+      _datesInitialized = true;
+      _initializeDates();
+      WidgetsBinding.instance.addPostFrameCallback((_) => _showPeriodDialog());
+    }
+  }
+
+  Future<void> _showPeriodDialog() async {
+    if (!mounted) return;
+
+    // ✅ Vérifier que l'utilisateur est sur l'onglet Dashboard (index 1)
+    if (_mainTabController.index != 1) return;
+
+    await PeriodeDashboardDialog(
+      context: context,
+      initialDateDebut: dateDebut ?? DateTime.now(),
+      initialDateFin: dateFin ?? DateTime.now(),
+      formatDate: formatDate,
+      onConfirmer: (debut, fin) {
+        setState(() {
+          dateDebut = debut;
+          dateFin = fin;
+          dateDebutCtrl.text = formatDate(debut);
+          dateFinCtrl.text = formatDate(fin);
+          periodeRapide = null;
+        });
+      },
+    );
+  }
+
+  void _initializeDates() {
+    final now = DateTime.now();
+    dateDebut = DateTime(now.year, now.month, now.day);
+    dateFin = dateDebut;
+    dateDebutCtrl.text = formatDate(dateDebut!);
+    dateFinCtrl.text = formatDate(dateFin!);
+  }
+  @override
+  void dispose() {
+    _mainTabController.dispose();
+    super.dispose();
   }
   Future<void> _initDashboard() async {
     await _LoadAllData();
 
+    // ✅ Vérifier si les dates sont déjà initialisées
+    if (dateDebut == null || dateFin == null) {
+      _initializeDates();
+    }
     if (mounted) {
       setState(() {
         _isLoading = false;
@@ -264,10 +443,23 @@ class _DashScreenState extends State<DashScreen> {
     final db = await DbCreator.openDb();
     pannierProduitsTest = await PPServices.getAllPP();
     fournisseursTest    = await FournisseurServices.getAllFournisseurs();
-    smartScansTest      = await SmartScanServices.getAllSmartScans();
+    // Les tickets/achats annulés (etat=false) ne doivent pas gonfler les
+    // totaux du tableau de bord — voir ClotureCaisse.dart pour le même filtre.
+    smartScansTest      = (await SmartScanServices.getAllSmartScans()).where((s) => s.etat).toList();
     produitsTest        = await ProduitServices.getAllProduits();
-    paniersTest         = await PannierServices.getAllPanniers();
+    quantitesTest       = (await MouvementsServices.totauxParProduit()).quantites;
+    paniersTest         = (await PannierServices.getAllPanniers()).where((p) => p.etat).toList();
+    versementsTest      = await VerssementServices.getAllverssement();
     clientsTest         = await ClientServices.getAllClients();
+    seuilMinimum        = (await ParamServices.getParam()).Minimum;
+    // ✅ Initialiser les dates avec la date du jour APRÈS le chargement
+    final now = DateTime.now();
+    dateDebut = DateTime(now.year, now.month, now.day);
+    dateFin = dateDebut;
+    dateDebutCtrl.text = formatDate(dateDebut!);
+    dateFinCtrl.text = formatDate(dateFin!);
+    periodeRapide = "today";
+
   }
 
   DateTime? dateDebut;
@@ -285,15 +477,15 @@ class _DashScreenState extends State<DashScreen> {
     final achatPrev = totalAchat(smartScansTest, previous.start, previous.end);
     final net = totalNet(paniersTest, dateDebut!, dateFin!);
     final netPrev = totalNet(paniersTest, previous.start, previous.end);
-    final credit = totalCreditC(paniersTest, dateDebut!, dateFin!);
-    final creditPrev = totalCreditC(paniersTest, previous.start, previous.end);
-    final creditF = totalAchatC(smartScansTest, dateDebut!, dateFin!);
-    final creditFPrev = totalAchatC(smartScansTest, previous.start, previous.end);
+    final credit = totalCreditC(paniersTest, versementsTest, dateDebut!, dateFin!);
+    final creditPrev = totalCreditC(paniersTest, versementsTest, previous.start, previous.end);
+    final creditF = totalAchatC(smartScansTest, versementsTest, dateDebut!, dateFin!);
+    final creditFPrev = totalAchatC(smartScansTest, versementsTest, previous.start, previous.end);
 
     final ventesStat = ventesStats(paniersTest, dateDebut!, dateFin!);
     final ventesStatPrev = ventesStats(paniersTest, previous.start, previous.end);
-    final stockVente = totalStockValue(produitsTest, usePrixVente: true);
-    final stockAchat = totalStockValue(produitsTest, usePrixVente: false);
+    final stockVente = totalStockValue(produitsTest, quantitesTest, usePrixVente: true);
+    final stockAchat = totalStockValue(produitsTest, quantitesTest, usePrixVente: false);
 
     return {
       "vente": vente,
@@ -325,49 +517,9 @@ class _DashScreenState extends State<DashScreen> {
 
   // ✅ FIXED: Added l10n parameter instead of using context at top level
   void appliquerPeriodeRapide(String p, AppLocalizations l10n) {
-    final now = DateTime.now();
-    switch (p) {
-      case "today":
-        dateDebut = DateTime(now.year, now.month, now.day);
-        dateFin = dateDebut;
-        break;
-      case "yesterday":
-        dateDebut = DateTime(now.year, now.month, now.day - 1);
-        dateFin = dateDebut;
-        break;
-      case "week":
-        dateDebut = now.subtract(Duration(days: now.weekday - 1));
-        dateFin = dateDebut!.add(const Duration(days: 6));
-        break;
-      case "lastWeek":
-        dateDebut = now.subtract(Duration(days: now.weekday + 6));
-        dateFin = dateDebut!.add(const Duration(days: 6));
-        break;
-      case "month":
-        dateDebut = DateTime(now.year, now.month, 1);
-        dateFin = DateTime(now.year, now.month + 1, 0);
-        break;
-      case "lastMonth":
-        dateDebut = DateTime(now.year, now.month - 1, 1);
-        dateFin = DateTime(now.year, now.month, 0);
-        break;
-      case "last7days":
-        dateDebut = now.subtract(const Duration(days: 6));
-        dateFin = now;
-        break;
-      case "last30days":
-        dateDebut = now.subtract(const Duration(days: 29));
-        dateFin = now;
-        break;
-      case "year":
-        dateDebut = DateTime(now.year, 1, 1);
-        dateFin = DateTime(now.year, 12, 31);
-        break;
-      case "lastYear":
-        dateDebut = DateTime(now.year - 1, 1, 1);
-        dateFin = DateTime(now.year - 1, 12, 31);
-        break;
-    }
+    final periode = calculerPeriodeRapide(p);
+    dateDebut = periode.debut;
+    dateFin = periode.fin;
     dateDebutCtrl.text = formatDate(dateDebut!);
     dateFinCtrl.text = formatDate(dateFin!);
   }
@@ -410,6 +562,200 @@ class _DashScreenState extends State<DashScreen> {
       });
     }
   }
+  List<Map<String, dynamic>> _situationItems(AppLocalizations l10n) => [
+    {"id": "pannier", "label": l10n.revenueByCart, "icon": Icons.receipt_long, "color": Appstyle.blueC},
+    {"id": "produit", "label": l10n.revenueByProductCard, "icon": Icons.inventory_2, "color": Appstyle.violet},
+    {"id": "mouvement", "label": l10n.cashRegisterMovement, "icon": Icons.swap_horiz, "color": Appstyle.indigo},
+    {"id": "margePannier", "label": l10n.dailyProfitByCart, "icon": Icons.trending_up, "color": Appstyle.crevete},
+    {"id": "margePeriode", "label": l10n.profitByPeriod, "icon": Icons.stacked_line_chart, "color": Appstyle.blueF},
+    {"id": "inventaire", "label": l10n.inventory, "icon": Icons.warehouse, "color": Colors.teal},
+  ];
+
+  Widget _buildMainTabBar(AppLocalizations l10n) {
+    final mainTabs = [
+      {'icon': 'assets/icons/sidebar/reporting_icon.png', 'label': l10n.situation},
+      {'icon': 'assets/icons/sidebar/dash_icon.png', 'label': l10n.dashboard},
+    ];
+
+    return Container(
+      margin: const EdgeInsets.symmetric(vertical: 6),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.05),
+            blurRadius: 10,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: TabBar(
+        controller: _mainTabController,
+        isScrollable: false,
+        indicator: BoxDecoration(
+          color: Appstyle.violet,
+          borderRadius: BorderRadius.circular(12),
+        ),
+        labelColor: Colors.white,
+        unselectedLabelColor: Appstyle.gris,
+        dividerColor: Colors.transparent,
+        indicatorSize: TabBarIndicatorSize.tab,
+        padding: const EdgeInsets.all(6),
+        labelStyle: Appstyle.textXS.copyWith(fontWeight: FontWeight.w600),
+        unselectedLabelStyle: Appstyle.textXS.copyWith(fontWeight: FontWeight.w500),
+        tabs: List.generate(mainTabs.length, (index) {
+          final isSelected = _mainTabController.index == index;
+          return Tab(
+            icon: Container(
+              width: 24,
+              height: 24,
+              child: Image.asset(
+                mainTabs[index]['icon']!,
+                width: 20,
+                height: 20,
+                color: isSelected ? Colors.white : Appstyle.gris,
+              ),
+            ),
+            text: mainTabs[index]['label']!,
+          );
+        }),
+      ),
+    );
+  }  Widget _buildSituationTab(double paddingV, AppLocalizations l10n) {
+    final items = _situationItems(l10n);
+    if (_selectedSituationIndex == null) {
+      return _buildSituationGrid(items);
+    }
+    final item = items[_selectedSituationIndex!];
+    return Align(
+      alignment: Alignment.topLeft,
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisAlignment: MainAxisAlignment.start,
+        children: [
+          _buildSituationMiniTabs(items),
+          SizedBox(height: paddingV / 2),
+          if (item["id"] == "mouvement")
+            const MouvementCaisseTab()
+          else if (item["id"] == "pannier")
+            const RecetteCaissePannierTab()
+          else if (item["id"] == "produit")
+            const RecetteCaisseProduitTab()
+          else if (item["id"] == "margePannier")
+            const MargeParPannierTab()
+          else if (item["id"] == "margePeriode")
+            const MargeParPeriodeTab()
+          else if (item["id"] == "inventaire")
+            const InventaireTab()
+          else
+            _buildSituationPlaceholder(item["label"] as String),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSituationGrid(List<Map<String, dynamic>> items) {
+    return Align(
+      alignment: Alignment.topLeft,
+      child: GridView.count(
+        crossAxisCount: 3,
+        shrinkWrap: true,
+        physics: const NeverScrollableScrollPhysics(),
+        crossAxisSpacing: 20,
+        mainAxisSpacing: 20,
+        childAspectRatio: 1.7,
+        children: List.generate(items.length, (i) {
+          final item = items[i];
+          return GestureDetector(
+            onTap: () => setState(() => _selectedSituationIndex = i),
+            child: Container(
+              padding: const EdgeInsets.all(20),
+              decoration: BoxDecoration(
+                color: item["color"] as Color,
+                borderRadius: BorderRadius.circular(18),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.1),
+                    blurRadius: 10,
+                    offset: const Offset(0, 4),
+                  ),
+                ],
+              ),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(item["icon"] as IconData, color: Colors.white, size: 46),
+                  const SizedBox(height: 14),
+                  Text(
+                    item["label"] as String,
+                    textAlign: TextAlign.center,
+                    style: Appstyle.textLB.copyWith(color: Colors.white, fontWeight: FontWeight.bold),
+                  ),
+                ],
+              ),
+            ),
+          );
+        }),
+      ),
+    );
+  }
+
+  Widget _buildSituationMiniTabs(List<Map<String, dynamic>> items) {
+    return Wrap(
+      spacing: 10,
+      runSpacing: 10,
+      children: List.generate(items.length, (i) {
+        final item = items[i];
+        final isSelected = _selectedSituationIndex == i;
+        final color = item["color"] as Color;
+        return GestureDetector(
+          onTap: () => setState(() => _selectedSituationIndex = i),
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+            decoration: BoxDecoration(
+              color: isSelected ? color : Colors.white,
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: color, width: 1.5),
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(item["icon"] as IconData, color: isSelected ? Colors.white : color, size: 18),
+                const SizedBox(width: 8),
+                Text(
+                  item["label"] as String,
+                  style: Appstyle.textXS.copyWith(
+                    color: isSelected ? Colors.white : color,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      }),
+    );
+  }
+
+  Widget _buildSituationPlaceholder(String label) {
+    return Container(
+      width: double.infinity,
+      height: 400,
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(18),
+      ),
+      child: Center(
+        child: Text(
+          label,
+          style: Appstyle.textXLB.copyWith(color: Appstyle.gris, fontWeight: FontWeight.bold),
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     if (_isLoading) {
@@ -451,18 +797,16 @@ class _DashScreenState extends State<DashScreen> {
               textDirection: textDirection,
               child: SingleChildScrollView(
                 scrollDirection: Axis.horizontal,
-                child: SingleChildScrollView(
-                  scrollDirection: Axis.vertical,
-                  child: ConstrainedBox(
-                    constraints: const BoxConstraints(
-                      minWidth: minWidth,
-                      minHeight: minHeight,
-                    ),
-
-                      child: SizedBox(
-                        width: adjustedWidth,
+                child: ConstrainedBox(
+                  constraints: const BoxConstraints(
+                    minWidth: minWidth,
+                    minHeight: minHeight,
+                  ),
+                  child: SizedBox(
+                    width: adjustedWidth,
                         height: adjustedHeight,
                         child: Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             /// SIDEBAR - Reordered for RTL
                             SideBarWidget(),
@@ -470,16 +814,17 @@ class _DashScreenState extends State<DashScreen> {
                             Expanded(
                               child: SingleChildScrollView(
                                 padding: const EdgeInsets.all(16),
-                                child: Column(
+                                child: RepaintBoundary(
+                                  key: _dashboardCaptureKey,
+                                  child: Column(
+                                  mainAxisAlignment: MainAxisAlignment.start,
                                   crossAxisAlignment: isRTL ? CrossAxisAlignment.end : CrossAxisAlignment.start,
                                   children: [
 
                                     /// HEADER
                                     HeaderModule(
-                                      gradientColors: [
-                                        Appstyle.green2.withOpacity(0.95),
-                                        Appstyle.green2.withOpacity(0.6),
-                                      ],
+                                      gradientColors: [Appstyle.Tblanc, Appstyle.Tblanc],
+
                                       child: Row(
                                         children: [
                                           Row(
@@ -487,13 +832,13 @@ class _DashScreenState extends State<DashScreen> {
                                               Image.asset(
                                                 "assets/icons/sidebar/dash_icon.png",
                                                 width: 40,
-                                                color: Colors.white,
+                                                color: Appstyle.violet,
                                               ),
                                               const SizedBox(width: 10),
                                               Text(
                                                 l10n.dashboard,
                                                 style: Appstyle.textXLB.copyWith(
-                                                  color: Colors.white,
+                                                  color: Appstyle.violet,
                                                   fontWeight: FontWeight.bold,
                                                 ),
                                               ),
@@ -502,10 +847,10 @@ class _DashScreenState extends State<DashScreen> {
                                           const Spacer(),
                                           Row(
                                             children: [
+                                              const ConnectionStatusBar(),
+                                              const SizedBox(width: 20),
                                               TimeDateWidget(
-                                                heure: "18:00",
-                                                date: "25 Nov 2025",
-                                                iconHeure: "assets/icons/hour_icon.png",
+                                               iconHeure: "assets/icons/hour_icon.png",
                                                 iconDate: "assets/icons/agenda_icon.png",
                                               ),
                                               const SizedBox(width: 20),
@@ -521,154 +866,166 @@ class _DashScreenState extends State<DashScreen> {
 
                                     SizedBox(height: paddingV / 2),
 
-                                    /// FILTERS
-                                    DashboardFiltersWidget(
-                                      l10n: l10n,
-                                      dateFinCtrl: dateFinCtrl,
-                                      dateDebutCtrl: dateDebutCtrl,
-                                      periodeRapide: periodeRapide,
-                                      onPickDateFin: pickDateFin,
-                                      onPickDateDebut: pickDateDebut,
-                                      onPeriodeChanged: (v) {
-                                        if (v != null) {
-                                          setState(() {
-                                            periodeRapide = v;
-                                            appliquerPeriodeRapide(v, l10n);
-                                          });
-                                        }
-                                      },
-                                    ),
+                                    _buildMainTabBar(l10n),
 
-                                    SizedBox(height: paddingV * 2 / 3),
+                                    SizedBox(height: paddingV / 2),
 
-                                    /// KPI ROW
-                                    DashboardKpiRow(
-                                      l10n: l10n,
-                                      netToday: kpis["net"] ?? 0,
-                                      venteToday: kpis["vente"] ?? 0,
-                                      achatToday: kpis["achat"] ?? 0,
-                                      netYesterday: kpis["netPrev"] ?? 0,
-                                      creditClient: kpis["credit"] ?? 0,
-                                      creditClientYesterday: kpis["creditPrev"] ?? 0,
-                                      venteYesterday: kpis["ventePrev"] ?? 0,
-                                      achatYesterday: kpis["achatPrev"] ?? 0,
-                                      creditFournisseur: kpis["creditfournisseur"] ?? 0,
-                                      creditFournisseurYesterday:kpis["creditfournisseurPrev"] ?? 0,
-                                    ),
+                                    if (_mainTabController.index == 0)
+                                      _buildSituationTab(paddingV, l10n)
+                                    else ...[
+                                      /// FILTERS
+                                      DashboardFiltersWidget(
+                                        l10n: l10n,
+                                        dateFinCtrl: dateFinCtrl,
+                                        dateDebutCtrl: dateDebutCtrl,
+                                        periodeRapide: periodeRapide,
+                                        onPickDateFin: pickDateFin,
+                                        onPickDateDebut: pickDateDebut,
+                                        onPeriodeChanged: (v) {
+                                          if (v != null) {
+                                            setState(() {
+                                              periodeRapide = v;
+                                              appliquerPeriodeRapide(v, l10n);
+                                            });
+                                          }
+                                        },
+                                        onExport: _exportEnCours ? null : _exporterDashboardPDF,
+                                      ),
 
-                                    SizedBox(height: paddingV * 2 / 3),
+                                      SizedBox(height: paddingV * 2 / 3),
 
-                                    /// GRAPH ROW
-                                    Row(
-                                      children: [
-                                        Expanded(
-                                          child: Container(
-                                            height: 260,
-                                            padding: const EdgeInsets.all(16),
-                                            decoration: BoxDecoration(
-                                              color: Colors.white,
-                                              borderRadius: BorderRadius.circular(16),
-                                            ),
-                                            child: DashboardDynamicSalesChart(
-                                              l10n: l10n,
-                                              panniers: paniersTest,
-                                              dateDebut: dateDebut,
-                                              dateFin: dateFin,
+                                      /// KPI ROW
+                                      DashboardKpiRow(
+                                        l10n: l10n,
+                                        netToday: kpis["net"] ?? 0,
+                                        venteToday: kpis["vente"] ?? 0,
+                                        achatToday: kpis["achat"] ?? 0,
+                                        netYesterday: kpis["netPrev"] ?? 0,
+                                        creditClient: kpis["credit"] ?? 0,
+                                        creditClientYesterday: kpis["creditPrev"] ?? 0,
+                                        venteYesterday: kpis["ventePrev"] ?? 0,
+                                        achatYesterday: kpis["achatPrev"] ?? 0,
+                                        creditFournisseur: kpis["creditfournisseur"] ?? 0,
+                                        creditFournisseurYesterday:kpis["creditfournisseurPrev"] ?? 0,
+                                      ),
+
+                                      SizedBox(height: paddingV * 2 / 3),
+
+                                      /// GRAPH ROW
+                                      Row(
+                                        children: [
+                                          Expanded(
+                                            child: Container(
+                                              height: 260,
+                                              padding: const EdgeInsets.all(16),
+                                              decoration: BoxDecoration(
+                                                color: Colors.white,
+                                                borderRadius: BorderRadius.circular(16),
+                                              ),
+                                              child: DashboardDynamicSalesChart(
+                                                l10n: l10n,
+                                                panniers: paniersTest,
+                                                dateDebut: dateDebut,
+                                                dateFin: dateFin,
+                                              ),
                                             ),
                                           ),
-                                        ),
-                                        const SizedBox(width: 16),
-                                        Expanded(
-                                          child: Container(
-                                            height: 260,
-                                            padding: const EdgeInsets.all(16),
-                                            decoration: BoxDecoration(
-                                              color: Colors.white,
-                                              borderRadius: BorderRadius.circular(16),
-                                            ),
-                                            child: DashboardCAPieChart(
-                                              l10n: l10n,
-                                              panniers: paniersTest,
-                                              dateDebut: dateDebut,
-                                              dateFin: dateFin,
+                                          const SizedBox(width: 16),
+                                          Expanded(
+                                            child: Container(
+                                              height: 260,
+                                              padding: const EdgeInsets.all(16),
+                                              decoration: BoxDecoration(
+                                                color: Colors.white,
+                                                borderRadius: BorderRadius.circular(16),
+                                              ),
+                                              child: DashboardCAPieChart(
+                                                l10n: l10n,
+                                                panniers: paniersTest,
+                                                versements: versementsTest,
+                                                dateDebut: dateDebut,
+                                                dateFin: dateFin,
+                                              ),
                                             ),
                                           ),
-                                        ),
-                                      ],
-                                    ),
+                                        ],
+                                      ),
 
-                                    SizedBox(height: paddingV * 2 / 3),
+                                      SizedBox(height: paddingV * 2 / 3),
 
-                                    /// BAR + STOCK
-                                    Row(
-                                      children: [
-                                        Expanded(
-                                          child: Container(
-                                            height: 310,
-                                            padding: const EdgeInsets.all(16),
-                                            decoration: BoxDecoration(
-                                              color: Colors.white,
-                                              borderRadius: BorderRadius.circular(16),
-                                            ),
-                                            child: DashboardBarCaissierChart(
-                                              l10n: l10n,
-                                              panniers: paniersTest,
-                                              dateDebut: dateDebut,
-                                              dateFin: dateFin,
-                                            ),
-                                          ),
-                                        ),
-                                        SizedBox(width: paddingH / 2),
-                                        Expanded(
-                                          child: Container(
-                                            height: 310,
-                                            padding: const EdgeInsets.all(16),
-                                            decoration: BoxDecoration(
-                                              color: Colors.white,
-                                              borderRadius: BorderRadius.circular(16),
-                                            ),
-                                            child: DashboardPaymentPieChart(
-                                              l10n: l10n,
-                                              panniers: paniersTest,
-                                              dateDebut: dateDebut,
-                                              dateFin: dateFin,
+                                      /// BAR + STOCK
+                                      Row(
+                                        children: [
+                                          Expanded(
+                                            child: Container(
+                                              height: 310,
+                                              padding: const EdgeInsets.all(16),
+                                              decoration: BoxDecoration(
+                                                color: Colors.white,
+                                                borderRadius: BorderRadius.circular(16),
+                                              ),
+                                              child: DashboardBarCaissierChart(
+                                                l10n: l10n,
+                                                panniers: paniersTest,
+                                                dateDebut: dateDebut,
+                                                dateFin: dateFin,
+                                              ),
                                             ),
                                           ),
-                                        ),
-                                        SizedBox(width: paddingH / 2),
-                                        Expanded(
-                                          child: Container(
-                                            height: 310,
-                                            padding: const EdgeInsets.all(16),
-                                            decoration: BoxDecoration(
-                                              color: Colors.white,
-                                              borderRadius: BorderRadius.circular(16),
-                                            ),
-                                            child: DashboardProduitBarChart(
-                                              l10n: l10n,
-                                              dateDebut: dateDebut,
-                                              dateFin: dateFin,
-                                              produits: pannierProduitsTest,
+                                          SizedBox(width: paddingH / 2),
+                                          Expanded(
+                                            child: Container(
+                                              height: 310,
+                                              padding: const EdgeInsets.all(16),
+                                              decoration: BoxDecoration(
+                                                color: Colors.white,
+                                                borderRadius: BorderRadius.circular(16),
+                                              ),
+                                              child: DashboardPaymentPieChart(
+                                                l10n: l10n,
+                                                panniers: paniersTest,
+                                                dateDebut: dateDebut,
+                                                dateFin: dateFin,
+                                              ),
                                             ),
                                           ),
-                                        ),
-                                      ],
-                                    ),
+                                          SizedBox(width: paddingH / 2),
+                                          Expanded(
+                                            child: Container(
+                                              height: 310,
+                                              padding: const EdgeInsets.all(16),
+                                              decoration: BoxDecoration(
+                                                color: Colors.white,
+                                                borderRadius: BorderRadius.circular(16),
+                                              ),
+                                              child: DashboardProduitBarChart(
+                                                l10n: l10n,
+                                                dateDebut: dateDebut,
+                                                dateFin: dateFin,
+                                                produits: pannierProduitsTest,
+                                                panniers: paniersTest,
+                                              ),
+                                            ),
+                                          ),
+                                        ],
+                                      ),
 
-                                    const SizedBox(height: 20),
+                                      const SizedBox(height: 20),
 
-                                    /// LIST ROW
-                                    Row(
-                                      children: [
-                                        Expanded(
-                                          child: DashboardListCard(
-                                            title: l10n.outOfStockProducts,
-                                            items: getProduitsRupture(produitsTest),
+                                      /// LIST ROW
+                                      Row(
+                                        children: [
+                                          Expanded(
+                                            child: DashboardListCard(
+                                              title: l10n.outOfStockProducts,
+                                              items: getProduitsRupture(produitsTest, seuilMinimum, quantitesTest),
+                                            ),
                                           ),
-                                        ),
-                                      ],
-                                    )
+                                        ],
+                                      ),
+                                    ],
                                   ],
+                                ),
                                 ),
                               ),
                             ),
@@ -678,7 +1035,6 @@ class _DashScreenState extends State<DashScreen> {
                       ),
 
                   ),
-                ),
               ),
             );
           },
@@ -695,6 +1051,11 @@ class DashboardKpiAdvancedCard extends StatelessWidget {
   final double yesterday;
   final String suffix;
   final bool showPercent;
+  // Couleur/icône par nature de métrique (vente, achat, profit, dette...) —
+  // avant, toutes les cartes KPI partageaient le même violet, ce qui rendait
+  // le tableau de bord difficile à scanner d'un coup d'œil.
+  final Color color;
+  final IconData icon;
 
   const DashboardKpiAdvancedCard({
     super.key,
@@ -703,6 +1064,8 @@ class DashboardKpiAdvancedCard extends StatelessWidget {
     required this.yesterday,
     this.suffix = "",
     this.showPercent = true,
+    this.color = Appstyle.violet,
+    this.icon = Icons.bar_chart,
   });
 
   @override
@@ -726,17 +1089,39 @@ class DashboardKpiAdvancedCard extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Appstyle.violet.withOpacity(0.25),
+        color: color.withOpacity(0.12),
         borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: color.withOpacity(0.25)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(title, style: const TextStyle(fontSize: 13)),
+          Row(
+            children: [
+              Container(
+                width: 28,
+                height: 28,
+                decoration: BoxDecoration(
+                  color: color.withOpacity(0.18),
+                  shape: BoxShape.circle,
+                ),
+                child: Icon(icon, size: 15, color: color),
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  title,
+                  style: TextStyle(fontSize: 13, color: Appstyle.textSecondary),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+            ],
+          ),
           const SizedBox(height: 8),
           Text(
-            "${today.toStringAsFixed(0)} $suffix",
-            style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+            "${NumberFormatUtil.formatMontant(today, decimales: 0)} $suffix",
+            style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: color),
           ),
           const SizedBox(height: 6),
           if (showPercent)
@@ -745,13 +1130,13 @@ class DashboardKpiAdvancedCard extends StatelessWidget {
                 Icon(
                   isPositive ? Icons.trending_up : Icons.trending_down,
                   size: 16,
-                  color: isPositive ? Colors.green : Colors.red,
+                  color: isPositive ? Appstyle.success : Appstyle.danger,
                 ),
                 const SizedBox(width: 4),
                 Text(
-                  "${percent.toStringAsFixed(1)} %",
+                  "${NumberFormatUtil.formatMontant(percent, decimales: 1)} %",
                   style: TextStyle(
-                    color: isPositive ? Colors.green : Colors.red,
+                    color: isPositive ? Appstyle.success : Appstyle.danger,
                     fontSize: 12,
                   ),
                 ),
@@ -805,6 +1190,8 @@ class DashboardKpiRow extends StatelessWidget {
           today: venteToday,
           yesterday: venteYesterday,
           suffix: "DA",
+          color: Appstyle.primary,
+          icon: Icons.point_of_sale,
         ),
         DashboardKpiAdvancedCard(
           title: l10n.salesprevious,
@@ -812,30 +1199,40 @@ class DashboardKpiRow extends StatelessWidget {
           yesterday: venteYesterday,
           suffix: "DA",
           showPercent: false,
+          color: Appstyle.textMuted,
+          icon: Icons.history,
         ),
         DashboardKpiAdvancedCard(
           title: l10n.purchaseToday,
           today: achatToday,
           yesterday: achatYesterday,
           suffix: "DA",
+          color: Appstyle.info,
+          icon: Icons.shopping_cart_outlined,
         ),
         DashboardKpiAdvancedCard(
           title: l10n.netToday,
           today: netToday,
           yesterday: netYesterday,
           suffix: "DA",
+          color: Appstyle.success,
+          icon: Icons.trending_up,
         ),
         DashboardKpiAdvancedCard(
           title: l10n.supplierDebt,
           today: creditFournisseur,
           yesterday: creditFournisseurYesterday,
           suffix: "DA",
+          color: Appstyle.warning,
+          icon: Icons.warning_amber_rounded,
         ),
         DashboardKpiAdvancedCard(
           title: l10n.clientCredit,
           today: creditClient,
           yesterday: creditClientYesterday,
           suffix: "DA",
+          color: Appstyle.danger,
+          icon: Icons.person_outline,
         ),
       ],
     );
@@ -1068,6 +1465,7 @@ class DashboardBarCaissierChart extends StatelessWidget {
 class DashboardProduitBarChart extends StatelessWidget {
   final AppLocalizations l10n;
   final List<PannierProduit> produits;
+  final List<Pannier> panniers;
   final DateTime? dateDebut;
   final DateTime? dateFin;
 
@@ -1075,16 +1473,31 @@ class DashboardProduitBarChart extends StatelessWidget {
     super.key,
     required this.l10n,
     required this.produits,
+    required this.panniers,
     this.dateDebut,
     this.dateFin,
   });
 
   @override
   Widget build(BuildContext context) {
-    if (produits.isEmpty) return Center(child: Text(l10n.noData));
+    // panniers est déjà filtré par etat (annulés exclus) au chargement du
+    // dashboard ; on restreint ici les lignes produit à la période choisie
+    // en passant par les codes panier de cette période.
+    List<PannierProduit> produitsFiltres = produits;
+    if (dateDebut != null && dateFin != null) {
+      final s = dateDebut!.startOfDay;
+      final e = dateFin!.endOfDay;
+      final codesPeriode = panniers
+          .where((p) => !p.date.isBefore(s) && !p.date.isAfter(e))
+          .map((p) => p.code)
+          .toSet();
+      produitsFiltres = produits.where((p) => codesPeriode.contains(p.codePannier)).toList();
+    }
+
+    if (produitsFiltres.isEmpty) return Center(child: Text(l10n.noData));
 
     final Map<String, double> totals = {};
-    for (var p in produits) {
+    for (var p in produitsFiltres) {
       totals[p.codeProduit] = (totals[p.codeProduit] ?? 0) + p.total;
     }
 
@@ -1209,12 +1622,13 @@ class DashboardPaymentPieChart extends StatelessWidget {
     final totals = totalParMode(panniers, dateDebut!, dateFin!, context);
     final total = totals.values.fold(0.0, (sum, v) => sum + v);
     final displayTotal = total == 0 ? 1 : total;
+    final translator = ListsConstTranslator(l10n);
 
     final colors = [
-      Appstyle.green2,
-      Appstyle.violet,
-      Colors.orange,
-      Colors.blue,
+      Appstyle.success,
+      Appstyle.primary,
+      Appstyle.warning,
+      Appstyle.info,
     ];
 
     return Column(
@@ -1242,7 +1656,7 @@ class DashboardPaymentPieChart extends StatelessWidget {
                         value: value <= 0 ? 0.01 : value,
                         color: colors[index % colors.length],
                         radius: 60,
-                        title: "${((value / displayTotal) * 100).toStringAsFixed(0)}%",
+                        title: "${NumberFormatUtil.formatMontant(((value / displayTotal) * 100), decimales: 0)}%",
                         titleStyle: const TextStyle(
                           color: Colors.white,
                           fontWeight: FontWeight.bold,
@@ -1261,6 +1675,7 @@ class DashboardPaymentPieChart extends StatelessWidget {
                 child: _PaymentResume(
                   totals: totals,
                   colors: colors,
+                  translator: translator,
                 ),
               ),
             ],
@@ -1273,7 +1688,7 @@ class DashboardPaymentPieChart extends StatelessWidget {
             final mode = ListsConst.modePaiementList[index];
             return _Legend(
               color: colors[index % colors.length],
-              text: mode,
+              text: translator.translateModePaiement(mode),
             );
           }),
         ),
@@ -1285,6 +1700,7 @@ class DashboardPaymentPieChart extends StatelessWidget {
 class DashboardCAPieChart extends StatelessWidget {
   final AppLocalizations l10n;
   final List<Pannier> panniers;
+  final List<Verssement> versements;
   final DateTime? dateDebut;
   final DateTime? dateFin;
 
@@ -1292,6 +1708,7 @@ class DashboardCAPieChart extends StatelessWidget {
     super.key,
     required this.l10n,
     required this.panniers,
+    required this.versements,
     required this.dateDebut,
     required this.dateFin,
   });
@@ -1303,7 +1720,7 @@ class DashboardCAPieChart extends StatelessWidget {
     }
 
     final totalMontant = totalMontantPeriode(panniers, dateDebut!, dateFin!);
-    final totalCredit = totalCreditPeriode(panniers, dateDebut!, dateFin!);
+    final totalCredit = totalCreditPeriode(panniers, versements, dateDebut!, dateFin!);
     final encaisse = totalMontant - totalCredit;
     final total = totalMontant == 0 ? 1 : totalMontant;
 
@@ -1329,12 +1746,12 @@ class DashboardCAPieChart extends StatelessWidget {
                       _section(
                         value: encaisse,
                         color: Appstyle.green2,
-                        title: "${((encaisse / total) * 100).toStringAsFixed(0)}%",
+                        title: "${NumberFormatUtil.formatMontant(((encaisse / total) * 100), decimales: 0)}%",
                       ),
                       _section(
                         value: totalCredit,
-                        color: Colors.redAccent,
-                        title: "${((totalCredit / total) * 100).toStringAsFixed(0)}%",
+                        color: Appstyle.danger,
+                        title: "${NumberFormatUtil.formatMontant(((totalCredit / total) * 100), decimales: 0)}%",
                       ),
                     ],
                   ),
@@ -1360,7 +1777,7 @@ class DashboardCAPieChart extends StatelessWidget {
           children: [
             const SizedBox(width: 50),
             _Legend(color: Appstyle.green2, text: l10n.collected),
-            _Legend(color: Colors.redAccent, text: l10n.credit),
+            _Legend(color: Appstyle.danger, text: l10n.credit),
           ],
         ),
       ],
@@ -1410,7 +1827,7 @@ class _MontantResume extends StatelessWidget {
         ),
         const SizedBox(height: 16),
         _item(
-          color: Colors.redAccent,
+          color: Appstyle.danger,
           label: l10n.credit,
           value: credit,
         ),
@@ -1442,7 +1859,7 @@ class _MontantResume extends StatelessWidget {
               style: const TextStyle(fontSize: 12),
             ),
             Text(
-              "${value.toStringAsFixed(0)} DA",
+              "${NumberFormatUtil.formatMontant(value, decimales: 0)} DA",
               style: const TextStyle(
                 fontSize: 15,
                 fontWeight: FontWeight.bold,
@@ -1478,24 +1895,9 @@ class DashboardFiltersWidget extends StatelessWidget {
     this.onExport,
   });
 
-  Map<String, String> _getPeriodesRapides(AppLocalizations l10n) {
-    return {
-      "today": l10n.today,
-      "yesterday": l10n.yesterday,
-      "week": l10n.thisWeek,
-      "lastWeek": l10n.lastWeek,
-      "month": l10n.thisMonth,
-      "lastMonth": l10n.lastMonth,
-      "last7days": l10n.last7Days,
-      "last30days": l10n.last30Days,
-      "year": l10n.thisYear,
-      "lastYear": l10n.lastYear,
-    };
-  }
-
   @override
   Widget build(BuildContext context) {
-    final periodesRapides = _getPeriodesRapides(l10n);
+    final periodesRapides = periodesRapidesLabels(l10n);
 
     return Container(
       padding: const EdgeInsets.all(12),
@@ -1573,23 +1975,10 @@ class PeriodeDateFilter extends StatelessWidget {
   }
 
   Widget _periodeDropdown() {
-    return Container(
-      width: 220,
-      padding: const EdgeInsets.symmetric(horizontal: 12),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
-      ),
-      child: DropdownButton<String>(
-        value: periodeRapide,
-        underline: const SizedBox(),
-        hint: Text(l10n.quickPeriod),
-        isExpanded: true,
-        items: periodesRapides.entries.map((e) {
-          return DropdownMenuItem<String>(value: e.key, child: Text(e.value));
-        }).toList(),
-        onChanged: onPeriodeChanged,
-      ),
+    return PeriodeRapideDropdown(
+      l10n: l10n,
+      value: periodeRapide,
+      onSelected: onPeriodeChanged,
     );
   }
 
@@ -1641,42 +2030,63 @@ class _Legend extends StatelessWidget {
 class _PaymentResume extends StatelessWidget {
   final Map<String, double> totals;
   final List<Color> colors;
+  final ListsConstTranslator translator;
 
-  const _PaymentResume({required this.totals, required this.colors});
+  const _PaymentResume({
+    required this.totals,
+    required this.colors,
+    required this.translator,
+  });
 
   @override
   Widget build(BuildContext context) {
-    return Column(
-      mainAxisAlignment: MainAxisAlignment.center,
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: List.generate(ListsConst.modePaiementList.length, (index) {
-        final mode = ListsConst.modePaiementList[index];
-        final value = totals[mode]!;
-        return Padding(
-          padding: const EdgeInsets.only(bottom: 16),
-          child: Row(
-            children: [
-              Container(
-                width: 10,
-                height: 10,
-                decoration: BoxDecoration(
-                  color: colors[index % colors.length],
-                  shape: BoxShape.circle,
+    // SingleChildScrollView : les libellés de mode de paiement sont traduits
+    // (fr/ar/en) et de longueur variable — un Column figé débordait déjà
+    // verticalement avec certaines traductions plus longues.
+    return SingleChildScrollView(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: List.generate(ListsConst.modePaiementList.length, (index) {
+          final mode = ListsConst.modePaiementList[index];
+          final value = totals[mode]!;
+          return Padding(
+            padding: const EdgeInsets.only(bottom: 10),
+            child: Row(
+              children: [
+                Container(
+                  width: 10,
+                  height: 10,
+                  decoration: BoxDecoration(
+                    color: colors[index % colors.length],
+                    shape: BoxShape.circle,
+                  ),
                 ),
-              ),
-              const SizedBox(width: 8),
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(mode, style: const TextStyle(fontSize: 12)),
-                  Text("${value.toStringAsFixed(0)} DA",
-                      style: const TextStyle(fontSize: 15, fontWeight: FontWeight.bold)),
-                ],
-              ),
-            ],
-          ),
-        );
-      }),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        translator.translateModePaiement(mode),
+                        style: const TextStyle(fontSize: 12),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                      Text(
+                        "${NumberFormatUtil.formatMontant(value, decimales: 0)} DA",
+                        style: const TextStyle(fontSize: 15, fontWeight: FontWeight.bold),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          );
+        }),
+      ),
     );
   }
 }

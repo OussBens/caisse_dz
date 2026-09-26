@@ -7,7 +7,10 @@ import 'package:caisse_dz/core/theme/app_style.dart';
 import '../../../data/models/remise.dart';
 import '../../widget/detail_widget.dart';
 import '../../widget/section_decoration.dart';
+import '../../widget/stats_card.dart';
 import '../base_dialog.dart';
+import '../produits_liste_dialog.dart';
+import 'package:caisse_dz/core/utilis/number_format.dart';
 
 List<Produit> ProduitTest = [];
 
@@ -60,10 +63,16 @@ Future<void> RemiseDetail(BuildContext context, Remise remise) async {
                 Chip(
                   label: Text(
                     remise.etat ? l10n.active : l10n.inactive,
-                    style: Appstyle.textSB.copyWith(color: Appstyle.Tblanc),
+                    style: Appstyle.textSB.copyWith(
+                      color: remise.etat ? Appstyle.Tblanc : Appstyle.Tnoir, // ou une autre couleur
+                    ),
                   ),
-                  backgroundColor: Appstyle.crevete,
-                ),
+                  backgroundColor: remise.etat
+                      ? Appstyle.violet.withOpacity(0.8)
+                      : Appstyle.crevete.withOpacity(0.7), // ou rouge, orange, etc.
+                  labelPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                  elevation: remise.etat ? 2 : 0,
+                )
               ],
             ),
             const SizedBox(height: 16),
@@ -148,11 +157,7 @@ Future<void> RemiseDetail(BuildContext context, Remise remise) async {
                   ),
                 ),
                 onPressed: () {
-                  showDialog(
-                    barrierColor: Appstyle.gris.withOpacity(0.4),
-                    context: context,
-                    builder: (_) => _dialogListeProduitsRemise(context, remise, l10n),
-                  );
+                  showRemiseProductsListDialog(context, remise, l10n);
                 },
               ),
 
@@ -177,306 +182,74 @@ Future<void> RemiseDetail(BuildContext context, Remise remise) async {
   );
 }
 
+// remise_detail.dart - Remplacer _resumeRemise
 Widget _resumeRemise(Remise r, AppLocalizations l10n, int nombreProduits) {
-  return Container(
-    decoration: BoxDecoration(
-      color: Appstyle.violet.withOpacity(0.6),
-      borderRadius: BorderRadius.circular(10),
-    ),
-    padding: const EdgeInsets.all(10),
-    child: Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-      children: [
-        detailbadge("ID", r.id),
-        detailbadge(l10n.amount, r.montant),
-        if (r.type == "Par Produit")
-          detailbadge(l10n.productCount, nombreProduits),
-        detailbadge(l10n.status, r.etat),
-      ],
-    ),
+  List<StatsItem> items = [
+    StatsItem(label: l10n.code, value: r.code),
+    StatsItem(label: l10n.type, value: r.type),
+  ];
+
+
+
+  if (r.type == "Par Produit") {
+    items.add(StatsItem(label: l10n.productCount, value: nombreProduits));
+  }
+  else
+  {
+    items.add(StatsItem(label: l10n.montant, value: r.montant));
+  }
+
+
+  items.add(StatsItem(label: l10n.discountRate, value: r.tauxType == "Pourcentage" ? "${r.taux}%" : "${r.taux} ${l10n.currency}"));
+
+  return StatsCard(
+    backgroundColor: Appstyle.violet.withOpacity(0.7),
+    items: items,
   );
 }
-
 // ================= Dialogue Liste des produits de la remise =================
-Widget _dialogListeProduitsRemise(BuildContext context, Remise remise, AppLocalizations l10n) {
-  final produits = ProduitTest.where((e) => e.remiseId == remise.id).toList();
-
-  // Calcul du nombre de produits
-  int nombreProduits = produits.length;
-
-  return BaseDialog(
-    width: 800,
-    height: 550,
-
-    // ───────── HEADER ─────────
-    header: Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          l10n.productsOfDiscount(remise.code ?? ""),
-          style: Appstyle.textLB,
-        ),
-        const SizedBox(height: 8),
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            Text(
-              "${l10n.discount} : ${remise.nom}",
-              style: Appstyle.textSB,
-            ),
-            Text(
-              "${l10n.type} : ${remise.type}",
-              style: Appstyle.textSB.copyWith(color: Appstyle.crevete),
-            ),
-          ],
-        ),
-        const SizedBox(height: 8),
-        // Résumé des produits
-        Container(
-          padding: const EdgeInsets.all(8),
-          decoration: BoxDecoration(
-            color: Appstyle.violet.withOpacity(0.1),
-            borderRadius: BorderRadius.circular(8),
-          ),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Column(
-                children: [
-                  Text(l10n.numberOfItems, style: Appstyle.textSB.copyWith(fontSize: 12, color: Appstyle.gris)),
-                  Text(
-                    "$nombreProduits",
-                    style: Appstyle.textLB.copyWith(color: Appstyle.violet, fontSize: 16),
-                  ),
-                ],
-              ),
-            ],
-          ),
-        ),
-      ],
-    ),
-
-    // ───────── CONTENT ─────────
-    content: produits.isEmpty
-        ? Center(
-      child: Text(
-        l10n.noProductsAssociated,
-        style: Appstyle.textSB.copyWith(color: Appstyle.gris),
-      ),
-    )
-        : LayoutBuilder(
-      builder: (context, constraints) {
-        return SingleChildScrollView(
-          scrollDirection: Axis.vertical,
-          child: ConstrainedBox(
-            constraints: BoxConstraints(minWidth: constraints.maxWidth),
-            child: DataTable(
-              headingRowColor: MaterialStateProperty.all(Appstyle.violet.withOpacity(0.1)),
-              headingTextStyle: Appstyle.textSB.copyWith(color: Appstyle.violet),
-              columnSpacing: 16,
-              columns: [
-                DataColumn(label: Text(l10n.productCode, style: Appstyle.textSB.copyWith(fontWeight: FontWeight.bold))),
-                DataColumn(label: Text(l10n.productName, style: Appstyle.textSB.copyWith(fontWeight: FontWeight.bold))),
-                DataColumn(label: Text(l10n.discountRate, style: Appstyle.textSB.copyWith(fontWeight: FontWeight.bold)), numeric: true),
-                DataColumn(label: Text(l10n.discountApplicationAmount, style: Appstyle.textSB.copyWith(fontWeight: FontWeight.bold)), numeric: true),
-              ],
-              rows: produits.map((p) {
-                // Calcul de la remise (à adapter selon votre logique métier)
-                double tauxRemise = remise.taux ?? 0;
-                double montantRemise = (p.prixVente * tauxRemise / 100);
-
-                return DataRow(
-                  cells: [
-                    DataCell(Text(p.code, style: Appstyle.textSB)),
-                    DataCell(Text(p.nom, style: Appstyle.textSB)),
-                    DataCell(
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                        decoration: BoxDecoration(
-                          color: Appstyle.crevete.withOpacity(0.1),
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        child: Text(
-                          "$tauxRemise%",
-                          style: Appstyle.textSB.copyWith(color: Appstyle.crevete),
-                        ),
-                      ),
-                    ),
-                    DataCell(
-                      Text(
-                        "${montantRemise.toStringAsFixed(2)} ${l10n.currency}",
-                        style: Appstyle.textSB.copyWith(fontWeight: FontWeight.bold, color: Appstyle.crevete),
-                      ),
-                    ),
-                  ],
-                );
-              }).toList(),
-            ),
-          ),
-        );
-      },
-    ),
-
-    // ───────── FOOTER ─────────
-    footer: Align(
-      alignment: Alignment.centerRight,
-      child: ElevatedButton.icon(
-        icon: Icon(Icons.close, color: Appstyle.Tblanc),
-        label: Text(
-          l10n.close,
-          style: Appstyle.textSB.copyWith(color: Appstyle.Tblanc),
-        ),
-        style: ElevatedButton.styleFrom(
-          backgroundColor: Appstyle.violet,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(10),
-          ),
-        ),
-        onPressed: () => Navigator.pop(context),
-      ),
-    ),
-  );
-}// Ajoutez cette fonction à la fin du fichier remise_detail.dart
 Future<void> showRemiseProductsListDialog(BuildContext context, Remise remise, AppLocalizations l10n) async {
   await _loadData(remis: remise);
 
   final produits = ProduitTest.where((e) => e.remiseId == remise.id).toList();
 
-  // Calcul du nombre de produits
-  int nombreProduits = produits.length;
-
-  showDialog(
+  return ProduitsListeDialog.afficher(
     context: context,
-    barrierColor: Appstyle.gris.withOpacity(0.4),
-    builder: (_) {
-      return BaseDialog(
-        width: 800,
-        height: 550,
+    titre: l10n.productsOfDiscount(remise.code ?? ""),
+    sousTitre: [
+      Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Text("${l10n.discount} : ${remise.nom}", style: Appstyle.textSB),
+          Text("${l10n.type} : ${remise.type}", style: Appstyle.textSB.copyWith(color: Appstyle.crevete)),
+        ],
+      ),
+    ],
+    stats: [
+      StatBadge(label: l10n.numberOfItems, valeur: "${produits.length}"),
+    ],
+    colonnes: [
+      DataColumn(label: Text(l10n.productCode)),
+      DataColumn(label: Text(l10n.productName)),
+      DataColumn(label: Text(l10n.discountRate), numeric: true),
+      DataColumn(label: Text(l10n.discountApplicationAmount), numeric: true),
+    ],
+    lignes: produits.map((p) {
+      double tauxRemise = remise.taux ?? 0;
+      double montantRemise = (p.prixVente * tauxRemise / 100);
 
-        header: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              l10n.productsOfDiscount(remise.code ?? ""),
-              style: Appstyle.textLB,
-            ),
-            const SizedBox(height: 8),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Text(
-                  "${l10n.discount} : ${remise.nom}",
-                  style: Appstyle.textSB,
-                ),
-                Text(
-                  "${l10n.type} : ${remise.type}",
-                  style: Appstyle.textSB.copyWith(color: Appstyle.crevete),
-                ),
-              ],
-            ),
-            const SizedBox(height: 8),
-            Container(
-              padding: const EdgeInsets.all(8),
-              decoration: BoxDecoration(
-                color: Appstyle.violet.withOpacity(0.1),
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Column(
-                    children: [
-                      Text(l10n.numberOfItems, style: Appstyle.textSB.copyWith(fontSize: 12, color: Appstyle.gris)),
-                      Text(
-                        "$nombreProduits",
-                        style: Appstyle.textLB.copyWith(color: Appstyle.violet, fontSize: 16),
-                      ),
-                    ],
-                  ),
-                ],
-              ),
-            ),
-          ],
-        ),
-
-        content: produits.isEmpty
-            ? Center(
-          child: Text(
-            l10n.noProductsAssociated,
-            style: Appstyle.textSB.copyWith(color: Appstyle.gris),
-          ),
-        )
-            : LayoutBuilder(
-          builder: (context, constraints) {
-            return SingleChildScrollView(
-              scrollDirection: Axis.vertical,
-              child: ConstrainedBox(
-                constraints: BoxConstraints(minWidth: constraints.maxWidth),
-                child: DataTable(
-                  headingRowColor: MaterialStateProperty.all(Appstyle.violet.withOpacity(0.1)),
-                  headingTextStyle: Appstyle.textSB.copyWith(color: Appstyle.violet),
-                  columnSpacing: 16,
-                  columns: [
-                    DataColumn(label: Text(l10n.productCode, style: Appstyle.textSB.copyWith(fontWeight: FontWeight.bold))),
-                    DataColumn(label: Text(l10n.productName, style: Appstyle.textSB.copyWith(fontWeight: FontWeight.bold))),
-                    DataColumn(label: Text(l10n.discountRate, style: Appstyle.textSB.copyWith(fontWeight: FontWeight.bold)), numeric: true),
-                    DataColumn(label: Text(l10n.discountApplicationAmount, style: Appstyle.textSB.copyWith(fontWeight: FontWeight.bold)), numeric: true),
-                  ],
-                  rows: produits.map((p) {
-                    // Calcul de la remise
-                    double tauxRemise = remise.taux ?? 0;
-                    double montantRemise = (p.prixVente * tauxRemise / 100);
-
-                    return DataRow(
-                      cells: [
-                        DataCell(Text(p.code, style: Appstyle.textSB)),
-                        DataCell(Text(p.nom, style: Appstyle.textSB)),
-                        DataCell(
-                          Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                            decoration: BoxDecoration(
-                              color: Appstyle.crevete.withOpacity(0.1),
-                              borderRadius: BorderRadius.circular(12),
-                            ),
-                            child: Text(
-                              "$tauxRemise%",
-                              style: Appstyle.textSB.copyWith(color: Appstyle.crevete),
-                            ),
-                          ),
-                        ),
-                        DataCell(
-                          Text(
-                            "${montantRemise.toStringAsFixed(2)} ${l10n.currency}",
-                            style: Appstyle.textSB.copyWith(fontWeight: FontWeight.bold, color: Appstyle.crevete),
-                          ),
-                        ),
-                      ],
-                    );
-                  }).toList(),
-                ),
-              ),
-            );
-          },
-        ),
-
-        footer: Align(
-          alignment: Alignment.centerRight,
-          child: ElevatedButton.icon(
-            icon: Icon(Icons.close, color: Appstyle.Tblanc),
-            label: Text(
-              l10n.close,
-              style: Appstyle.textSB.copyWith(color: Appstyle.Tblanc),
-            ),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Appstyle.violet,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(10),
-              ),
-            ),
-            onPressed: () => Navigator.pop(context),
-          ),
-        ),
+      return DataRow(
+        cells: [
+          DataCell(Text(p.code, style: Appstyle.textSB)),
+          DataCell(Text(p.nom, style: Appstyle.textSB)),
+          DataCell(pilluleCellule("$tauxRemise%", Appstyle.crevete)),
+          DataCell(Text(
+            "${NumberFormatUtil.formatMontant(montantRemise, decimales: 2)} ${l10n.currency}",
+            style: Appstyle.textSB.copyWith(fontWeight: FontWeight.bold, color: Appstyle.crevete),
+          )),
+        ],
       );
-    },
+    }).toList(),
+    messageVide: l10n.noProductsAssociated,
   );
 }

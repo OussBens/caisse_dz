@@ -33,6 +33,30 @@ class ClientStats {
   });
 }
 
+/// Statistiques globales agrégées sur l'ensemble des clients
+/// (nombre de clients, total des achats, total du crédit et
+/// les clients "top" associés) — calculées en direct à partir
+/// des tables panniers et verssements.
+class ClientGlobalStats {
+  final int nombreClients;
+  final double totalAchat;
+  final Client? clientTopAchat;
+  final double montantTopAchat;
+  final double totalCredit;
+  final Client? clientTopCredit;
+  final double montantTopCredit;
+
+  ClientGlobalStats({
+    required this.nombreClients,
+    required this.totalAchat,
+    required this.clientTopAchat,
+    required this.montantTopAchat,
+    required this.totalCredit,
+    required this.clientTopCredit,
+    required this.montantTopCredit,
+  });
+}
+
 class ClientServices{
 
   final Database db;
@@ -47,6 +71,23 @@ class ClientServices{
 
     return result.map((e) => Client.fromMap(e)).toList();
 
+  }
+
+  /// Retourne le client (autre que [excludeClientCode]) portant déjà ce nom
+  /// (comparaison insensible à la casse et aux espaces) — null si le nom
+  /// est libre.
+  static Future<Client?> findClientByNom(String nom, {String? excludeClientCode}) async {
+    final db = await DbCreator.openDb();
+    final maps = await db.query(
+      'clients',
+      where: 'LOWER(TRIM(nom)) = ?',
+      whereArgs: [nom.trim().toLowerCase()],
+      limit: 1,
+    );
+    if (maps.isEmpty) return null;
+    final client = Client.fromMap(maps.first);
+    if (client.code == excludeClientCode) return null;
+    return client;
   }
 // Ajoutez ces méthodes dans ClientServices.dart
 
@@ -286,27 +327,38 @@ class ClientServices{
 
     final panniers = await db.query(
       'panniers',
-      where: 'client = ? AND etat = 1',
-      whereArgs: [client.nom],
+      where: 'client_code = ? AND etat = 1',
+      whereArgs: [client.code],
     );
-    final versements = await db.query(
+    final versementsEntree = await db.query(
       'verssements',
-      where: 'beneficiare = ? AND typebeneficiare = ? AND etat = 1',
-      whereArgs: [client.nom, 'Client'],
+      where: 'beneficiare_code = ? AND typebeneficiare = ? AND sense = ? AND etat = 1',
+      whereArgs: [client.code, 'Client', 'Entrée'],
+    );
+    final versementsSortie = await db.query(
+      'verssements',
+      where: 'beneficiare_code = ? AND typebeneficiare = ? AND sense = ? AND etat = 1',
+      whereArgs: [client.code, 'Client', 'Sortie'],
     );
     final retours = await db.query(
       'retours',
-      where: 'client = ? AND type = ? AND etat = 1',
-      whereArgs: [client.nom, 'Client'],
+      where: 'client_code = ? AND type = ? AND etat = 1',
+      whereArgs: [client.code, 'Client'],
     );
 
     final double totalAchat = panniers.fold(
         0.0, (sum, p) => sum + (p['montant'] as num).toDouble());
     final int nbrAchat = panniers.length;
 
-    final double totalVerse = versements.fold(
+    final double totalVerseEntree = versementsEntree.fold(
         0.0, (sum, v) => sum + (v['montant'] as num).toDouble());
-    final int nbrVersement = versements.length;
+    final double totalVerseSortie = versementsSortie.fold(
+        0.0, (sum, v) => sum + (v['montant'] as num).toDouble());
+    // Total versement client = uniquement les versements Entrée (encaissements
+    // du client). Les remboursements (Sortie) sont suivis via les retours et ne
+    // sont pas déduits de ce total.
+    final double totalVerse = totalVerseEntree;
+    final int nbrVersement = versementsEntree.length + versementsSortie.length;
 
     final int nbrRetour = retours.length;
     final double totalRetour = retours.fold(0.0, (sum, r) {
@@ -323,9 +375,9 @@ class ClientServices{
       }
     }
 
-    final double avance = (totalVerse - totalAchat) > 0 ? (totalVerse - totalAchat) : 0;
-    final double credit = (totalAchat - totalVerse) > 0 ? (totalAchat - totalVerse) : 0;
-    final double solde = avance > 0 ? avance : (credit > 0 ? -credit : 0);
+    final double solde = totalVerse - totalAchat;
+    final double avance = solde > 0 ? solde : 0;
+    final double credit = solde < 0 ? -solde : 0;
 
     return ClientStats(
       totalAchat: totalAchat,
@@ -338,6 +390,80 @@ class ClientServices{
       avance: avance,
       credit: credit,
       solde: solde,
+    );
+  }
+
+  /// Calcule en direct les statistiques globales de tous les clients :
+  /// total des achats, client ayant le plus acheté, total du crédit
+  /// (somme des différences positives achat - versement par client)
+  /// et le client ayant le plus grand crédit.
+  static Future<ClientGlobalStats> getGlobalClientStats() async {
+    final db = await DbCreator.openDb();
+    final clients = await getAllClients();
+
+    final panniersParClient = await db.rawQuery('''
+      SELECT client_code, SUM(montant) AS total
+      FROM panniers
+      WHERE etat = 1 AND client_code IS NOT NULL
+      GROUP BY client_code
+    ''');
+    final versementsParClient = await db.rawQuery('''
+      SELECT beneficiare_code, sense, SUM(montant) AS total
+      FROM verssements
+      WHERE etat = 1 AND typebeneficiare = 'Client'
+      GROUP BY beneficiare_code, sense
+    ''');
+
+    final Map<String, double> achatParClientCode = {
+      for (final row in panniersParClient)
+        row['client_code'] as String: (row['total'] as num?)?.toDouble() ?? 0,
+    };
+    final Map<String, double> entreeParClientCode = {};
+    final Map<String, double> sortieParClientCode = {};
+    for (final row in versementsParClient) {
+      final code = row['beneficiare_code'] as String;
+      final total = (row['total'] as num?)?.toDouble() ?? 0;
+      if (row['sense'] == 'Entrée') {
+        entreeParClientCode[code] = total;
+      } else if (row['sense'] == 'Sortie') {
+        sortieParClientCode[code] = total;
+      }
+    }
+
+    double totalAchat = 0;
+    double totalCredit = 0;
+    Client? clientTopAchat;
+    double montantTopAchat = 0;
+    Client? clientTopCredit;
+    double montantTopCredit = 0;
+
+    for (final client in clients) {
+      final achat = achatParClientCode[client.code] ?? 0;
+      final verse = (entreeParClientCode[client.code] ?? 0);
+      final solde = verse - achat;
+      final credit = solde < 0 ? -solde : 0.0;
+
+      totalAchat += achat;
+      totalCredit += credit;
+
+      if (achat > montantTopAchat) {
+        montantTopAchat = achat;
+        clientTopAchat = client;
+      }
+      if (credit > montantTopCredit) {
+        montantTopCredit = credit;
+        clientTopCredit = client;
+      }
+    }
+
+    return ClientGlobalStats(
+      nombreClients: clients.length,
+      totalAchat: totalAchat,
+      clientTopAchat: clientTopAchat,
+      montantTopAchat: montantTopAchat,
+      totalCredit: totalCredit,
+      clientTopCredit: clientTopCredit,
+      montantTopCredit: montantTopCredit,
     );
   }
 

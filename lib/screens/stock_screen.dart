@@ -6,12 +6,17 @@ import 'package:caisse_dz/Services/ExcelPreviewDialog.dart';
 import 'package:caisse_dz/core/Auth/auth_state.dart';
 
 import 'package:caisse_dz/Services/SousCategories.dart';
+import 'package:caisse_dz/Services/Client.dart';
 import 'package:caisse_dz/Services/Fournisseur.dart';
 import 'package:caisse_dz/Services/Categorie.dart';
 import 'package:caisse_dz/Services/Mouvement.dart';
 import 'package:caisse_dz/Services/Produits.dart';
 import 'package:caisse_dz/Services/Magasin.dart';
+import 'package:caisse_dz/data/models/magasin.dart';
 import 'package:caisse_dz/Services/Remise.dart';
+import 'package:caisse_dz/Services/Paramters.dart';
+import 'package:caisse_dz/Services/Utilisateur.dart';
+import 'package:caisse_dz/data/models/utilisateur.dart';
 import 'package:caisse_dz/data/models/remise.dart';
 
 import 'package:caisse_dz/core/dialog/mouvement/mouvement_detail.dart';
@@ -26,6 +31,7 @@ import 'package:caisse_dz/core/tableau/stock/tableau_stock.dart';
 
 import 'package:caisse_dz/core/theme/app_style.dart';
 import 'package:caisse_dz/core/utilis/constant.dart';
+import 'package:caisse_dz/core/utilis/barcode_scan_listener.dart';
 
 import 'package:caisse_dz/core/widget/account.dart';
 
@@ -42,6 +48,7 @@ import 'package:caisse_dz/core/widget/champ/date_champ.dart';
 
 import 'package:caisse_dz/core/widget/fourchette._widget.dart';
 import 'package:caisse_dz/core/widget/time_date_widget.dart';
+import 'package:caisse_dz/core/widget/connection_status_bar.dart';
 import 'package:caisse_dz/core/widget/header_module.dart';
 import 'package:caisse_dz/core/widget/search_bar.dart';
 import 'package:caisse_dz/core/widget/side_bar.dart';
@@ -51,7 +58,6 @@ import 'package:caisse_dz/data/models/fournisseur.dart';
 import 'package:caisse_dz/data/models/categorie.dart';
 import 'package:caisse_dz/data/models/mouvement.dart';
 import 'package:caisse_dz/data/models/produit.dart';
-import 'package:caisse_dz/data/models/magasin.dart';
 import 'package:caisse_dz/data/models/client.dart';
 
 import 'package:caisse_dz/data/constant.dart';
@@ -68,7 +74,6 @@ String? selectedEtatFilterM;
 
 // Valeurs sélectionnées dans le filtre
 String? selectedCategorieFilter;
-String? selectedMagasinFilter;
 String? selectedSousCategorieFilter;
 String? selectedMarqueFilter;
 
@@ -83,8 +88,8 @@ List<Client>            clientsTest           = [];
 List<Fournisseur>       fournisseursTest      = [];
 List<Produit>           produitsTest          = [];
 List<Categorie>         categoriesTest        = [];
-List<Magasin>           magasinsTest          = [];
 List<Remise>            remisesTest           = [];
+List<Utilisateur>       utilisateursTest      = [];
 
 List<Produit>     produitsSelectionnes    = [];
 List<Mouvement>   mouvementsSelectionnes  = [];
@@ -97,6 +102,7 @@ class StockScreen extends StatefulWidget {
 
 class _StockScreenState extends State<StockScreen> with TickerProviderStateMixin {
   late TabController _tabController;
+  late BarcodeScanListener _barcodeScanListener;
 
   // ✅ Constantes pour les index des tabs
   static const int TAB_STOCK = 0;
@@ -121,41 +127,62 @@ class _StockScreenState extends State<StockScreen> with TickerProviderStateMixin
   List<String> FournisseurFilterOptions   = [];
   List<String> categorieFilterOptions     = [];
   List<String> ProduitFilterOptions       = [];
-  List<String> magasinFilterOptions       = [];
   List<String> ClientFilterOptions        = [];
 
   // Plus besoin de selectedCardIndex, on utilise _tabController.index
   String nombre_stock           = "1200";
   String nombre_mouvement       = "250";
+  double seuilMinimum           = 0;
+  double seuilMaximum           = 0;
+
+  // Quantité par produit calculée depuis le journal des mouvements — voir
+  // produit_screen.dart, même mécanisme (MouvementsServices.totauxParProduit).
+  Map<String, double> quantitesParMagasin = {};
+  String? magasinFiltreCode;
+  List<Magasin> magasinsDisponiblesStock = [];
+
+  Future<void> _chargerQuantitesParMagasin() async {
+    final totaux = await MouvementsServices.totauxParProduit(magasinCode: magasinFiltreCode);
+    if (!mounted) return;
+    setState(() => quantitesParMagasin = totaux.quantites);
+  }
 
   Future<void> loadAllData() async {
     final test = await ProduitServices.getAllProduits();
 
     final sousCategories    = await SousCategoriesServices.getAllSousCategorie();
     final fournisseurs      = await FournisseurServices.getAllFournisseurs();
+    final clients            = await ClientServices.getAllClients();
     final mouvements        = await MouvementsServices.getAllMouvements();
     final categories        = await CategorieServices.getAllCategorie();
     final produits          = await ProduitServices.getAllProduits();
-    final magasins          = await MagasinServices.getAllMagasins();
     final remises           = await RemiseServices.getAllRemise();
+    final param              = await ParamServices.getParam();
+    final utilisateurs      = await UtilisateurServices.getAllUtilisateurs();
+    final magasins           = (await MagasinServices.getAllMagasins()).where((m) => m.etat).toList();
+    final totaux             = await MouvementsServices.totauxParProduit(magasinCode: magasinFiltreCode);
 
     setState(() {
       sousCategoriesTest    = sousCategories;
       fournisseursTest      = fournisseurs;
+      clientsTest           = clients;
       mouvementsTest        = mouvements;
       categoriesTest        = categories;
       produitsTest          = produits;
-      magasinsTest          = magasins;
       remisesTest           = remises;
+      utilisateursTest      = utilisateurs;
+      seuilMinimum          = param.Minimum;
+      seuilMaximum          = param.Maximum;
       produitsFiltres   = produitsTest;
       mouvementsFiltres = mouvementsTest;
+      magasinsDisponiblesStock = magasins;
+      quantitesParMagasin = totaux.quantites;
 
       sousCategorieFilterOptions = sousCategoriesTest.map  ((sc) => sc.nom). toSet().toList();
       TypeMouvementFilterOptions = mouvementsTest.map      ((c)  => c.type). toSet().toList();
       FournisseurFilterOptions   = fournisseursTest.map    ((sc) => sc.nom). toSet().toList();
       categorieFilterOptions     = categoriesTest.map      ((c)  => c.nom).  toSet().toList();
       ProduitFilterOptions       = produitsTest.map        ((c)  => c.nom).  toSet().toList();
-      magasinFilterOptions       = magasinsTest.map        ((c)  => c.nom).  toSet().toList();
       ClientFilterOptions        = clientsTest.map         ((c)  => c.nom).  toSet().toList();
 
       nombre_stock = produitsTest.length.toString();
@@ -209,6 +236,8 @@ class _StockScreenState extends State<StockScreen> with TickerProviderStateMixin
           remises: remisesTest,
           l10n: l10n,
           translator: translator,
+          seuilMin: seuilMinimum,
+          seuilMax: seuilMaximum,
         );
       } else {
         // Mouvements
@@ -383,6 +412,8 @@ class _StockScreenState extends State<StockScreen> with TickerProviderStateMixin
           remises: remisesTest,
           l10n: l10n,
           translator: translator,
+          seuilMin: seuilMinimum,
+          seuilMax: seuilMaximum,
         );
       } else {
         // Mouvements
@@ -541,13 +572,37 @@ class _StockScreenState extends State<StockScreen> with TickerProviderStateMixin
         });
       }
     });
+    _barcodeScanListener = BarcodeScanListener(onScan: _onBarcodeScanned)..start();
     loadAllData();
   }
 
   @override
   void dispose() {
+    _barcodeScanListener.stop();
     _tabController.dispose();
     super.dispose();
+  }
+
+  // ✅ Scan lecteur code-barres/QR : bascule sur l'onglet Stock si besoin, ouvre
+  // la section filtre et remplit le champ de recherche avec le code scanné.
+  // Ignoré si un dialog est ouvert au-dessus de l'écran (route plus "current"),
+  // pour que le scan profite au dialog ouvert et non à l'écran stock en arrière-plan.
+  void _onBarcodeScanned(String rawCode) {
+    if (!mounted) return;
+    final route = ModalRoute.of(context);
+    if (route != null && !route.isCurrent) return;
+    final code = rawCode.trim();
+    if (code.isEmpty) return;
+
+    if (_tabController.index != TAB_STOCK) {
+      _tabController.animateTo(TAB_STOCK);
+    }
+
+    setState(() {
+      filtresActifs = true;
+      _searchController.text = code;
+      appliquerFiltre();
+    });
   }
 
   String _formatDate(DateTime d) {
@@ -589,8 +644,9 @@ class _StockScreenState extends State<StockScreen> with TickerProviderStateMixin
       final prixVenteOk = (prixVenteMin == null || p.prixVente >= prixVenteMin!) &&
           (prixVenteMax == null || p.prixVente <= prixVenteMax!);
 
-      final quantiteOk = (quantiteMin == null || p.quantite >= quantiteMin!) &&
-          (quantiteMax == null || p.quantite <= quantiteMax!);
+      final quantiteP = quantitesParMagasin[p.code] ?? 0;
+      final quantiteOk = (quantiteMin == null || quantiteP >= quantiteMin!) &&
+          (quantiteMax == null || quantiteP <= quantiteMax!);
 
       final etatOk = selectedEtatFilterS == null ||
           selectedEtatFilterS == "" ||
@@ -603,7 +659,6 @@ class _StockScreenState extends State<StockScreen> with TickerProviderStateMixin
     if ((selectedCategorieFilter      == null || selectedCategorieFilter!.isEmpty) &&
         (selectedSousCategorieFilter  == null || selectedSousCategorieFilter!.isEmpty) &&
         (selectedEtatFilterS == null || selectedEtatFilterS!.isEmpty) &&
-        (selectedMagasinFilter        == null || selectedMagasinFilter!.isEmpty) &&
         (selectedMarqueFilter         == null || selectedMarqueFilter!.isEmpty) &&
         prixAchatMin  == null && prixAchatMax == null &&
         prixVenteMin  == null && prixVenteMax == null &&
@@ -722,7 +777,6 @@ class _StockScreenState extends State<StockScreen> with TickerProviderStateMixin
     selectedCategorieFilter = null;
     selectedSousCategorieFilter = null;
     selectedMarqueFilter=null;
-    selectedMagasinFilter=null;
     prixAchatMin = null;
     prixAchatMax = null;
     quantiteMin = null;
@@ -738,6 +792,22 @@ class _StockScreenState extends State<StockScreen> with TickerProviderStateMixin
     _dateFinCtrl.clear();
   }
 
+  // ✅ Vrai si au moins un champ de filtre stock (produits) est renseigné (pour l'indicateur visuel du bouton Filtre).
+  // Note : dateDebut/dateFin/periodeRapide sont partagés avec l'onglet Mouvement mais ne sont pas
+  // utilisés par appliquerFiltre() (stock), donc volontairement exclus ici.
+  bool get _filtresStockActifs =>
+      selectedCategorieFilter != null ||
+      selectedSousCategorieFilter != null ||
+      selectedMarqueFilter != null ||
+      prixAchatMin != null ||
+      prixAchatMax != null ||
+      prixVenteMin != null ||
+      prixVenteMax != null ||
+      quantiteMin != null ||
+      quantiteMax != null ||
+      selectedEtatFilterS != null ||
+      _searchController.text.isNotEmpty;
+
   void supprimerFilterMouvement() {
     selectedFournisseurFilter=null;
     selectedClientFilter = null;
@@ -751,6 +821,18 @@ class _StockScreenState extends State<StockScreen> with TickerProviderStateMixin
     _dateDebutCtrl.clear();
     _dateFinCtrl.clear();
   }
+
+  // ✅ Vrai si au moins un champ de filtre mouvement est renseigné (pour l'indicateur visuel du bouton Filtre).
+  bool get _filtresMouvementActifs =>
+      selectedTypeMouvementFilter != null ||
+      selectedClientFilter != null ||
+      selectedFournisseurFilter != null ||
+      selectedProduitFilter != null ||
+      selectedEtatFilterM != null ||
+      dateDebut != null ||
+      dateFin != null ||
+      periodeRapide != null ||
+      _searchControllerMouvement.text.isNotEmpty;
 
   void vider_selectionne() {
     produitsSelectionnes.clear();
@@ -814,10 +896,13 @@ class _StockScreenState extends State<StockScreen> with TickerProviderStateMixin
     // ✅ Index actuel du tab
     final currentTab = _tabController.index;
 
+    // ✅ Couleur de l'en-tête alignée sur la couleur du tab actif
+    final Color headerColor = currentTab == TAB_STOCK ? Appstyle.violet : Appstyle.indigo;
+
     // ✅ Noms des tabs
     final tabNames = [
       l10n.stock,
-      l10n.entree,
+      l10n.mouvement,
     ];
 
     // ✅ Icônes des tabs
@@ -857,16 +942,14 @@ class _StockScreenState extends State<StockScreen> with TickerProviderStateMixin
 
             return SingleChildScrollView(
               scrollDirection: Axis.horizontal,
-              child: SingleChildScrollView(
-                scrollDirection: Axis.vertical,
-                child: ConstrainedBox(
-                  constraints: const BoxConstraints(
-                    minWidth: minWidth,
-                    minHeight: minHeight,
-                  ),
-                  child: SizedBox(
-                    width: adjustedWidth,
-                    height: adjustedHeight,
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(
+                  minWidth: minWidth,
+                  minHeight: minHeight,
+                ),
+                child: SizedBox(
+                  width: adjustedWidth,
+                  height: adjustedHeight,
                     child: Row(
                       textDirection: textDirection,
                       crossAxisAlignment: CrossAxisAlignment.start,
@@ -890,7 +973,7 @@ class _StockScreenState extends State<StockScreen> with TickerProviderStateMixin
                                           Image.asset(
                                             "assets/icons/sidebar/stock_icon.png",
                                             width: 40,
-                                            color: Appstyle.blueC,
+                                            color: headerColor,
                                           ),
                                           const SizedBox(width: 10),
                                           Row(
@@ -899,7 +982,7 @@ class _StockScreenState extends State<StockScreen> with TickerProviderStateMixin
                                               Text(
                                                 l10n.stock,
                                                 style: Appstyle.textXLB.copyWith(
-                                                  color       : Appstyle.blueC,
+                                                  color       : headerColor,
                                                   fontWeight  : FontWeight.bold,
                                                 ),
                                               ),
@@ -907,7 +990,7 @@ class _StockScreenState extends State<StockScreen> with TickerProviderStateMixin
                                               Text(
                                                 "(${tabNames[currentTab]})",
                                                 style: Appstyle.textXLB.copyWith(
-                                                  color       : Appstyle.blueC,
+                                                  color       : headerColor,
                                                   fontWeight  : FontWeight.bold,
                                                 ),
                                               ),
@@ -919,9 +1002,9 @@ class _StockScreenState extends State<StockScreen> with TickerProviderStateMixin
                                       Row(
                                         textDirection: textDirection,
                                         children: [
+                                          const ConnectionStatusBar(),
+                                          const SizedBox(width: 20),
                                           TimeDateWidget(
-                                            heure: "18:00",
-                                            date: "25 Nov 2025",
                                             iconHeure: "assets/icons/hour_icon.png",
                                             iconDate: "assets/icons/agenda_icon.png",
                                           ),
@@ -957,8 +1040,7 @@ class _StockScreenState extends State<StockScreen> with TickerProviderStateMixin
                                     isScrollable: false,
                                     indicator: BoxDecoration(
                                       color: currentTab == TAB_STOCK
-                                          ? Appstyle.blueC
-                                          : Appstyle.violet,
+                                          ? Appstyle.violet : Appstyle.indigo,
                                       borderRadius: BorderRadius.circular(12),
                                     ),
                                     labelColor: Colors.white,
@@ -1044,6 +1126,7 @@ class _StockScreenState extends State<StockScreen> with TickerProviderStateMixin
                                                   color: Appstyle.Tblanc,
                                                   icon: filtresActifs ? Icons.visibility_off : Icons.visibility,
                                                   iconColor:Appstyle.violet ,
+                                                  showBadge: _filtresStockActifs,
                                                   onPressed: () {
                                                     setState(() {
                                                       filtresActifs = !filtresActifs;
@@ -1115,31 +1198,6 @@ class _StockScreenState extends State<StockScreen> with TickerProviderStateMixin
                                                     }
                                                   },
                                                 ),
-                                                SizedBox(width: paddingH / 4),
-                                                MainIconButton(
-                                                  imagePath: "assets/icons/action/distribution_icon.png",
-                                                  color: Appstyle.blueC,
-                                                  onPressed: () async {
-                                                    if (produitsSelectionnes.length == 1) {
-                                                      await DistributionProduit(context, produitsSelectionnes.first);
-                                                      await loadAllData();
-                                                    } else if (produitsSelectionnes.isEmpty) {
-                                                      await InformationDialog(
-                                                        context: context,
-                                                        titre_type_message: l10n.information,
-                                                        titre_concerne: l10n.stock,
-                                                        message: l10n.noProductSelected,
-                                                      );
-                                                    } else {
-                                                      await InformationDialog(
-                                                        context: context,
-                                                        titre_type_message: l10n.information,
-                                                        titre_concerne: l10n.sousCategorie,
-                                                        message: l10n.selectSingleProductToModify,
-                                                      );
-                                                    }
-                                                  },
-                                                ),
                                               ],
                                             ),
                                           ],
@@ -1169,6 +1227,9 @@ class _StockScreenState extends State<StockScreen> with TickerProviderStateMixin
                                           sousCategories: sousCategoriesTest,
                                           remises: remisesTest,
                                           fournisseurs: fournisseursTest,
+                                          seuilMinimum: seuilMinimum,
+                                          utilisateurs: utilisateursTest,
+                                          quantites: quantitesParMagasin,
                                           onSelectionChanged: (selection) {
                                             setState(() {
                                               produitsSelectionnes = selection;
@@ -1235,6 +1296,7 @@ class _StockScreenState extends State<StockScreen> with TickerProviderStateMixin
                                                   color: Appstyle.Tblanc,
                                                   icon: filtresActifs ? Icons.visibility_off : Icons.visibility,
                                                   iconColor:Appstyle.violet ,
+                                                  showBadge: _filtresMouvementActifs,
                                                   onPressed: () {
                                                     setState(() {
                                                       filtresActifs = !filtresActifs;
@@ -1340,6 +1402,7 @@ class _StockScreenState extends State<StockScreen> with TickerProviderStateMixin
                                           produits: produitsTest,
                                           clients: clientsTest,
                                           fournisseurs: fournisseursTest,
+                                          utilisateurs: utilisateursTest,
                                           onSelectionChanged: (selection) {
                                             setState(() {
                                               mouvementsSelectionnes = selection;
@@ -1357,7 +1420,6 @@ class _StockScreenState extends State<StockScreen> with TickerProviderStateMixin
                     ),
                   ),
                 ),
-              ),
             );
           },
         ),
@@ -1443,6 +1505,34 @@ class _StockScreenState extends State<StockScreen> with TickerProviderStateMixin
               ],
             ),
             const SizedBox(height: 15),
+            // Quantité affichée = calculée depuis le journal des mouvements
+            // pour ce magasin (ou tous magasins si "Tous").
+            Row(
+              textDirection: textDirection,
+              children: [
+                Expanded(
+                  child: ChampAvecLabel(
+                    label: l10n.magasin,
+                    child: TextListe(
+                      value: magasinFiltreCode == null
+                          ? null
+                          : magasinsDisponiblesStock
+                              .firstWhereOrNull((m) => m.code == magasinFiltreCode)
+                              ?.nom,
+                      hint: "Tous les magasins",
+                      items: magasinsDisponiblesStock.map((m) => m.nom).toList(),
+                      onChanged: (v) {
+                        magasinFiltreCode = (v == null || v.isEmpty)
+                            ? null
+                            : magasinsDisponiblesStock.firstWhereOrNull((m) => m.nom == v)?.code;
+                        _chargerQuantitesParMagasin();
+                      },
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 15),
             // Ligne prix achat / prix vente / quantité
             Row(
               textDirection: textDirection,
@@ -1507,7 +1597,7 @@ class _StockScreenState extends State<StockScreen> with TickerProviderStateMixin
               textDirection: textDirection,
               children: [
                 SizedBox(
-                  width: width*0.9,
+                  width: width * 0.7,
                   child: Row(
                     textDirection: textDirection,
                     children: [
@@ -1530,22 +1620,7 @@ class _StockScreenState extends State<StockScreen> with TickerProviderStateMixin
                 const SizedBox(width: 20),
                 Expanded(
                   child: ChampAvecLabel(
-                    label: l10n.magasin,
-                    child: TextListe(
-                      value: selectedMagasinFilter,
-                      items: magasinFilterOptions,
-                      onChanged: (v) {
-                        setState(() {
-                          selectedMagasinFilter = v;
-                          appliquerFiltre();
-                        });
-                      },
-                    ),
-                  ),
-                ),
-                const SizedBox(width: 20),
-                Expanded(
-                  child: ChampAvecLabel(
+                    width: width * 0.7,
                     label: l10n.etat,
                     child: TextListe(
                       value: selectedEtatFilterS != null ? translator.translateEtat(selectedEtatFilterS!) : null,
@@ -1656,7 +1731,7 @@ class _StockScreenState extends State<StockScreen> with TickerProviderStateMixin
                 ),
                 const SizedBox(width: 20),
                 SizedBox(
-                  width: 400,
+                  width: width * 0.7,
                   child: ChampAvecLabel(
                     label: l10n.quickPeriod,
                     child: DropdownButtonFormField<String>(
@@ -1690,7 +1765,7 @@ class _StockScreenState extends State<StockScreen> with TickerProviderStateMixin
               textDirection: textDirection,
               children: [
                 SizedBox(
-                  width: width*0.9,
+                  width: width * 0.7,
                   child: Row(
                     textDirection: textDirection,
                     children: [

@@ -12,6 +12,7 @@ import '../../../../data/models/histore.dart';
 import 'package:caisse_dz/core/theme/app_style.dart';
 import '../../utilis/api_response.dart';
 import '../../widget/button/main_button.dart';
+import '../../widget/champ/affichage_champ.dart';
 import '../../widget/champ/champ_avec_label.dart';
 import '../../widget/champ/liste_champ.dart';
 import '../../widget/champ/text_champ_l.dart';
@@ -157,7 +158,13 @@ Future<void> ClientModif(BuildContext context, Client client) async {
                                 title: l10n.generalInformation,
                                 icon: "assets/icons/info_icon.png",
                                 child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
+                                    ChampAvecLabel(
+                                      label: l10n.code,
+                                      child: AffichageChamp(text: client.code),
+                                    ),
+                                    const SizedBox(height: 10),
                                     ChampAvecLabel(
                                       label: l10n.status,
                                       obligatoire: true,
@@ -389,7 +396,7 @@ Future<void> ClientModif(BuildContext context, Client client) async {
                             context: context,
                             titre_type_message: l10n.error,
                             titre_concerne: l10n.modifyClient,
-                            message: "Veuillez sélectionner un type de client",
+                            message: l10n.selectClientType,
                           );
                           return;
                         }
@@ -398,7 +405,7 @@ Future<void> ClientModif(BuildContext context, Client client) async {
                         await ConfirmationDialog(
                           context: context,
                           titre: l10n.modifyClient,
-                          message: "Êtes-vous sûr de vouloir modifier ce client ?",
+                          message: l10n.confirmModifyClient,
                           onConfirmer: () async {
                             Client clientU = Client(
                               id            : client.id,
@@ -485,6 +492,7 @@ Widget _section({
     child: Column(
       children: [
         TitleSmall(
+          textsize: 20,
           imageSize: 22,
           imagePath: icon,
           text: title,

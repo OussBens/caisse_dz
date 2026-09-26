@@ -8,31 +8,55 @@ import 'package:caisse_dz/core/dialog/transfert/transfert_detail.dart';
 import 'package:caisse_dz/core/dialog/transfert/transfert_actif.dart';
 import 'package:caisse_dz/core/dialog/transfert/transfert_modif.dart';
 
+import 'package:caisse_dz/core/dialog/cloture_caisse/cloture_caisse_detail.dart';
+import 'package:caisse_dz/core/dialog/cloture_caisse/cloture_caisse_nouveau.dart';
+import 'package:caisse_dz/core/dialog/cloture_caisse/export_fiscal_dialog.dart';
+import 'package:caisse_dz/core/dialog/insertion_session.dart';
+
 import 'package:caisse_dz/Services/CaisseGestion.dart';
 import 'package:caisse_dz/Services/TransfertCaisse.dart';
+import 'package:caisse_dz/Services/ClotureCaisse.dart';
+import 'package:caisse_dz/Services/CaisseSession.dart';
+import 'package:caisse_dz/Services/Client.dart';
+import 'package:caisse_dz/Services/Fournisseur.dart';
+import 'package:caisse_dz/Services/Utilisateur.dart';
+import 'package:collection/collection.dart';
 
 import 'package:caisse_dz/core/Auth/auth_state.dart';
 import 'package:caisse_dz/core/locale/locale_provider.dart';
 
 import 'package:caisse_dz/core/tableau/gestion_caisse/tableau_gestion_caisse.dart';
 import 'package:caisse_dz/core/tableau/transfert/tableau_transfert.dart';
+import 'package:caisse_dz/core/tableau/cloture_caisse/tableau_cloture_caisse.dart';
+import 'package:caisse_dz/core/tableau/caisse_session/tableau_caisse_session.dart';
+import 'package:caisse_dz/core/tableau/mouvement_caisse/tableau_mouvement_caisse.dart';
+import 'package:caisse_dz/core/tableau/mouvement_caisse/mouvement_caisse_source.dart';
+import 'package:caisse_dz/data/models/cloture_caisse.dart';
+import 'package:caisse_dz/data/models/caisse_session.dart';
+import 'package:caisse_dz/data/models/caisse_mouvement.dart';
+import 'package:caisse_dz/data/models/client.dart';
+import 'package:caisse_dz/data/models/fournisseur.dart';
 
 import 'package:caisse_dz/core/theme/app_style.dart';
 
 import 'package:caisse_dz/core/utilis/constant.dart';
 import 'package:caisse_dz/core/widget/afficheur/afficheur_gestion_caisse.dart';
+import 'package:caisse_dz/core/widget/afficheur/afficheur_gestion_caisse_global.dart';
 import 'package:caisse_dz/core/widget/afficheur/afficheur_transfert.dart';
 
 import 'package:caisse_dz/core/widget/button/Icon_button.dart';
 import 'package:caisse_dz/core/widget/button/main_button.dart';
+import 'package:caisse_dz/core/widget/filtre/periode_rapide_filter.dart';
 
 import 'package:caisse_dz/core/widget/time_date_widget.dart';
+import 'package:caisse_dz/core/widget/connection_status_bar.dart';
 import 'package:caisse_dz/core/widget/header_module.dart';
 import 'package:caisse_dz/core/widget/side_bar.dart';
 import 'package:caisse_dz/core/widget/account.dart';
 
 import 'package:caisse_dz/data/models/gestion_caisse.dart';
 import 'package:caisse_dz/data/models/transfert.dart';
+import 'package:caisse_dz/data/models/utilisateur.dart';
 
 import 'package:caisse_dz/l10n/app_localizations.dart';
 import 'package:provider/provider.dart';
@@ -60,20 +84,9 @@ class _GestionCaisseScreenState extends State<GestionCaisseScreen> with TickerPr
   // ✅ Constantes pour les index des tabs
   static const int TAB_CAISSE = 0;
   static const int TAB_TRANSFERT = 1;
-
-  // Period keys for translation lookup
-  final List<String> periodeKeys = [
-    "today",
-    "yesterday",
-    "week",
-    "lastWeek",
-    "month",
-    "lastMonth",
-    "last7days",
-    "last30days",
-    "year",
-    "lastYear",
-  ];
+  static const int TAB_CLOTURE = 2;
+  static const int TAB_MOUVEMENT = 3;
+  static const int TAB_SESSION = 4;
 
   final TextEditingController _dateDebutCtrl = TextEditingController();
   final TextEditingController _dateFinCtrl = TextEditingController();
@@ -101,6 +114,17 @@ class _GestionCaisseScreenState extends State<GestionCaisseScreen> with TickerPr
   List<TransfertCaisse> transferts = [];
   List<TransfertCaisse> transfertsSelectionnees = [];
   List<TransfertCaisse> transfertsfiltre = [];
+  List<Utilisateur> utilisateursTest = [];
+
+  List<ClotureCaisse> clotures = [];
+  List<ClotureCaisse> cloturesSelectionnees = [];
+
+  List<CaisseSession> sessions = [];
+  List<CaisseSession> sessionsSelectionnees = [];
+  List<CaisseMouvement> mouvementsCaisse = [];
+  List<Client> clientsTest = [];
+  List<Fournisseur> fournisseursTest = [];
+  String? selectedSessionFiltreCode;
 
   final TextEditingController _searchControllerCaisse = TextEditingController();
   final TextEditingController _searchControllertransfert = TextEditingController();
@@ -108,21 +132,37 @@ class _GestionCaisseScreenState extends State<GestionCaisseScreen> with TickerPr
   Future<void> _loadAllData() async {
     final loadedCaisses = await GCServices.getAllCaisses();
     final loadedTransferts = await TransfertcaisseServices.getAllTransfertcaisse();
+    final loadedUtilisateurs = await UtilisateurServices.getAllUtilisateurs();
+    final loadedClotures = await ClotureCaisseServices.getAllClotures();
+    final loadedSessions = await CaisseSessionServices.getAllSessions();
+    final loadedMouvements = await CaisseSessionServices.getAllMouvements();
+    final loadedClients = await ClientServices.getAllClients();
+    final loadedFournisseurs = await FournisseurServices.getAllFournisseurs();
 
     setState(() {
       caisses = loadedCaisses;
       transferts = loadedTransferts;
+      utilisateursTest = loadedUtilisateurs;
+      clotures = loadedClotures;
+      sessions = loadedSessions;
+      mouvementsCaisse = loadedMouvements;
+      clientsTest = loadedClients;
+      fournisseursTest = loadedFournisseurs;
       nombretransfert = loadedTransferts.length;
       Caissesfiltre = loadedCaisses;
       transfertsfiltre = loadedTransferts;
       caissesSelectionnees.clear();
       transfertsSelectionnees.clear();
+      cloturesSelectionnees.clear();
+      sessionsSelectionnees.clear();
     });
   }
 
   void viderliste() {
     transfertsSelectionnees.clear();
     caissesSelectionnees.clear();
+    cloturesSelectionnees.clear();
+    sessionsSelectionnees.clear();
   }
 
   void appliquefiltreCaisse() {
@@ -240,50 +280,9 @@ class _GestionCaisseScreenState extends State<GestionCaisseScreen> with TickerPr
   }
 
   void _appliquerPeriodeRapide(String p, AppLocalizations l10n) {
-    final now = DateTime.now();
-
-    switch (p) {
-      case "today":
-        dateDebut = DateTime(now.year, now.month, now.day);
-        dateFin = dateDebut;
-        break;
-      case "yesterday":
-        dateDebut = DateTime(now.year, now.month, now.day - 1);
-        dateFin = dateDebut;
-        break;
-      case "week":
-        dateDebut = now.subtract(Duration(days: now.weekday - 1));
-        dateFin = dateDebut!.add(const Duration(days: 6));
-        break;
-      case "lastWeek":
-        dateDebut = now.subtract(Duration(days: now.weekday + 6));
-        dateFin = dateDebut!.add(const Duration(days: 6));
-        break;
-      case "month":
-        dateDebut = DateTime(now.year, now.month, 1);
-        dateFin = DateTime(now.year, now.month + 1, 0);
-        break;
-      case "lastMonth":
-        dateDebut = DateTime(now.year, now.month - 1, 1);
-        dateFin = DateTime(now.year, now.month, 0);
-        break;
-      case "last7days":
-        dateDebut = now.subtract(const Duration(days: 6));
-        dateFin = now;
-        break;
-      case "last30days":
-        dateDebut = now.subtract(const Duration(days: 29));
-        dateFin = now;
-        break;
-      case "year":
-        dateDebut = DateTime(now.year, 1, 1);
-        dateFin = DateTime(now.year, 12, 31);
-        break;
-      case "lastYear":
-        dateDebut = DateTime(now.year - 1, 1, 1);
-        dateFin = DateTime(now.year - 1, 12, 31);
-        break;
-    }
+    final periode = calculerPeriodeRapide(p);
+    dateDebut = periode.debut;
+    dateFin = periode.fin;
 
     _dateDebutCtrl.text = _formatDate(dateDebut!);
     _dateFinCtrl.text = _formatDate(dateFin!);
@@ -305,10 +304,22 @@ class _GestionCaisseScreenState extends State<GestionCaisseScreen> with TickerPr
     _searchControllertransfert.clear();
   }
 
+  // ✅ Vrai si au moins un champ de filtre transfert est renseigné (pour l'indicateur visuel du bouton Filtre).
+  bool get _filtresTransfertActifs =>
+      selectedCaisseSourceFilter != null ||
+      selectedCaisseDestinaFilter != null ||
+      montantMin != null ||
+      montantMax != null ||
+      selectedEtatFilter != null ||
+      dateDebut != null ||
+      dateFin != null ||
+      periodeRapide != null ||
+      _searchControllertransfert.text.isNotEmpty;
+
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 2, vsync: this);
+    _tabController = TabController(length: 5, vsync: this);
     _tabController.addListener(() {
       if (mounted) {
         setState(() {
@@ -331,26 +342,56 @@ class _GestionCaisseScreenState extends State<GestionCaisseScreen> with TickerPr
         "${d.year}";
   }
 
-  String _getPeriodeDisplayName(String key, AppLocalizations l10n) {
-    switch (key) {
-      case "today": return l10n.today;
-      case "yesterday": return l10n.yesterday;
-      case "week": return l10n.thisWeek;
-      case "lastWeek": return l10n.lastWeek;
-      case "month": return l10n.thisMonth;
-      case "lastMonth": return l10n.lastMonth;
-      case "last7days": return l10n.last7Days;
-      case "last30days": return l10n.last30Days;
-      case "year": return l10n.thisYear;
-      case "lastYear": return l10n.lastYear;
-      default: return key;
-    }
-  }
-
   // ---------------- STATISTIQUES ----------------
   int getTotalCaisses() => caisses.length;
   int getCaissesActives() => caisses.where((c) => c.etat).length;
   int getCaissesInactives() => caisses.where((c) => !c.etat).length;
+
+  int getTotalTransferts() => transferts.length;
+
+  double getTotalMontantTransferts() =>
+      transferts.where((t) => t.etat).fold(0.0, (s, t) => s + t.montant);
+
+  TransfertCaisse? _grandTransfert() {
+    final actifs = transferts.where((t) => t.etat).toList();
+    if (actifs.isEmpty) return null;
+    return actifs.reduce((a, b) => a.montant >= b.montant ? a : b);
+  }
+
+  double getMontantGrandTransfert() => _grandTransfert()?.montant ?? 0;
+  String? getCodeGrandTransfert() => _grandTransfert()?.code;
+
+  // Lignes affichables pour l'onglet "Mouvements" : mouvements actifs,
+  // filtrés par session si une est choisie (via le filtre ou le drill-down
+  // depuis l'onglet Sessions), triés par date.
+  List<LigneMouvementCaisse> _lignesMouvementCaisse() {
+    final filtres = mouvementsCaisse.where((m) {
+      if (!m.etat) return false;
+      if (selectedSessionFiltreCode != null && m.sessionCode != selectedSessionFiltreCode) return false;
+      return true;
+    }).toList()
+      ..sort((a, b) => a.date.compareTo(b.date));
+
+    return List.generate(filtres.length, (i) {
+      final m = filtres[i];
+      final entrant = m.sens.toLowerCase() == 'entrée';
+      return LigneMouvementCaisse(
+        numero: i + 1,
+        date: m.date,
+        codeVersement: m.code,
+        type: ListsConst.labelTypeMouvementCaisse(m.type),
+        codeOperation: m.codeOperation ?? '-',
+        nomClient: m.clientCode != null
+            ? (clientsTest.firstWhereOrNull((c) => c.code == m.clientCode)?.nom ?? m.clientCode!)
+            : '-',
+        nomFournisseur: m.fournisseurCode != null
+            ? (fournisseursTest.firstWhereOrNull((f) => f.code == m.fournisseurCode)?.nom ?? m.fournisseurCode!)
+            : '-',
+        montantEntree: entrant ? m.montant : 0,
+        montantSortie: entrant ? 0 : m.montant,
+      );
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -368,22 +409,41 @@ class _GestionCaisseScreenState extends State<GestionCaisseScreen> with TickerPr
     // ✅ Index actuel du tab
     final currentTab = _tabController.index;
 
+    // ✅ Couleurs des tabs
+    final tabColors = [
+      Appstyle.violet,
+      Appstyle.indigo,
+      Appstyle.crevete,
+      Appstyle.blueC,
+      Appstyle.green,
+    ];
+    final Color headerColor = tabColors[currentTab];
+
     // ✅ Noms des tabs
     final tabNames = [
       l10n.gestionCaisse,
       l10n.transfert,
+      l10n.cashRegisterClosures,
+      l10n.cashMovementsTab,
+      l10n.cashSessionsTab,
     ];
 
     // ✅ Icônes des tabs
     final tabIcons = [
       'assets/icons/sidebar/caisse_icon.png',
       'assets/icons/cardwidget/transfert_icon.png',
+      'assets/icons/sidebar/caisse_icon.png',
+      'assets/icons/sidebar/caisse_icon.png',
+      'assets/icons/sidebar/caisse_icon.png',
     ];
 
     // ✅ Compteurs pour les tabs
     final tabCounts = [
       getTotalCaisses().toString(),
       nombretransfert.toString(),
+      clotures.length.toString(),
+      mouvementsCaisse.length.toString(),
+      sessions.length.toString(),
     ];
 
     return Scaffold(
@@ -405,16 +465,14 @@ class _GestionCaisseScreenState extends State<GestionCaisseScreen> with TickerPr
 
             return SingleChildScrollView(
               scrollDirection: Axis.horizontal,
-              child: SingleChildScrollView(
-                scrollDirection: Axis.vertical,
-                child: ConstrainedBox(
-                  constraints: const BoxConstraints(
-                    minWidth: minWidth,
-                    minHeight: minHeight,
-                  ),
-                  child: SizedBox(
-                    width: adjustedWidth,
-                    height: adjustedHeight,
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(
+                  minWidth: minWidth,
+                  minHeight: minHeight,
+                ),
+                child: SizedBox(
+                  width: adjustedWidth,
+                  height: adjustedHeight,
                     child: Row(
                       textDirection: textDirection,
                       crossAxisAlignment: CrossAxisAlignment.start,
@@ -441,7 +499,7 @@ class _GestionCaisseScreenState extends State<GestionCaisseScreen> with TickerPr
                                           Image.asset(
                                             "assets/icons/sidebar/caisse_icon.png",
                                             width: 40,
-                                            color: Appstyle.crevete.withOpacity(0.7),
+                                            color: headerColor,
                                           ),
                                           const SizedBox(width: 10),
                                           Row(
@@ -450,7 +508,7 @@ class _GestionCaisseScreenState extends State<GestionCaisseScreen> with TickerPr
                                               Text(
                                                 l10n.gestionCaisse,
                                                 style: Appstyle.textXLB.copyWith(
-                                                  color: Appstyle.crevete.withOpacity(0.7),
+                                                  color: headerColor,
                                                   fontWeight: FontWeight.bold,
                                                 ),
                                               ),
@@ -458,7 +516,7 @@ class _GestionCaisseScreenState extends State<GestionCaisseScreen> with TickerPr
                                               Text(
                                                 "(${tabNames[currentTab]})",
                                                 style: Appstyle.textXLB.copyWith(
-                                                  color: Appstyle.crevete.withOpacity(0.7),
+                                                  color: headerColor,
                                                   fontWeight: FontWeight.bold,
                                                 ),
                                               ),
@@ -471,9 +529,9 @@ class _GestionCaisseScreenState extends State<GestionCaisseScreen> with TickerPr
                                       Row(
                                         textDirection: textDirection,
                                         children: [
+                                          const ConnectionStatusBar(),
+                                          const SizedBox(width: 20),
                                           TimeDateWidget(
-                                            heure: "18:00",
-                                            date: "25 Nov 2025",
                                             iconHeure: "assets/icons/hour_icon.png",
                                             iconDate: "assets/icons/agenda_icon.png",
                                           ),
@@ -508,9 +566,7 @@ class _GestionCaisseScreenState extends State<GestionCaisseScreen> with TickerPr
                                     controller: _tabController,
                                     isScrollable: false,
                                     indicator: BoxDecoration(
-                                      color: currentTab == TAB_CAISSE
-                                          ? Appstyle.crevete.withOpacity(0.7)
-                                          : Appstyle.violet,
+                                      color: headerColor,
                                       borderRadius: BorderRadius.circular(12),
                                     ),
                                     labelColor: Colors.white,
@@ -524,7 +580,7 @@ class _GestionCaisseScreenState extends State<GestionCaisseScreen> with TickerPr
                                     unselectedLabelStyle: Appstyle.textXS.copyWith(
                                       fontWeight: FontWeight.w500,
                                     ),
-                                    tabs: List.generate(2, (index) {
+                                    tabs: List.generate(5, (index) {
                                       final isSelected = currentTab == index;
                                       return Tab(
                                         icon: Container(
@@ -565,12 +621,12 @@ class _GestionCaisseScreenState extends State<GestionCaisseScreen> with TickerPr
                                           },
                                         )
                                       else
-                                        Container(
-                                          padding: const EdgeInsets.symmetric(vertical: 8),
-                                          child: Text(
-                                            "${l10n.totalCaisses} : ${getTotalCaisses()} | ${l10n.active} : ${getCaissesActives()} | ${l10n.inactive} : ${getCaissesInactives()}",
-                                            style: Appstyle.textM,
-                                          ),
+                                        AfficheurGestionCaisseGlobalWidget(
+                                          nombreCaisses: getTotalCaisses(),
+                                          nombreTransferts: getTotalTransferts(),
+                                          totalTransferts: getTotalMontantTransferts(),
+                                          montantGrandTransfert: getMontantGrandTransfert(),
+                                          codeGrandTransfert: getCodeGrandTransfert(),
                                         ),
 
                                       SizedBox(height: paddingV / 2),
@@ -702,6 +758,7 @@ class _GestionCaisseScreenState extends State<GestionCaisseScreen> with TickerPr
                                         child: TableauCaisseGestionAdvanced(
                                           caisses: Caissesfiltre,
                                           key: ValueKey(Caissesfiltre),
+                                          utilisateurs: utilisateursTest,
                                           onSelectionChanged: (selection) {
                                             setState(() {
                                               caissesSelectionnees = selection;
@@ -728,12 +785,12 @@ class _GestionCaisseScreenState extends State<GestionCaisseScreen> with TickerPr
                                           },
                                         )
                                       else
-                                        Container(
-                                          padding: const EdgeInsets.symmetric(vertical: 8),
-                                          child: Text(
-                                            "${l10n.total} : ${transferts.length}",
-                                            style: Appstyle.textM,
-                                          ),
+                                        AfficheurGestionCaisseGlobalWidget(
+                                          nombreCaisses: getTotalCaisses(),
+                                          nombreTransferts: getTotalTransferts(),
+                                          totalTransferts: getTotalMontantTransferts(),
+                                          montantGrandTransfert: getMontantGrandTransfert(),
+                                          codeGrandTransfert: getCodeGrandTransfert(),
                                         ),
 
                                       SizedBox(height: paddingV / 2),
@@ -753,6 +810,7 @@ class _GestionCaisseScreenState extends State<GestionCaisseScreen> with TickerPr
                                                 color: Appstyle.Tblanc,
                                                 icon: filtresActifs ? Icons.visibility_off : Icons.visibility,
                                                 iconColor: Appstyle.violet,
+                                                showBadge: _filtresTransfertActifs,
                                                 onPressed: () {
                                                   setState(() {
                                                     filtresActifs = !filtresActifs;
@@ -894,7 +952,9 @@ class _GestionCaisseScreenState extends State<GestionCaisseScreen> with TickerPr
                                         height: adjustedHeight * 0.7,
                                         child: TableauTransfertCaisseAdvanced(
                                           transferts: transfertsfiltre,
+                                          caisses: caisses,
                                           key: ValueKey(transfertsfiltre),
+                                          utilisateurs: utilisateursTest,
                                           onSelectionChanged: (selection) {
                                             setState(() {
                                               transfertsSelectionnees = selection;
@@ -902,6 +962,224 @@ class _GestionCaisseScreenState extends State<GestionCaisseScreen> with TickerPr
                                           },
                                         ),
                                       ),
+                                    ],
+                                  )
+
+                                // ──────────────────────────────────────────────────────────────
+                                // 3. CAS CLOTURE (currentTab == TAB_CLOTURE)
+                                // ──────────────────────────────────────────────────────────────
+                                else if (currentTab == TAB_CLOTURE)
+                                  Column(
+                                    crossAxisAlignment: isRTL ? CrossAxisAlignment.end : CrossAxisAlignment.start,
+                                    children: [
+                                      Align(
+                                        alignment: isRTL ? Alignment.topRight : Alignment.topLeft,
+                                        child: Row(
+                                          textDirection: textDirection,
+                                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                          children: [
+                                            MainIconButton(
+                                              imagePath: "assets/icons/action/detail_icon.png",
+                                              color: Appstyle.violet,
+                                              onPressed: () async {
+                                                if (cloturesSelectionnees.length == 1) {
+                                                  ClotureCaisseDetail(
+                                                    context,
+                                                    cloturesSelectionnees.first,
+                                                    caisses: caisses,
+                                                    utilisateurs: utilisateursTest,
+                                                  );
+                                                } else {
+                                                  await InformationDialog(
+                                                    context: context,
+                                                    titre_type_message: l10n.information,
+                                                    titre_concerne: l10n.cashRegisterClosures,
+                                                    message: l10n.selectSingleCartForDetail,
+                                                  );
+                                                }
+                                              },
+                                            ),
+                                            Row(
+                                              textDirection: textDirection,
+                                              children: [
+                                                MainButton(
+                                                  text: l10n.fiscalControlExport,
+                                                  icon: Icons.verified_outlined,
+                                                  color: Appstyle.indigo,
+                                                  onPressed: () => ExportFiscalDialog(context),
+                                                ),
+                                                const SizedBox(width: 10),
+                                                MainButton(
+                                                  text: l10n.newClosure,
+                                                  icon: Icons.lock_outline,
+                                                  color: Appstyle.crevete,
+                                                  onPressed: () async {
+                                                    await ClotureCaisseNouveau(context);
+                                                    await _loadAllData();
+                                                  },
+                                                ),
+                                              ],
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                      SizedBox(height: paddingV / 2),
+                                      clotures.isEmpty
+                                          ? Container(
+                                              width: double.infinity,
+                                              padding: const EdgeInsets.all(32),
+                                              decoration: BoxDecoration(
+                                                color: Colors.white,
+                                                borderRadius: BorderRadius.circular(16),
+                                              ),
+                                              child: Center(
+                                                child: Text(l10n.noClosuresYet, style: Appstyle.textSB),
+                                              ),
+                                            )
+                                          : SizedBox(
+                                              height: adjustedHeight * 0.7,
+                                              child: TableauClotureCaisseAdvanced(
+                                                key: ValueKey(clotures),
+                                                clotures: clotures,
+                                                caisses: caisses,
+                                                utilisateurs: utilisateursTest,
+                                                onSelectionChanged: (selection) {
+                                                  setState(() {
+                                                    cloturesSelectionnees = selection;
+                                                  });
+                                                },
+                                              ),
+                                            ),
+                                    ],
+                                  )
+
+                                // ──────────────────────────────────────────────────────────────
+                                // 4. CAS MOUVEMENTS (currentTab == TAB_MOUVEMENT)
+                                // ──────────────────────────────────────────────────────────────
+                                else if (currentTab == TAB_MOUVEMENT)
+                                  Column(
+                                    crossAxisAlignment: isRTL ? CrossAxisAlignment.end : CrossAxisAlignment.start,
+                                    children: [
+                                      Row(
+                                        textDirection: textDirection,
+                                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                        children: [
+                                          SizedBox(
+                                            width: 450,
+                                            child: ChampAvecLabel(
+                                              label: l10n.cashSessionsTab,
+                                              buttonAjout: true,
+                                              onAjoutPressed: () async {
+                                                await showDialog(
+                                                  context: context,
+                                                  barrierColor: Appstyle.gris.withOpacity(0.25),
+                                                  builder: (_) {
+                                                    return InsertionSessionDialog(
+                                                      sessions: sessions,
+                                                      caisses: caisses,
+                                                      onSessionSelected: (session) {
+                                                        setState(() {
+                                                          selectedSessionFiltreCode = session.code;
+                                                        });
+                                                      },
+                                                    );
+                                                  },
+                                                );
+                                              },
+                                              child: TextListe(
+                                                value: selectedSessionFiltreCode,
+                                                items: sessions.map((s) => s.code).toList(),
+                                                clearable: true,
+                                                hint: l10n.all,
+                                                onChanged: (v) => setState(() {
+                                                  selectedSessionFiltreCode = (v == null || v.isEmpty) ? null : v;
+                                                }),
+                                              ),
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                      SizedBox(height: paddingV / 2),
+                                      SizedBox(
+                                        height: adjustedHeight * 0.7,
+                                        child: TableauMouvementCaisse(
+                                          key: ValueKey('$selectedSessionFiltreCode-${mouvementsCaisse.length}'),
+                                          lignes: _lignesMouvementCaisse(),
+                                        ),
+                                      ),
+                                    ],
+                                  )
+
+                                // ──────────────────────────────────────────────────────────────
+                                // 5. CAS SESSIONS (currentTab == TAB_SESSION)
+                                // ──────────────────────────────────────────────────────────────
+                                else if (currentTab == TAB_SESSION)
+                                  Column(
+                                    crossAxisAlignment: isRTL ? CrossAxisAlignment.end : CrossAxisAlignment.start,
+                                    children: [
+                                      Align(
+                                        alignment: isRTL ? Alignment.topRight : Alignment.topLeft,
+                                        child: MainButton(
+                                          text: l10n.viewMovements,
+                                          icon: Icons.receipt_long,
+                                          color: Appstyle.indigo,
+                                          onPressed: () async {
+                                            if (sessionsSelectionnees.length == 1) {
+                                              setState(() {
+                                                selectedSessionFiltreCode = sessionsSelectionnees.first.code;
+                                                _tabController.index = TAB_MOUVEMENT;
+                                              });
+                                            } else if (sessionsSelectionnees.isEmpty) {
+                                              await InformationDialog(
+                                                context: context,
+                                                titre_type_message: l10n.information,
+                                                titre_concerne: l10n.cashSessionsTab,
+                                                message: l10n.noSessionSelected,
+                                              );
+                                            } else {
+                                              await InformationDialog(
+                                                context: context,
+                                                titre_type_message: l10n.information,
+                                                titre_concerne: l10n.cashSessionsTab,
+                                                message: l10n.selectSingleSessionForMovements,
+                                              );
+                                            }
+                                          },
+                                        ),
+                                      ),
+                                      SizedBox(height: paddingV / 2),
+                                      sessions.isEmpty
+                                          ? Container(
+                                              width: double.infinity,
+                                              padding: const EdgeInsets.all(32),
+                                              decoration: BoxDecoration(
+                                                color: Colors.white,
+                                                borderRadius: BorderRadius.circular(16),
+                                              ),
+                                              child: Center(
+                                                child: Text(l10n.noSessionsYet, style: Appstyle.textSB),
+                                              ),
+                                            )
+                                          : SizedBox(
+                                              height: adjustedHeight * 0.7,
+                                              child: TableauCaisseSessionAdvanced(
+                                                key: ValueKey(sessions),
+                                                sessions: sessions,
+                                                caisses: caisses,
+                                                utilisateurs: utilisateursTest,
+                                                onSelectionChanged: (selection) {
+                                                  setState(() {
+                                                    sessionsSelectionnees = selection;
+                                                  });
+                                                },
+                                                onVoirMouvements: (session) {
+                                                  setState(() {
+                                                    selectedSessionFiltreCode = session.code;
+                                                    _tabController.index = TAB_MOUVEMENT;
+                                                  });
+                                                },
+                                              ),
+                                            ),
                                     ],
                                   ),
                               ],
@@ -912,7 +1190,6 @@ class _GestionCaisseScreenState extends State<GestionCaisseScreen> with TickerPr
                     ),
                   ),
                 ),
-              ),
             );
           },
         ),
@@ -1014,7 +1291,7 @@ class _GestionCaisseScreenState extends State<GestionCaisseScreen> with TickerPr
               ),
               const SizedBox(width: 20),
               SizedBox(
-                width: 400,
+                width: width * 0.7,
                 child: ChampAvecLabel(
                   label: l10n.quickPeriod,
                   child: DropdownButtonFormField<String>(
@@ -1024,10 +1301,10 @@ class _GestionCaisseScreenState extends State<GestionCaisseScreen> with TickerPr
                       isDense: true,
                       border: OutlineInputBorder(),
                     ),
-                    items: periodeKeys.map((key) {
+                    items: periodesRapidesLabels(l10n).entries.map((e) {
                       return DropdownMenuItem<String>(
-                        value: key,
-                        child: Text(_getPeriodeDisplayName(key, l10n)),
+                        value: e.key,
+                        child: Text(e.value),
                       );
                     }).toList(),
                     onChanged: (v) {
@@ -1049,7 +1326,7 @@ class _GestionCaisseScreenState extends State<GestionCaisseScreen> with TickerPr
             textDirection: textDirection,
             children: [
               SizedBox(
-                width: width * 0.305,
+                width: width * 0.7,
                 child: Row(
                   textDirection: textDirection,
                   children: [

@@ -1,31 +1,37 @@
 import 'dart:io';
-
 import 'package:flutter/material.dart';
-
+import 'package:caisse_dz/core/dialog/base_dialog.dart';
 import 'package:caisse_dz/core/theme/app_style.dart';
+import 'package:caisse_dz/core/widget/button/main_button.dart';
+import 'package:caisse_dz/core/widget/qr_code_avec_impression.dart';
+import 'package:caisse_dz/core/widget/title/titre_avec_ligne.dart';
+import 'package:caisse_dz/data/constant.dart';
 import '../../../../data/models/produit.dart';
 import '../../../../l10n/app_localizations.dart';
-
-// Dans afficheur_produit.dart
-
 import '../../../DBCreate.dart';
 import '../../../Services/Categorie.dart';
 import '../../../Services/Fournisseur.dart';
 import '../../../Services/Photos.dart';
+import '../../../Services/Mouvement.dart';
 import '../../../Services/Produits.dart';
+import 'package:caisse_dz/core/utilis/number_format.dart';
 
 class AfficheurProduit extends StatelessWidget {
   final Produit produit;
   final VoidCallback? onDetails;
   final bool afficherprixachat;
-  final bool afficheurBorder; // ✅ NOUVEAU PARAMÈTRE
+  final bool afficheurBorder;
+  final bool afficherStatsAvancees;
+  final bool detail_but_icon; // 👈 NOUVEAU PARAMÈTRE
 
   const AfficheurProduit({
     super.key,
     required this.produit,
     this.onDetails,
     this.afficherprixachat = true,
-    this.afficheurBorder = false, // ✅ VALEUR PAR DÉFAUT
+    this.afficheurBorder = false,
+    this.afficherStatsAvancees = true,
+    this.detail_but_icon = false, // 👈 VALEUR PAR DÉFAUT
   });
 
   @override
@@ -35,10 +41,8 @@ class AfficheurProduit extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(8),
       decoration: BoxDecoration(
-        // ✅ CONDITION POUR LE COULEUR DE FOND
         color: afficheurBorder ? Colors.transparent : Colors.white,
         borderRadius: BorderRadius.circular(16),
-        // ✅ CONDITION POUR LA BORDURE
         border: afficheurBorder
             ? Border.all(
           color: Colors.black.withOpacity(0.2),
@@ -46,7 +50,7 @@ class AfficheurProduit extends StatelessWidget {
         )
             : null,
         boxShadow: afficheurBorder
-            ? null // ✅ PAS D'OMBRE SI BORDURE ACTIVÉE
+            ? null
             : [
           BoxShadow(
             color: Colors.black.withOpacity(0.05),
@@ -55,125 +59,250 @@ class AfficheurProduit extends StatelessWidget {
           ),
         ],
       ),
-      child: Row(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.start,
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          /// 🆕 PHOTO DU PRODUIT
-          _buildProductPhoto(context),
-
-          const SizedBox(width: 16),
-
-          /// 🔹 Infos principales
-          Expanded(
-            flex: 6,
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  produit.nom,
-                  style: const TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  "${l10n.marque} : ${produit.marque}",
-                  style: TextStyle(color: Colors.grey.shade700),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  "${l10n.code} : ${produit.code}",
-                  style: TextStyle(color: Colors.grey.shade700),
-                ),
-              ],
+         Text(
+              produit.nom,
+              style: const TextStyle(
+                fontSize: 15,
+                fontWeight: FontWeight.bold,
+              ),
+              overflow: TextOverflow.ellipsis,
             ),
-          ),
+          Row(
+            children: [
+              /// 🆕 PHOTO DU PRODUIT
+              _buildProductPhoto(context),
 
-          /// 🔹 Stats Produit
-          Expanded(
-            flex: 9,
-            child: Wrap(
-              spacing: 16,
-              runSpacing: 8,
-              children: [
-                _statCard(l10n.salePrice, produit.prixVente, Colors.green, l10n: l10n),
-                if (afficherprixachat)
-                  _statCard(
-                    l10n.purchasePrice,
-                    produit.prixAchat,
-                    Colors.orange,
-                    l10n: l10n,
-                  ),
-                _statCard(l10n.quantity, produit.quantite ?? 0, Colors.blue, isMoney: false, l10n: l10n),
-                FutureBuilder<ProduitStats>(
-                  future: ProduitServices.getProduitStats(produit),
-                  builder: (context, snapshot) {
-                    if (!snapshot.hasData) return const SizedBox.shrink();
-                    final stats = snapshot.data!;
-                    return Wrap(
-                      spacing: 16,
-                      runSpacing: 8,
+              const SizedBox(width: 16),
+
+              /// 🔹 Infos principales
+              Expanded(
+                flex:6,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.start,
                       children: [
-                        _statCard(l10n.totalAchat, stats.totalAchat, Colors.purple, isMoney: false, l10n: l10n),
-                        _statCard(l10n.totalSold, stats.totalVendu, Colors.teal, isMoney: false, l10n: l10n),
-                        _statCard(l10n.clientReturns, stats.totalRetourClient, Colors.redAccent, isMoney: false, l10n: l10n),
-                        _statCard(l10n.supplierReturns, stats.totalRetourFournisseur, Colors.brown, isMoney: false, l10n: l10n),
-                        _textBadge(l10n.need, stats.besoin ? l10n.yes : l10n.no, stats.besoin ? Colors.red : Colors.green),
-                        _textBadge(l10n.needStatus, stats.besoinStatus, Appstyle.blueF),
+
+                        if (produit.remiseId != null) ...[
+                          _remiseBadge(l10n),
+                        ],
                       ],
-                    );
-                  },
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      "${l10n.marque} : ${produit.marque}",
+                      style: TextStyle(color: Colors.grey.shade700),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      "${l10n.code} : ${produit.code}",
+                      style: TextStyle(color: Colors.grey.shade700),
+                    ),
+                  ],
                 ),
-              ],
-            ),
-          ),
-
-          /// 🔹 Infos droite
-          Expanded(
-            flex: 2,
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                FutureBuilder<String?>(
-                  future: _nomCategorie(produit.categorieId),
-                  builder: (context, snapshot) => _infoLine(
-                    Icons.category,
-                    "${l10n.categorie} : ${snapshot.data ?? "—"}",
-                  ),
-                ),
-                FutureBuilder<String?>(
-                  future: _nomFournisseur(produit.fournisseurCode),
-                  builder: (context, snapshot) => _infoLine(
-                    Icons.local_shipping,
-                    "${l10n.fournisseur} : ${snapshot.data ?? "—"}",
-                  ),
-                ),
-                _infoLine(Icons.straighten, "${l10n.unit} : ${produit.uniteMesure}"),
-              ],
-            ),
-          ),
-
-          const SizedBox(width: 20),
-
-          /// 🔹 Bouton Détails
-          ElevatedButton(
-            onPressed: onDetails,
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Appstyle.violet,
-              padding: const EdgeInsets.symmetric(
-                horizontal: 24,
-                vertical: 14,
               ),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12),
+
+              /// 🔹 Stats Produit
+              Expanded(
+                flex: 12,
+                child: Wrap(
+                  spacing: 16,
+                  runSpacing: 8,
+                  children: [
+                    _statCard(l10n.salePrice, produit.prixVente, Colors.green, l10n: l10n),
+                    if (afficherprixachat)
+                      _statCard(l10n.purchasePrice, produit.prixAchat, Colors.orange, l10n: l10n),
+                    FutureBuilder<double>(
+                      future: MouvementsServices.quantiteProduit(produit.code),
+                      builder: (context, snapshot) {
+                        return _statCard(l10n.quantity, snapshot.data ?? 0, Colors.blue, isMoney: false, l10n: l10n);
+                      },
+                    ),
+                    if (afficherStatsAvancees)
+                      FutureBuilder<ProduitStats>(
+                        future: ProduitServices.getProduitStats(produit),
+                        builder: (context, snapshot) {
+                          if (!snapshot.hasData) return const SizedBox.shrink();
+                          final stats = snapshot.data!;
+                          return Wrap(
+                            spacing: 16,
+                            runSpacing: 8,
+                            children: [
+                              _statCard(l10n.totalSold, stats.totalVendu, Colors.teal, isMoney: false, l10n: l10n),
+                              _statCard(l10n.clientReturns, stats.totalRetourClient, Colors.redAccent, isMoney: false, l10n: l10n),
+                              _textBadge(l10n.need, stats.besoin ? l10n.yes : l10n.no, stats.besoin ? Colors.red : Colors.green),
+                            ],
+                          );
+                        },
+                      ),
+                  ],
+                ),
               ),
-            ),
-            child: Text(
-              l10n.details,
-              style: Appstyle.textSB.copyWith(color: Appstyle.Tblanc),
-            ),
+
+              /// 🔹 Infos droite
+              Expanded(
+                flex: 6,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    FutureBuilder<String?>(
+                      future: _nomCategorie(produit.categorieId),
+                      builder: (context, snapshot) => _infoLine(
+                        Icons.category,
+                        "${l10n.categorie} : ${snapshot.data ?? "—"}",
+                      ),
+                    ),
+                    FutureBuilder<String?>(
+                      future: _nomFournisseur(produit.fournisseurCode),
+                      builder: (context, snapshot) => _infoLine(
+                        Icons.local_shipping,
+                        "${l10n.fournisseur} : ${snapshot.data ?? "—"}",
+                      ),
+                    ),
+                    Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        detail_but_icon
+                            ? _buildIconButton(context, l10n) // 👈 Bouton icône
+                            : _buildTextButton(context, l10n), // 👈 Bouton texte
+                        if (_aCodeBarreGenereEnInterne) ...[
+                          const SizedBox(width: 8),
+                          _buildImprimerCodeBarreButton(context, l10n),
+                        ],
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+
+
+              /// 🔹 Bouton Détails (conditionnel)
+            ],
           ),
         ],
+      ),
+    );
+  }
+
+  /// ✅ Vrai si le code barre du produit a été généré automatiquement en
+  /// interne (préfixe CDZ, cf. [ProduitServices.generateAutoBarcode]) : ce
+  /// code n'existe sur aucune étiquette physique, il faut donc pouvoir
+  /// réimprimer son code barre/QR code.
+  bool get _aCodeBarreGenereEnInterne {
+    final code = produit.codeBarre;
+    return code != null && code.startsWith(CodePrefix.barcode);
+  }
+
+  /// 🟣 Bouton d'impression du code barre/QR code auto-généré (CDZ)
+  Widget _buildImprimerCodeBarreButton(BuildContext context, AppLocalizations l10n) {
+    return Container(
+      decoration: BoxDecoration(
+        color: Appstyle.indigo,
+        borderRadius: BorderRadius.circular(12),
+        boxShadow: [
+          BoxShadow(
+            color: Appstyle.indigo.withOpacity(0.3),
+            blurRadius: 8,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: IconButton(
+        icon: const Icon(Icons.print, color: Colors.white, size: 18),
+        onPressed: () => _afficherDialogCodeBarre(context, l10n),
+        tooltip: l10n.print,
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+        constraints: const BoxConstraints(minWidth: 30, minHeight: 20),
+      ),
+    );
+  }
+
+  void _afficherDialogCodeBarre(BuildContext context, AppLocalizations l10n) {
+    showDialog(
+      context: context,
+      barrierColor: Appstyle.gris.withOpacity(0.4),
+      builder: (_) => BaseDialog(
+        width: 420,
+        height: 460,
+        header: TitreAvecLigne(
+          imagePath: 'assets/icons/sidebar/produit_icon.png',
+          text: l10n.barcode,
+        ),
+        content: SingleChildScrollView(
+          child: QrCodeAvecImpression(
+            code: produit.codeBarre!,
+            sousLabel: produit.nom,
+          ),
+        ),
+        footer: Align(
+          alignment: Alignment.centerRight,
+          child: MainButton(
+            text: l10n.close,
+            color: Appstyle.gris,
+            icon: Icons.close,
+            onPressed: () => Navigator.pop(context),
+          ),
+        ),
+      ),
+    );
+  }
+
+  /// 🔵 Bouton texte original (MainButton)
+  Widget _buildTextButton(BuildContext context, AppLocalizations l10n) {
+    return ElevatedButton(
+      onPressed: onDetails,
+      style: ElevatedButton.styleFrom(
+        backgroundColor: Appstyle.violet,
+        padding: const EdgeInsets.symmetric(
+          horizontal: 24,
+          vertical: 14,
+        ),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(12),
+        ),
+      ),
+      child: Text(
+        l10n.details,
+        style: Appstyle.textSB.copyWith(color: Appstyle.Tblanc),
+      ),
+    );
+  }
+
+  /// 🟣 Bouton icône avec point d'interrogation
+  Widget _buildIconButton(BuildContext context, AppLocalizations l10n) {
+    return Container(
+      decoration: BoxDecoration(
+        color: Appstyle.violet,
+        borderRadius: BorderRadius.circular(12),
+        boxShadow: [
+          BoxShadow(
+            color: Appstyle.violet.withOpacity(0.3),
+            blurRadius: 8,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: IconButton(
+        icon: const Icon(
+          Icons.question_mark,
+          color: Colors.white,
+          size: 18,
+        ),
+        onPressed: onDetails,
+        tooltip: l10n.details,
+        padding: const EdgeInsets.symmetric(
+          horizontal: 8,
+          vertical: 6,
+        ),
+        constraints: const BoxConstraints(
+          minWidth: 30,
+          minHeight: 20,
+        ),
       ),
     );
   }
@@ -188,7 +317,7 @@ class AfficheurProduit extends StatelessWidget {
     return (await FournisseurServices.getFournisseurByCode(fournisseurCode))?.nom;
   }
 
-  // 🆕 Widget pour afficher la photo
+  /// 🆕 Widget pour afficher la photo
   Widget _buildProductPhoto(BuildContext context) {
     if (produit.photo == null || produit.photo!.isEmpty) {
       return Container(
@@ -200,7 +329,7 @@ class AfficheurProduit extends StatelessWidget {
         ),
         child: Icon(
           Icons.inventory_2,
-          size: 30,
+          size: 35,
           color: Appstyle.violet.withOpacity(0.6),
         ),
       );
@@ -238,11 +367,36 @@ class AfficheurProduit extends StatelessWidget {
     );
   }
 
-  Widget _etatBadge(AppLocalizations l10n) {
+  Widget _remiseBadge(AppLocalizations l10n) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+      decoration: BoxDecoration(
+        color: Colors.orange.withOpacity(0.15),
+        borderRadius: BorderRadius.circular(20),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          const Icon(Icons.local_offer, size: 12, color: Colors.orange),
+          const SizedBox(width: 4),
+          Text(
+            l10n.discount,
+            style: const TextStyle(
+              color: Colors.orange,
+              fontSize: 10,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _etatBadge(AppLocalizations l10n, {double quantite = 0}) {
     Color color = produit.etat ? Colors.green : Colors.red;
     String label = produit.etat ? l10n.active : l10n.inactive;
 
-    if ((produit.quantite ?? 0) <= 0) {
+    if (quantite <= 0) {
       color = Colors.orange;
       label = l10n.outOfStock;
     }
@@ -274,7 +428,7 @@ class AfficheurProduit extends StatelessWidget {
       }) {
     return Container(
       width: 100,
-      padding: const EdgeInsets.all(12),
+      padding: const EdgeInsets.all(6),
       decoration: BoxDecoration(
         color: color.withOpacity(0.08),
         borderRadius: BorderRadius.circular(12),
@@ -285,8 +439,8 @@ class AfficheurProduit extends StatelessWidget {
           const SizedBox(height: 6),
           Text(
             isMoney
-                ? "${value.toStringAsFixed(0)} ${l10n.currency}"
-                : value.toStringAsFixed(0),
+                ? "${NumberFormatUtil.formatMontant(value, decimales: 0)} ${l10n.currency}"
+                : NumberFormatUtil.formatMontant(value, decimales: 0),
             style: TextStyle(
               fontWeight: FontWeight.bold,
               color: color,

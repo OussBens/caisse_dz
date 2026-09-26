@@ -16,6 +16,7 @@ import '../../widget/button/main_button.dart';
 import '../../widget/title/titre_avec_ligne.dart';
 import '../base_dialog.dart';
 import '../information_dialog.dart';
+import 'package:caisse_dz/core/utilis/number_format.dart';
 
 Future<int> _GetNextHistoriqueId() async {
   final db = await DbCreator.openDb();
@@ -123,7 +124,7 @@ Future<void> AnnulerZakat(
                               ),
                               child: Text(
                                 "${l10n.zakat} ${z.code} | ${l10n.year}: ${z.annee} | "
-                                    "${l10n.amount}: ${z.montantZakat.toStringAsFixed(2)} ${l10n.currency}"
+                                    "${l10n.amount}: ${NumberFormatUtil.formatMontant(z.montantZakat, decimales: 2)} ${l10n.currency}"
                                     "${estPayee ? " (${l10n.alreadyPaid})" : ""}",
                                 style: Appstyle.textSB.copyWith(
                                   color: estPayee

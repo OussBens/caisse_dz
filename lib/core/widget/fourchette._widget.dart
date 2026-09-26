@@ -26,12 +26,14 @@ class FourchettePrixWidget extends StatelessWidget {
     final isRTL = local.locale.languageCode == 'ar';
     final textDirection = isRTL ? TextDirection.rtl : TextDirection.ltr;
 
+    final bool hasValue = minValue != null || maxValue != null;
+
     return InkWell(
       onTap: () => _openBottomSheet(context),
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 10),
         decoration: BoxDecoration(
-          color: couleur.withOpacity(.15),
+          color: hasValue ? couleur.withOpacity(.15) : Colors.white,
           borderRadius: BorderRadius.circular(10),
           border: Border.all(color: couleur, width: 1),
         ),
@@ -57,7 +59,9 @@ class FourchettePrixWidget extends StatelessWidget {
 
   void _openBottomSheet(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
-    final local = context.watch<LocaleProvider>();
+    // read (pas watch) : appelé depuis onTap, hors phase de build — .watch()
+    // y lève une assertion Provider et empêche le bottom sheet de s'ouvrir.
+    final local = context.read<LocaleProvider>();
     final isRTL = local.locale.languageCode == 'ar';
     final textDirection = isRTL ? TextDirection.rtl : TextDirection.ltr;
 

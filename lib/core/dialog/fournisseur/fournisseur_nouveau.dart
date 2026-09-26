@@ -12,6 +12,7 @@ import '../../../Services/Historique.dart';
 import '../../../data/models/histore.dart';
 import '../../utilis/api_response.dart';
 import '../../widget/button/main_button.dart';
+import '../../widget/champ/affichage_champ.dart';
 import '../../widget/champ/champ_avec_label.dart';
 import '../../widget/champ/liste_champ.dart';
 import '../../widget/champ/text_champ_l.dart';
@@ -166,7 +167,13 @@ Future<void> FournisseurNouveau(BuildContext context) async {
                                 title: l10n.generalInformation,
                                 icon: "assets/icons/info_icon.png",
                                 child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
+                                    ChampAvecLabel(
+                                      label: l10n.code,
+                                      child: AffichageChamp(text: code),
+                                    ),
+                                    const SizedBox(height: 10),
                                     ChampAvecLabel(
                                       label: l10n.name,
                                       obligatoire: true,
@@ -303,6 +310,18 @@ Future<void> FournisseurNouveau(BuildContext context) async {
                           return;
                         }
 
+                        // ✅ Unicité du nom du fournisseur avant toute création.
+                        final fournisseurNomExistant = await FournisseurServices.findFournisseurByNom(nomControllerF.text);
+                        if (fournisseurNomExistant != null) {
+                          await InformationDialog(
+                            context: context,
+                            titre_type_message: l10n.error,
+                            titre_concerne: l10n.newSupplier,
+                            message: l10n.supplierNameAlreadyExists,
+                          );
+                          return;
+                        }
+
                         // Création de l'objet Fournisseur
                         final Nfournisseur = Fournisseur(
                           creeParCode: userCode,
@@ -378,6 +397,7 @@ Widget _section({
       children: [
         TitleSmall(
           couleur: Appstyle.Tblue,
+          textsize: 20,
           imagePath: icon,
           imageSize: 22,
           opacity: 0.85,

@@ -4,6 +4,7 @@ import 'package:caisse_dz/core/theme/app_style.dart';
 import '../../../../Services/PackDetailes.dart';
 import '../../../../data/models/pack.dart';
 import '../../../../l10n/app_localizations.dart';
+import 'package:caisse_dz/core/utilis/number_format.dart';
 
 class AfficheurPack extends StatelessWidget {
   final Pack pack;
@@ -183,7 +184,7 @@ class AfficheurPack extends StatelessWidget {
                     const Icon(Icons.list, size: 18, color: Colors.white),
                     const SizedBox(width: 8),
                     Text(
-                      l10n.productsList,
+                      l10n.productList,
                       style: Appstyle.textSB.copyWith(color: Appstyle.Tblanc),
                     ),
                   ],
@@ -237,8 +238,8 @@ class AfficheurPack extends StatelessWidget {
           const SizedBox(height: 4),
           Text(
             isMoney
-                ? "${value.toStringAsFixed(0)} ${l10n.currency}"
-                : value.toStringAsFixed(0),
+                ? "${NumberFormatUtil.formatMontant(value, decimales: 0)} ${l10n.currency}"
+                : NumberFormatUtil.formatMontant(value, decimales: 0),
             style: TextStyle(
               fontWeight: FontWeight.bold,
               color: color,

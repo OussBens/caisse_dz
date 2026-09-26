@@ -1,9 +1,12 @@
 import 'dart:ui';
+import 'package:collection/collection.dart';
 import 'package:caisse_dz/DBCreate.dart';
+import 'package:caisse_dz/Services/CaisseGestion.dart';
 import 'package:caisse_dz/Services/Historique.dart' hide ApiResponse;
 import 'package:caisse_dz/Services/Role.dart' hide ApiResponse;
 import 'package:caisse_dz/Services/Utilisateur.dart';
 import 'package:caisse_dz/core/Auth/auth_state.dart';
+import 'package:caisse_dz/data/models/gestion_caisse.dart';
 import 'package:caisse_dz/data/models/role.dart';
 import 'package:caisse_dz/l10n/app_localizations.dart';
 import 'package:flutter/material.dart';
@@ -24,6 +27,8 @@ import '../information_dialog.dart';
 
 List<Role> rolesTest = [];
 List<String> roles = [];
+List<CaisseGestion> caissesTest = [];
+List<String> caisses = [];
 
 Future<int> _GetNextHistoriqueId() async {
   final db = await DbCreator.openDb();
@@ -64,8 +69,14 @@ Future<ApiResponse<int>> _UpdateUser({
 }
 
 Future<void> loadAllData() async {
-  rolesTest = await RoleServices.getAllRoles();
+  // ✅ Le rôle Admin (unique) ne peut pas être assigné depuis cet écran —
+  // voir RoleServices.getAssignableRoles(). Sans effet sur l'utilisateur
+  // Admin lui-même : sa modification est bloquée plus haut (voir
+  // UtilisateurModif) avant même d'atteindre ce chargement.
+  rolesTest = await RoleServices.getAssignableRoles();
   roles = rolesTest.map((c) => c.rolenom).toList();
+  caissesTest = await GCServices.getAllCaisses();
+  caisses = caissesTest.map((c) => c.nomCaisse).toList();
 }
 
 final TextEditingController observationController = TextEditingController();
@@ -74,6 +85,7 @@ final TextEditingController telephoneController = TextEditingController();
 
 String? selectedRole;
 String? selectedEtat;
+String? selectedCaisse;
 
 final GlobalKey<FormState> produitFormKey = GlobalKey<FormState>();
 
@@ -93,6 +105,17 @@ Future<void> UtilisateurModif(BuildContext context, Utilisateur user) async {
     return;
   }
 
+  // ✅ L'utilisateur Admin ne peut pas être modifié.
+  if (user.role.trim().toLowerCase() == 'admin') {
+    await InformationDialog(
+      context: context,
+      titre_type_message: l10n.modificationImpossible,
+      titre_concerne: l10n.user,
+      message: l10n.cannotModifyAdminUser,
+    );
+    return;
+  }
+
   await loadAllData();
 
   observationController.text = user.observation ?? "";
@@ -101,6 +124,10 @@ Future<void> UtilisateurModif(BuildContext context, Utilisateur user) async {
 
   selectedRole = user.role;
   selectedEtat = user.etat ? l10n.active : l10n.inactive;
+  // ✅ Champ caisse obligatoire : si l'utilisateur n'en avait pas encore
+  // (anciennes données), on retombe sur la caisse système par défaut.
+  selectedCaisse = caissesTest.firstWhereOrNull((c) => c.code == user.caisseCode)?.nomCaisse
+      ?? (caisses.contains('Caisse System') ? 'Caisse System' : caisses.firstOrNull);
 
   // ✅ Initialisation du roleCode avec le code du rôle actuel de l'utilisateur
   // Si l'utilisateur a un rôle, on utilise son code, sinon on prend le premier rôle disponible
@@ -213,6 +240,19 @@ Future<void> UtilisateurModif(BuildContext context, Utilisateur user) async {
 
                               const SizedBox(height: 10),
                               ChampAvecLabel(
+                                label: l10n.cashRegister,
+                                obligatoire: true,
+                                child: TextListe(
+                                  obligatoire: true,
+                                  value: selectedCaisse,
+                                  items: caisses,
+                                  clearable: false,
+                                  onChanged: (v) => setState(() => selectedCaisse = v),
+                                ),
+                              ),
+
+                              const SizedBox(height: 10),
+                              ChampAvecLabel(
                                 label: l10n.observation,
                                 child: TextChampL(
                                   controller: observationController,
@@ -259,7 +299,22 @@ Future<void> UtilisateurModif(BuildContext context, Utilisateur user) async {
                             context: context,
                             titre_type_message: l10n.error,
                             titre_concerne: l10n.user,
-                            message: "Veuillez sélectionner un rôle",
+                            message: l10n.selectRole,
+                          );
+                          return;
+                        }
+
+                        // ✅ Unicité du nom d'utilisateur, en excluant cet utilisateur lui-même.
+                        final utilisateurNomExistant = await UtilisateurServices.findUtilisateurByUsername(
+                          usernameController.text.trim(),
+                          excludeUtilisateurCode: user.code,
+                        );
+                        if (utilisateurNomExistant != null) {
+                          await InformationDialog(
+                            context: context,
+                            titre_type_message: l10n.error,
+                            titre_concerne: l10n.user,
+                            message: l10n.usernameAlreadyExists,
                           );
                           return;
                         }
@@ -269,11 +324,15 @@ Future<void> UtilisateurModif(BuildContext context, Utilisateur user) async {
                           titre: l10n.user,
                           message: l10n.confirmModifyUser,
                           onConfirmer: () async {
+                            final caisseCode = selectedCaisse == null
+                                ? null
+                                : caissesTest.firstWhereOrNull((c) => c.nomCaisse == selectedCaisse)?.code;
+
                             Utilisateur userU = Utilisateur(
                               dernierAcces: user.dernierAcces,
                               telephone: telephoneController.text,
                               dateCree: user.dateCree,
-                              username: usernameController.text,
+                              username: usernameController.text.trim(),
                               password: user.password,
                               credit: user.credit,
                               code: user.code,
@@ -285,6 +344,7 @@ Future<void> UtilisateurModif(BuildContext context, Utilisateur user) async {
                               dateModif: DateTime.now(),
                               creeParCode: user.creeParCode,
                               role_code: rolecode!, // ✅ Maintenant non-null
+                              caisseCode: caisseCode,
                             );
 
                             final response = await _UpdateUser(

@@ -4,10 +4,15 @@ import 'package:caisse_dz/Services/ExcelPreviewDialog.dart';
 import 'package:caisse_dz/core/Auth/auth_state.dart';
 import 'package:caisse_dz/Services/Produits.dart';
 import 'package:caisse_dz/Services/Pannier.dart';
+import 'package:caisse_dz/Services/Verssement.dart';
+import 'package:caisse_dz/data/models/verssement.dart';
 import 'package:caisse_dz/Services/Client.dart';
+import 'package:caisse_dz/Services/Retour.dart';
 import 'package:caisse_dz/Services/Sortie.dart';
 import 'package:caisse_dz/Services/Categorie.dart';
 import 'package:caisse_dz/Services/SousCategories.dart';
+import 'package:caisse_dz/Services/Utilisateur.dart';
+import 'package:caisse_dz/data/models/utilisateur.dart';
 import 'package:caisse_dz/data/models/categorie.dart';
 import 'package:caisse_dz/data/models/sous_categorie.dart';
 import 'package:caisse_dz/core/dialog/pannier/pannier_detail.dart';
@@ -40,6 +45,7 @@ import 'package:caisse_dz/core/widget/champ/date_champ.dart';
 
 import 'package:caisse_dz/core/widget/fourchette._widget.dart';
 import 'package:caisse_dz/core/widget/time_date_widget.dart';
+import 'package:caisse_dz/core/widget/connection_status_bar.dart';
 import 'package:caisse_dz/core/widget/header_module.dart';
 import 'package:caisse_dz/core/widget/search_bar.dart';
 import 'package:caisse_dz/core/widget/side_bar.dart';
@@ -74,9 +80,13 @@ String? selectedProduitFilter;
 List<Client>  clientsTest   = [];
 List<Produit> produitsTest  = [];
 List<Pannier> paniersTest   = [];
+List<Verssement> versementsTest = [];
+Map<String, double> verseParPannier = {};
+Map<String, int> nbrVersementParPannier = {};
 List<Sortie>  sortieTest    = [];
 List<Categorie> categoriesTest = [];
 List<SousCategorie> sousCategoriesTest = [];
+List<Utilisateur> utilisateursTest = [];
 
 List<Sortie> sortiesSelectionnes    = [];
 List<Pannier> panniersSelectionnes  = [];
@@ -110,20 +120,33 @@ class _SortieScreenState extends State<SortieScreen> with TickerProviderStateMix
 
   List<String> ProduitFilterOptions = [];
   List<String> ClientFilterOptions  = [];
+  Set<String> panniersAvecRetour = {};
 
   Future<void> loadAllData() async {
     final test = await ProduitServices.getAllProduits();
 
     final produits  = await ProduitServices .getAllProduits();
     final paniers   = await PannierServices .getAllPanniers();
+    final versements = await VerssementServices.getAllverssement();
     final clients   = await ClientServices  .getAllClients();
     final sorties   = await SortieServices  .getAllSortie();
     final categories       = await CategorieServices.getAllCategorie();
     final sousCategories   = await SousCategoriesServices.getAllSousCategorie();
 
+    final retours = await RetourServices.getAllRetour();
+    final utilisateurs = await UtilisateurServices.getAllUtilisateurs();
+
     setState(() {
       produitsTest = produits;
       paniersTest = paniers;
+      versementsTest = versements;
+      utilisateursTest = utilisateurs;
+      verseParPannier = PannierServices.verseParPannier(versements);
+      nbrVersementParPannier = PannierServices.nbrVersementParPannier(versements);
+      panniersAvecRetour = retours
+          .where((r) => r.etat && r.type == "Client" && r.retourCorrespondDe != null)
+          .map((r) => r.retourCorrespondDe!)
+          .toSet();
       clientsTest = clients;
       sortieTest = sorties;
       categoriesTest = categories;
@@ -254,6 +277,7 @@ class _SortieScreenState extends State<SortieScreen> with TickerProviderStateMix
 
         final excelFile = await ExcelGenerator.generatePanniersExcel(
           panniers: panniersToExport,
+          versements: versementsTest,
           l10n: l10n,
           translator: translator,
         );
@@ -495,6 +519,7 @@ class _SortieScreenState extends State<SortieScreen> with TickerProviderStateMix
 
         excelFile = await ExcelGenerator.generatePanniersExcel(
           panniers: panniersSelectionnes,
+          versements: versementsTest,
           l10n: l10n,
           translator: translator,
         );
@@ -643,6 +668,15 @@ class _SortieScreenState extends State<SortieScreen> with TickerProviderStateMix
   }
 
 
+  // ✅ Vrai si au moins un champ de filtre sortie est renseigné (pour l'indicateur visuel du bouton Filtre).
+  bool get _filtresSortieActifs =>
+      (selectedTypeSortieFilter != null && selectedTypeSortieFilter!.isNotEmpty) ||
+      (selectedProduitSortieFilter != null && selectedProduitSortieFilter!.isNotEmpty) ||
+      (selectedEtatFilterSrt != null && selectedEtatFilterSrt!.isNotEmpty) ||
+      dateDebuSortie != null ||
+      dateFinSortie != null ||
+      _searchControllerSortie.text.isNotEmpty;
+
   void appliquerFiltreSortie() {
     sortielistFiltres = sortieTest.where((p) {
       final searchText = _searchControllerSortie.text.toLowerCase();
@@ -680,6 +714,20 @@ class _SortieScreenState extends State<SortieScreen> with TickerProviderStateMix
     }
   }
 
+  // ✅ Vrai si au moins un champ de filtre panier (onglet SC) est renseigné (pour l'indicateur visuel du bouton Filtre).
+  bool get _filtresSCsortieActifs =>
+      (selectedClientFilterSCsortie != null && selectedClientFilterSCsortie!.isNotEmpty) ||
+      (modepaiementFilterSCsortie != null && modepaiementFilterSCsortie!.isNotEmpty) ||
+      (typepannierFilterSCsortie != null && typepannierFilterSCsortie!.isNotEmpty) ||
+      (selectedEtatFilterP != null && selectedEtatFilterP!.isNotEmpty) ||
+      montantMinSCsortie != null ||
+      montantMaxSCsortie != null ||
+      resteMinSCsortie != null ||
+      resteMaxSCsortie != null ||
+      dateDebut != null ||
+      dateFin != null ||
+      _searchControllerSCSortie.text.isNotEmpty;
+
   void appliquerFiltreSCsortie() {
     pannierFiltres = paniersTest.where((p) {
       final searchText = _searchControllerSCSortie.text.toLowerCase();
@@ -691,8 +739,9 @@ class _SortieScreenState extends State<SortieScreen> with TickerProviderStateMix
       final montantOk = (montantMinSCsortie == null || p.montant >= montantMinSCsortie!) &&
           (montantMaxSCsortie == null || p.montant <= montantMaxSCsortie!);
 
-      final resteOk = (resteMinSCsortie == null || p.reste >= resteMinSCsortie!) &&
-          (resteMaxSCsortie == null || p.reste <= resteMaxSCsortie!);
+      final reste = p.montant - (verseParPannier[p.code] ?? 0);
+      final resteOk = (resteMinSCsortie == null || reste >= resteMinSCsortie!) &&
+          (resteMaxSCsortie == null || reste <= resteMaxSCsortie!);
 
       final etatOk = selectedEtatFilterP == null ||
           selectedEtatFilterP == "" ||
@@ -962,6 +1011,9 @@ class _SortieScreenState extends State<SortieScreen> with TickerProviderStateMix
     // ✅ Index actuel du tab
     final currentTab = _tabController.index;
 
+    // ✅ Couleur de l'en-tête alignée sur la couleur du tab actif
+    final Color headerColor = currentTab == TAB_PANIER ?  Appstyle.violet : Appstyle.indigo;
+
     // ✅ Noms des tabs
     final tabNames = [
       l10n.panier,   // "Vente" -> Cart/Basket
@@ -1007,16 +1059,14 @@ class _SortieScreenState extends State<SortieScreen> with TickerProviderStateMix
               textDirection: textDirection,
               child: SingleChildScrollView(
                 scrollDirection: Axis.horizontal,
-                child: SingleChildScrollView(
-                  scrollDirection: Axis.vertical,
-                  child: ConstrainedBox(
-                    constraints: const BoxConstraints(
-                      minWidth: minWidth,
-                      minHeight: minHeight,
-                    ),
-                    child: SizedBox(
-                      width: adjustedWidth,
-                      height: adjustedHeight,
+                child: ConstrainedBox(
+                  constraints: const BoxConstraints(
+                    minWidth: minWidth,
+                    minHeight: minHeight,
+                  ),
+                  child: SizedBox(
+                    width: adjustedWidth,
+                    height: adjustedHeight,
                       child: Row(
                         textDirection: textDirection,
                         crossAxisAlignment: CrossAxisAlignment.start,
@@ -1040,7 +1090,7 @@ class _SortieScreenState extends State<SortieScreen> with TickerProviderStateMix
                                             Image.asset(
                                               "assets/icons/sidebar/sortie_icon.png",
                                               width: 40,
-                                              color: Appstyle.green2,
+                                              color: headerColor,
                                             ),
                                             const SizedBox(width: 10),
                                             Row(
@@ -1049,7 +1099,7 @@ class _SortieScreenState extends State<SortieScreen> with TickerProviderStateMix
                                                 Text(
                                                   l10n.sortie,
                                                   style: Appstyle.textXLB.copyWith(
-                                                    color: Appstyle.green2,
+                                                    color: headerColor,
                                                     fontWeight: FontWeight.bold,
                                                   ),
                                                 ),
@@ -1057,7 +1107,7 @@ class _SortieScreenState extends State<SortieScreen> with TickerProviderStateMix
                                                 Text(
                                                   "(${tabNames[currentTab]})",
                                                   style: Appstyle.textXLB.copyWith(
-                                                    color: Appstyle.green2,
+                                                    color: headerColor,
                                                     fontWeight: FontWeight.bold,
                                                   ),
                                                 ),
@@ -1069,9 +1119,9 @@ class _SortieScreenState extends State<SortieScreen> with TickerProviderStateMix
                                         Row(
                                           textDirection: textDirection,
                                           children: [
+                                            const ConnectionStatusBar(),
+                                            const SizedBox(width: 20),
                                             TimeDateWidget(
-                                              heure: "18:00",
-                                              date: "25 Nov 2025",
                                               iconHeure: "assets/icons/hour_icon.png",
                                               iconDate: "assets/icons/agenda_icon.png",
                                             ),
@@ -1107,8 +1157,7 @@ class _SortieScreenState extends State<SortieScreen> with TickerProviderStateMix
                                       isScrollable: false,
                                       indicator: BoxDecoration(
                                         color: currentTab == TAB_PANIER
-                                            ? Appstyle.green2
-                                            : Appstyle.violet,
+                                            ? Appstyle.violet : Appstyle.indigo,
                                         borderRadius: BorderRadius.circular(12),
                                       ),
                                       labelColor: Colors.white,
@@ -1158,6 +1207,11 @@ class _SortieScreenState extends State<SortieScreen> with TickerProviderStateMix
                                         if (panniersSelectionnes.length == 1)
                                           AfficheurPanier(
                                             pannier: panniersSelectionnes.first,
+                                            verse: verseParPannier[panniersSelectionnes.first.code] ?? 0,
+                                            reste: panniersSelectionnes.first.montant -
+                                                (verseParPannier[panniersSelectionnes.first.code] ?? 0),
+                                            nbrVersement: nbrVersementParPannier[panniersSelectionnes.first.code] ?? 0,
+                                            hasRetour: panniersAvecRetour.contains(panniersSelectionnes.first.code),
                                             onDetails: () {
                                               PannierDetail(context, panniersSelectionnes.first);
                                             },
@@ -1192,6 +1246,7 @@ class _SortieScreenState extends State<SortieScreen> with TickerProviderStateMix
                                                     text: l10n.filter,
                                                     textColor: Appstyle.violet,
                                                     color: Appstyle.Tblanc,
+                                                    showBadge: _filtresSCsortieActifs,
                                                     icon: filtresActifs ? Icons.visibility_off : Icons.visibility,
                                                     iconColor:Appstyle.violet ,
                                                     onPressed: () {
@@ -1290,6 +1345,9 @@ class _SortieScreenState extends State<SortieScreen> with TickerProviderStateMix
                                           child: TableauPannierAdvanced(
                                             key: ValueKey(pannierFiltres),
                                             panniers: pannierFiltres,
+                                            clients: clientsTest,
+                                            verseParPannier: verseParPannier,
+                                            nbrVersementParPannier: nbrVersementParPannier,
                                             onSelectionChanged: (selection) {
                                               setState(() {
                                                 panniersSelectionnes = selection;
@@ -1352,6 +1410,7 @@ class _SortieScreenState extends State<SortieScreen> with TickerProviderStateMix
                                                     text: l10n.filter,
                                                     textColor: Appstyle.violet,
                                                     color: Appstyle.Tblanc,
+                                                    showBadge: _filtresSortieActifs,
                                                     icon: filtresActifs ? Icons.visibility_off : Icons.visibility,
                                                     iconColor:Appstyle.violet ,
                                                        onPressed: () {
@@ -1517,6 +1576,7 @@ class _SortieScreenState extends State<SortieScreen> with TickerProviderStateMix
                                             produits: produitsTest,
                                             categories: categoriesTest,
                                             sousCategories: sousCategoriesTest,
+                                            utilisateurs: utilisateursTest,
                                             onSelectionChanged: (selection) {
                                               setState(() {
                                                 sortiesSelectionnes = selection;
@@ -1534,7 +1594,6 @@ class _SortieScreenState extends State<SortieScreen> with TickerProviderStateMix
                       ),
                     ),
                   ),
-                ),
               ),
             );
           },
@@ -1841,7 +1900,7 @@ class _SortieScreenState extends State<SortieScreen> with TickerProviderStateMix
               ),
               const SizedBox(width: 20),
               SizedBox(
-                width: 400,
+                width: width * 0.7,
                 child: ChampAvecLabel(
                   label: l10n.quickPeriod,
                   child: DropdownButtonFormField<String>(
@@ -1872,7 +1931,7 @@ class _SortieScreenState extends State<SortieScreen> with TickerProviderStateMix
           ),
           const SizedBox(height: 15),
           SizedBox(
-            width: width * 0.9,
+            width: width * 0.7,
             child: Row(
               textDirection: textDirection,
               children: [

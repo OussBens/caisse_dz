@@ -12,6 +12,45 @@ class VerssementServices{
 
   VerssementServices(this.db);
 
+  /// Si [verssement] règle une créance client via le mode de paiement
+  /// "Points" (voir ListsConst.modePaiementList / programme de bonus), vérifie
+  /// et débite le solde de points du client sur le même executor que
+  /// l'insertion — retourne un message d'erreur si le solde est insuffisant
+  /// ou le client introuvable, `null` sinon (y compris pour tout versement
+  /// qui n'est pas un paiement par points : aucune vérification n'est alors
+  /// déclenchée).
+  Future<String?> _validerEtDebiterPoints(DatabaseExecutor executor, Verssement verssement) async {
+    if (verssement.mode_paiement != 'Points' ||
+        verssement.typebeneficiare != 'Client' ||
+        verssement.sense != 'Entrée') {
+      return null;
+    }
+
+    final clientMaps = await executor.query(
+      'clients',
+      columns: ['solde_bonus'],
+      where: 'code = ?',
+      whereArgs: [verssement.beneficiareCode],
+      limit: 1,
+    );
+    if (clientMaps.isEmpty) {
+      return "Client introuvable pour le paiement par points";
+    }
+
+    final solde = (clientMaps.first['solde_bonus'] as num?)?.toDouble() ?? 0;
+    if (solde < verssement.montant) {
+      return "Solde de points insuffisant (disponible : ${solde.toStringAsFixed(2)})";
+    }
+
+    await executor.update(
+      'clients',
+      {'solde_bonus': solde - verssement.montant},
+      where: 'code = ?',
+      whereArgs: [verssement.beneficiareCode],
+    );
+    return null;
+  }
+
   static Future<List<Verssement>> getAllverssement() async {
 
     final db = await DbCreator.openDb();
@@ -20,6 +59,18 @@ class VerssementServices{
 
     return result.map((e) => Verssement.fromMap(e)).toList();
 
+  }
+
+  /// Versements liés à une opération donnée (panier, retour ou smart scan),
+  /// utilisé pour répercuter une modification du montant versé de l'opération.
+  Future<List<Verssement>> getVerssementsByCodeOperation(String codeOperation) async {
+    final result = await db.query(
+      'verssements',
+      where: 'code_operation = ?',
+      whereArgs: [codeOperation],
+    );
+
+    return result.map((e) => Verssement.fromMap(e)).toList();
   }
 // Ajoutez ces méthodes dans VerssementServices.dart
 
@@ -37,6 +88,11 @@ class VerssementServices{
           success: false,
           message: "Un verssement avec ce code existe deja",
         );
+      }
+
+      final erreurPoints = await _validerEtDebiterPoints(txn, verssement);
+      if (erreurPoints != null) {
+        return ApiResponse(success: false, message: erreurPoints);
       }
 
       final id = await txn.insert(
@@ -135,12 +191,22 @@ class VerssementServices{
         );
       }
 
-      final id = await db.insert(
-        'verssements',
-        verssement.toMap(),
-        conflictAlgorithm: ConflictAlgorithm.abort,
-      );
+      // Vérification + débit du solde de points (si paiement par points) et
+      // insertion dans une même transaction : évite qu'un double-appel
+      // concurrent ne dépense deux fois le même solde.
+      late final int id;
+      await db.transaction((txn) async {
+        final erreurPoints = await _validerEtDebiterPoints(txn, verssement);
+        if (erreurPoints != null) {
+          throw StateError(erreurPoints);
+        }
 
+        id = await txn.insert(
+          'verssements',
+          verssement.toMap(),
+          conflictAlgorithm: ConflictAlgorithm.abort,
+        );
+      });
 
       return ApiResponse(
         success : true,
@@ -148,6 +214,8 @@ class VerssementServices{
         data    : id,
       );
 
+    } on StateError catch (e) {
+      return ApiResponse(success: false, message: e.message);
     }catch(e){
 
       return ApiResponse(

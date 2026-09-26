@@ -96,8 +96,9 @@ Future<ApiResponse<int>> _updateProduit({
   return lastResponse!;
 }
 
-Future<void> CategorieSousCategorieProduit(
+Future<bool?> CategorieSousCategorieProduit(
     BuildContext context, List<Produit> produitsSelectionnes) async {
+  final l10n = AppLocalizations.of(context)!;
   final auth = Provider.of<AuthState>(context, listen: false);
   final userName = auth.username!;
   final userCode = auth.userCode!;
@@ -105,11 +106,11 @@ Future<void> CategorieSousCategorieProduit(
   if (!auth.isAuthenticated || auth.username == null || auth.userCode == null) {
     await InformationDialog(
       context: context,
-      titre_type_message: "Authentification",
-      titre_concerne: "Utilisateur",
-      message: "Vous devez être connecté pour changé Categorié & Sous catégorié.",
+      titre_type_message: l10n.authentication,
+      titre_concerne: l10n.user,
+      message: l10n.loginRequiredChangeCategory,
     );
-    return;
+    return null;
   }
 
   await loadAllData();
@@ -121,7 +122,7 @@ Future<void> CategorieSousCategorieProduit(
     orElse: () => sousCategoriesTest.first,
   );
 
-  return showDialog(
+  return showDialog<bool>(
     context: context,
     barrierColor: Appstyle.gris.withOpacity(0.2),
     builder: (_) {
@@ -141,9 +142,27 @@ Future<void> CategorieSousCategorieProduit(
                 content: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(
-                      l10n.selectedProducts,
-                      style: TextStyle(fontWeight: FontWeight.w600, color: Appstyle.Tnoir),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text(
+                          l10n.selectedProducts,
+                          style: TextStyle(fontWeight: FontWeight.w600, color: Appstyle.Tnoir),
+                        ),
+                        Row(
+                          children: [
+                            Text(
+                              l10n.categorieactuel,
+                              style: TextStyle(fontWeight: FontWeight.w600, color: Appstyle.Tnoir),
+                            ),
+                            SizedBox(width: 20,),
+                            Text(
+                              l10n.sousCategorie,
+                              style: TextStyle(fontWeight: FontWeight.w600, color: Appstyle.Tnoir),
+                            ),
+                          ],
+                        ),
+                      ],
                     ),
                     const SizedBox(height: 10),
                     Expanded(
@@ -274,7 +293,7 @@ Future<void> CategorieSousCategorieProduit(
                                 titre_concerne: l10n.product,
                                 message: l10n.categorySubcategoryModifiedSuccess,
                                 onTerminer: () {
-                                  Navigator.pop(context);
+                                  Navigator.pop(context, true);
                                 },
                               );
                             } else {

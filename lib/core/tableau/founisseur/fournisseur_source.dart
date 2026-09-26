@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:syncfusion_flutter_datagrid/datagrid.dart';
 import '../../../../data/models/fournisseur.dart';
-import '../../../data/constant.dart';
 import '../../../l10n/app_localizations.dart';
 import '../../widget/status_badge.dart';
 import '../base_table_data_source.dart';
@@ -13,6 +12,7 @@ class FournisseurDataSource extends BaseTableDataSource<Fournisseur> {
     required List<Fournisseur> fournisseurs,
     required super.columnConfig,
     required this.l10n,
+    super.utilisateurs = const [],
   }) : super(items: fournisseurs);
 
   String formatDate(DateTime? date) {
@@ -55,15 +55,15 @@ class FournisseurDataSource extends BaseTableDataSource<Fournisseur> {
       case 'dateCree':
         return formatDate(fournisseur.dateCree);
       case 'creeParCode':
-        return fournisseur.creeParCode;
+        return nomUtilisateur(fournisseur.creeParCode);
       case 'dateModif':
         return formatDate(fournisseur.dateModif);
       case 'modifParCode':
-        return fournisseur.modifParCode;
+        return nomUtilisateur(fournisseur.modifParCode);
       case 'dateAnnul':
         return formatDate(fournisseur.dateAnnul);
       case 'annulParCode':
-        return fournisseur.annulParCode;
+        return nomUtilisateur(fournisseur.annulParCode);
       case 'motifAnnul':
         return fournisseur.motifAnnul;
 

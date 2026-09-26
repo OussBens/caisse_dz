@@ -3,7 +3,11 @@ class ProduitMagasinDetail {
   // --- Relation ---
   String magasinCode;
   String produitCode;
-  double quantite;
+  // ⚠️ Le stock n'est plus stocké ici : il est calculé dynamiquement depuis
+  // le journal des mouvements, voir MouvementsServices.quantiteProduit()/
+  // totauxParProduit(magasinCode: ...).
+  // Second stock parallèle (nombre de pièces) — voir Produit.nombre.
+  double nombre;
   // --- Audit ---
   String    creeParCode;
   DateTime  dateCree;
@@ -14,7 +18,7 @@ class ProduitMagasinDetail {
     required this.produitCode,
     required this.dateCree,
     required this.creeParCode,
-    this.quantite = 0 ,
+    this.nombre = 0,
   }
   );
 
@@ -29,7 +33,7 @@ class ProduitMagasinDetail {
       produitCode : map['produit_code'],
       dateCree    : DateTime.parse(map['date_cree']),
       creeParCode : map['cree_par_code'],
-      quantite    : map['quantite'],
+      nombre      : (map['nombre'] as num?)?.toDouble() ?? 0,
 
     );
   }
@@ -45,7 +49,7 @@ class ProduitMagasinDetail {
       'produit_code'  : produitCode,
       'date_cree'     : dateCree.toIso8601String(),
       'cree_par_code' : creeParCode,
-      'quantite'      : quantite,
+      'nombre'        : nombre,
 
     };
   }  String get searchableText {

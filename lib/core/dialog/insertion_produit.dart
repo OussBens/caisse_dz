@@ -3,7 +3,10 @@ import 'package:caisse_dz/core/widget/button/main_button.dart';
 import 'package:caisse_dz/l10n/app_localizations.dart';
 import 'package:flutter/material.dart';
 import '../../Services/Produits.dart';
+import '../../Services/Paramters.dart';
+import '../../Services/Mouvement.dart';
 import '../../data/models/produit.dart';
+import '../../data/models/produit_code_detail.dart';
 import '../tableau/insertion/tableau_insertion_produit.dart';
 import 'package:caisse_dz/core/theme/app_style.dart';
 import '../widget/card/card_product.dart';
@@ -20,6 +23,13 @@ class InsertionProduitDialog extends StatefulWidget {
   final Function(Produit) onProduitSelected;
   final bool multiselection;
   final bool? filtreBesion;
+  final bool newButton;
+
+  /// Magasin dont afficher la quantité disponible (calculée depuis le
+  /// journal des mouvements) — null = tous magasins confondus. Les
+  /// appelants qui n'ont pas encore de notion de magasin actif n'ont rien
+  /// à changer, ce paramètre est optionnel.
+  final String? magasinCode;
 
   const InsertionProduitDialog({
     Key? key,
@@ -27,6 +37,8 @@ class InsertionProduitDialog extends StatefulWidget {
     required this.onProduitSelected,
     required this.multiselection,
     this.filtreBesion,
+    this.newButton = true,
+    this.magasinCode,
   }) : super(key: key);
 
   @override
@@ -42,10 +54,44 @@ class _InsertionProduitDialogState extends State<InsertionProduitDialog> {
     }
     // Initialiser la liste locale
     produitsLocale = List.from(widget.produits);
+    _loadSeuil();
+    _loadCodeDetails();
+    _loadQuantites();
+  }
+
+  Future<void> _loadSeuil() async {
+    final param = await ParamServices.getParam();
+    if (mounted) setState(() => seuilMinimum = param.Minimum);
+  }
+
+  // Quantité par produit calculée depuis le journal des mouvements — voir
+  // produit_screen.dart pour le même mécanisme. Remplace Produit.quantite,
+  // qui n'est plus la source de vérité du stock.
+  Map<String, double> quantitesMap = {};
+
+  Future<void> _loadQuantites() async {
+    final totaux = await MouvementsServices.totauxParProduit(magasinCode: widget.magasinCode);
+    if (mounted) setState(() => quantitesMap = totaux.quantites);
+  }
+
+  double _quantite(Produit p) => quantitesMap[p.code] ?? 0;
+
+  // ✅ Codes-barres secondaires (produit_code_detail), pour les produits à
+  // plusieurs codes-barres : produitCode -> liste de codes-barres en minuscule.
+  Map<String, List<String>> codeBarresSecondairesMap = {};
+
+  Future<void> _loadCodeDetails() async {
+    final details = await ProduitServices.getAllCodeDetails();
+    final map = <String, List<String>>{};
+    for (var d in details) {
+      map.putIfAbsent(d.produitCode, () => []).add(d.CodeBar.toLowerCase());
+    }
+    if (mounted) setState(() => codeBarresSecondairesMap = map);
   }
 
   bool multiple = false;
   bool produitbesoin = true;
+  double seuilMinimum = 0;
   List<Produit> produitsSelectionnees = [];
   Produit? produitSelectionne;
 
@@ -69,6 +115,7 @@ class _InsertionProduitDialogState extends State<InsertionProduitDialog> {
         produitsLocale = nouveauxProduits;
       });
     }
+    await _loadQuantites();
   }
 
   @override
@@ -77,18 +124,20 @@ class _InsertionProduitDialogState extends State<InsertionProduitDialog> {
 
     final produitsFiltres = produitsLocale.where((p) {
       final besoinOk = (widget.filtreBesion == true && produitbesoin)
-          ? ((p.quantite) <= (p.seuilMin))
+          ? (_quantite(p) <= seuilMinimum)
           : true;
 
       final rechercheOk = searchText.isEmpty
           ? true
-          : p.nom != null && p.nom.toLowerCase().contains(searchText);
+          : p.nom.toLowerCase().contains(searchText) ||
+              (p.codeBarre?.toLowerCase().contains(searchText) ?? false) ||
+              (codeBarresSecondairesMap[p.code]?.any((c) => c.contains(searchText)) ?? false);
 
       return besoinOk && rechercheOk;
     }).toList();
 
     return BaseDialog(
-      couleur: Appstyle.violetC,
+      couleur: Appstyle.Tblanc,
       width: 1080,
       height: 1000,
       header: Row(
@@ -144,19 +193,21 @@ class _InsertionProduitDialogState extends State<InsertionProduitDialog> {
                         ),
                       ),
                     ),
-                    const SizedBox(width: 10),
-                    MainButton(
-                        text: l10n.newWord,
-                        color: Appstyle.crevete,
-                        onPressed: () async {
-                          // Ouvrir le dialog de création
-                          await ProduitNouveau(context);
+                    if (widget.newButton) ...[
+                      const SizedBox(width: 10),
+                      MainButton(
+                          text: l10n.newWord,
+                          color: Appstyle.crevete,
+                          onPressed: () async {
+                            // Ouvrir le dialog de création
+                            await ProduitNouveau(context);
 
-                          // Recharger les produits après la fermeture du dialog
-                          await reloadProduits();
+                            // Recharger les produits après la fermeture du dialog
+                            await reloadProduits();
 
-                        }
-                    ),
+                          }
+                      ),
+                    ],
                   ],
                 ),
               ],
@@ -215,15 +266,19 @@ class _InsertionProduitDialogState extends State<InsertionProduitDialog> {
                           return CardProduct(
                             couleur: Appstyle.Tblanc,
                             iconPath: 'assets/icons/sidebar/produit_icon.png',
-                            hasRemise: p.remiseId != null,
+                            hasRemise: p.remiseId != null && p.remiseId != 0,
                             text1: p.nom,
-                            text2: "${p.prixAchat} ${l10n.currency}",
-                            quantite: p.quantite,
+                            text2: "${p.prixVente} ${l10n.currency}",
+                            photo: p.photo,
+                            quantite: _quantite(p),
+                            actif: p.etat,
                             selected: multiple
                                 ? produitsSelectionnees.any((e) => e.id == p.id)
                                 : produitSelectionne?.id == p.id,
-                            seuil: p.seuilMin,
-                            onTap: () {
+                            seuil: seuilMinimum,
+                            onTap: !p.etat
+                                ? null
+                                : () {
                               setState(() {
                                 if (multiple) {
                                   if (produitsSelectionnees.any((e) => e.id == p.id)) {
@@ -236,7 +291,9 @@ class _InsertionProduitDialogState extends State<InsertionProduitDialog> {
                                 }
                               });
                             },
-                            onDoubleTap: () {
+                            onDoubleTap: !p.etat
+                                ? null
+                                : () {
                               if (!multiple) widget.onProduitSelected(p);
                               Navigator.pop(context);
                             },
@@ -252,6 +309,7 @@ class _InsertionProduitDialogState extends State<InsertionProduitDialog> {
                 selectedProduits: produitsSelectionnees,
                 selectedProduit: produitSelectionne,
                 multiple: multiple,
+                quantites: quantitesMap,
                 onSelectionChanged: (p) {
                   if (!multiple) produitSelectionne = p;
                 },

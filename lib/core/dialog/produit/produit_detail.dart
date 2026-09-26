@@ -3,49 +3,75 @@ import 'package:caisse_dz/DBCreate.dart';
 import 'package:caisse_dz/Services/Categorie.dart';
 import 'package:caisse_dz/Services/Magasin.dart';
 import 'package:caisse_dz/Services/MagasinDetail.dart';
+import 'package:caisse_dz/Services/Mouvement.dart';
 import 'package:caisse_dz/Services/Pack.dart';
 import 'package:caisse_dz/Services/PackDetailes.dart';
 import 'package:caisse_dz/Services/Produits.dart';
 import 'package:caisse_dz/Services/Remise.dart';
+import 'package:caisse_dz/Services/SmartScanProduit.dart';
 import 'package:caisse_dz/Services/SousCategories.dart';
-import 'package:caisse_dz/data/models/magasin.dart';
 import 'package:caisse_dz/data/models/pack.dart';
 import 'package:caisse_dz/data/models/produit_magasin_detail.dart';
 import 'package:caisse_dz/data/models/produit_pack_detail.dart';
+import 'package:caisse_dz/data/models/smart_scan_produit.dart';
 import 'package:caisse_dz/l10n/app_localizations.dart';
 import 'package:collection/collection.dart';
 import 'package:flutter/material.dart';
 import 'package:caisse_dz/core/theme/app_style.dart';
 import '../../../Services/Photos.dart';
+import '../../../Services/EntrepriseParam.dart';
+import '../../../data/constant.dart';
+import '../../../data/models/magasin.dart';
 import '../../../data/models/produit.dart';
 import '../../widget/detail_widget.dart';
+import '../../widget/qr_code_avec_impression.dart';
 import '../../widget/section_decoration.dart';
+import '../../widget/stats_card.dart';
 import '../base_dialog.dart';
+import 'package:caisse_dz/core/utilis/number_format.dart';
 
 List<ProduitPackDetail> produitPackDetailsTest = [];
 List<ProduitMagasinDetail> produitsMagasinsTest = [];
-List<Magasin> magasinsTest = [];
+List<Magasin> magasinsListeTest = [];
 List<Pack> packsTest = [];
 String? categorieNomTest;
 String? sousCategorieNomTest;
 String? remiseNomTest;
+String? boutiqueNomTest;
+double prixMoyenTest = 0;
+// ✅ Quantité calculée depuis le journal des mouvements — remplace Produit.quantite.
+double quantiteTest = 0;
+
+/// Prix moyen pondéré d'achat = Σ(prix × quantité) / Σ(quantité), calculé à
+/// partir de l'historique d'achats du produit (SmartScan).
+double _calculerPrixMoyen(List<SmartScanProduit> achats, String codeProduit) {
+  final lignes = achats.where((a) => a.codeProduit == codeProduit).toList();
+  final quantiteTotale = lignes.fold(0.0, (sum, a) => sum + a.quantite);
+  if (quantiteTotale == 0) return 0;
+  final montantTotal = lignes.fold(0.0, (sum, a) => sum + (a.prix * a.quantite));
+  return montantTotal / quantiteTotale;
+}
 
 Future<void> loadAllData({required Produit prd}) async {
   try {
     final magasintest = await ProduitMagasinDetailServices.getDetailsByCode(prd.code);
     final packtest = await ProduitPackDetailServices.getDetailsByNom(prd.code);
-    final magasins = await MagasinServices.getAllMagasins();
     produitsMagasinsTest = magasintest;
     produitPackDetailsTest = packtest;
-    magasinsTest = magasins;
     packsTest = await PackServices.getAllPacks();
+    magasinsListeTest = await MagasinServices.getAllMagasins();
 
     final db = await DbCreator.openDb();
     categorieNomTest = (await CategorieServices(db).getCategorieById(prd.categorieId))?.nom;
     sousCategorieNomTest = (await SousCategoriesServices(db).getSousCategorieById(prd.sousCategorieId))?.nom;
     remiseNomTest = prd.remiseId != null
-        ? (await RemiseServices(db).getRemiseById(prd.remiseId!))?.nom
-        : null;
+        ? ((await RemiseServices(db).getRemiseById(prd.remiseId!))?.nom ?? "-")
+        : "-";
+    boutiqueNomTest = (await EntrepriseParamServices.getEntrepriseParam()).nomBoutique;
+
+    final achats = await SmartScanProduitServices.getAllSmartScanProduits();
+    prixMoyenTest = _calculerPrixMoyen(achats, prd.code);
+    quantiteTest = await MouvementsServices.quantiteProduit(prd.code);
   } catch (e) {
     debugPrint("Erreur chargement : $e");
   }
@@ -91,10 +117,16 @@ Future<void> ProduitDetail(BuildContext context, Produit produit) async {
                 Chip(
                   label: Text(
                     produit.etat ? l10n.active : l10n.inactive,
-                    style: Appstyle.textSB.copyWith(color: Appstyle.Tblanc),
+                    style: Appstyle.textSB.copyWith(
+                      color: produit.etat ? Appstyle.Tblanc : Appstyle.Tnoir, // ou une autre couleur
+                    ),
                   ),
-                  backgroundColor: Appstyle.violet.withOpacity(0.8),
-                ),
+                  backgroundColor: produit.etat
+                      ? Appstyle.violet.withOpacity(0.8)
+                      : Appstyle.crevete.withOpacity(0.7), // ou rouge, orange, etc.
+                  labelPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                  elevation: produit.etat ? 2 : 0,
+                )
               ],
             ),
             const SizedBox(height: 16),
@@ -120,23 +152,37 @@ Future<void> ProduitDetail(BuildContext context, Produit produit) async {
                         detailinfo(l10n.category, categorieNomTest),
                         detailinfo(l10n.subcategory, sousCategorieNomTest),
                         detailinfo(l10n.barcode, produit.codeBarre),
-                        detailinfo(l10n.serialNumber, produit.numeroSerie),
+                        detailinfo(l10n.serialNumber, produit.numeroSerie??"-"),
                         detailinfo(l10n.multicode, produit.multicodebar ? l10n.yes : l10n.no),
                         detailinfo(l10n.service, produit.service ? l10n.yes : l10n.no),
                         detailinfo(l10n.discount, remiseNomTest),
                       ]),
                     ),
                   ),
-                  const SizedBox(width: 20),
-                  /// Photos - à droite
+                  /// Photos + code-barre - à droite
                   Expanded(
                     flex: 1,
-                    child: _buildPhotoSection(produit, l10n),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        _buildPhotoSection(produit, l10n),
+                      ],
+                    ),
                   ),
+
+            if (produit.codeBarre != null && produit.codeBarre!.trim().isNotEmpty) ...[
+                 Expanded(
+                    flex: 1,
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                          _buildQrCodeSection(produit, l10n, boutiqueNomTest),
+                      ],
+                    ),
+                  ),
+                        ],
                 ],
               ),
-
-              const SizedBox(height: 24),
 
               /// Description
               SectionDecoration(
@@ -148,14 +194,13 @@ Future<void> ProduitDetail(BuildContext context, Produit produit) async {
                 ),
               ),
 
-              const SizedBox(height: 24),
-
               /// Prix et Taxes
               SectionDecoration(
                 title: l10n.priceTaxes,
                 icon: Icons.payments_outlined,
                 child: detailwrap([
                   detailinfo(l10n.purchasePrice, "${produit.prixAchat} ${l10n.currency}"),
+                  detailinfo(l10n.averagePrice, "${NumberFormatUtil.formatMontant(prixMoyenTest, decimales: 2)} ${l10n.currency}"),
                   detailinfo(l10n.salePrice, "${produit.prixVente} ${l10n.currency}"),
                   detailinfo(l10n.vat, "${produit.tva ?? 0}%"),
                   detailinfo(l10n.marginBool, produit.margeBool ? l10n.yes : l10n.no),
@@ -163,8 +208,6 @@ Future<void> ProduitDetail(BuildContext context, Produit produit) async {
                   detailinfo(l10n.marginRatePercent, produit.margeTauxPrct),
                 ]),
               ),
-
-              const SizedBox(height: 24),
 
               /// Stock et Unité
               SectionDecoration(
@@ -174,11 +217,9 @@ Future<void> ProduitDetail(BuildContext context, Produit produit) async {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     detailwrap([
-                      detailinfo(l10n.quantity, produit.quantite),
+                      detailinfo(l10n.quantity, quantiteTest),
+                      detailinfo(l10n.numberField, produit.nombre),
                       detailinfo(l10n.unitOfMeasure, produit.uniteMesure),
-                      detailinfo(l10n.minThreshold, produit.seuilMin),
-                      detailinfo(l10n.maxThreshold, produit.seuilMax),
-                      detailinfo(l10n.thresholdBool, produit.seuilBool ? l10n.yes : l10n.no),
 
                       // ✅ Emballage 1
                       detailinfo(
@@ -190,7 +231,7 @@ Future<void> ProduitDetail(BuildContext context, Produit produit) async {
                       detailinfo(
                         "${l10n.packaging1} (Prix)",
                         produit.emballageP1 != null && produit.emballageP1! > 0
-                            ? "${produit.emballageP1!.toStringAsFixed(2)} ${l10n.currency}"
+                            ? "${NumberFormatUtil.formatMontant(produit.emballageP1!, decimales: 2)} ${l10n.currency}"
                             : "-",
                       ),
 
@@ -199,7 +240,7 @@ Future<void> ProduitDetail(BuildContext context, Produit produit) async {
                           produit.emballageP1 != null && produit.emballageP1! > 0)
                         detailinfo(
                           "💰 Prix/pièce (${l10n.packaging1})",
-                          "${(produit.emballageP1! / produit.emballage1!).toStringAsFixed(2)} ${l10n.currency}",
+                          "${NumberFormatUtil.formatMontant((produit.emballageP1! / produit.emballage1!), decimales: 2)} ${l10n.currency}",
                           isHighlight: true,
                         ),
 
@@ -213,7 +254,7 @@ Future<void> ProduitDetail(BuildContext context, Produit produit) async {
                       detailinfo(
                         "${l10n.packaging2} (Prix)",
                         produit.emballageP2 != null && produit.emballageP2! > 0
-                            ? "${produit.emballageP2!.toStringAsFixed(2)} ${l10n.currency}"
+                            ? "${NumberFormatUtil.formatMontant(produit.emballageP2!, decimales: 2)} ${l10n.currency}"
                             : "-",
                       ),
 
@@ -222,7 +263,7 @@ Future<void> ProduitDetail(BuildContext context, Produit produit) async {
                           produit.emballageP2 != null && produit.emballageP2! > 0)
                         detailinfo(
                           "💰 Prix/pièce (${l10n.packaging2})",
-                          "${(produit.emballageP2! / produit.emballage2!).toStringAsFixed(2)} ${l10n.currency}",
+                          "${NumberFormatUtil.formatMontant((produit.emballageP2! / produit.emballage2!), decimales: 2)} ${l10n.currency}",
                           isHighlight: true,
                         ),
 
@@ -231,8 +272,6 @@ Future<void> ProduitDetail(BuildContext context, Produit produit) async {
                   ],
                 ),
               ),
-
-              const SizedBox(height: 24),
 
               /// Localisation et Spécifications
               SectionDecoration(
@@ -243,8 +282,6 @@ Future<void> ProduitDetail(BuildContext context, Produit produit) async {
                   detailinfo(l10n.color, produit.couleur),
                 ]),
               ),
-
-              const SizedBox(height: 24),
 
               /// Mouvements de stock
               SectionDecoration(
@@ -260,8 +297,6 @@ Future<void> ProduitDetail(BuildContext context, Produit produit) async {
                 ]),
               ),
 
-              const SizedBox(height: 24),
-
               /// Packs
               SectionDecoration(
                 title: l10n.packs,
@@ -269,16 +304,12 @@ Future<void> ProduitDetail(BuildContext context, Produit produit) async {
                 child: _affichagePacks(produit, l10n),
               ),
 
-              const SizedBox(height: 24),
-
               /// Magasins
               SectionDecoration(
                 title: l10n.stores,
                 icon: Icons.store_outlined,
                 child: _affichageMagasins(produit, l10n),
               ),
-
-              const SizedBox(height: 24),
 
               /// Observation
               SectionDecoration(
@@ -289,8 +320,6 @@ Future<void> ProduitDetail(BuildContext context, Produit produit) async {
                   style: Appstyle.textSB,
                 ),
               ),
-
-              const SizedBox(height: 24),
 
               /// Audit
               SectionDecoration(
@@ -359,6 +388,46 @@ Widget _buildPhotoSection(Produit produit, AppLocalizations l10n) {
           _buildSinglePhoto(produit.photo!)
         else
           _buildEmptyPhotosWidget(l10n),
+      ],
+    ),
+  );
+}
+
+/// 🆕 Section code-barre (QR) + bouton imprimer, affichée uniquement si le
+/// produit a un code barre (physique ou auto-généré).
+Widget _buildQrCodeSection(Produit produit, AppLocalizations l10n, String? boutiqueNom) {
+  return Container(
+    margin: const EdgeInsets.only(left: 16),
+    padding: const EdgeInsets.all(16),
+    decoration: BoxDecoration(
+      color: Colors.grey[50],
+      borderRadius: BorderRadius.circular(16),
+      border: Border.all(color: Colors.grey[200]!),
+    ),
+    child: Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            Icon(Icons.qr_code_2, color: Appstyle.violet, size: 20),
+            const SizedBox(width: 8),
+            Text(
+              l10n.barcode,
+              style: Appstyle.textSB.copyWith(
+                fontWeight: FontWeight.bold,
+                fontSize: 16,
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 16),
+        Center(
+          child: QrCodeAvecImpression(
+            code: produit.codeBarre!,
+            sousLabel: boutiqueNom,
+            afficherImpression: produit.codeBarre!.startsWith(CodePrefix.barcode),
+          ),
+        ),
       ],
     ),
   );
@@ -481,22 +550,31 @@ void _showFullScreenPhoto(BuildContext context, String photoPath) {
   );
 }
 
+// Dans produit_detail.dart
 Widget _resumeChiffre(Produit p, AppLocalizations l10n) {
-  return Container(
-    decoration: BoxDecoration(
-      color: Appstyle.violet.withOpacity(0.6),
-      borderRadius: BorderRadius.circular(10),
-    ),
-    padding: const EdgeInsets.all(8),
-    child: Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-      children: [
-        detailbadge(l10n.quantity, p.quantite),
-        detailbadge(l10n.purchasePrice, p.prixAchat),
-        detailbadge(l10n.salePrice, p.prixVente),
-        detailbadge(l10n.margin, p.margeTaux),
-      ],
-    ),
+  return StatsCard(
+    items: [
+      StatsItem(
+        label: l10n.quantity,
+        value: quantiteTest,
+      ),
+      StatsItem(
+        label: l10n.purchasePrice,
+        value: "${p.prixAchat} ${l10n.currency}",
+      ),
+      StatsItem(
+        label: l10n.averagePrice,
+        value: "${NumberFormatUtil.formatMontant(prixMoyenTest, decimales: 2)} ${l10n.currency}",
+      ),
+      StatsItem(
+        label: l10n.salePrice,
+        value: "${p.prixVente} ${l10n.currency}",
+      ),
+      StatsItem(
+        label: l10n.margin,
+        value: p.margeTaux,
+      ),
+    ],
   );
 }
 
@@ -539,7 +617,8 @@ Widget _affichageMagasins(Produit produit, AppLocalizations l10n) {
     spacing: 10,
     runSpacing: 8,
     children: produitsMagasinsTest.map((r) {
-      final magasinNom = magasinsTest.firstWhereOrNull((m) => m.code == r.magasinCode)?.nom ?? r.magasinCode;
+      final magasinNom = magasinsListeTest.firstWhereOrNull((m) => m.code == r.magasinCode)?.nom
+          ?? r.magasinCode;
       return Chip(
         label: Text(
           magasinNom,

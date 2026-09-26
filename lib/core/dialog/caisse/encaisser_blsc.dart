@@ -1,6 +1,9 @@
 import 'dart:typed_data';
+import 'package:collection/collection.dart';
 import 'package:caisse_dz/DBCreate.dart';
 import 'package:caisse_dz/Services/CaisseGestion.dart' hide ApiResponse;
+import 'package:caisse_dz/Services/CaisseSession.dart' hide ApiResponse;
+import 'package:caisse_dz/data/models/caisse_mouvement.dart';
 import 'package:caisse_dz/Services/Client.dart' hide ApiResponse;
 import 'package:caisse_dz/Services/Historique.dart' hide ApiResponse;
 import 'package:caisse_dz/Services/Mouvement.dart' hide ApiResponse;
@@ -34,12 +37,15 @@ import '../../../Services/PDFPreviewDialog.dart';
 import '../../../Services/Verssement.dart' hide ApiResponse;
 import '../../../Services/pdf_generator_ar.dart';
 import '../../../Services/pdf_generator_latin.dart';
+import '../../../Services/EntrepriseParam.dart';
+import '../../../Services/LogoService.dart';
 import '../../../data/models/verssement.dart';
 import '../../locale/locale_provider.dart';
 import '../../utilis/api_response.dart';
 import '../../widget/code_generateur.dart';
 import '../confirmation_dialog.dart';
 import '../information_dialog.dart';
+import 'package:caisse_dz/core/utilis/number_format.dart';
 
 Future<int> _GetNextpannierId() async {
   final db = await DbCreator.openDb();
@@ -76,30 +82,6 @@ Future<int> _GetNextMouvementId() async {
   });
   return id;
 }
-// Ajoutez cette fonction dans chaque fichier de dialogue
-Future<void> _decrementStockReel({
-  required String produitCode,
-  required String magasinCode,
-  required double quantiteReelle,
-  required String userName,
-}) async {
-  final db = await DbCreator.openDb();
-  final pmdService = ProduitMagasinDetailServices(db);
-
-  // Récupérer le détail produit-magasin
-  final magasinDetail = await pmdService.getSingleByProduitAndMagasin(
-    produitCode,
-    magasinCode,
-  );
-
-  if (magasinDetail != null && magasinDetail.quantite >= quantiteReelle) {
-    // Déstocker du magasin
-    await pmdService.decrementQuantite(magasinDetail.id, quantiteReelle);
-  } else if (magasinDetail != null && magasinDetail.quantite < quantiteReelle) {
-    // Déstocker ce qui est disponible (cas de stock partiel)
-    await pmdService.decrementQuantite(magasinDetail.id, magasinDetail.quantite);
-  }
-}
 Future<ApiResponse<int>> _SavePannier ({
   required  Pannier     pannier,
   required  CaisseState caisse,
@@ -108,6 +90,7 @@ Future<ApiResponse<int>> _SavePannier ({
   required  Client      client,
   required  double      montant,
   required String magasinCode,  // ✅ Ajouter ce paramètre
+  required String caisseCode,
 }) async
 {
   final db        = await DbCreator.openDb();
@@ -119,6 +102,7 @@ Future<ApiResponse<int>> _SavePannier ({
   final serviceC  = ClientServices(db);
   final versementService = VerssementServices(db);
   final pmdService = ProduitMagasinDetailServices(db); // ✅ Ajouter
+  final caisseSessionService = CaisseSessionServices(db);
   final Produitse = await ProduitServices.getAllProduits();
 
   PannierProduit  prod;
@@ -126,9 +110,17 @@ Future<ApiResponse<int>> _SavePannier ({
   int idp;
   int idh;
   int idm;
-  final response = await services.addPannier(pannier);
 
-  // ✅ ÉTAPE 1: Déstocker avant d'enregistrer
+  // 1. Ajouter le pannier — tout le reste (déstockage, historique,
+  // mouvements, versement) ne doit s'exécuter que si cette écriture a
+  // réussi, sinon on se retrouve avec du stock décrémenté / de l'argent
+  // enregistré pour une vente qui n'existe pas réellement en base.
+  final response = await services.addPannier(pannier);
+  if (!response.success) {
+    return response;
+  }
+
+  // 2. Déstocker
   for (var produit in caisse.produits) {
     final quantiteReelle = produit.quantiteReelleEnPieces;
     final produitOriginal = Produitse.firstWhere((p) => p.nom == produit.nom);
@@ -140,12 +132,16 @@ Future<ApiResponse<int>> _SavePannier ({
     );
 
     if (magasinDetail != null) {
-      final quantiteADestock = quantiteReelle <= magasinDetail.quantite
-          ? quantiteReelle
-          : magasinDetail.quantite;
-
-      if (quantiteADestock > 0) {
-        await pmdService.decrementQuantite(magasinDetail.id, quantiteADestock);
+      // Second stock parallèle "Nombre" (Paramètres > Nombre et Quantité) —
+      // quantite n'est plus stockée ici (calculée depuis le journal des
+      // mouvements), seul nombre reste un compteur réel à décrémenter.
+      if (produit.nombre != null) {
+        final nombreADestock = produit.nombre! <= magasinDetail.nombre
+            ? produit.nombre!
+            : magasinDetail.nombre;
+        if (nombreADestock > 0) {
+          await pmdService.decrementNombre(magasinDetail.id, nombreADestock);
+        }
       }
     }
   }
@@ -178,6 +174,7 @@ Future<ApiResponse<int>> _SavePannier ({
       total       : produit.montant,
       creeLe      : DateTime.now(),
       quantite    : quantiteReelle,
+      nombre      : produit.nombre,
       codeProduit : produit.code,
       codePannier : pannier.code,
       creeParCode : userCode,
@@ -203,26 +200,33 @@ Future<ApiResponse<int>> _SavePannier ({
     idm = await _GetNextMouvementId();
     Mouvement Mouv = Mouvement(
       id            : idm,
-      code          : CodeGenerator.generateCodeWithTimestamp(
+      code          : CodeGenerator.generateCode(
         prefix: CodePrefix.mouvement,
         id: idm,
+        digitCount: 8,
       ),
       date          : pannier.date,
       type          : ListsConst.typeMouvement[0],
       etat          : true,
       dateCree      : DateTime.now(),
       quantite      : quantiteReelle,
+      nombre        : produit.nombre,
       prixAchat     : Produitse.where((e) => e.code == prod.codeProduit).first.prixAchat,
       prixVente     : prod.prix,
       codeProduit   : prod.codeProduit,
       creeParCode   : userCode,
       codeOperation : pannier.code,
+      magasinCode   : magasinCode,
     );
 
     await servicem.addMouvement(Mouv);
 
     Produite = Produitse.where((e) => e.code == prod.codeProduit).first;
-    Produite.quantite   = Produite.quantite   - quantiteReelle;
+    if (!Produite.service) {
+      if (produit.nombre != null) {
+        Produite.nombre = Produite.nombre - produit.nombre!;
+      }
+    }
     Produite.dateModif  = DateTime.now();
     Produite.modifParCode   = userCode;
     await serviceP.updateProduit(Produite);
@@ -265,13 +269,42 @@ Future<ApiResponse<int>> _SavePannier ({
       etat: true,
       mode_paiement: pannier.modePaiement!,
       sense: 'Entrée',
-      type: "Pannier",
+      type: "Paiement",
       dateCree: DateTime.now(),
       creeParCode: userCode,
       caisse: pannier.caisse,
+      codeOperation: pannier.code,
     );
 
     await versementService.addverssement(versement);
+
+    // Mouvement de caisse (grand-livre) : encaissement de la vente,
+    // journalisé dans la session ouverte de cette caisse.
+    final sessionOuverte = await CaisseSessionServices.getSessionOuverte(caisseCode);
+    if (sessionOuverte != null) {
+      final nextMouvementId = await CaisseSessionServices.getNextMouvementId(db);
+      final mouvementCaisse = CaisseMouvement(
+        id: nextMouvementId,
+        code: CodeGenerator.generateCode(
+          prefix: CodePrefix.caisseMouvement,
+          id: nextMouvementId,
+          digitCount: 8,
+        ),
+        sessionCode: sessionOuverte.code,
+        caisseCode: caisseCode,
+        type: 'encaissement_vente',
+        sens: 'Entrée',
+        montant: montant,
+        modePaiement: pannier.modePaiement,
+        codeOperation: pannier.code,
+        clientCode: client.code,
+        date: DateTime.now(),
+        etat: true,
+        dateCree: DateTime.now(),
+        creeParCode: userCode,
+      );
+      await caisseSessionService.ajouterMouvement(mouvementCaisse);
+    }
   }
 
   return response;
@@ -301,6 +334,29 @@ Future<void> EncaissementBLSCDialog({
       titre_type_message: l10n.authentication,
       titre_concerne: l10n.user,
       message: l10n.loginRequiredCreate,
+    );
+    return;
+  }
+
+  // ✅ Caisse existante + session de caisse obligatoire : aucune vente ne
+  // peut être encaissée tant que la caisse n'a pas été ouverte.
+  final matchingCaisse = CaisseTest.where((e) => e.nomCaisse == caisse.caisse);
+  if (matchingCaisse.isEmpty) {
+    await InformationDialog(
+      context: context,
+      titre_type_message: l10n.error,
+      titre_concerne: l10n.caisse,
+      message: l10n.caisseNotFound(caisse.caisse),
+    );
+    return;
+  }
+  final sessionOuverte = await CaisseSessionServices.getSessionOuverte(matchingCaisse.first.code);
+  if (sessionOuverte == null) {
+    await InformationDialog(
+      context: context,
+      titre_type_message: l10n.attention,
+      titre_concerne: l10n.caisse,
+      message: l10n.aucuneSessionOuverte(caisse.caisse),
     );
     return;
   }
@@ -352,7 +408,7 @@ Future<void> EncaissementBLSCDialog({
                       if (caisse.remiseActive && caisse.remise > 0)
                         _info(
                           l10n.subtotal,
-                          "${caisse.totalAchat.toStringAsFixed(2)} ${l10n.currency}",
+                          "${NumberFormatUtil.formatMontant(caisse.totalAchat, decimales: 2)} ${l10n.currency}",
                           l10n,
                           valueColor: Appstyle.TgrisF,
                         ),
@@ -361,7 +417,7 @@ Future<void> EncaissementBLSCDialog({
                       if (caisse.remiseActive && caisse.remise > 0)
                         _info(
                           l10n.discount,
-                          "${caisse.remise.toStringAsFixed(2)} ${l10n.currency}",
+                          "${NumberFormatUtil.formatMontant(caisse.remise, decimales: 2)} ${l10n.currency}",
                           l10n,
                           valueColor: Colors.green,
                         ),
@@ -369,7 +425,7 @@ Future<void> EncaissementBLSCDialog({
                       // ✅ Afficher le total APRÈS remise
                       _info(
                         l10n.total,
-                        "${(caisse.total-caisse.remise).toStringAsFixed(2)} ${l10n.currency}",
+                        "${NumberFormatUtil.formatMontant(caisse.total, decimales: 2)} ${l10n.currency}",
                         l10n,
                         valueColor: caisse.remiseActive && caisse.remise > 0
                             ? Colors.green
@@ -421,12 +477,12 @@ Future<void> EncaissementBLSCDialog({
 
                               if (paiementTotal) {
                                 payeController.text =
-                                    caisse.total.toStringAsFixed(2);
+                                    NumberFormatUtil.formatMontant(caisse.total, decimales: 2);
                                 resteController.text = "0.00";
                               } else {
                                 payeController.text = "";
                                 resteController.text =
-                                    caisse.total.toStringAsFixed(2);
+                                    NumberFormatUtil.formatMontant(caisse.total, decimales: 2);
                               }
                             });
                           },
@@ -483,8 +539,9 @@ Future<void> EncaissementBLSCDialog({
                   onPressed: () async {
 
                     final verse =
-                        double.tryParse(payeController.text) ?? caisse.total;
-                    final reste = double.tryParse(resteController.text) ?? 0;
+                        double.tryParse(payeController.text) ?? 0;
+                    final reste = double.tryParse(resteController.text) ??
+                        caisse.total;
 
                     /// ✅ Vérification montant
                     if (verse <= 0) {
@@ -497,14 +554,128 @@ Future<void> EncaissementBLSCDialog({
                       return;
                     }
 
+                    // ✅ Vérifier que le stock (actuel, potentiellement changé
+                    // depuis l'ajout au panier) permet toujours cette vente.
+                    final catalogueActuel = await ProduitServices.getAllProduits();
+                    final echecStock = await premierProduitInsuffisantPourVente(
+                      caisse.produits,
+                      catalogueActuel,
+                      magasinCode: selectedMagasinCode,
+                    );
+                    if (echecStock != null) {
+                      final (produitInsuffisant, quantiteNecessaire, quantiteDisponible) = echecStock;
+                      await InformationDialog(
+                        context: context,
+                        titre_type_message: l10n.error,
+                        titre_concerne: l10n.cart,
+                        message: l10n.stockInsuffisantPourProduit(
+                          produitInsuffisant.code,
+                          quantiteDisponible.toInt().toString(),
+                          quantiteNecessaire.toInt().toString(),
+                        ),
+                      );
+                      return;
+                    }
+
+                    // ✅ Nombre obligatoire pour les produits suivant le
+                    // second stock "nombre" (nombreActif).
+                    for (final ligne in caisse.produits) {
+                      final nombreActifLigne = catalogueActuel
+                              .firstWhereOrNull((p) => p.code == ligne.code)
+                              ?.nombreActif ??
+                          false;
+                      if (nombreActifLigne && (ligne.nombre == null || ligne.nombre! <= 0)) {
+                        await InformationDialog(
+                          context: context,
+                          titre_type_message: l10n.error,
+                          titre_concerne: ligne.nom,
+                          message: l10n.numberMustBeGreaterThanZero,
+                        );
+                        return;
+                      }
+                    }
+
                     /// ✅ Confirmation utilisateur
                     await ConfirmationDialog(
                       context: context,
                       titre: l10n.attention,
                       message: l10n.confirmPrint,
                       onConfirmer: () async {
+                        // Sert uniquement à décider, dans le catch, si le
+                        // panier doit être vidé malgré l'exception (vente
+                        // déjà enregistrée avec succès, erreur survenue
+                        // seulement pendant l'impression/sauvegarde ensuite).
+                        bool venteEnregistree = false;
                         try
                         {
+
+                          /// =========================
+                          /// SAVE PANNIER — enregistré dès la confirmation du
+                          /// bouton Encaisser/Imprimer, avant toute génération
+                          /// d'impression : la Facture n'est jamais imprimée
+                          /// pour une vente qui n'a pas été réellement
+                          /// enregistrée en base.
+                          /// =========================
+                          int idp = await _GetNextpannierId();
+
+                          String Ccode = CaisseTest
+                              .firstWhere((e) => e.nomCaisse == caisse.caisse)
+                              .code;
+
+                          // ✅ Utilisation du générateur de code pour le pannier
+                          final codePannier = CodeGenerator.generateCode(
+                            prefix: CodePrefix.pannier,
+                            id: idp,
+                            digitCount: 7, // 6 chiffres pour "PN000001"
+                          );
+
+                          Pannier pannier = Pannier(
+                            id: idp,
+                            code: codePannier, // ✅ Code formaté
+                            etat: true,
+                            // ✅ Date de vente = moment du clic sur Encaisser,
+                            // pas caisse.date (figée depuis l'ouverture de
+                            // l'onglet caisse, potentiellement des heures plus tôt).
+                            date: DateTime.now(),
+                            client_code: client.code,
+                            montant: caisse.total,
+                            dateCree: DateTime.now(),
+                            caisse_code: Ccode,
+                            typepannier: ListsConst.typePannier[1],
+                            modePaiement: caisse.modePaiement,
+                            caissier_code: userCode!,
+                            nombreArticle: caisse.nombreArticles,
+                            quantiteProduit: caisse.nombreProduits,
+                            caisse: caisse.caisse,
+                            montantAchat: caisse.totalAchat,
+                            marge: caisse.marge,
+                          );
+
+                          final response = await _SavePannier(
+                            pannier: pannier,
+                            caisse: caisse,
+                            userCode: userCode!,
+                            userName: userName!,
+                            client: client,
+                            montant: verse,
+                            magasinCode: selectedMagasinCode,
+                            caisseCode: Ccode,
+                          );
+
+                          await InformationDialog(
+                            context: context,
+                            titre_type_message:
+                            response.success ? l10n.add : l10n.error,
+                            titre_concerne: l10n.cart,
+                            message: response.success
+                                ? l10n.lepannierestenregestre
+                                : l10n.lepanniernestpasenregestre,
+                          );
+
+                          if (!response.success) {
+                            return;
+                          }
+                          venteEnregistree = true;
 
                           /// =========================
                           /// GENERATE INVOICE NUMBER
@@ -516,32 +687,45 @@ Future<void> EncaissementBLSCDialog({
                               '${DateTime.now().millisecondsSinceEpoch % 10000}';
 
                           Uint8List pdfBytes;
-                          final local = LocaleProvider();
+                          // ⚠️ `LocaleProvider()` créerait une instance
+                          // fraîche dont la locale sauvegardée se charge de
+                          // façon asynchrone (défaut 'fr' à la construction)
+                          // : lue synchroniquement juste après, isRTL était
+                          // donc toujours faux, même en arabe — d'où
+                          // l'utilisation systématique de la police latine
+                          // (sans glyphes arabes) pour le BLSC.
+                          final local = Provider.of<LocaleProvider>(context, listen: false);
                           bool isRTL = local.locale.languageCode == 'ar';
+                          final entreprise = await EntrepriseParamServices.getEntrepriseParam();
+                          final logoBytes = await LogoService.loadLogoBytes(entreprise.logoPath);
                           if (isRTL) {
                             final arabicGenerator = PDFGeneratorArabic();
                             await arabicGenerator.loadFonts();
                             pdfBytes = await arabicGenerator.generateInvoice(
                               caisse: caisse,
                               client: client,
-                              magasinName: l10n.magaprinc,
+                              magasinName: entreprise.nomBoutique,
                               caissierName: userName!,
                               verse: verse,
                               reste: reste,
                               invoiceNumber: invoiceNumber,
                               invoiceType: "BLSC",
+                              adresse: entreprise.adresse,
+                              logoBytes: logoBytes,
                             );
                           } else {
                             pdfBytes = await PDFGeneratorLatin.generateInvoice(
                               caisse: caisse,
                               client: client,
-                              magasinName: l10n.magaprinc,
+                              magasinName: entreprise.nomBoutique,
                               caissierName: userName!,
                               verse: verse,
                               reste: reste,
                               invoiceNumber: invoiceNumber,
                               invoiceType: "BLSC",
                               l10n: l10n,
+                              adresse: entreprise.adresse,
+                              logoBytes: logoBytes,
                             );
                           }
 
@@ -561,7 +745,15 @@ Future<void> EncaissementBLSCDialog({
                             ),
                           );
 
-                          if (action == null || action == 'cancel') return;
+                          // La vente est déjà enregistrée à ce stade (voir
+                          // SAVE PANNIER ci-dessus) : annuler l'aperçu annule
+                          // seulement l'impression/sauvegarde/partage du
+                          // document, pas la vente — le panier doit donc être
+                          // vidé dans tous les cas.
+                          if (action == null || action == 'cancel') {
+                            onSuccess();
+                            return;
+                          }
 
                           /// =========================
                           /// PRINT
@@ -606,68 +798,11 @@ Future<void> EncaissementBLSCDialog({
                             }
                           }
 
-                          /// =========================
-                          /// SAVE PANNIER
-                          /// =========================
-                          int idp = await _GetNextpannierId();
-
-                          String Ccode = CaisseTest
-                              .firstWhere((e) => e.nomCaisse == caisse.caisse)
-                              .code;
-
-                          // ✅ Utilisation du générateur de code pour le pannier
-                          final codePannier = CodeGenerator.generateCode(
-                            prefix: CodePrefix.pannier,
-                            id: idp,
-                            digitCount: 7, // 6 chiffres pour "PN000001"
-                          );
-
-                          Pannier pannier = Pannier(
-                            id: idp,
-                            code: codePannier, // ✅ Code formaté
-                            etat: true,
-                            date: caisse.date,
-                            verse: verse,
-                            reste: double.parse(resteController.text),
-                            client_code: client.code,
-                            montant: caisse.total,
-                            dateCree: DateTime.now(),
-                            caisse_code: Ccode,
-                            typepannier: ListsConst.typePannier[1],
-                            modePaiement: caisse.modePaiement,
-                            caissier_code: userCode!,
-                            nombreArticle: caisse.nombreArticles,
-                            quantiteProduit: caisse.nombreProduits,
-                            caisse: caisse.caisse,
-                            montantAchat: caisse.totalAchat,
-                            marge: caisse.marge,
-                          );
-
-                          final response = await _SavePannier(
-                            pannier: pannier,
-                            caisse: caisse,
-                            userCode: userCode,
-                            userName: userName,
-                            client: client,
-                            montant: verse,
-                            magasinCode: selectedMagasinCode,
-                          );
-
-                          await InformationDialog(
-                            context: context,
-                            titre_type_message:
-                            response.success ? l10n.add : l10n.error,
-                            titre_concerne: l10n.cart,
-                            message: response.success
-                                ? l10n.lepannierestenregestre
-                                : l10n.lepanniernestpasenregestre,
-                          );
-
-                          if (response.success) {
-                            onSuccess();
-                          }
-
-
+                          // ✅ Le pannier est déjà enregistré à ce stade (voir
+                          // le bloc SAVE PANNIER en tête de ce handler) ;
+                          // onSuccess() vide le panier une fois l'impression/
+                          // sauvegarde/partage de la Facture terminée.
+                          onSuccess();
 
                         } catch (e) {
 
@@ -677,6 +812,14 @@ Future<void> EncaissementBLSCDialog({
                             titre_concerne: l10n.ticket,
                             message: ("Erreur : $e"),
                           );
+
+                          // La vente était déjà enregistrée avant l'erreur
+                          // (échec seulement sur l'impression/sauvegarde) :
+                          // vider quand même le panier pour éviter une
+                          // double vente si l'utilisateur relance l'encaissement.
+                          if (venteEnregistree) {
+                            onSuccess();
+                          }
 
                         }
                       },

@@ -3,6 +3,7 @@ import 'package:caisse_dz/l10n/app_localizations.dart';
 import 'package:flutter/material.dart';
 
 import 'package:caisse_dz/core/theme/app_style.dart';
+import 'package:caisse_dz/core/utilis/number_format.dart';
 
 class AfficheurCategorie extends StatelessWidget {
   final Categorie categorie;
@@ -188,8 +189,8 @@ class AfficheurCategorie extends StatelessWidget {
           const SizedBox(height: 6),
           Text(
             isMoney
-                ? "${value.toStringAsFixed(0)} DA"
-                : value.toStringAsFixed(0),
+                ? "${NumberFormatUtil.formatMontant(value, decimales: 0)} DA"
+                : NumberFormatUtil.formatMontant(value, decimales: 0),
             style: TextStyle(
               fontWeight: FontWeight.bold,
               color: color,

@@ -4,6 +4,10 @@ class PannierProduit {
   String  codeProduit;
 
   double  quantite;
+  // Nombre de pièces physiques vendues sur cette ligne (Paramètres > Nombre
+  // et Quantité), indépendant de quantite — voir Produit.nombre. Null si le
+  // paramètre est inactif ou non renseigné.
+  double? nombre;
   double  prix;
   double  total;
   double  prixAchat;
@@ -32,6 +36,7 @@ class PannierProduit {
     required this.creeParCode,
     required this.creeLe,
 
+    this.nombre,
     this.modifLe,
     this.modifParCode,
     this.annulLe,
@@ -52,6 +57,7 @@ class PannierProduit {
       totalAchat       : map['total_achat']?? 0.0,
       creeLe      : DateTime.parse(map['date_cree']),
       quantite    : map['quantite'],
+      nombre      : (map['nombre'] as num?)?.toDouble(),
       codeProduit : map['code_produit'],
       codePannier : map['code_pannier'],
       creeParCode : map['cree_par_code'],
@@ -80,6 +86,7 @@ class PannierProduit {
       'total_achat'         : totalAchat,
       'prix_achat'         : prixAchat,
       'quantite'      : quantite,
+      'nombre'        : nombre,
       'date_cree'     : creeLe.toIso8601String(),
       'code_pannier'   : codePannier,
       'code_produit'  : codeProduit,

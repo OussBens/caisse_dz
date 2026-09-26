@@ -26,6 +26,7 @@ class TextChampM extends StatelessWidget {
       decoration: BoxDecoration(
         color: enabled ? Appstyle.grischamp : Appstyle.grisC,
         borderRadius: BorderRadius.circular(10), // optionnel
+        border: Border.all(color: Colors.grey.shade300, width: 1),
       ),
       child: TextField(
         controller: controller,

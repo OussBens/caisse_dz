@@ -2,6 +2,9 @@ class Sortie{
   int     id;
   bool    etat;
   double  quantite;
+  // Nombre de pièces physiques sorties (Paramètres > Nombre et Quantité) —
+  // voir Produit.nombre.
+  double? nombre;
   double  prix;
   double  montant;
   String  produitCode;
@@ -12,6 +15,8 @@ class Sortie{
 
   String? categorieCode;
   String? sousCategorieCode;
+  // Magasin d'où le produit est sorti — voir DBCreate.dart oldVersion < 44.
+  String? magasinCode;
   String? observation;
   // Audit
   String    creeParCode;
@@ -37,9 +42,11 @@ class Sortie{
 
     required this.date,
 
+    this.nombre,
     this.categorieCode,
     this.observation,
     this.sousCategorieCode,
+    this.magasinCode,
     this.dateModif,
     this.modifParCode,
     this.dateAnnul,
@@ -57,11 +64,13 @@ class Sortie{
       produitCode   : map['produit_code'],
       montant       : map['montant'],
       quantite      : map['quantite'],
+      nombre        : (map['nombre'] as num?)?.toDouble(),
       dateCree      : DateTime.parse(map['date_cree']),
       creeParCode   : map['cree_par_code'],
       date          : DateTime.parse(map['date']),
 
       sousCategorieCode : map['sous_categorie_code'],
+      magasinCode   : map['magasin_code'],
       observation   : map['observation'],
       motifAnnul    : map['motif_annul'],
       categorieCode     : map['categorie_code'],
@@ -85,10 +94,12 @@ class Sortie{
       'produit_code'  : produitCode,
       'montant'       : montant,
       'quantite'      : quantite,
+      'nombre'        : nombre,
       'date_cree'     : dateCree.toIso8601String(),
       'cree_par_code' : creeParCode,
       'date'          : date.toIso8601String(),
       'sous_categorie_code' : sousCategorieCode,
+      'magasin_code'  : magasinCode,
       'observation'   : observation,
       'date_modif'    : dateModif?.toIso8601String(),
       'categorie_code'     : categorieCode,

@@ -10,10 +10,8 @@ import 'package:caisse_dz/data/models/categorie.dart';
 import 'package:caisse_dz/data/models/sous_categorie.dart';
 import 'package:caisse_dz/core/Auth/auth_state.dart';
 import 'package:caisse_dz/core/dialog/base_dialog.dart';
-import 'package:caisse_dz/core/dialog/besionlist/besoinlist_nouveau.dart';
-import 'package:caisse_dz/core/dialog/insertion_produit.dart';
-import 'package:caisse_dz/core/dialog/sortie/sortie_nouveau.dart';
 import 'package:caisse_dz/core/theme/app_style.dart';
+import 'package:caisse_dz/core/utilis/quantite_format.dart';
 import 'package:caisse_dz/core/widget/button/main_button.dart';
 import 'package:caisse_dz/core/widget/champ/champ_avec_label.dart';
 import 'package:caisse_dz/core/widget/champ/date_champ.dart';
@@ -25,18 +23,27 @@ import 'package:caisse_dz/data/constant.dart';
 import 'package:caisse_dz/data/models/histore.dart';
 import 'package:caisse_dz/data/models/produit.dart';
 import 'package:caisse_dz/data/models/sortie.dart';
-import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
-import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 import '../../dialog//confirmation_dialog.dart';
 import '../../utilis/api_response.dart';
 import '../information_dialog.dart';
 
-String? selectedEtatR;
+/// Modification d'une sortie déjà enregistrée : le contenu (produit,
+/// quantité, type, prix, montant) est verrouillé dès l'enregistrement —
+/// même principe que Pannier/SmartScan/Retour. Seules la date et
+/// l'observation restent modifiables ; une correction du contenu passe par
+/// une annulation.
 List<Produit> produitsTest = [];
 List<Categorie> categoriesTestSM = [];
 List<SousCategorie> sousCategoriesTestSM = [];
+
+// Sortie n'a pas besoin de l'heure précise, seulement du jour — même
+// convention date-only que sortie_nouveau.dart, pour ne pas perdre
+// silencieusement une heure existante en réassignant `sortie.date`
+// directement depuis le sélecteur.
+String _formatDateOnlySM(DateTime d) =>
+    "${d.year.toString().padLeft(4, '0')}-${d.month.toString().padLeft(2, '0')}-${d.day.toString().padLeft(2, '0')}";
 
 Future<void> _LoadAllData() async {
   produitsTest = await ProduitServices.getAllProduits();
@@ -57,41 +64,38 @@ Future<ApiResponse<int>> _UpdateR({
   required String userName,
   required String userCode,
   required Sortie sortie,
-  required double orignal,
 }) async {
   final db = await DbCreator.openDb();
   final services = SortieServices(db);
-  final servicep = ProduitServices(db);
   final serviceh = HistoriqueServices(db);
   final serviceM = MouvementsServices(db);
 
   final produits = await ProduitServices.getAllProduits();
   final response = await services.updateSortie(sortie);
+  if (!response.success) {
+    return response;
+  }
+
+  // Répercuter la date sur le mouvement de stock lié — le contenu ne change
+  // plus, seule la date peut être corrigée.
   final mouvement = await MouvementsServices.getAllMouvementsByCodeOper(sortie.code);
+  if (mouvement.isNotEmpty) {
+    final m = mouvement.first;
+    m.date = sortie.date;
+    m.dateModif = DateTime.now();
+    m.modifParCode = userCode;
+    await serviceM.updateMouvement(m);
+  }
 
-  mouvement.first.type = "Sortie (${sortie.type})";
-  mouvement.first.quantite = sortie.quantite;
-  mouvement.first.etat = sortie.etat;
-  mouvement.first.date = sortie.date;
-  mouvement.first.dateModif = DateTime.now();
-  mouvement.first.modifParCode = userCode;
-  mouvement.first.prixVente = sortie.prix;
-  mouvement.first.codeProduit = sortie.produitCode;
-
-  await serviceM.updateMouvement(mouvement.first);
-
-  final prod = produits.where((e) => e.code == sortie.produitCode).first;
-  prod.quantite = prod.quantite + (orignal - sortie.quantite);
-  prod.dateModif = DateTime.now();
-  prod.modifParCode = userCode;
-  servicep.updateProduit(prod);
+  final prod = produits.where((e) => e.code == sortie.produitCode).firstOrNull;
 
   int idh = await _GetNextHistoriqueId();
   Historique histo = Historique(
       id: idh,
       code: "HS$idh${DateTime.now().millisecondsSinceEpoch}",
       type: "sortie",
-      desc: "L'utilisateur $userName a Modifee les information de Sortie de Produit ${prod.nom}",
+      desc: "L'utilisateur $userName a modifié la date/observation de la Sortie ${sortie.code}"
+          "${prod != null ? ' de Produit ${prod.nom}' : ''}",
       oper: ListsConst.typeHisto[1],
       dateCree: DateTime.now(),
       creeParCode: userCode
@@ -109,7 +113,6 @@ Future<void> SortieModif(BuildContext context, Sortie sortie) async {
   final userName = auth.username!;
   final userCode = auth.userCode!;
   final l10n = AppLocalizations.of(context)!;
-  double orginal = sortie.quantite;
 
   if (!auth.isAuthenticated || auth.username == null || auth.userCode == null) {
     await InformationDialog(
@@ -125,43 +128,21 @@ Future<void> SortieModif(BuildContext context, Sortie sortie) async {
   TextEditingController prixControllerS = TextEditingController();
   TextEditingController montantControllerS = TextEditingController();
   TextEditingController quantiteControllerS = TextEditingController();
+  TextEditingController nombreControllerS = TextEditingController();
   TextEditingController observationControllerS = TextEditingController();
   TextEditingController dateControllerS = TextEditingController();
 
-  String? selectedTypeS;
-  String? selectedType;
-
-  void calculerMontant() {
-    final double qte = double.tryParse(quantiteControllerS.text.replaceAll(',', '.')) ?? 0;
-    final double prix = double.tryParse(prixControllerS.text.replaceAll(',', '.')) ?? 0;
-    final String montant = (qte * prix).toStringAsFixed(2);
-
-    montantControllerS.value = TextEditingValue(
-      text: montant,
-      selection: TextSelection.collapsed(offset: montant.length),
-    );
-  }
   codeControllerS.text = sortie.code;
   prixControllerS.text = sortie.prix.toStringAsFixed(2);
   montantControllerS.text = sortie.montant.toStringAsFixed(2);
-  quantiteControllerS.text = sortie.quantite.toString();
+  quantiteControllerS.text = QuantiteFormat.format(sortie.quantite);
+  nombreControllerS.text = sortie.nombre != null ? QuantiteFormat.format(sortie.nombre!) : '';
   observationControllerS.text = sortie.observation ?? "";
+  dateControllerS.text = _formatDateOnlySM(sortie.date);
 
-  selectedEtatR = sortie.etat ? l10n.active : l10n.inactive;
-  dateControllerS.text = "${sortie.dateCree}";
-  selectedTypeS = sortie.type;
-
-  Produit prods = produitsTest.where((e) => e.code == sortie.produitCode).first;
-
-  quantiteControllerS.removeListener(calculerMontant);
-  prixControllerS.removeListener(calculerMontant);
-
-  quantiteControllerS.addListener(calculerMontant);
-  prixControllerS.addListener(calculerMontant);
-
-  WidgetsBinding.instance.addPostFrameCallback((_) {
-    calculerMontant();
-  });
+  final Produit? prods = produitsTest.where((e) => e.code == sortie.produitCode).firstOrNull;
+  final String nomProduit = prods?.nom ?? sortie.produitCode;
+  final bool afficheNombreS = prods?.nombreActif ?? false;
 
   return showDialog(
     context: context,
@@ -172,7 +153,7 @@ Future<void> SortieModif(BuildContext context, Sortie sortie) async {
         builder: (context, setState) {
           final l10n = AppLocalizations.of(context)!;
           final translator = ListsConstTranslator(l10n);
-          selectedType  = translator.translateTypeSortie(sortie.type);
+          final String typeAffiche = translator.translateTypeSortie(sortie.type);
 
           return ClipRect(
             child: BackdropFilter(
@@ -207,64 +188,23 @@ Future<void> SortieModif(BuildContext context, Sortie sortie) async {
                               const SizedBox(height: 10),
 
                               ChampAvecLabel(
-                                label: l10n.status,
-                                obligatoire: true,
-                                child: TextListe(
-                                  value: selectedEtatR,
-                                  clearable: false,
-                                  items: translator.etatDisplayList,
-                                  onChanged: (v) => setState(() {
-                                    selectedEtatR = translator.etatToFrench(v!);
-                                  }),
-                                ),
-                              ),
-                              const SizedBox(height: 10),
-
-                              ChampAvecLabel(
                                 label: l10n.product,
-                                obligatoire: true,
-                                buttonAjout: true,
-                                onAjoutPressed: () async {
-                                  await showDialog(
-                                    context: context,
-                                    barrierColor: Appstyle.gris.withOpacity(0.25),
-                                    builder: (_) {
-                                      return InsertionProduitDialog(
-                                        multiselection: false,
-                                        produits: produitsTest,
-                                        onProduitSelected: (p) {
-                                          setState(() {
-                                            prods = p;
-                                          });
-                                        },
-                                      );
-                                    },
-                                  );
-                                },
-                                child: TextListe(
-                                  clearable: false,
-                                  value: prods.nom,
-                                  obligatoire: true,
-                                  items: produitsTest.map((e) => e.nom).toList(),
-                                  onChanged: (v) => setState(() {
-                                    prods = produitsTest.where((e) => e.nom == v).first;
-                                  }),
+                                child: TextChampL(
+                                  controller: TextEditingController(text: nomProduit),
+                                  enabled: false,
+                                  hint: '',
                                 ),
                               ),
                               const SizedBox(height: 10),
 
                               ChampAvecLabel(
                                 label: l10n.exitType,
-                                obligatoire: true,
                                 child: TextListe(
-                                  value: selectedType,
-                                  obligatoire: true,
+                                  value: typeAffiche,
                                   clearable: false,
                                   items: translator.typeSortieDisplayList,
-                                  onChanged: (v) => setState(() {
-                                    selectedType= v;
-                                    selectedTypeS = translator.typeSortieToFrench(v!);
-                                  }),
+                                  enabled: false,
+                                  onChanged: (v) {},
                                 ),
                               ),
                               const SizedBox(height: 10),
@@ -281,10 +221,13 @@ Future<void> SortieModif(BuildContext context, Sortie sortie) async {
                                       context: context,
                                       firstDate: DateTime(2020),
                                       lastDate: DateTime(2100),
-                                      initialDate: sortie.dateCree,
+                                      initialDate: sortie.date,
                                     );
                                     if (d != null) {
-                                      dateControllerS.text = "$d";
+                                      setState(() {
+                                        sortie.date = d;
+                                        dateControllerS.text = _formatDateOnlySM(d);
+                                      });
                                     }
                                   },
                                 ),
@@ -301,22 +244,34 @@ Future<void> SortieModif(BuildContext context, Sortie sortie) async {
                             children: [
                               ChampAvecLabel(
                                 label: l10n.quantity,
-                                obligatoire: true,
                                 child: TextChampL(
-                                  obligatoire: true,
                                   controller: quantiteControllerS,
+                                  enabled: false,
                                   numeric: true,
+                                  isQuantite: true,
                                   hint: '',
                                 ),
                               ),
+                              if (afficheNombreS) ...[
+                                const SizedBox(height: 10),
+                                ChampAvecLabel(
+                                  label: l10n.numberField,
+                                  child: TextChampL(
+                                    controller: nombreControllerS,
+                                    enabled: false,
+                                    numeric: true,
+                                    isQuantite: true,
+                                    hint: '',
+                                  ),
+                                ),
+                              ],
                               const SizedBox(height: 10),
 
                               ChampAvecLabel(
                                 label: l10n.price,
-                                obligatoire: true,
                                 child: TextChampL(
-                                  obligatoire: true,
                                   controller: prixControllerS,
+                                  enabled: false,
                                   numeric: true,
                                   hint: '',
                                 ),
@@ -373,17 +328,7 @@ Future<void> SortieModif(BuildContext context, Sortie sortie) async {
                           );
                           return;
                         }
-                        // ✅ Validation de la quantité (doit être > 0)
-                        final double quantite = double.tryParse(quantiteControllerS.text) ?? 0;
-                        if (quantite <= 0) {
-                          await InformationDialog(
-                            context: context,
-                            titre_type_message: l10n.error,
-                            titre_concerne: l10n.entry,
-                            message: l10n.quantityMustBeGreaterThanZero,
-                          );
-                          return;
-                        }
+
                         await ConfirmationDialog(
                           context: context,
                           titre: l10n.modification,
@@ -391,26 +336,12 @@ Future<void> SortieModif(BuildContext context, Sortie sortie) async {
                           onConfirmer: () async {
                             sortie.modifParCode = userCode;
                             sortie.dateModif = DateTime.now();
-                            sortie.etat = selectedEtatR == l10n.active;
                             sortie.observation = observationControllerS.text;
-                            sortie.date = DateTime.parse(dateControllerS.text);
-                            sortie.montant = double.parse(montantControllerS.text);
-                            sortie.prix = double.parse(prixControllerS.text);
-                            sortie.quantite = double.parse(quantiteControllerS.text);
-                            sortie.type = selectedTypeS!;
-                            sortie.produitCode = prods.code;
-                            sortie.categorieCode = categoriesTestSM
-                                .where((c) => c.id == prods.categorieId)
-                                .firstOrNull?.code;
-                            sortie.sousCategorieCode = sousCategoriesTestSM
-                                .where((sc) => sc.id == prods.sousCategorieId)
-                                .firstOrNull?.code;
 
                             final response = await _UpdateR(
                                 userName: userName,
                                 userCode: userCode,
                                 sortie: sortie,
-                                orignal: orginal
                             );
 
                             if (!response.success) {

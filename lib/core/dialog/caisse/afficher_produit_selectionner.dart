@@ -5,11 +5,13 @@ import 'package:flutter/material.dart';
 import 'package:caisse_dz/core/dialog/base_dialog.dart';
 import 'package:caisse_dz/core/widget/button/main_button.dart';
 import '../../../Services/Photos.dart';
+import '../../utilis/quantite_format.dart';
 
 import '../../../l10n/app_localizations.dart';
 import 'package:caisse_dz/core/theme/app_style.dart';
 import '../../widget/title/titre_avec_ligne.dart';
 import '../information_dialog.dart';
+import 'package:caisse_dz/core/utilis/number_format.dart';
 
 // Enum pour les types d'emballage
 enum TypeEmballage { unit, boite, carton }
@@ -20,6 +22,10 @@ Future<void> afficherProduitSelectionneDialog({
   required double prix,
   required String? photoName,
   required Function(double qte, {String? colisType, double? prixUnitaire}) onAjouter,
+  // ✅ Expose la validation courante (équivalent du bouton "Ajouter") à
+  // l'appelant, pour qu'un nouveau scan pendant que ce dialog est ouvert
+  // puisse valider le produit affiché avant d'enchaîner sur le suivant.
+  void Function(Future<void> Function() confirmerAjout)? onControllerReady,
   double? emballage1,
   double? emballageP1,
   double? emballage2,
@@ -28,6 +34,9 @@ Future<void> afficherProduitSelectionneDialog({
   required double quantiteDisponible,
 }) async {
   final qteController = TextEditingController(text: "1");
+  // Texte pré-sélectionné : avec autofocus, taper un chiffre remplace
+  // directement "1" au lieu de le compléter — manipulation rapide de la qtt.
+  qteController.selection = TextSelection(baseOffset: 0, extentOffset: qteController.text.length);
   Timer? autoAddTimer;
   bool isEditing = false;
 
@@ -47,27 +56,28 @@ Future<void> afficherProduitSelectionneDialog({
   TypeEmballage selectedEmballage = determineDefaultEmballage();
   double currentPrixUnitaire = prix;
   int piecesParUnite = 1;
-  String uniteLabel = "pièce(s)";
+  String uniteLabel = "";
   String currentColisType = "";
 
   void updateEmballageInfo() {
+    final l10n = AppLocalizations.of(context)!;
     switch (selectedEmballage) {
       case TypeEmballage.boite:
         piecesParUnite = emballage1?.toInt() ?? 1;
         currentPrixUnitaire = emballageP1 ?? prix;
-        uniteLabel = "boîte(s)";
-        currentColisType = "Boîte (${emballage1?.toInt()} pièces)";
+        uniteLabel = l10n.boxesUnit;
+        currentColisType = "${l10n.perBoxOption} (${emballage1?.toInt()} ${l10n.piecesUnit})";
         break;
       case TypeEmballage.carton:
         piecesParUnite = emballage2?.toInt() ?? 1;
         currentPrixUnitaire = emballageP2 ?? prix;
-        uniteLabel = "carton(s)";
-        currentColisType = "Carton (${emballage2?.toInt()} pièces)";
+        uniteLabel = l10n.cartonsUnit;
+        currentColisType = "${l10n.perCartonOption} (${emballage2?.toInt()} ${l10n.piecesUnit})";
         break;
       case TypeEmballage.unit:
         piecesParUnite = 1;
         currentPrixUnitaire = prix;
-        uniteLabel = "pièce(s)";
+        uniteLabel = l10n.piecesUnit;
         currentColisType = "";
         break;
     }
@@ -82,31 +92,46 @@ Future<void> afficherProduitSelectionneDialog({
         context: context,
         titre_type_message: l10n.error,
         titre_concerne: l10n.product,
-        message: "Stock insuffisant !\nDisponible: ${quantiteDisponible.toInt()} pièce(s)\nDemandé: ${quantiteReelle.toInt()} pièce(s)",
+        message: l10n.insufficientStockDetail(
+          quantiteReelle.toInt(),
+          quantiteDisponible.toInt(),
+        ),
       );
       return false;
     }
     return true;
   }
 
+  // ✅ Valide le produit affiché avec la quantité/l'emballage courants
+  // (même logique que le bouton "Ajouter"), utilisée à la fois par le
+  // minuteur d'ajout auto et par le bouton, et exposée via
+  // [onControllerReady] pour être déclenchée depuis l'extérieur (nouveau
+  // scan pendant que ce dialog est ouvert).
+  Future<void> confirmerAjout() async {
+    final qte = double.tryParse(qteController.text.replaceAll(',', '.')) ?? 1;
+    autoAddTimer?.cancel();
+    updateEmballageInfo();
+
+    if (await verifierQuantiteAvecDialogue(qte)) {
+      if (selectedEmballage != TypeEmballage.unit) {
+        onAjouter(qte, colisType: currentColisType, prixUnitaire: currentPrixUnitaire);
+      } else {
+        onAjouter(qte);
+      }
+      if (Navigator.canPop(context)) Navigator.pop(context);
+    }
+  }
+
   void startAutoAddTimer() {
     autoAddTimer?.cancel();
     autoAddTimer = Timer(const Duration(seconds: 2), () async {
       if (!isEditing || (qteController.text.isEmpty)) {
-        final qte = double.tryParse(qteController.text) ?? 1;
-        updateEmballageInfo();
-
-        if (await verifierQuantiteAvecDialogue(qte)) {
-          if (selectedEmballage != TypeEmballage.unit) {
-            onAjouter(qte, colisType: currentColisType, prixUnitaire: currentPrixUnitaire);
-          } else {
-            onAjouter(qte);
-          }
-          if (Navigator.canPop(context)) Navigator.pop(context);
-        }
+        await confirmerAjout();
       }
     });
   }
+
+  onControllerReady?.call(confirmerAjout);
 
   qteController.addListener(() {
     final text = qteController.text;
@@ -130,7 +155,7 @@ Future<void> afficherProduitSelectionneDialog({
       return StatefulBuilder(
         builder: (context, setState) {
           updateEmballageInfo();
-          final double qteValue = double.tryParse(qteController.text) ?? 1;
+          final double qteValue = double.tryParse(qteController.text.replaceAll(',', '.')) ?? 1;
           final int totalPieces = (qteValue * piecesParUnite).toInt();
 
           // ✅ Récupérer les dimensions de l'écran
@@ -190,7 +215,7 @@ Future<void> afficherProduitSelectionneDialog({
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      _buildProductImage(photoName, height: imageHeight),
+                      _buildProductImage(photoName, context: context, height: imageHeight),
                       SizedBox(height: spacing),
                       Text(
                         nom,
@@ -201,7 +226,7 @@ Future<void> afficherProduitSelectionneDialog({
                       ),
                       SizedBox(height: spacing / 2),
                       Text(
-                        "${currentPrixUnitaire.toStringAsFixed(2)} DA / $uniteLabel",
+                        "${NumberFormatUtil.formatMontant(currentPrixUnitaire, decimales: 2)} ${l10n.currency} / $uniteLabel",
                         style: Appstyle.textMB.copyWith(
                           fontSize: fontSizePrice,
                           color: Appstyle.violet,
@@ -219,13 +244,15 @@ Future<void> afficherProduitSelectionneDialog({
                           child: Column(
                             children: [
                               Text(
-                                "Mode d'achat",
+                                l10n.purchaseMode,
                                 style: Appstyle.textMB.copyWith(
                                   fontWeight: FontWeight.bold,
                                   fontSize: isSmallScreen ? 12 : 14,
                                 ),
                               ),
                               SizedBox(height: isSmallScreen ? 6 : 10),
+                              // Dans la section des ChoiceChip, modifiez chaque ChoiceChip comme suit :
+
                               Wrap(
                                 spacing: isSmallScreen ? 4 : 10,
                                 runSpacing: isSmallScreen ? 4 : 10,
@@ -233,10 +260,21 @@ Future<void> afficherProduitSelectionneDialog({
                                   ChoiceChip(
                                     label: Column(
                                       children: [
-                                        Text("À l'unité", style: TextStyle(fontSize: isSmallScreen ? 10 : 12)),
                                         Text(
-                                          "${prix.toStringAsFixed(2)} DA/pièce",
-                                          style: TextStyle(fontSize: isSmallScreen ? 8 : 10),
+                                          l10n.perUnitOption,
+                                          style: TextStyle(
+                                            fontSize: isSmallScreen ? 10 : 12,
+                                            // ✅ Texte blanc quand sélectionné, noir sinon
+                                            color: selectedEmballage == TypeEmballage.unit ? Colors.white : Colors.black,
+                                          ),
+                                        ),
+                                        Text(
+                                          "${NumberFormatUtil.formatMontant(prix, decimales: 2)} ${l10n.currency}/${l10n.piecesUnit}",
+                                          style: TextStyle(
+                                            fontSize: isSmallScreen ? 8 : 10,
+                                            // ✅ Texte blanc quand sélectionné, noir sinon
+                                            color: selectedEmballage == TypeEmballage.unit ? Colors.white : Colors.grey[700],
+                                          ),
                                         ),
                                       ],
                                     ),
@@ -259,12 +297,20 @@ Future<void> afficherProduitSelectionneDialog({
                                       label: Column(
                                         children: [
                                           Text(
-                                            "Par boîte (${emballage1?.toInt()} pièces)",
-                                            style: TextStyle(fontSize: isSmallScreen ? 10 : 12),
+                                            "${l10n.perBoxOption} (${emballage1?.toInt()} ${l10n.piecesUnit})",
+                                            style: TextStyle(
+                                              fontSize: isSmallScreen ? 10 : 12,
+                                              // ✅ Texte blanc quand sélectionné, noir sinon
+                                              color: selectedEmballage == TypeEmballage.boite ? Colors.white : Colors.black,
+                                            ),
                                           ),
                                           Text(
-                                            "${(emballageP1!).toStringAsFixed(2)} DA/boîte",
-                                            style: TextStyle(fontSize: isSmallScreen ? 8 : 10),
+                                            "${NumberFormatUtil.formatMontant((emballageP1!), decimales: 2)} ${l10n.currency}/${l10n.boxesUnit}",
+                                            style: TextStyle(
+                                              fontSize: isSmallScreen ? 8 : 10,
+                                              // ✅ Texte blanc quand sélectionné, noir sinon
+                                              color: selectedEmballage == TypeEmballage.boite ? Colors.white : Colors.grey[700],
+                                            ),
                                           ),
                                         ],
                                       ),
@@ -287,12 +333,20 @@ Future<void> afficherProduitSelectionneDialog({
                                       label: Column(
                                         children: [
                                           Text(
-                                            "Par carton (${emballage2?.toInt()} pièces)",
-                                            style: TextStyle(fontSize: isSmallScreen ? 10 : 12),
+                                            "${l10n.perCartonOption} (${emballage2?.toInt()} ${l10n.piecesUnit})",
+                                            style: TextStyle(
+                                              fontSize: isSmallScreen ? 10 : 12,
+                                              // ✅ Texte blanc quand sélectionné, noir sinon
+                                              color: selectedEmballage == TypeEmballage.carton ? Colors.white : Colors.black,
+                                            ),
                                           ),
                                           Text(
-                                            "${(emballageP2!).toStringAsFixed(2)} DA/carton",
-                                            style: TextStyle(fontSize: isSmallScreen ? 8 : 10),
+                                            "${NumberFormatUtil.formatMontant((emballageP2!), decimales: 2)} ${l10n.currency}/${l10n.cartonsUnit}",
+                                            style: TextStyle(
+                                              fontSize: isSmallScreen ? 8 : 10,
+                                              // ✅ Texte blanc quand sélectionné, noir sinon
+                                              color: selectedEmballage == TypeEmballage.carton ? Colors.white : Colors.grey[700],
+                                            ),
                                           ),
                                         ],
                                       ),
@@ -326,8 +380,11 @@ Future<void> afficherProduitSelectionneDialog({
                             width: isSmallScreen ? 80 : (isMediumScreen ? 100 : 120),
                             child: TextField(
                               controller: qteController,
+                              autofocus: true,
                               textAlign: TextAlign.center,
                               keyboardType: TextInputType.number,
+                              inputFormatters: QuantiteFormat.inputFormatters,
+                              textInputAction: TextInputAction.done,
                               style: TextStyle(fontSize: isSmallScreen ? 16 : 20),
                               decoration: InputDecoration(
                                 labelText: uniteLabel,
@@ -343,6 +400,8 @@ Future<void> afficherProduitSelectionneDialog({
                               onChanged: (value) {
                                 setState(() {});
                               },
+                              // ✅ Touche Entrée du clavier = même action que le bouton "Ajouter"
+                              onSubmitted: (_) => confirmerAjout(),
                             ),
                           ),
                           if (selectedEmballage != TypeEmballage.unit) ...[
@@ -357,7 +416,7 @@ Future<void> afficherProduitSelectionneDialog({
                                 borderRadius: BorderRadius.circular(8),
                               ),
                               child: Text(
-                                "Soit $totalPieces pièce(s)",
+                                l10n.equalToPieces(totalPieces),
                                 style: Appstyle.textMB.copyWith(
                                   color: Appstyle.indigo,
                                   fontWeight: FontWeight.bold,
@@ -382,8 +441,8 @@ Future<void> afficherProduitSelectionneDialog({
                           borderRadius: BorderRadius.circular(8),
                         ),
                         child: Text(
-                          "Stock disponible: ${quantiteDisponible.toInt()} pièce(s)",
-                          style: Appstyle.textS.copyWith(
+                          l10n.availableStockPieces(quantiteDisponible.toInt()),
+                          style: Appstyle.textM.copyWith(
                             color: quantiteDisponible <= 0 ? Colors.red : Colors.green,
                             fontWeight: FontWeight.bold,
                             fontSize: isSmallScreen ? 10 : 12,
@@ -413,19 +472,7 @@ Future<void> afficherProduitSelectionneDialog({
                       color: Appstyle.violet,
                       width: isSmallScreen ? 110 : 140,
                       height: isSmallScreen ? 38 : 45,
-                       onPressed: () async {
-                        final qte = double.tryParse(qteController.text) ?? 1;
-                        autoAddTimer?.cancel();
-                        updateEmballageInfo();
-                        if (await verifierQuantiteAvecDialogue(qte)) {
-                          if (selectedEmballage != TypeEmballage.unit) {
-                            onAjouter(qte, colisType: currentColisType, prixUnitaire: currentPrixUnitaire);
-                          } else {
-                            onAjouter(qte);
-                          }
-                          Navigator.pop(context);
-                        }
-                      },
+                       onPressed: confirmerAjout,
                     ),
                   ],
                 ),
@@ -435,14 +482,18 @@ Future<void> afficherProduitSelectionneDialog({
         },
       );
     },
-  );
+  ).whenComplete(() {
+    // Garantit l'arrêt du timer d'ajout auto même si le dialog est fermé
+    // par un moyen externe (ex: un nouveau scan qui referme celui-ci).
+    autoAddTimer?.cancel();
+  });
 }
 
 /// Widget pour afficher la photo du produit avec hauteur adaptable
-Widget _buildProductImage(String? photoName, {double height = 280}) {
+Widget _buildProductImage(String? photoName, {required BuildContext context, double height = 280}) {
   return Container(
     height: height,
-    width: double.infinity,
+    width: height*3/2,
     decoration: BoxDecoration(
       borderRadius: BorderRadius.circular(12),
       color: Colors.grey[50],
@@ -453,38 +504,16 @@ Widget _buildProductImage(String? photoName, {double height = 280}) {
     ),
     child: ClipRRect(
       borderRadius: BorderRadius.circular(12),
-      child: _buildImageContent(photoName),
+      child: _buildImageContent(photoName, context),
     ),
   );
 }
 
-Widget _buildImageContent(String? photoName) {
-  // Si pas de photo ou photo vide
+Widget _buildImageContent(String? photoName, BuildContext context) {
+  // Si pas de photo ou photo vide : même placeholder que CardProduct
+  // (boîte violette + icône produit) pour une présentation cohérente.
   if (photoName == null || photoName.isEmpty) {
-    return Container(
-      color: Colors.grey[100],
-      child: Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(
-              Icons.image_not_supported,
-              size: 48,
-              color: Colors.grey[400],
-            ),
-            const SizedBox(height: 8),
-            Text(
-              'Aucune photo',
-              style: TextStyle(
-                color: Colors.grey[500],
-                fontSize: 12,
-                fontWeight: FontWeight.w500,
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
+    return _buildNoPhotoPlaceholder();
   }
 
   // Charger la photo depuis le service
@@ -507,18 +536,33 @@ Widget _buildImageContent(String? photoName) {
           width: double.infinity,
           height: double.infinity,
           errorBuilder: (context, error, stackTrace) {
-            return _buildErrorPlaceholder();
+            return _buildErrorPlaceholder(context);
           },
         );
       }
 
       // Photo non trouvée
-      return _buildNotFoundPlaceholder();
+      return _buildNotFoundPlaceholder(context);
     },
   );
 }
 
-Widget _buildNotFoundPlaceholder() {
+/// Placeholder pour un produit sans photo : reprend le style utilisé dans
+/// CardProduct (fond violet translucide + icône de produit).
+Widget _buildNoPhotoPlaceholder() {
+  return Container(
+    color: Appstyle.violet.withOpacity(0.1),
+    child: Center(
+      child: Icon(
+        Icons.inventory_2,
+        size: 64,
+        color: Appstyle.violet.withOpacity(0.6),
+      ),
+    ),
+  );
+}
+
+Widget _buildNotFoundPlaceholder(BuildContext context) {
   return Container(
     color: Colors.grey[100],
     child: Center(
@@ -532,7 +576,7 @@ Widget _buildNotFoundPlaceholder() {
           ),
           const SizedBox(height: 8),
           Text(
-            'Image non trouvée',
+            AppLocalizations.of(context).imageNotFound,
             style: TextStyle(
               color: Colors.grey[500],
               fontSize: 12,
@@ -545,7 +589,7 @@ Widget _buildNotFoundPlaceholder() {
   );
 }
 
-Widget _buildErrorPlaceholder() {
+Widget _buildErrorPlaceholder(BuildContext context) {
   return Container(
     color: Colors.grey[100],
     child: Center(
@@ -559,7 +603,7 @@ Widget _buildErrorPlaceholder() {
           ),
           const SizedBox(height: 8),
           Text(
-            'Erreur de chargement',
+            AppLocalizations.of(context).loadingError,
             style: TextStyle(
               color: Colors.grey[500],
               fontSize: 12,

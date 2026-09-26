@@ -7,6 +7,7 @@ import '../../../data/models/fournisseur.dart';
 import '../../../l10n/app_localizations.dart';
 import '../../widget/detail_widget.dart';
 import '../../widget/section_decoration.dart';
+import '../../widget/stats_card.dart';
 import '../base_dialog.dart';
 
 Future<void> MouvementDetail(
@@ -65,13 +66,6 @@ Future<void> MouvementDetail(
 
                 const Spacer(),
 
-                Chip(
-                  label: Text(
-                    mouvement.etat ? l10n.active : l10n.inactive,
-                    style: Appstyle.textSB.copyWith(color: Appstyle.Tblanc),
-                  ),
-                  backgroundColor: Appstyle.crevete,
-                ),
               ],
             ),
 
@@ -161,28 +155,34 @@ String _getTranslatedType(String type, AppLocalizations l10n) {
       return l10n.purchase;
     case "Retour":
       return l10n.return_;
-    case "Déstockage":
-      return l10n.destocking;
+    case "Sortie":
+      return l10n.exit;
     default:
       return type;
   }
 }
 
+// Dans mouvement_detail.dart
 Widget _resumeMouvement(Mouvement m, AppLocalizations l10n) {
-  return Container(
-    decoration: BoxDecoration(
-      color: Appstyle.violet.withOpacity(0.6),
-      borderRadius: BorderRadius.circular(10),
-    ),
-    padding: const EdgeInsets.all(8),
-    child: Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-      children: [
-        detailbadge(l10n.quantity, m.quantite.toString()),
-        detailbadge(l10n.purchasePrice, "${m.prixAchat} ${l10n.currency}"),
-        detailbadge(l10n.salePrice, "${m.prixVente} ${l10n.currency}"),
-        detailbadge(l10n.type, _getTranslatedType(m.type, l10n)),
-      ],
-    ),
+  return StatsCard(
+    backgroundColor: Appstyle.violet.withOpacity(0.7),
+    items: [
+      StatsItem(
+        label: l10n.quantity,
+        value: m.quantite.toString(),
+      ),
+      StatsItem(
+        label: l10n.purchasePrice,
+        value: "${m.prixAchat} ${l10n.currency}",
+      ),
+      StatsItem(
+        label: l10n.salePrice,
+        value: "${m.prixVente} ${l10n.currency}",
+      ),
+      StatsItem(
+        label: l10n.type,
+        value: _getTranslatedType(m.type, l10n),
+      ),
+    ],
   );
 }

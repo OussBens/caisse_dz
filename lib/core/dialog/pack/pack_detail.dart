@@ -9,7 +9,10 @@ import 'package:caisse_dz/core/theme/app_style.dart';
 import '../../../data/models/pack.dart';
 import '../../widget/detail_widget.dart';
 import '../../widget/section_decoration.dart';
+import '../../widget/stats_card.dart';
 import '../base_dialog.dart';
+import '../produits_liste_dialog.dart';
+import 'package:caisse_dz/core/utilis/number_format.dart';
 
 List<ProduitPackDetail> produitPackDetailsTest = [];
 List<Produit> produitsTest = [];
@@ -66,10 +69,16 @@ Future<void> PackDetail(BuildContext context, Pack pack) async {
                 Chip(
                   label: Text(
                     pack.etat ? l10n.active : l10n.inactive,
-                    style: Appstyle.textSB.copyWith(color: Appstyle.Tblanc),
+                    style: Appstyle.textSB.copyWith(
+                      color: pack.etat ? Appstyle.Tblanc : Appstyle.Tnoir, // ou une autre couleur
+                    ),
                   ),
-                  backgroundColor: Appstyle.crevete,
-                ),
+                  backgroundColor: pack.etat
+                      ? Appstyle.violet.withOpacity(0.8)
+                      : Appstyle.crevete.withOpacity(0.7), // ou rouge, orange, etc.
+                  labelPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                  elevation: pack.etat ? 2 : 0,
+                )
               ],
             ),
             const SizedBox(height: 16),
@@ -143,7 +152,7 @@ Future<void> PackDetail(BuildContext context, Pack pack) async {
           children: [
             ElevatedButton.icon(
               icon: const Icon(Icons.list),
-              label: Text(l10n.productsList),
+              label: Text(l10n.productList),
               style: ElevatedButton.styleFrom(
                 backgroundColor: Appstyle.crevete,
                 foregroundColor: Colors.white,
@@ -152,11 +161,7 @@ Future<void> PackDetail(BuildContext context, Pack pack) async {
                 ),
               ),
               onPressed: () {
-                showDialog(
-                  barrierColor: Appstyle.gris.withOpacity(0.4),
-                  context: context,
-                  builder: (_) => _dialogListeProduitsPack(context, pack, l10n),
-                );
+                showPackProductsListDialog(context, pack, l10n);
               },
             ),
 
@@ -183,22 +188,15 @@ Future<void> PackDetail(BuildContext context, Pack pack) async {
 
 // ================= Helper Widgets =================
 
+// pack_detail.dart - Remplacer _resumePack
 Widget _resumePack(Pack p, AppLocalizations l10n, int nombreProduits) {
-  return Container(
-    decoration: BoxDecoration(
-      color: Appstyle.violet.withOpacity(0.6),
-      borderRadius: BorderRadius.circular(10),
-    ),
-    padding: const EdgeInsets.all(10),
-    child: Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-      children: [
-        _badge(l10n.id, p.id),
-        _badge(l10n.productCount, nombreProduits),
-        _badge(l10n.totalQuantity, p.quantiteTotale),  // MODIFIÉ
-        _badge(l10n.total, "${p.prixVente} ${l10n.currency}"),  // MODIFIÉ
-      ],
-    ),
+  return StatsCard(
+    items: [
+      StatsItem(label: l10n.code, value: p.code),
+      StatsItem(label: l10n.productCount, value: nombreProduits),
+      StatsItem(label: l10n.totalQuantity, value: p.quantiteTotale),
+      StatsItem(label: l10n.total, value: "${p.prixVente} ${l10n.currency}"),
+    ],
   );
 }
 
@@ -217,179 +215,6 @@ Widget _badge(String label, dynamic value) {
 }
 
 // ================= Dialogue Liste des produits du pack =================
-Widget _dialogListeProduitsPack(BuildContext context, Pack pack, AppLocalizations l10n) {
-  final produits = produitPackDetailsTest
-      .where((p) => p.packCode == pack.code)
-      .toList();
-
-  // Calcul des totaux
-  int nombreProduits = produits.length;
-  int quantiteTotale = produits.fold(0, (sum, item) => sum + item.quantite);
-  double montantTotal = produits.fold(0.0, (sum, item) => sum + item.montant);
-
-  return BaseDialog(
-    width: 900,
-    height: 600,
-
-    // ───────── HEADER ─────────
-    header: Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          l10n.productsOfPack(pack.code ?? ''),
-          style: Appstyle.textLB,
-        ),
-        const SizedBox(height: 8),
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            Text(
-              "${l10n.pack} : ${pack.nom}",
-              style: Appstyle.textSB,
-            ),
-            Text(
-              "${l10n.total} : ${montantTotal.toStringAsFixed(2)} ${l10n.currency}",
-              style: Appstyle.textSB.copyWith(color: Appstyle.violet, fontWeight: FontWeight.bold),
-            ),
-          ],
-        ),
-        const SizedBox(height: 8),
-        Container(
-          padding: const EdgeInsets.all(8),
-          decoration: BoxDecoration(
-            color: Appstyle.violet.withOpacity(0.1),
-            borderRadius: BorderRadius.circular(8),
-          ),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceAround,
-            children: [
-              Column(
-                children: [
-                  Text(l10n.numberOfItems, style: Appstyle.textSB.copyWith(fontSize: 12, color: Appstyle.gris)),
-                  Text(
-                    "$nombreProduits",
-                    style: Appstyle.textLB.copyWith(color: Appstyle.violet, fontSize: 16),
-                  ),
-                ],
-              ),
-              Container(width: 1, height: 30, color: Appstyle.gris.withOpacity(0.3)),
-              Column(
-                children: [
-                  Text(l10n.totalQuantity, style: Appstyle.textSB.copyWith(fontSize: 12, color: Appstyle.gris)),
-                  Text(
-                    "$quantiteTotale",
-                    style: Appstyle.textLB.copyWith(color: Appstyle.violet, fontSize: 16),
-                  ),
-                ],
-              ),
-              Container(width: 1, height: 30, color: Appstyle.gris.withOpacity(0.3)),
-              Column(
-                children: [
-                  Text(l10n.total, style: Appstyle.textSB.copyWith(fontSize: 12, color: Appstyle.gris)),
-                  Text(
-                    "${montantTotal.toStringAsFixed(2)} ${l10n.currency}",
-                    style: Appstyle.textLB.copyWith(color: Appstyle.crevete, fontSize: 16),
-                  ),
-                ],
-              ),
-            ],
-          ),
-        ),
-      ],
-    ),
-
-    // ───────── CONTENT ─────────
-    content: produits.isEmpty
-        ? Center(
-      child: Text(
-        l10n.noProductsAssociated,
-        style: Appstyle.textSB.copyWith(color: Appstyle.gris),
-      ),
-    )
-        : LayoutBuilder(
-      builder: (context, constraints) {
-        return SingleChildScrollView(
-          scrollDirection: Axis.vertical,
-          child: ConstrainedBox(
-            constraints: BoxConstraints(minWidth: constraints.maxWidth),
-            child: DataTable(
-              headingRowColor: MaterialStateProperty.all(Appstyle.violet.withOpacity(0.1)),
-              headingTextStyle: Appstyle.textSB.copyWith(color: Appstyle.violet),
-              columnSpacing: 16,
-              columns: [
-                DataColumn(label: Text(l10n.productCode, style: Appstyle.textSB.copyWith(fontWeight: FontWeight.bold))),
-                DataColumn(label: Text(l10n.productName, style: Appstyle.textSB.copyWith(fontWeight: FontWeight.bold))),
-                DataColumn(label: Text(l10n.unitPrice, style: Appstyle.textSB.copyWith(fontWeight: FontWeight.bold)), numeric: true),
-                DataColumn(label: Text(l10n.quantity, style: Appstyle.textSB.copyWith(fontWeight: FontWeight.bold)), numeric: true),
-                DataColumn(label: Text(l10n.total, style: Appstyle.textSB.copyWith(fontWeight: FontWeight.bold)), numeric: true),
-              ],
-              rows: produits.map((p) {
-                return DataRow(
-                  cells: [
-                    DataCell(Text(p.produitCode, style: Appstyle.textSB)),
-                    DataCell(Text(_nomProduit(p.produitCode), style: Appstyle.textSB)),
-                    DataCell(
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                        decoration: BoxDecoration(
-                          color: Appstyle.violet.withOpacity(0.1),
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        child: Text(
-                          "${p.prixUnitaire.toStringAsFixed(2)} ${l10n.currency}",
-                          style: Appstyle.textSB.copyWith(color: Appstyle.violet),
-                        ),
-                      ),
-                    ),
-                    DataCell(
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                        decoration: BoxDecoration(
-                          color: Appstyle.crevete.withOpacity(0.1),
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        child: Text(
-                          "${p.quantite}",
-                          style: Appstyle.textSB.copyWith(color: Appstyle.crevete),
-                        ),
-                      ),
-                    ),
-                    DataCell(
-                      Text(
-                        "${p.montant.toStringAsFixed(2)} ${l10n.currency}",
-                        style: Appstyle.textSB.copyWith(fontWeight: FontWeight.bold, color: Appstyle.crevete),
-                      ),
-                    ),
-                  ],
-                );
-              }).toList(),
-            ),
-          ),
-        );
-      },
-    ),
-
-    // ───────── FOOTER ─────────
-    footer: Align(
-      alignment: Alignment.centerRight,
-      child: ElevatedButton.icon(
-        icon: Icon(Icons.close, color: Appstyle.Tblanc),
-        label: Text(
-          l10n.close,
-          style: Appstyle.textSB.copyWith(color: Appstyle.Tblanc),
-        ),
-        style: ElevatedButton.styleFrom(
-          backgroundColor: Appstyle.violet,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(10),
-          ),
-        ),
-        onPressed: () => Navigator.pop(context),
-      ),
-    ),
-  );
-}
-// Ajoutez cette fonction à la fin du fichier pack_detail.dart
 Future<void> showPackProductsListDialog(BuildContext context, Pack pack, AppLocalizations l10n) async {
   await _LoadAllData(pack: pack);
 
@@ -397,173 +222,54 @@ Future<void> showPackProductsListDialog(BuildContext context, Pack pack, AppLoca
       .where((p) => p.packCode == pack.code)
       .toList();
 
-  // Calcul des totaux
-  int nombreProduits = produits.length;
-  int quantiteTotale = produits.fold(0, (sum, item) => sum + item.quantite);
-  double montantTotal = produits.fold(0.0, (sum, item) => sum + item.montant);
+  final quantiteTotale = produits.fold(0, (sum, item) => sum + item.quantite);
+  final montantTotal = produits.fold(0.0, (sum, item) => sum + item.montant);
 
-  showDialog(
+  return ProduitsListeDialog.afficher(
     context: context,
-    barrierColor: Appstyle.gris.withOpacity(0.4),
-    builder: (_) {
-      return BaseDialog(
-        width: 900,
-        height: 550,
-
-        header: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              l10n.productsOfPack(pack.code ?? ''),
-              style: Appstyle.textLB,
-            ),
-            const SizedBox(height: 8),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Text(
-                  "${l10n.pack} : ${pack.nom}",
-                  style: Appstyle.textSB,
-                ),
-                Text(
-                  "${l10n.total} : ${montantTotal.toStringAsFixed(2)} ${l10n.currency}",
-                  style: Appstyle.textSB.copyWith(color: Appstyle.violet, fontWeight: FontWeight.bold),
-                ),
-              ],
-            ),
-            const SizedBox(height: 8),
-            Container(
-              padding: const EdgeInsets.all(8),
-              decoration: BoxDecoration(
-                color: Appstyle.violet.withOpacity(0.1),
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceAround,
-                children: [
-                  Column(
-                    children: [
-                      Text(l10n.numberOfItems, style: Appstyle.textSB.copyWith(fontSize: 12, color: Appstyle.gris)),
-                      Text(
-                        "$nombreProduits",
-                        style: Appstyle.textLB.copyWith(color: Appstyle.violet, fontSize: 16),
-                      ),
-                    ],
-                  ),
-                  Container(width: 1, height: 30, color: Appstyle.gris.withOpacity(0.3)),
-                  Column(
-                    children: [
-                      Text(l10n.totalQuantity, style: Appstyle.textSB.copyWith(fontSize: 12, color: Appstyle.gris)),
-                      Text(
-                        "$quantiteTotale",
-                        style: Appstyle.textLB.copyWith(color: Appstyle.violet, fontSize: 16),
-                      ),
-                    ],
-                  ),
-                  Container(width: 1, height: 30, color: Appstyle.gris.withOpacity(0.3)),
-                  Column(
-                    children: [
-                      Text(l10n.price, style: Appstyle.textSB.copyWith(fontSize: 12, color: Appstyle.gris)),
-                      Text(
-                        "${montantTotal.toStringAsFixed(2)} ${l10n.currency}",
-                        style: Appstyle.textLB.copyWith(color: Appstyle.crevete, fontSize: 16),
-                      ),
-                    ],
-                  ),
-                ],
-              ),
-            ),
-          ],
-        ),
-
-        content: produits.isEmpty
-            ? Center(
-          child: Text(
-            l10n.noProductsAssociated,
-            style: Appstyle.textSB.copyWith(color: Appstyle.gris),
+    titre: l10n.productsOfPack(pack.code ?? ''),
+    sousTitre: [
+      Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Text("${l10n.pack} : ${pack.nom}", style: Appstyle.textSB),
+          Text(
+            "${l10n.total} : ${NumberFormatUtil.formatMontant(montantTotal, decimales: 2)} ${l10n.currency}",
+            style: Appstyle.textSB.copyWith(color: Appstyle.violet, fontWeight: FontWeight.bold),
           ),
-        )
-            : LayoutBuilder(
-          builder: (context, constraints) {
-            return SingleChildScrollView(
-              scrollDirection: Axis.vertical,
-              child: ConstrainedBox(
-                constraints: BoxConstraints(minWidth: constraints.maxWidth),
-                child: DataTable(
-                  headingRowColor: MaterialStateProperty.all(Appstyle.violet.withOpacity(0.1)),
-                  headingTextStyle: Appstyle.textSB.copyWith(color: Appstyle.violet),
-                  columnSpacing: 16,
-                  columns: [
-                    DataColumn(label: Text(l10n.productCode, style: Appstyle.textSB.copyWith(fontWeight: FontWeight.bold))),
-                    DataColumn(label: Text(l10n.productName, style: Appstyle.textSB.copyWith(fontWeight: FontWeight.bold))),
-                    DataColumn(label: Text(l10n.unitPrice, style: Appstyle.textSB.copyWith(fontWeight: FontWeight.bold)), numeric: true),
-                    DataColumn(label: Text(l10n.quantity, style: Appstyle.textSB.copyWith(fontWeight: FontWeight.bold)), numeric: true),
-                    DataColumn(label: Text(l10n.total, style: Appstyle.textSB.copyWith(fontWeight: FontWeight.bold)), numeric: true),
-                  ],
-                  rows: produits.map((p) {
-                    return DataRow(
-                      cells: [
-                        DataCell(Text(p.produitCode, style: Appstyle.textSB)),
-                        DataCell(Text(p.produitCode, style: Appstyle.textSB)),
-                        DataCell(
-                          Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                            decoration: BoxDecoration(
-                              color: Appstyle.violet.withOpacity(0.1),
-                              borderRadius: BorderRadius.circular(12),
-                            ),
-                            child: Text(
-                              "${p.prixUnitaire.toStringAsFixed(2)} ${l10n.currency}",
-                              style: Appstyle.textSB.copyWith(color: Appstyle.violet),
-                            ),
-                          ),
-                        ),
-                        DataCell(
-                          Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                            decoration: BoxDecoration(
-                              color: Appstyle.crevete.withOpacity(0.1),
-                              borderRadius: BorderRadius.circular(12),
-                            ),
-                            child: Text(
-                              "${p.quantite}",
-                              style: Appstyle.textSB.copyWith(color: Appstyle.crevete),
-                            ),
-                          ),
-                        ),
-                        DataCell(
-                          Text(
-                            "${p.montant.toStringAsFixed(2)} ${l10n.currency}",
-                            style: Appstyle.textSB.copyWith(fontWeight: FontWeight.bold, color: Appstyle.crevete),
-                          ),
-                        ),
-                      ],
-                    );
-                  }).toList(),
-                ),
-              ),
-            );
-          },
-        ),
-
-        footer: Align(
-          alignment: Alignment.centerRight,
-          child: ElevatedButton.icon(
-            icon: Icon(Icons.close, color: Appstyle.Tblanc),
-            label: Text(
-              l10n.close,
-              style: Appstyle.textSB.copyWith(color: Appstyle.Tblanc),
-            ),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Appstyle.violet,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(10),
-              ),
-            ),
-            onPressed: () => Navigator.pop(context),
-          ),
-        ),
+        ],
+      ),
+    ],
+    stats: [
+      StatBadge(label: l10n.numberOfItems, valeur: "${produits.length}"),
+      StatBadge(label: l10n.totalQuantity, valeur: "$quantiteTotale"),
+      StatBadge(
+        label: l10n.total,
+        valeur: "${NumberFormatUtil.formatMontant(montantTotal, decimales: 2)} ${l10n.currency}",
+        couleur: Appstyle.crevete,
+      ),
+    ],
+    colonnes: [
+      DataColumn(label: Text(l10n.productCode)),
+      DataColumn(label: Text(l10n.productName)),
+      DataColumn(label: Text(l10n.unitPrice), numeric: true),
+      DataColumn(label: Text(l10n.quantity), numeric: true),
+      DataColumn(label: Text(l10n.total), numeric: true),
+    ],
+    lignes: produits.map((p) {
+      return DataRow(
+        cells: [
+          DataCell(Text(p.produitCode, style: Appstyle.textSB)),
+          DataCell(Text(_nomProduit(p.produitCode), style: Appstyle.textSB)),
+          DataCell(pilluleCellule("${NumberFormatUtil.formatMontant(p.prixUnitaire, decimales: 2)} ${l10n.currency}", Appstyle.violet)),
+          DataCell(pilluleCellule("${p.quantite}", Appstyle.crevete)),
+          DataCell(Text(
+            "${NumberFormatUtil.formatMontant(p.montant, decimales: 2)} ${l10n.currency}",
+            style: Appstyle.textSB.copyWith(fontWeight: FontWeight.bold, color: Appstyle.crevete),
+          )),
+        ],
       );
-    },
+    }).toList(),
+    messageVide: l10n.noProductsAssociated,
   );
 }

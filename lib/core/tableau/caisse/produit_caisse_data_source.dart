@@ -5,12 +5,17 @@ import '../../../data/constant.dart';
 import '../../../data/models/produit.dart';
 import '../../../l10n/app_localizations.dart';
 import '../../theme/app_style.dart';
+import 'package:caisse_dz/core/utilis/number_format.dart';
 
 class ProduitCaisseDataSource extends DataGridSource {
   List<Produit> produits;
   final void Function(int index)? onSelectRow;
   final AppLocalizations l10n;
   final double Function(Produit)? getQuantiteVirtuelle;
+  // ✅ Repli utilisé uniquement si getQuantiteVirtuelle n'est pas fourni
+  // (ne se produit pas en pratique côté caisse_screen.dart, mais évite toute
+  // dépendance résiduelle à Produit.quantite).
+  final Map<String, double> quantites;
   int? selectedIndex;
   late List<DataGridRow> _rows;
 
@@ -19,6 +24,7 @@ class ProduitCaisseDataSource extends DataGridSource {
     this.onSelectRow,
     required this.l10n,
     this.getQuantiteVirtuelle,
+    this.quantites = const {},
   }) {
     _buildRows();
   }
@@ -39,7 +45,7 @@ class ProduitCaisseDataSource extends DataGridSource {
       // ✅ Utiliser la quantité virtuelle si fournie, sinon la quantité réelle
       final quantiteAffichee = getQuantiteVirtuelle != null
           ? getQuantiteVirtuelle!(p).toInt()
-          : (p.quantite ?? 0).toInt();
+          : (quantites[p.code] ?? 0).toInt();
 
       return DataGridRow(
         cells: [
@@ -52,7 +58,7 @@ class ProduitCaisseDataSource extends DataGridSource {
           ),
           DataGridCell(
               columnName: 'prixVente',
-              value: p.prixVente.toStringAsFixed(0)
+              value: NumberFormatUtil.formatMontant(p.prixVente, decimales: 0)
           ),
         ],
       );

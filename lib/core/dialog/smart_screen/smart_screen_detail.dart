@@ -1,6 +1,9 @@
 import 'package:caisse_dz/Services/Fournisseur.dart';
 import 'package:caisse_dz/Services/Produits.dart';
+import 'package:caisse_dz/Services/SmartScan.dart';
 import 'package:caisse_dz/Services/SmartScanProduit.dart';
+import 'package:caisse_dz/Services/Verssement.dart';
+import 'package:caisse_dz/DBCreate.dart';
 import 'package:caisse_dz/core/dialog/base_dialog.dart';
 import 'package:caisse_dz/core/theme/app_style.dart';
 import 'package:caisse_dz/core/widget/detail_widget.dart';
@@ -10,6 +13,8 @@ import 'package:caisse_dz/data/models/smart_scan_produit.dart';
 import 'package:collection/collection.dart';
 import 'package:flutter/material.dart';
 import '../../widget/section_decoration.dart';
+import '../../widget/stats_card.dart';
+import 'package:caisse_dz/core/utilis/number_format.dart';
 
 List<SmartScanProduit> smartscanProduitsTest = [];
 
@@ -21,12 +26,21 @@ Future<void> SmartScanDetail(
     BuildContext context,
     SmartScan scan,) async {
   await _LoadAllData();
+  final db = await DbCreator.openDb();
+  final serviceV = VerssementServices(db);
   final fournisseurs = await FournisseurServices.getAllFournisseurs();
   final nomFournisseur = fournisseurs.firstWhereOrNull((f) => f.code == scan.fournisseurCode)?.nom
       ?? scan.fournisseurCode;
   final produitsCatalogue = await ProduitServices.getAllProduits();
   String nomProduit(String code) =>
       produitsCatalogue.firstWhereOrNull((p) => p.code == code)?.nom ?? code;
+
+  // Montant versé / reste / nombre de versements : calculés dynamiquement à
+  // partir des versements liés à ce smart scan (plus de colonnes statiques).
+  final versementsScan = await serviceV.getVerssementsByCodeOperation(scan.code);
+  final double verse = SmartScanServices.calculerVerse(versementsScan, scan.code);
+  final double reste = scan.montant - verse;
+  final int nbrVersement = SmartScanServices.calculerNbrVersement(versementsScan, scan.code);
 
   return showDialog(
     context: context,
@@ -78,7 +92,7 @@ Future<void> SmartScanDetail(
             ),
 
             const SizedBox(height: 16),
-            _resumeChiffreSmartScan(scan, l10n),
+            _resumeChiffreSmartScan(scan, verse, reste, nbrVersement, l10n),
           ],
         ),
 
@@ -92,7 +106,6 @@ Future<void> SmartScanDetail(
                 child: detailwrap([
                   detailinfo(l10n.code, scan.code),
                   detailinfo(l10n.date, scan.date.toString().split(" ").first),
-                  detailinfo(l10n.activity, scan.activity),
                   detailinfo(l10n.supplier, nomFournisseur),
                   detailinfo(l10n.status, scan.etat ? l10n.active : l10n.inactive),
                 ]),
@@ -103,10 +116,6 @@ Future<void> SmartScanDetail(
                 icon: Icons.auto_graph_sharp,
                 child: detailwrap([
                   detailinfo(l10n.productCount, scan.nbrProduit),
-                  detailinfo(l10n.scannedProductCount, scan.nbrProduitCalcul),
-                  detailinfo(l10n.totalQuantity, scan.quantiteArticle),
-                  detailinfo(l10n.scannedTotalQuantity, scan.quantiteArticleCalcul),
-                  detailinfo(l10n.gap, scan.ecart),
                 ]),
               ),
 
@@ -115,9 +124,9 @@ Future<void> SmartScanDetail(
                 icon: Icons.monetization_on,
                 child: detailwrap([
                   detailinfo(l10n.totalAmount, "${scan.montant} ${l10n.currency}"),
-                  detailinfo(l10n.scannedTotalAmount, "${scan.montantCalcul} ${l10n.currency}"),
-                  detailinfo(l10n.paye, "${scan.paye} ${l10n.currency}"),
-                  detailinfo(l10n.reste, "${scan.reste} ${l10n.currency}"),
+                  detailinfo(l10n.paye, "$verse ${l10n.currency}"),
+                  detailinfo(l10n.numberOfPayments, nbrVersement),
+                  detailinfo(l10n.reste, "$reste ${l10n.currency}"),
                 ]),
               ),
 
@@ -196,22 +205,43 @@ Future<void> SmartScanDetail(
   );
 }
 
-Widget _resumeChiffreSmartScan(SmartScan s, AppLocalizations l10n) {
-  return Container(
-    decoration: BoxDecoration(
-      color: Appstyle.violet.withOpacity(0.6),
-      borderRadius: BorderRadius.circular(10),
-    ),
-    padding: const EdgeInsets.all(8),
-    child: Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-      children: [
-        detailbadge(l10n.products, s.nbrProduit),
-        detailbadge(l10n.quantity, s.quantiteArticle),
-        detailbadge(l10n.amount, "${s.montant} ${l10n.currency}"),
-        detailbadge(l10n.gap, s.ecart),
-      ],
-    ),
+/// Affiche la liste des produits d'un smart scan de façon autonome (charge
+/// ses propres données) — utilisé par AfficheurSmartScan (bouton "Liste
+/// produit") sans passer par SmartScanDetail.
+Future<void> showSmartScanProductsListDialog(
+    BuildContext context,
+    SmartScan scan,
+    AppLocalizations l10n,
+    ) async {
+  await _LoadAllData();
+  final fournisseurs = await FournisseurServices.getAllFournisseurs();
+  final nomFournisseur = fournisseurs.firstWhereOrNull((f) => f.code == scan.fournisseurCode)?.nom
+      ?? scan.fournisseurCode;
+  final produitsCatalogue = await ProduitServices.getAllProduits();
+  String nomProduit(String code) =>
+      produitsCatalogue.firstWhereOrNull((p) => p.code == code)?.nom ?? code;
+
+  if (!context.mounted) return;
+  return showDialog(
+    barrierColor: Appstyle.gris.withOpacity(0.4),
+    context: context,
+    builder: (_) =>
+        _dialogListeProduitsSmartScan(context, scan, nomFournisseur, nomProduit, l10n),
+  );
+}
+
+// smart_scan_detail.dart - Remplacer _resumeChiffreSmartScan
+Widget _resumeChiffreSmartScan(
+    SmartScan s, double verse, double reste, int nbrVersement, AppLocalizations l10n) {
+  return StatsCard(
+    backgroundColor: Appstyle.violet.withOpacity(0.7),
+    items: [
+      StatsItem(label: l10n.products, value: s.nbrProduit),
+      StatsItem(label: l10n.amount, value: "${s.montant} ${l10n.currency}"),
+      StatsItem(label: l10n.paye, value: "$verse ${l10n.currency}"),
+      StatsItem(label: l10n.numberOfPayments, value: nbrVersement),
+      StatsItem(label: l10n.reste, value: "$reste ${l10n.currency}"),
+    ],
   );
 }
 
@@ -257,6 +287,7 @@ Widget _dialogListeProduitsSmartScan(
           DataColumn(label: Text(l10n.code)),
           DataColumn(label: Text(l10n.product)),
           DataColumn(label: Text(l10n.quantity), numeric: true),
+          DataColumn(label: Text(l10n.numberField), numeric: true),
           DataColumn(label: Text(l10n.price), numeric: true),
           DataColumn(label: Text(l10n.total), numeric: true),
         ],
@@ -265,8 +296,9 @@ Widget _dialogListeProduitsSmartScan(
             DataCell(Text(p.codeProduit)),
             DataCell(Text(nomProduit(p.codeProduit))),
             DataCell(Text("${p.quantite}")),
-            DataCell(Text("${p.prix.toStringAsFixed(2)}")),
-            DataCell(Text("${p.total.toStringAsFixed(2)}")),
+            DataCell(Text(p.nombre != null ? "${p.nombre}" : "-")),
+            DataCell(Text("${NumberFormatUtil.formatMontant(p.prix, decimales: 2)}")),
+            DataCell(Text("${NumberFormatUtil.formatMontant(p.total, decimales: 2)}")),
           ]);
         }).toList(),
       ),

@@ -1,8 +1,17 @@
 import 'dart:ui';
+import 'package:collection/collection.dart';
 import 'package:caisse_dz/DBCreate.dart';
 import 'package:caisse_dz/Services/Client.dart' hide ApiResponse;
 import 'package:caisse_dz/Services/Fournisseur.dart' hide ApiResponse;
 import 'package:caisse_dz/Services/Verssement.dart';
+import 'package:caisse_dz/Services/CaisseSession.dart';
+import 'package:caisse_dz/data/models/caisse_mouvement.dart';
+import 'package:caisse_dz/Services/PaiementParam.dart';
+import 'package:caisse_dz/Services/Retour.dart';
+import 'package:caisse_dz/Services/SmartScan.dart';
+import 'package:caisse_dz/data/models/paiementParam.dart';
+import 'package:caisse_dz/data/models/retour.dart';
+import 'package:caisse_dz/data/models/smart_scan.dart';
 import 'package:caisse_dz/core/Auth/auth_state.dart';
 import 'package:caisse_dz/data/models/client.dart';
 import 'package:caisse_dz/data/models/fournisseur.dart';
@@ -30,26 +39,73 @@ import '../base_dialog.dart';
 import '../information_dialog.dart';
 import '../insertion_client.dart';
 import '../insertion_fournisseur.dart';
+import 'package:caisse_dz/core/utilis/number_format.dart';
 
 List<Client>          _clientsTest      = [];
 List<Fournisseur>     _fournisseursTest = [];
 List<CaisseGestion>   _CaissesTest      = [];
+PaiementParam?        _paiementParamTest;
+List<Retour>          _retoursTest      = [];
+List<SmartScan>       _smartScansTest   = [];
 
 Future<void> _loadAllData() async {
   final client       = await ClientServices.getAllClients();
   final fournisseur  = await FournisseurServices.getAllFournisseurs();
   final caisse  = await GCServices.getAllCaisses();
+  final paiementParam = await PaiementParamServices.getPaiementParam();
+  final retours = await RetourServices.getAllRetour();
+  final smartScans = await SmartScanServices.getAllSmartScans();
   _clientsTest = client;
   _fournisseursTest = fournisseur;
   _CaissesTest = caisse;
+  _paiementParamTest = paiementParam;
+  _retoursTest = retours;
+  _smartScansTest = smartScans;
 }
 
-Future<ApiResponse<int>> _saveVersement({required Verssement vers, required String userName, required String userCode}) async {
+String _formatDateOperationVR(DateTime d) =>
+    "${d.day.toString().padLeft(2, '0')}/${d.month.toString().padLeft(2, '0')}/${d.year}";
+
+/// Opérations sélectionnables comme code opération du versement : retours
+/// client (Client/Sortie) ou smart scans du fournisseur (Fournisseur/Sortie).
+List<MapEntry<String, String>> _operationsDisponiblesVR(String? beneficiaireCode) {
+  if (beneficiaireCode == null) return [];
+
+  if (selectedTypeV == "Client") {
+    return _retoursTest
+        .where((r) => r.type == "Client" && r.client_code == beneficiaireCode)
+        .map((r) => MapEntry(r.code, "${r.code} • ${_formatDateOperationVR(r.date)}"))
+        .toList();
+  }
+
+  return _smartScansTest
+      .where((s) => s.fournisseurCode == beneficiaireCode)
+      .map((s) => MapEntry(s.code, "${s.code} • ${_formatDateOperationVR(s.date)} • ${NumberFormatUtil.formatMontant(s.montant, decimales: 2)}"))
+      .toList();
+}
+
+Future<ApiResponse<int>> _saveVersement({
+  required Verssement vers,
+  required String userName,
+  required String userCode,
+  required String caisseCode,
+}) async {
   final db = await DbCreator.openDb();
   final services = VerssementServices(db);
   final servicesclient = ClientServices(db);
   final servicesfournisseur = FournisseurServices(db);
   final serviceh = await HistoriqueServices(db);
+  final caisseSessionService = CaisseSessionServices(db);
+
+  // ✅ Session de caisse obligatoire : aucun versement ne peut être
+  // enregistré tant que la caisse choisie n'a pas été ouverte.
+  final sessionOuverte = await CaisseSessionServices.getSessionOuverte(caisseCode);
+  if (sessionOuverte == null) {
+    return ApiResponse(
+      success: false,
+      message: "Aucune session de caisse ouverte pour cette caisse. Veuillez d'abord ouvrir la caisse.",
+    );
+  }
 
   String nomBeneficiaire = vers.beneficiareCode;
   if (vers.typebeneficiare == "Client") {
@@ -80,6 +136,35 @@ Future<ApiResponse<int>> _saveVersement({required Verssement vers, required Stri
 
   // Ajouter l'historique
   if (response.success) {
+    // Mouvement de caisse (grand-livre) : sortie de caisse, journalisée dans
+    // la session ouverte de cette caisse.
+    final nextMouvementId = await CaisseSessionServices.getNextMouvementId(db);
+    await caisseSessionService.ajouterMouvement(CaisseMouvement(
+      id: nextMouvementId,
+      code: CodeGenerator.generateCode(
+        prefix: CodePrefix.caisseMouvement,
+        id: nextMouvementId,
+        digitCount: 8,
+      ),
+      sessionCode: sessionOuverte.code,
+      caisseCode: caisseCode,
+      type: vers.typebeneficiare == 'Fournisseur' ? 'versement_fournisseur' : 'versement_client',
+      sens: vers.sense,
+      montant: vers.montant,
+      modePaiement: vers.mode_paiement,
+      // ✅ Code du versement lui-même (pas vers.codeOperation, qui pointe
+      // vers le retour/smart scan et peut être partagé par plusieurs
+      // versements) : garantit un lien 1-à-1 retrouvable depuis
+      // versement_modif.dart/versement_actif.dart.
+      codeOperation: vers.code,
+      clientCode: vers.typebeneficiare == 'Client' ? vers.beneficiareCode : null,
+      fournisseurCode: vers.typebeneficiare == 'Fournisseur' ? vers.beneficiareCode : null,
+      date: vers.date,
+      etat: true,
+      dateCree: DateTime.now(),
+      creeParCode: userCode,
+    ));
+
     int idh = await _getNextHistoriqueId();
     Historique histo = Historique(
       id: idh,
@@ -171,6 +256,7 @@ String selectedmode = '';
 String selectedtype = "";
 String selectedType = '';
 String selectedCaisse = "";
+String? selectedCodeOperationVR;
 
 void resetVersementRetourForm(String typeVersement) {
   observationControllerV.clear();
@@ -180,6 +266,7 @@ void resetVersementRetourForm(String typeVersement) {
   selectedEtatV = "Validé";
   selectedModePaiement = "Espèces";
   selectedtype = "Paiement";
+  selectedCodeOperationVR = null;
 }
 
 final GlobalKey<FormState> produitFormKey = GlobalKey<FormState>();
@@ -215,6 +302,7 @@ Future<void> VersementNouveauRetour(
 
   montantControllerV.clear();
   dateController.clear();
+  selectedCodeOperationVR = null;
   selectedTypeV = typeVersement;
   selectedBeneficiaireV = null;
   selectedEtatV = "Validé";
@@ -231,17 +319,36 @@ Future<void> VersementNouveauRetour(
         builder: (context, setState) {
           final l10n = AppLocalizations.of(context)!;
           final translator = ListsConstTranslator(l10n);
-          selectedmode = translator.modePaiementDisplayList.first;
-          selectedType  = translator.typeVersementDisplayList.first;
+          final modePaiementList = _paiementParamTest != null
+              ? PaiementParamServices.visibleDisplayList(_paiementParamTest!, translator)
+              : translator.modePaiementDisplayList;
+          if (modePaiementList.isNotEmpty) {
+            selectedmode = modePaiementList.first;
+          }
           bool isClient = selectedTypeV == "Client";
           bool isFournisseur = selectedTypeV == "Fournisseur";
+
+          // ✅ Types de versement filtrés selon l'opération liée : un retour
+          // client ne peut être qu'un Remboursement, un smart scan
+          // fournisseur autorise les types courants.
+          final List<String> typeVersementFrancaisOptions = isClient
+              ? const ['Remboursement']
+              : const ['Avancement', 'Complément de facture', 'Paiement', 'Dette', 'Acompte'];
+          final typeVersementDetailListVR = typeVersementFrancaisOptions
+              .map(translator.translateTypeVersementDetail)
+              .toList();
+
+          if (!typeVersementFrancaisOptions.contains(selectedtype)) {
+            selectedtype = typeVersementFrancaisOptions.first;
+            selectedType = typeVersementDetailListVR.first;
+          }
 
           return ClipRect(
             child: BackdropFilter(
               filter: ImageFilter.blur(sigmaX: 2, sigmaY: 2),
               child: BaseDialog(
-                width: 850,
-                height: 420,
+                width: 1000,
+                height: 450,
 
                 header: TitreAvecLigne(
                   imagePath: 'assets/icons/devise_icon.png',
@@ -283,6 +390,7 @@ Future<void> VersementNouveauRetour(
                                         onClientSelected: (c) {
                                           setState(() {
                                             selectedBeneficiaireV = c.nom;
+                                            selectedCodeOperationVR = null;
                                           });
                                         },
                                       );
@@ -297,6 +405,7 @@ Future<void> VersementNouveauRetour(
                                         onFournisseurSelected: (f) {
                                           setState(() {
                                             selectedBeneficiaireV = f.nom;
+                                            selectedCodeOperationVR = null;
                                           });
                                         },
                                       );
@@ -311,10 +420,38 @@ Future<void> VersementNouveauRetour(
                                 items: isClient
                                     ? _clientsTest.map((e) => e.nom).toList()
                                     : _fournisseursTest.map((e) => e.nom).toList(),
-                                onChanged: (v) =>
-                                    setState(() => selectedBeneficiaireV = v),
+                                onChanged: (v) => setState(() {
+                                  selectedBeneficiaireV = v;
+                                  selectedCodeOperationVR = null;
+                                }),
                               ),
                             ),
+                            const SizedBox(height: 10),
+
+                            () {
+                              final beneficiaireCode = selectedBeneficiaireV == null
+                                  ? null
+                                  : (isClient
+                                      ? _clientsTest.firstWhereOrNull((c) => c.nom == selectedBeneficiaireV)?.code
+                                      : _fournisseursTest.firstWhereOrNull((f) => f.nom == selectedBeneficiaireV)?.code);
+                              final operations = _operationsDisponiblesVR(beneficiaireCode);
+
+                              return ChampAvecLabel(
+                                label: isClient ? l10n.clientReturn : l10n.smartScan,
+                                obligatoire: true,
+                                child: TextListe(
+                                  obligatoire: true,
+                                  clearable: false,
+                                  enabled: operations.isNotEmpty,
+                                  value: selectedCodeOperationVR,
+                                  hint: beneficiaireCode == null
+                                      ? "Choisissez d'abord un bénéficiaire"
+                                      : (operations.isEmpty ? "Aucune opération disponible" : l10n.select),
+                                  items: operations.map((e) => e.value).toList(),
+                                  onChanged: (v) => setState(() => selectedCodeOperationVR = v),
+                                ),
+                              );
+                            }(),
                             const SizedBox(height: 10),
 
                             ChampAvecLabel(
@@ -338,7 +475,7 @@ Future<void> VersementNouveauRetour(
                                   clearable: false,
                                   obligatoire: true,
                                   value: selectedmode,
-                                  items: translator.modePaiementDisplayList,
+                                  items: modePaiementList,
                                   onChanged: (v) {
                                     setState(() {
                                       selectedModePaiement = translator.modePaiementToFrench(v!);
@@ -373,10 +510,10 @@ Future<void> VersementNouveauRetour(
                               label: l10n.paymentType,
                               child: TextListe(
                                   value: selectedType,
-                                  items: translator.typeVersementDetailDisplayList,
+                                  items: typeVersementDetailListVR,
                                   onChanged: (v) {
                                     setState(() {
-                                      selectedtype = translator.typeVersementToFrench(v!);
+                                      selectedtype = translator.typeVersementDetailToFrench(v!);
                                       selectedType = v;
                                     });
                                   }
@@ -456,14 +593,28 @@ Future<void> VersementNouveauRetour(
                           return;
                         }
 
+                        final beneficiaireCode = selectedTypeV == "Client"
+                            ? _clientsTest.firstWhere((c) => c.nom == selectedBeneficiaireV!).code
+                            : _fournisseursTest.firstWhere((f) => f.nom == selectedBeneficiaireV!).code;
+                        final operations = _operationsDisponiblesVR(beneficiaireCode);
+                        final operationChoisie = operations.firstWhereOrNull((e) => e.value == selectedCodeOperationVR);
+
+                        if (operationChoisie == null) {
+                          await InformationDialog(
+                            context: context,
+                            titre_type_message: l10n.error,
+                            titre_concerne: l10n.payment,
+                            message: l10n.fillRequiredFields,
+                          );
+                          return;
+                        }
+
                         final versement = Verssement(
                           id: id,
                           code: code, // ✅ Code généré automatiquement
                           date: DateTime.parse(dateController.text),
                           typebeneficiare: selectedTypeV!,
-                          beneficiareCode: selectedTypeV == "Client"
-                              ? _clientsTest.firstWhere((c) => c.nom == selectedBeneficiaireV!).code
-                              : _fournisseursTest.firstWhere((f) => f.nom == selectedBeneficiaireV!).code,
+                          beneficiareCode: beneficiaireCode,
                           montant: double.parse(montantControllerV.text),
                           etat: true,
                           mode_paiement: selectedModePaiement,
@@ -472,9 +623,26 @@ Future<void> VersementNouveauRetour(
                           dateCree: DateTime.now(),
                           creeParCode: userCode,
                           caisse: selectedCaisse,
+                          codeOperation: operationChoisie.key,
                         );
 
-                        final response = await _saveVersement(vers: versement, userName: userName, userCode: userCode);
+                        final caisseChoisieVR = _CaissesTest.where((c) => c.nomCaisse == selectedCaisse).firstOrNull;
+                        if (caisseChoisieVR == null) {
+                          await InformationDialog(
+                            context: context,
+                            titre_type_message: l10n.error,
+                            titre_concerne: l10n.payment,
+                            message: l10n.cashRegisterRequired,
+                          );
+                          return;
+                        }
+
+                        final response = await _saveVersement(
+                          vers: versement,
+                          userName: userName,
+                          userCode: userCode,
+                          caisseCode: caisseChoisieVR.code,
+                        );
 
                         if (!response.success) {
                           await InformationDialog(

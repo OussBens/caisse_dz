@@ -12,11 +12,13 @@ import 'base_dialog.dart';
 class InsertionSousCategorieDialog extends StatefulWidget {
   final List<SousCategorie> sousCategories;
   final Function(SousCategorie) onSousCategorieSelected;
+  final bool newButton;
 
   const InsertionSousCategorieDialog({
     Key? key,
     required this.sousCategories,
     required this.onSousCategorieSelected,
+    this.newButton = true,
   }) : super(key: key);
 
   @override
@@ -39,7 +41,7 @@ class _InsertionSousCategorieDialogState extends State<InsertionSousCategorieDia
     }).toList();
 
     return BaseDialog(
-      couleur: Appstyle.violetC,
+      couleur: Appstyle.Tblanc,
       width: 1000,
       height: 800,
       header: Row(
@@ -72,13 +74,14 @@ class _InsertionSousCategorieDialogState extends State<InsertionSousCategorieDia
                   },
                 ),
               ),
-              MainButton(
-                text: l10n.newWord,
-                color: Appstyle.crevete,
-                onPressed: () {
-                  SousCategorieNouveau(context);
-                },
-              ),
+              if (widget.newButton)
+                MainButton(
+                  text: l10n.newWord,
+                  color: Appstyle.crevete,
+                  onPressed: () {
+                    SousCategorieNouveau(context);
+                  },
+                ),
             ],
           ),
 

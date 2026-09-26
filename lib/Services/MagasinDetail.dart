@@ -86,60 +86,54 @@ class ProduitMagasinDetailServices {
   }
 
   /// -----------------------------
-  /// Update quantity - VERSION TRANSACTION
+  /// Update/decrement/increment "nombre" (second stock parallèle, voir
+  /// Produit.nombre) — mêmes méthodes que pour quantite, appliquées à la
+  /// colonne nombre.
   /// -----------------------------
-  Future<int> updateQuantiteWithTransaction(Transaction txn, int id, double nouvelleQuantite) async {
+  Future<int> updateNombreWithTransaction(Transaction txn, int id, double nouveauNombre) async {
     return await txn.update(
       'produit_magasin_detail',
-      {'quantite': nouvelleQuantite},
+      {'nombre': nouveauNombre},
       where: 'id = ?',
       whereArgs: [id],
     );
   }
 
-  /// Version sans transaction
-  Future<int> updateQuantite(int id, double nouvelleQuantite) async {
+  Future<int> updateNombre(int id, double nouveauNombre) async {
     return await db.update(
       'produit_magasin_detail',
-      {'quantite': nouvelleQuantite},
+      {'nombre': nouveauNombre},
       where: 'id = ?',
       whereArgs: [id],
     );
   }
 
-  /// -----------------------------
-  /// Decrement quantity - VERSION TRANSACTION
-  /// -----------------------------
-  Future<int> decrementQuantiteWithTransaction(Transaction txn, int id, double quantiteADecrementer) async {
+  Future<int> decrementNombreWithTransaction(Transaction txn, int id, double nombreADecrementer) async {
     final detail = await getProduitMagasinDetailByIdWithTransaction(txn, id);
     if (detail == null) return 0;
 
-    final nouvelleQuantite = detail.quantite - quantiteADecrementer;
-    if (nouvelleQuantite < 0) return -1;
+    final nouveauNombre = detail.nombre - nombreADecrementer;
+    if (nouveauNombre < 0) return -1;
 
-    return await updateQuantiteWithTransaction(txn, id, nouvelleQuantite);
+    return await updateNombreWithTransaction(txn, id, nouveauNombre);
   }
 
-  /// Version sans transaction
-  Future<int> decrementQuantite(int id, double quantiteADecrementer) async {
+  Future<int> decrementNombre(int id, double nombreADecrementer) async {
     final detail = await getProduitMagasinDetailById(id);
     if (detail == null) return 0;
 
-    final nouvelleQuantite = detail.quantite - quantiteADecrementer;
-    if (nouvelleQuantite < 0) return -1;
+    final nouveauNombre = detail.nombre - nombreADecrementer;
+    if (nouveauNombre < 0) return -1;
 
-    return await updateQuantite(id, nouvelleQuantite);
+    return await updateNombre(id, nouveauNombre);
   }
 
-  /// -----------------------------
-  /// Increment quantity
-  /// -----------------------------
-  Future<int> incrementQuantite(int id, double quantiteAIncrementer) async {
+  Future<int> incrementNombre(int id, double nombreAIncrementer) async {
     final detail = await getProduitMagasinDetailById(id);
     if (detail == null) return 0;
 
-    final nouvelleQuantite = detail.quantite + quantiteAIncrementer;
-    return await updateQuantite(id, nouvelleQuantite);
+    final nouveauNombre = detail.nombre + nombreAIncrementer;
+    return await updateNombre(id, nouveauNombre);
   }
 
   /// -----------------------------
@@ -290,39 +284,4 @@ class ProduitMagasinDetailServices {
     return result.isNotEmpty;
   }
 
-  /// -----------------------------
-  /// Get total quantity for a product across all stores
-  /// -----------------------------
-  Future<double> getTotalQuantiteByProduitCode(String produitCode) async {
-    try {
-      final List<Map<String, dynamic>> result = await db.rawQuery(
-        'SELECT SUM(quantite) as total FROM produit_magasin_detail WHERE produit_code = ?',
-        [produitCode],
-      );
-
-      final total = result.first['total'];
-      if (total == null) return 0.0;
-
-      if (total is int) return total.toDouble();
-      if (total is double) return total;
-
-      return double.tryParse(total.toString()) ?? 0.0;
-    } catch (e) {
-      print('Erreur getTotalQuantiteByProduitCode: $e');
-      return 0.0;
-    }
-  }
-
-  /// -----------------------------
-  /// Get all products with low stock
-  /// -----------------------------
-  Future<List<ProduitMagasinDetail>> getLowStockProducts(double seuil) async {
-    final List<Map<String, dynamic>> maps = await db.query(
-      'produit_magasin_detail',
-      where: 'quantite <= ?',
-      whereArgs: [seuil],
-      orderBy: 'quantite ASC',
-    );
-    return maps.map((e) => ProduitMagasinDetail.fromMap(e)).toList();
-  }
 }

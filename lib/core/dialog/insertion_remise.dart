@@ -17,12 +17,20 @@ class InsertionRemiseDialog extends StatefulWidget {
   final List<Remise> remises;
   final Function(Remise) onRemiseSelected;
   final bool multiselection;
+  final bool newButton;
+
+  /// Filtre optionnel réappliqué après [reloadRemises] (ex: ne garder que
+  /// les remises "Par Montant" actives), pour éviter que le rechargement
+  /// depuis la base n'écrase le filtrage initial de [remises].
+  final bool Function(Remise)? filtre;
 
   const InsertionRemiseDialog({
     Key? key,
     required this.remises,
     required this.onRemiseSelected,
     required this.multiselection,
+    this.newButton = true,
+    this.filtre,
   }) : super(key: key);
 
   @override
@@ -42,7 +50,9 @@ class _InsertionRemiseDialogState extends State<InsertionRemiseDialog> {
   @override
   void initState() {
     super.initState();
-    remisesLocale = List.from(widget.remises);
+    remisesLocale = widget.filtre != null
+        ? widget.remises.where(widget.filtre!).toList()
+        : List.from(widget.remises);
   }
 
   // Méthode pour recharger les remises depuis la base de données
@@ -53,7 +63,9 @@ class _InsertionRemiseDialogState extends State<InsertionRemiseDialog> {
 
     if (mounted) {
       setState(() {
-        remisesLocale = nouvellesRemises;
+        remisesLocale = widget.filtre != null
+            ? nouvellesRemises.where(widget.filtre!).toList()
+            : nouvellesRemises;
       });
     }
   }
@@ -69,7 +81,7 @@ class _InsertionRemiseDialogState extends State<InsertionRemiseDialog> {
     }).toList();
 
     return BaseDialog(
-      couleur: Appstyle.violetC,
+      couleur: Appstyle.Tblanc,
       width: 1000,
       height: 800,
       header: Row(
@@ -100,18 +112,19 @@ class _InsertionRemiseDialogState extends State<InsertionRemiseDialog> {
                   },
                 ),
               ),
-              MainButton(
-                text: l10n.newWord,
-                color: Appstyle.crevete,
-                onPressed: () async {
-                  // Ouvrir le dialog de création
-                  await RemiseNouveau(context);
+              if (widget.newButton)
+                MainButton(
+                  text: l10n.newWord,
+                  color: Appstyle.crevete,
+                  onPressed: () async {
+                    // Ouvrir le dialog de création
+                    await RemiseNouveau(context);
 
-                  // Recharger les remises après la fermeture du dialog
-                  await reloadRemises();
+                    // Recharger les remises après la fermeture du dialog
+                    await reloadRemises();
 
-                },
-              ),
+                  },
+                ),
             ],
           ),
           const SizedBox(height: 12),

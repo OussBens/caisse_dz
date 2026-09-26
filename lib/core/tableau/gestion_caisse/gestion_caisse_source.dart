@@ -13,6 +13,7 @@ class CaisseGestionDataSource extends BaseTableDataSource<CaisseGestion> {
     required List<CaisseGestion> caisses,
     required super.columnConfig,
     required this.l10n,
+    super.utilisateurs = const [],
   }) : super(items: caisses);
 
   String formatDate(DateTime? date) {
@@ -47,15 +48,15 @@ class CaisseGestionDataSource extends BaseTableDataSource<CaisseGestion> {
       case 'dateCree':
         return formatDate(caisse.dateCree);
       case 'creeParCode':
-        return caisse.creeParCode;
+        return nomUtilisateur(caisse.creeParCode);
       case 'dateModif':
         return formatDate(caisse.dateModif);
       case 'modifParCode':
-        return caisse.modifParCode;
+        return nomUtilisateur(caisse.modifParCode);
       case 'dateAnnul':
         return formatDate(caisse.dateAnnul);
       case 'annulParCode':
-        return caisse.annulParCode;
+        return nomUtilisateur(caisse.annulParCode);
       case 'motifAnnul':
         return caisse.motifAnnul;
 

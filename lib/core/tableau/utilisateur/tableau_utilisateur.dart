@@ -1,21 +1,24 @@
 import 'package:caisse_dz/core/dialog/utilisateur/utilisateur_detail.dart';
 import 'package:caisse_dz/core/theme/app_style.dart';
 import 'package:caisse_dz/core/widget/button/main_button.dart';
+import 'package:caisse_dz/data/models/gestion_caisse.dart';
 import 'package:caisse_dz/data/models/utilisateur.dart';
 import 'package:caisse_dz/l10n/app_localizations.dart';
 import 'package:flutter/material.dart';
 import 'package:syncfusion_flutter_core/theme.dart';
 import 'package:syncfusion_flutter_datagrid/datagrid.dart';
-import '../../widget/tableau/paginated.dart';
+import '../filter_icon_builder.dart';
 import 'utilisateur_source.dart';
 
 class TableauUtilisateurAdvanced extends StatefulWidget {
   final List<Utilisateur> utilisateurs;
+  final List<CaisseGestion> caisses;
   final void Function(List<Utilisateur>)? onSelectionChanged;
 
   const TableauUtilisateurAdvanced({
     super.key,
     required this.utilisateurs,
+    this.caisses = const [],
     this.onSelectionChanged,
   });
 
@@ -31,24 +34,18 @@ class _TableauUtilisateurAdvancedState
   late final Map<String, bool> colonnesParDefaut;
 
   final Map<String, double> columnWidths = {};
-  int rowsPerPage = 15;
-  int currentPage = 1;
+  int _rowsPerPage = 15;
+  static const List<int> _rowsPerPageOptions = [10, 15, 20, 30, 50];
   bool selectAll = false;
 
-  // ================= PAGINATION =================
-  List<Utilisateur> get paginatedData {
-    final start = (currentPage - 1) * rowsPerPage;
-    final end = (start + rowsPerPage).clamp(0, widget.utilisateurs.length);
-    if (start >= widget.utilisateurs.length) return [];
-    return widget.utilisateurs.sublist(start, end);
-  }
+  // Largeur par défaut calculée
+  double _defaultColumnWidth = 180;
 
-  int get totalPages =>
-      widget.utilisateurs.isEmpty
-          ? 1
-          : (widget.utilisateurs.length / rowsPerPage)
-          .ceil()
-          .clamp(1, 9999);
+  // Constantes pour les colonnes
+  static const int SETTINGS_COLUMN_WIDTH = 60;
+  static const int SELECT_COLUMN_WIDTH = 55;
+  static const double MIN_COLUMN_WIDTH = 150;
+  static const double MAX_COLUMN_WIDTH = 400;
 
   late Map<String, Map<String, dynamic>> columnVisibility;
 
@@ -64,11 +61,12 @@ class _TableauUtilisateurAdvancedState
       'telephone': {'visible': true, 'label': 'phone', 'field': 'telephone'},
       'role': {'visible': true, 'label': 'role', 'field': 'role'},
       'credit': {'visible': true, 'label': 'credit', 'field': 'credit'},
-      'dernierAcces': {'visible': false, 'label': 'lastAccess', 'field': 'dernierAcces'},
+      'caisse': {'visible': true, 'label': 'cashRegister', 'field': 'caisse'},
+      'dernierAcces': {'visible': true, 'label': 'lastAccess', 'field': 'dernierAcces'},
 
       // Audit
-      'dateCree': {'visible': false, 'label': 'createdAt', 'field': 'dateCree'},
-      'creeParCode': {'visible': false, 'label': 'createdBy', 'field': 'creeParCode'},
+      'dateCree': {'visible': true, 'label': 'createdAt', 'field': 'dateCree'},
+      'creeParCode': {'visible': true, 'label': 'createdBy', 'field': 'creeParCode'},
       'dateModif': {'visible': false, 'label': 'modifiedAt', 'field': 'dateModif'},
       'modifParCode': {'visible': false, 'label': 'modifiedBy', 'field': 'modifParCode'},
       'dateAnnul': {'visible': false, 'label': 'cancelledAt', 'field': 'dateAnnul'},
@@ -88,43 +86,97 @@ class _TableauUtilisateurAdvancedState
     final l10n = AppLocalizations.of(context)!;
 
     dataSource = UtilisateurDataSource(
-      utilisateurs: paginatedData,
+      utilisateurs: widget.utilisateurs,
       columnConfig: columnVisibility,
       l10n: l10n,
+      caisses: widget.caisses,
     );
+    dataSource.onRowDoubleTap = (utilisateur) => UtilisateurDetail(context, utilisateur);
 
     dataSource.addListener(() {
-      widget.onSelectionChanged?.call(dataSource.getSelectedRows());
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted) return;
+        setState(() {});
+        widget.onSelectionChanged?.call(dataSource.getSelectedRows());
+      });
     });
+  }
+
+  @override
+  void didUpdateWidget(covariant TableauUtilisateurAdvanced oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.utilisateurs != widget.utilisateurs) {
+      dataSource.update(widget.utilisateurs);
+    }
+  }
+
+  // Méthode pour calculer la largeur des colonnes
+  double _calculateColumnWidth(double availableWidth) {
+    // Compter le nombre de colonnes visibles
+    final visibleCount = columnVisibility.values.where((e) => e['visible'] == true).length;
+
+    if (visibleCount == 0) return MIN_COLUMN_WIDTH;
+
+    // On soustrait les largeurs des colonnes fixes (settings + select)
+    final availableForColumns = availableWidth - SETTINGS_COLUMN_WIDTH - SELECT_COLUMN_WIDTH;
+    // On divise par le nombre de colonnes visibles
+    final calculatedWidth = availableForColumns / visibleCount;
+    // On limite entre min et max pour une bonne lisibilité
+    return calculatedWidth.clamp(MIN_COLUMN_WIDTH, MAX_COLUMN_WIDTH);
   }
 
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
 
-    return Column(
-      children: [
-        Expanded(child: _buildTable(l10n)),
-        const SizedBox(height: 12),
-        PaginationBar(
-          currentPage: currentPage,
-          totalPages: totalPages,
-          rowsPerPage: rowsPerPage,
-          onPageChanged: (page) {
-            setState(() {
-              currentPage = page;
-              dataSource.update(paginatedData);
-            });
-          },
-          onRowsPerPageChanged: (v) {
-            setState(() {
-              rowsPerPage = v;
-              currentPage = 1;
-              dataSource.update(paginatedData);
-            });
-          },
-        ),
-      ],
+    final pageCount = (dataSource.items.length / _rowsPerPage).ceil().clamp(1, 9999).toDouble();
+
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        // Largeur disponible pour le tableau (en soustrayant les paddings)
+        final availableWidth = constraints.maxWidth - 16; // padding (8x2)
+
+        // Calculer la largeur par défaut
+        _defaultColumnWidth = _calculateColumnWidth(availableWidth);
+
+        return Column(
+          children: [
+            Expanded(child: _buildTable(l10n)),
+            const SizedBox(height: 12),
+            Container(
+              padding: const EdgeInsets.symmetric(vertical: 6, horizontal: 12),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(14),
+                boxShadow: const [BoxShadow(color: Colors.black12, blurRadius: 10)],
+              ),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  SfDataPager(
+                    delegate: dataSource,
+                    pageCount: pageCount,
+                    direction: Axis.horizontal,
+                    itemWidth: 36,
+                    itemHeight: 36,
+                  ),
+                  const SizedBox(width: 20),
+                  DropdownButton<int>(
+                    value: _rowsPerPage,
+                    items: _rowsPerPageOptions
+                        .map((e) => DropdownMenuItem(value: e, child: Text("$e ${l10n.rowsPerPage}")))
+                        .toList(),
+                    onChanged: (v) {
+                      if (v == null) return;
+                      setState(() => _rowsPerPage = v);
+                    },
+                  ),
+                ],
+              ),
+            ),
+          ],
+        );
+      },
     );
   }
 
@@ -143,31 +195,27 @@ class _TableauUtilisateurAdvancedState
           data: SfDataGridThemeData(
             headerColor: Appstyle.violet.withOpacity(0.7),
             sortIconColor: Appstyle.Tblanc,
-            filterIconColor: Appstyle.Tblanc,
+            filterIcon: Builder(builder: (context) => buildFilterIcon(context, dataSource)),
             gridLineColor: Colors.grey.shade300,
             gridLineStrokeWidth: 0.4,
           ),
           child: SfDataGrid(
             source: dataSource,
+            rowsPerPage: _rowsPerPage,
             headerRowHeight: 36,
             rowHeight: 38,
             selectionMode: SelectionMode.single,
             allowSorting: true,
             allowFiltering: true,
-
-            onCellDoubleTap: (details) {
-              if (details.rowColumnIndex.rowIndex <= 0) return;
-              final rowIndex = details.rowColumnIndex.rowIndex - 1;
-              final utilisateur = paginatedData[rowIndex];
-              UtilisateurDetail(context, utilisateur);
-            },
+            // Sélection au clic + double-clic pour le détail gérés dans
+            // BaseTableDataSource.buildRow (n'importe quelle colonne).
 
             allowColumnsResizing: true,
             columnResizeMode: ColumnResizeMode.onResize,
             onColumnResizeUpdate: (details) {
               double w = details.width;
-              if (w < 150) w = 150;
-              if (w > 1000) w = 1000;
+              if (w < MIN_COLUMN_WIDTH) w = MIN_COLUMN_WIDTH;
+              if (w > MAX_COLUMN_WIDTH) w = MAX_COLUMN_WIDTH;
               setState(() => columnWidths[details.column.columnName] = w);
               return true;
             },
@@ -175,7 +223,7 @@ class _TableauUtilisateurAdvancedState
             columns: [
               GridColumn(
                 columnName: 'settings',
-                width: 60,
+                width: 40,
                 allowSorting: false,
                 allowFiltering: false,
                 label: Center(
@@ -188,7 +236,7 @@ class _TableauUtilisateurAdvancedState
               ),
               GridColumn(
                 columnName: 'select',
-                width: 55,
+                width: 40,
                 allowSorting: false,
                 allowFiltering: false,
                 label: Center(
@@ -204,11 +252,12 @@ class _TableauUtilisateurAdvancedState
                 ),
               ),
               ...columnVisibility.entries
-                  .where((e) => e.value['visible'])
+                  .where((e) => e.value['visible'] == true)
                   .map(
                     (e) => GridColumn(
                   columnName: e.key,
-                  width: columnWidths[e.key] ?? 180,
+                  // Utiliser la largeur personnalisée si elle existe, sinon la largeur par défaut calculée
+                  width: columnWidths[e.key] ?? _defaultColumnWidth,
                   label: _header(_getTranslatedLabel(e.value['label'], l10n)),
                 ),
               ),
@@ -227,6 +276,7 @@ class _TableauUtilisateurAdvancedState
       case 'phone': return l10n.phone;
       case 'role': return l10n.role;
       case 'credit': return l10n.credit;
+      case 'cashRegister': return l10n.cashRegister;
       case 'lastAccess': return l10n.lastAccess;
       case 'createdAt': return l10n.createdAt;
       case 'createdBy': return l10n.createdBy;
@@ -246,6 +296,7 @@ class _TableauUtilisateurAdvancedState
         fontWeight: FontWeight.w600,
         color: Appstyle.Tblanc,
       ),
+      overflow: TextOverflow.ellipsis,
     ),
   );
 

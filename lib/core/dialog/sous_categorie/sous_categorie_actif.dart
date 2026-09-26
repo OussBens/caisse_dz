@@ -121,7 +121,7 @@ Future<void> AnnulerSousCategorie(
                 width: 800,
                 height: 500,
                 header: TitreAvecLigne(
-                  imagePath: 'assets/icons/action/annuler_icon.png',
+                  imagePath: 'assets/icons/action/supprimer_icon.png',
                   text: l10n.deactivateSubcategory,
                 ),
                 content: Column(

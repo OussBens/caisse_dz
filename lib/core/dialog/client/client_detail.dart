@@ -5,6 +5,7 @@ import 'package:caisse_dz/core/theme/app_style.dart';
 import '../../../data/models/client.dart';
 import '../../widget/detail_widget.dart';
 import '../../widget/section_decoration.dart';
+import '../../widget/stats_card.dart';
 import '../base_dialog.dart';
 
 Future<void> ClientDetail(BuildContext context, Client client) async {
@@ -50,14 +51,20 @@ Future<void> ClientDetail(BuildContext context, Client client) async {
                 ),
 
                 const Spacer(),
-
                 Chip(
                   label: Text(
                     client.etat ? l10n.active : l10n.inactive,
-                    style: Appstyle.textSB.copyWith(color: Appstyle.Tblanc),
+                    style: Appstyle.textSB.copyWith(
+                      color: client.etat ? Appstyle.Tblanc : Appstyle.Tnoir, // ou une autre couleur
+                    ),
                   ),
-                  backgroundColor: Appstyle.crevete,
-                ),
+                  backgroundColor: client.etat
+                      ? Appstyle.violet.withOpacity(0.8)
+                      : Appstyle.crevete.withOpacity(0.7), // ou rouge, orange, etc.
+                  labelPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                  elevation: client.etat ? 2 : 0,
+                )
+
               ],
             ),
 
@@ -120,6 +127,7 @@ Future<void> ClientDetail(BuildContext context, Client client) async {
                   detailinfo(l10n.advance, stats.avance),
                   detailinfo(l10n.credit, stats.credit),
                   detailinfo(l10n.balance, stats.solde),
+                  detailinfo(l10n.loyaltyBalance, client.soldeBonus),
                 ]),
               ),
 
@@ -201,25 +209,53 @@ Future<void> ClientDetail(BuildContext context, Client client) async {
     },
   );
 }
-
+// Dans client_detail.dart
 Widget _resumeClient(Client c, AppLocalizations l10n, ClientStats stats) {
-  return Container(
-    decoration: BoxDecoration(
-      color: Appstyle.violet.withOpacity(0.6),
-      borderRadius: BorderRadius.circular(10),
-    ),
-    padding: const EdgeInsets.all(8),
-    child: Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-      children: [
-        detailbadge(l10n.totalAchat, stats.totalAchat),
-        detailbadge(l10n.totalPaid, stats.totalVerse),
-        detailbadge(l10n.totalReturn, stats.totalRetour),
-        detailbadge(l10n.lastPurchaseDate, stats.dateDernierAchat?.toString().split(" ").first ?? "-"),
-        detailbadge(l10n.advance, stats.avance),
-        detailbadge(l10n.credit, stats.credit),
-        detailbadge(l10n.balance, stats.solde),
-      ],
-    ),
+  return Column(
+    children: [
+      StatsCard(
+        items: [
+          StatsItem(
+            label: l10n.totalAchat,
+            value: "${stats.totalAchat} ${l10n.currency}",
+          ),
+          StatsItem(
+            label: l10n.totalPaid,
+            value: "${stats.totalVerse} ${l10n.currency}",
+          ),
+          StatsItem(
+            label: l10n.totalReturn,
+            value: "${stats.totalRetour} ${l10n.currency}",
+          ),
+          StatsItem(
+            label: l10n.lastPurchaseDate,
+            value: stats.dateDernierAchat?.toString().split(" ").first ?? "-",
+          ),
+
+        ],
+      ),
+      const SizedBox(height: 8),
+      StatsCard(
+        items: [
+
+          StatsItem(
+            label: l10n.advance,
+            value: "${stats.avance} ${l10n.currency}",
+          ),
+          StatsItem(
+            label: l10n.credit,
+            value: "${stats.credit} ${l10n.currency}",
+          ),
+          StatsItem(
+            label: l10n.balance,
+            value: "${stats.solde} ${l10n.currency}",
+          ),
+          StatsItem(
+            label: l10n.telephonie,
+            value: c.telephone,
+          ),
+        ],
+      ),
+    ],
   );
 }

@@ -1,5 +1,7 @@
 import 'dart:io';
 
+import 'package:caisse_dz/Services/CaisseGestion.dart';
+import 'package:caisse_dz/Services/Pannier.dart';
 import 'package:caisse_dz/Services/Role.dart';
 import 'package:caisse_dz/Services/Utilisateur.dart';
 import 'package:caisse_dz/Services/excel_generator.dart';
@@ -9,6 +11,7 @@ import 'package:caisse_dz/core/dialog/role/role_detail.dart';
 import 'package:caisse_dz/core/dialog/utilisateur/utilisateur_detail.dart';
 import 'package:caisse_dz/core/locale/locale_provider.dart';
 import 'package:caisse_dz/core/widget/afficheur/afficheur_role.dart';
+import 'package:collection/collection.dart';
 import 'package:excel/excel.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
@@ -29,12 +32,16 @@ import '../core/theme/app_style.dart';
 import '../core/utilis/constant.dart';
 
 import '../core/widget/afficheur/afficheur_utilisateur.dart';
+import '../core/widget/afficheur/afficheur_utilisateur_global.dart';
 import '../core/widget/button/Icon_button.dart';
 import '../core/widget/button/main_button.dart';
 import '../core/widget/header_module.dart';
 import '../core/widget/side_bar.dart';
 import '../core/widget/time_date_widget.dart';
+import '../core/widget/connection_status_bar.dart';
 import '../core/widget/account.dart';
+import '../data/models/gestion_caisse.dart';
+import '../data/models/pannier.dart';
 import '../data/models/role.dart';
 import '../data/models/utilisateur.dart';
 import '../l10n/app_localizations.dart';
@@ -64,6 +71,8 @@ class _UtilisateurScreenState extends State<UtilisateurScreen> with TickerProvid
   List<Role>        rolesSelectionnes         = [];
   List<Utilisateur> utilisateurs              = [];
   List<Utilisateur> utilisateursSelectionnes  = [];
+  List<Pannier>     panniersTest              = [];
+  List<CaisseGestion> caissesTest             = [];
 
   final TextEditingController _searchController = TextEditingController();
 
@@ -95,11 +104,15 @@ class _UtilisateurScreenState extends State<UtilisateurScreen> with TickerProvid
     try {
       final utilisateursd = await UtilisateurServices.getAllUtilisateurs();
       final roles         = await RoleServices.getAllRoles();
+      final panniers      = await PannierServices.getAllPanniers();
+      final caisses       = await GCServices.getAllCaisses();
 
       if (!mounted) return;
       setState(() {
         rolesTest         = roles;
         utilisateurs      = utilisateursd;
+        panniersTest      = panniers;
+        caissesTest       = caisses;
         nombreUtilisateur = utilisateursd.length;
         nombreRole        = roles.length;
 
@@ -117,6 +130,8 @@ class _UtilisateurScreenState extends State<UtilisateurScreen> with TickerProvid
       setState(() {
         utilisateurs  = [];
         rolesTest     = [];
+        panniersTest  = [];
+        caissesTest   = [];
         isLoading     = false;
         utilisateursSelectionnes.clear();
         rolesSelectionnes.clear();
@@ -454,6 +469,45 @@ class _UtilisateurScreenState extends State<UtilisateurScreen> with TickerProvid
   int getUtilisateursMagasinier() =>
       utilisateurs.where((u) => u.role == "Magasinier").length;
 
+  // Montant total vendu (paniers actifs) par caissier, utilisé pour repérer
+  // le meilleur et le plus faible vendeur.
+  Map<String, double> _totalVentesParCaissier() {
+    final Map<String, double> totaux = {};
+    for (final p in panniersTest.where((p) => p.etat)) {
+      totaux[p.caissier_code] = (totaux[p.caissier_code] ?? 0) + p.montant;
+    }
+    return totaux;
+  }
+
+  String? _nomUtilisateurParCode(String code) =>
+      utilisateurs.firstWhereOrNull((u) => u.code == code)?.username;
+
+  String? getNomTopVendeur() {
+    final totaux = _totalVentesParCaissier();
+    if (totaux.isEmpty) return null;
+    final code = totaux.entries.reduce((a, b) => a.value >= b.value ? a : b).key;
+    return _nomUtilisateurParCode(code);
+  }
+
+  double? getMontantTopVendeur() {
+    final totaux = _totalVentesParCaissier();
+    if (totaux.isEmpty) return null;
+    return totaux.values.reduce((a, b) => a >= b ? a : b);
+  }
+
+  String? getNomFaibleVendeur() {
+    final totaux = _totalVentesParCaissier();
+    if (totaux.isEmpty) return null;
+    final code = totaux.entries.reduce((a, b) => a.value <= b.value ? a : b).key;
+    return _nomUtilisateurParCode(code);
+  }
+
+  double? getMontantFaibleVendeur() {
+    final totaux = _totalVentesParCaissier();
+    if (totaux.isEmpty) return null;
+    return totaux.values.reduce((a, b) => a <= b ? a : b);
+  }
+
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
@@ -468,6 +522,9 @@ class _UtilisateurScreenState extends State<UtilisateurScreen> with TickerProvid
 
     // ✅ Index actuel du tab
     final currentTab = _tabController.index;
+
+    // ✅ Couleur de l'en-tête alignée sur la couleur du tab actif
+    final Color headerColor = currentTab == TAB_UTILISATEUR ? Appstyle.violet : Appstyle.indigo;
 
     // ✅ Noms des tabs
     final tabNames = [
@@ -510,16 +567,14 @@ class _UtilisateurScreenState extends State<UtilisateurScreen> with TickerProvid
               textDirection: textDirection,
               child: SingleChildScrollView(
                 scrollDirection: Axis.horizontal,
-                child: SingleChildScrollView(
-                  scrollDirection: Axis.vertical,
-                  child: ConstrainedBox(
-                    constraints: const BoxConstraints(
-                      minWidth: minWidth,
-                      minHeight: minHeight,
-                    ),
-                    child: SizedBox(
-                      width: adjustedWidth,
-                      height: adjustedHeight,
+                child: ConstrainedBox(
+                  constraints: const BoxConstraints(
+                    minWidth: minWidth,
+                    minHeight: minHeight,
+                  ),
+                  child: SizedBox(
+                    width: adjustedWidth,
+                    height: adjustedHeight,
                       child: Row(
                         textDirection: textDirection,
                         crossAxisAlignment: CrossAxisAlignment.start,
@@ -547,7 +602,7 @@ class _UtilisateurScreenState extends State<UtilisateurScreen> with TickerProvid
                                             Image.asset(
                                               "assets/icons/sidebar/profile_icon.png",
                                               width: 40,
-                                              color: Appstyle.violet,
+                                              color: headerColor,
                                             ),
                                             const SizedBox(width: 10),
                                             Row(
@@ -556,7 +611,7 @@ class _UtilisateurScreenState extends State<UtilisateurScreen> with TickerProvid
                                                 Text(
                                                   l10n.utilisateur,
                                                   style: Appstyle.textXLB.copyWith(
-                                                    color: Appstyle.violet,
+                                                    color: headerColor,
                                                     fontWeight: FontWeight.bold,
                                                   ),
                                                 ),
@@ -564,7 +619,7 @@ class _UtilisateurScreenState extends State<UtilisateurScreen> with TickerProvid
                                                 Text(
                                                   "(${tabNames[currentTab]})",
                                                   style: Appstyle.textXLB.copyWith(
-                                                    color: Appstyle.violet,
+                                                    color: headerColor,
                                                     fontWeight: FontWeight.bold,
                                                   ),
                                                 ),
@@ -579,9 +634,9 @@ class _UtilisateurScreenState extends State<UtilisateurScreen> with TickerProvid
                                         Row(
                                           textDirection: textDirection,
                                           children: [
+                                            const ConnectionStatusBar(),
+                                            const SizedBox(width: 20),
                                             TimeDateWidget(
-                                              heure: "18:00",
-                                              date: "25 Nov 2025",
                                               iconHeure: "assets/icons/hour_icon.png",
                                               iconDate: "assets/icons/agenda_icon.png",
                                             ),
@@ -617,8 +672,7 @@ class _UtilisateurScreenState extends State<UtilisateurScreen> with TickerProvid
                                       isScrollable: false,
                                       indicator: BoxDecoration(
                                         color: currentTab == TAB_UTILISATEUR
-                                            ? Appstyle.violet
-                                            : Appstyle.crevete,
+                                            ? Appstyle.violet : Appstyle.indigo,
                                         borderRadius: BorderRadius.circular(12),
                                       ),
                                       labelColor: Colors.white,
@@ -673,12 +727,14 @@ class _UtilisateurScreenState extends State<UtilisateurScreen> with TickerProvid
                                             },
                                           )
                                         else
-                                          Container(
-                                            padding: const EdgeInsets.symmetric(vertical: 8),
-                                            child: Text(
-                                              "${l10n.totalUsers} : ${getTotalUtilisateurs()} | ${l10n.active} : ${getUtilisateursActifs()} | ${l10n.inactive} : ${getUtilisateursInactifs()}",
-                                              style: Appstyle.textM,
-                                            ),
+                                          AfficheurUtilisateurGlobalWidget(
+                                            nombreUtilisateurs: getTotalUtilisateurs(),
+                                            nombreInactifs: getUtilisateursInactifs(),
+                                            nombreRoles: rolesTest.length,
+                                            nomTopVendeur: getNomTopVendeur(),
+                                            montantTopVendeur: getMontantTopVendeur(),
+                                            nomFaibleVendeur: getNomFaibleVendeur(),
+                                            montantFaibleVendeur: getMontantFaibleVendeur(),
                                           ),
 
                                         SizedBox(height: paddingV / 2),
@@ -801,6 +857,7 @@ class _UtilisateurScreenState extends State<UtilisateurScreen> with TickerProvid
                                           height: adjustedHeight * 0.7,
                                           child: TableauUtilisateurAdvanced(
                                             utilisateurs: utilisateurs,
+                                            caisses: caissesTest,
                                             key: ValueKey(utilisateurs),
                                             onSelectionChanged: (selection) {
                                               setState(() {
@@ -828,12 +885,14 @@ class _UtilisateurScreenState extends State<UtilisateurScreen> with TickerProvid
                                             },
                                           )
                                         else
-                                          Container(
-                                            padding: const EdgeInsets.symmetric(vertical: 8),
-                                            child: Text(
-                                              "${l10n.totalRoles} : ${rolesTest.length}",
-                                              style: Appstyle.textM,
-                                            ),
+                                          AfficheurUtilisateurGlobalWidget(
+                                            nombreUtilisateurs: getTotalUtilisateurs(),
+                                            nombreInactifs: getUtilisateursInactifs(),
+                                            nombreRoles: rolesTest.length,
+                                            nomTopVendeur: getNomTopVendeur(),
+                                            montantTopVendeur: getMontantTopVendeur(),
+                                            nomFaibleVendeur: getNomFaibleVendeur(),
+                                            montantFaibleVendeur: getMontantFaibleVendeur(),
                                           ),
 
                                         SizedBox(height: paddingV / 2),
@@ -957,6 +1016,7 @@ class _UtilisateurScreenState extends State<UtilisateurScreen> with TickerProvid
                                           child: TableauRoleAdvanced(
                                             roles: rolesTest,
                                             key: ValueKey(rolesTest),
+                                            utilisateurs: utilisateurs,
                                             onSelectionChanged: (selection) {
                                               setState(() {
                                                 rolesSelectionnes = selection;
@@ -974,7 +1034,6 @@ class _UtilisateurScreenState extends State<UtilisateurScreen> with TickerProvid
                       ),
                     ),
                   ),
-                ),
               ),
             );
           },

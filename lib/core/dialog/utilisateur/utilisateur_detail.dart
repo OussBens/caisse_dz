@@ -5,7 +5,9 @@ import 'package:caisse_dz/core/theme/app_style.dart';
 import '../../../data/models/utilisateur.dart';
 import '../../widget/detail_widget.dart';
 import '../../widget/section_decoration.dart';
+import '../../widget/stats_card.dart';
 import '../base_dialog.dart';
+import 'package:caisse_dz/core/utilis/number_format.dart';
 
 Future<void> UtilisateurDetail(BuildContext context, Utilisateur user) async {
   final panniers = await PannierServices.getPanniersActifsByCaissierCode(user.code);
@@ -50,14 +52,20 @@ Future<void> UtilisateurDetail(BuildContext context, Utilisateur user) async {
                 ),
 
                 const Spacer(),
-
                 Chip(
                   label: Text(
                     user.etat ? l10n.active : l10n.inactive,
-                    style: Appstyle.textSB.copyWith(color: Appstyle.Tblanc),
+                    style: Appstyle.textSB.copyWith(
+                      color: user.etat ? Appstyle.Tblanc : Appstyle.Tnoir, // ou une autre couleur
+                    ),
                   ),
-                  backgroundColor: Appstyle.crevete,
-                ),
+                  backgroundColor: user.etat
+                      ? Appstyle.violet.withOpacity(0.8)
+                      : Appstyle.crevete.withOpacity(0.7), // ou rouge, orange, etc.
+                  labelPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                  elevation: user.etat ? 2 : 0,
+                )
+
               ],
             ),
 
@@ -87,7 +95,7 @@ Future<void> UtilisateurDetail(BuildContext context, Utilisateur user) async {
                 child: detailwrap([
                   detailinfo(l10n.credit, "${user.credit ?? 0} ${l10n.currency}"),
                   detailinfo(l10n.sales, nbrVente),
-                  detailinfo(l10n.totalSold, "${totalVendu.toStringAsFixed(2)} ${l10n.currency}"),
+                  detailinfo(l10n.totalSold, "${NumberFormatUtil.formatMontant(totalVendu, decimales: 2)} ${l10n.currency}"),
                   detailinfo(
                     l10n.lastAccess,
                     user.dernierAcces?.toString().split(" ").first,
@@ -148,24 +156,18 @@ Future<void> UtilisateurDetail(BuildContext context, Utilisateur user) async {
   );
 }
 
+// utilisateur_detail.dart - Remplacer _resumeUtilisateur
 Widget _resumeUtilisateur(Utilisateur u, AppLocalizations l10n, int nbrVente, double totalVendu) {
-  return Container(
-    decoration: BoxDecoration(
-      color: Appstyle.violet.withOpacity(0.6),
-      borderRadius: BorderRadius.circular(10),
-    ),
-    padding: const EdgeInsets.all(8),
-    child: Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-      children: [
-        detailbadge(l10n.credit, "${u.credit ?? 0} ${l10n.currency}"),
-        detailbadge(l10n.sales, nbrVente),
-        detailbadge(l10n.totalSold, "${totalVendu.toStringAsFixed(2)} ${l10n.currency}"),
-        detailbadge(
-          l10n.lastAccess,
-          u.dernierAcces?.toString().split(" ").first ?? "-",
-        ),
-      ],
-    ),
+  return StatsCard(
+    backgroundColor: Appstyle.violet.withOpacity(0.7),
+    items: [
+      StatsItem(label: l10n.credit, value: "${u.credit ?? 0} ${l10n.currency}"),
+      StatsItem(label: l10n.sales, value: nbrVente),
+      StatsItem(label: l10n.totalSold, value: "${NumberFormatUtil.formatMontant(totalVendu, decimales: 2)} ${l10n.currency}"),
+      StatsItem(
+        label: l10n.lastAccess,
+        value: u.dernierAcces?.toString().split(" ").first ?? "-",
+      ),
+    ],
   );
 }

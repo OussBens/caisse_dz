@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:caisse_dz/core/theme/app_style.dart';
 import '../../../data/models/zakat.dart';
 import '../../../l10n/app_localizations.dart';
+import 'package:caisse_dz/core/utilis/number_format.dart';
 
 class AfficheurZakat extends StatelessWidget {
   final Zakat zakat;
@@ -68,7 +69,7 @@ class AfficheurZakat extends StatelessWidget {
                 const SizedBox(height: 4),
                 Text("${l10n.year} : ${zakat.annee}", style: TextStyle(color: Colors.grey.shade700)),
                 const SizedBox(height: 4),
-                Text("${l10n.zakatAmount} : ${zakat.montantZakat.toStringAsFixed(2)} ${l10n.currency}", style: TextStyle(color: Colors.grey.shade700)),
+                Text("${l10n.zakatAmount} : ${NumberFormatUtil.formatMontant(zakat.montantZakat, decimales: 2)} ${l10n.currency}", style: TextStyle(color: Colors.grey.shade700)),
               ],
             ),
           ),
@@ -159,7 +160,7 @@ class AfficheurZakat extends StatelessWidget {
           Text(label, style: TextStyle(color: color)),
           const SizedBox(height: 6),
           Text(
-            "${value.toStringAsFixed(2)} ${l10n.currency}",
+            "${NumberFormatUtil.formatMontant(value, decimales: 2)} ${l10n.currency}",
             style: TextStyle(
               fontWeight: FontWeight.bold,
               color: color,

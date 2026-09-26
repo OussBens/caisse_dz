@@ -1,15 +1,26 @@
+import 'package:caisse_dz/Services/CaisseGestion.dart';
 import 'package:caisse_dz/l10n/app_localizations.dart';
+import 'package:collection/collection.dart';
 import 'package:flutter/material.dart';
 import '../../../data/models/transfert.dart';
 import 'package:caisse_dz/core/theme/app_style.dart';
 import '../../widget/detail_widget.dart';
 import '../../widget/section_decoration.dart';
+import '../../widget/stats_card.dart';
 import '../base_dialog.dart';
+import 'package:caisse_dz/core/utilis/number_format.dart';
 
 Future<void> TransfertCaisseDetail(
     BuildContext context,
     TransfertCaisse transfert,
     ) async {
+  final caisses = await GCServices.getAllCaisses();
+  final nomCaisseExp = caisses.firstWhereOrNull((c) => c.code == transfert.caisseExpCode)?.nomCaisse
+      ?? transfert.caisseExpCode;
+  final nomCaisseDest = caisses.firstWhereOrNull((c) => c.code == transfert.caisseDestCode)?.nomCaisse
+      ?? transfert.caisseDestCode;
+
+  if (!context.mounted) return;
   return showDialog(
     context: context,
     barrierDismissible: true,
@@ -48,21 +59,26 @@ Future<void> TransfertCaisseDetail(
                 ),
 
                 const Spacer(),
-
                 Chip(
                   label: Text(
                     transfert.etat ? l10n.active : l10n.inactive,
-                    style: Appstyle.textSB.copyWith(color: Appstyle.Tblanc),
+                    style: Appstyle.textSB.copyWith(
+                      color: transfert.etat ? Appstyle.Tblanc : Appstyle.Tnoir, // ou une autre couleur
+                    ),
                   ),
-                  backgroundColor:
-                  transfert.etat ? Appstyle.crevete : Appstyle.gris,
-                ),
+                  backgroundColor: transfert.etat
+                      ? Appstyle.violet.withOpacity(0.8)
+                      : Appstyle.crevete.withOpacity(0.7), // ou rouge, orange, etc.
+                  labelPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                  elevation: transfert.etat ? 2 : 0,
+                )
+
               ],
             ),
 
             const SizedBox(height: 16),
 
-            _resumeTransfert(transfert, l10n),
+            _resumeTransfert(transfert, l10n, nomCaisseExp, nomCaisseDest),
           ],
         ),
 
@@ -76,8 +92,8 @@ Future<void> TransfertCaisseDetail(
                 child: detailwrap([
                   detailinfo(l10n.code, transfert.code),
                   detailinfo(l10n.transferDate, transfert.dateTransfert.toString().split(" ").first),
-                  detailinfo(l10n.sourceCashRegister, transfert.caisseExpCode),
-                  detailinfo(l10n.destinationCashRegister, transfert.caisseDestCode),
+                  detailinfo(l10n.sourceCashRegister, nomCaisseExp),
+                  detailinfo(l10n.destinationCashRegister, nomCaisseDest),
                   detailinfo(l10n.status, transfert.etat ? l10n.active : l10n.inactive),
                 ]),
               ),
@@ -86,7 +102,7 @@ Future<void> TransfertCaisseDetail(
                 title: l10n.financialInformation,
                 icon: Icons.payments_outlined,
                 child: detailwrap([
-                  detailinfo(l10n.amount, "${transfert.montant.toStringAsFixed(2)} ${l10n.currency}"),
+                  detailinfo(l10n.amount, "${NumberFormatUtil.formatMontant(transfert.montant, decimales: 2)} ${l10n.currency}"),
                 ]),
               ),
 
@@ -144,21 +160,15 @@ Future<void> TransfertCaisseDetail(
   );
 }
 
-Widget _resumeTransfert(TransfertCaisse t, AppLocalizations l10n) {
-  return Container(
-    decoration: BoxDecoration(
-      color: Appstyle.violet.withOpacity(0.6),
-      borderRadius: BorderRadius.circular(10),
-    ),
-    padding: const EdgeInsets.all(8),
-    child: Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-      children: [
-        detailbadge(l10n.amount, "${t.montant.toStringAsFixed(2)} ${l10n.currency}"),
-        detailbadge(l10n.sourceCashRegister, t.caisseExpCode),
-        detailbadge(l10n.destinationCashRegister, t.caisseDestCode),
-        detailbadge(l10n.status, t.etat ? l10n.active : l10n.inactive),
-      ],
-    ),
+// transfert_caisse_detail.dart - Remplacer _resumeTransfert
+Widget _resumeTransfert(TransfertCaisse t, AppLocalizations l10n, String nomCaisseExp, String nomCaisseDest) {
+  return StatsCard(
+    backgroundColor: Appstyle.violet.withOpacity(0.7),
+    items: [
+      StatsItem(label: l10n.amount, value: "${NumberFormatUtil.formatMontant(t.montant, decimales: 2)} ${l10n.currency}"),
+      StatsItem(label: l10n.sourceCashRegister, value: nomCaisseExp),
+      StatsItem(label: l10n.destinationCashRegister, value: nomCaisseDest),
+      StatsItem(label: l10n.status, value: t.etat ? l10n.active : l10n.inactive),
+    ],
   );
 }

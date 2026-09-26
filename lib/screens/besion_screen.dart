@@ -15,12 +15,14 @@ import 'package:caisse_dz/Services/Categorie.dart';
 import 'package:caisse_dz/Services/Mouvement.dart';
 import 'package:caisse_dz/Services/SmartScan.dart';
 import 'package:caisse_dz/Services/Produits.dart';
-import 'package:caisse_dz/Services/Magasin.dart';
 import 'package:caisse_dz/Services/Pannier.dart';
 import 'package:caisse_dz/Services/Client.dart';
 import 'package:caisse_dz/Services/Retour.dart';
 import 'package:caisse_dz/Services/Sortie.dart';
 import 'package:caisse_dz/Services/Remise.dart';
+import 'package:caisse_dz/Services/Paramters.dart';
+import 'package:caisse_dz/Services/Utilisateur.dart';
+import 'package:caisse_dz/data/models/utilisateur.dart';
 import 'package:caisse_dz/data/models/remise.dart';
 
 import 'package:caisse_dz/core/dialog/besionlist/besoinlist_nouveau.dart';
@@ -66,6 +68,7 @@ import 'package:caisse_dz/core/widget/afficheur/afficheur_smart_scan.dart';
 import 'package:caisse_dz/core/widget/afficheur/afficheur_mouvement.dart';
 import 'package:caisse_dz/core/widget/afficheur/afficheur_pannier.dart';
 import 'package:caisse_dz/core/widget/afficheur/afficheur_produit.dart';
+import 'package:caisse_dz/core/widget/afficheur/afficheur_produit_expire.dart';
 import 'package:caisse_dz/core/widget/afficheur/afficheur_retour.dart';
 import 'package:caisse_dz/core/widget/afficheur/afficheur_sortie.dart';
 
@@ -79,6 +82,7 @@ import 'package:caisse_dz/core/widget/champ/date_champ.dart';
 
 import 'package:caisse_dz/core/widget/fourchette._widget.dart';
 import 'package:caisse_dz/core/widget/time_date_widget.dart';
+import 'package:caisse_dz/core/widget/connection_status_bar.dart';
 import 'package:caisse_dz/core/widget/header_module.dart';
 import 'package:caisse_dz/core/widget/search_bar.dart';
 import 'package:caisse_dz/core/widget/side_bar.dart';
@@ -91,7 +95,6 @@ import 'package:caisse_dz/data/models/besoinList.dart';
 import 'package:caisse_dz/data/models/categorie.dart';
 import 'package:caisse_dz/data/models/mouvement.dart';
 import 'package:caisse_dz/data/models/produit.dart';
-import 'package:caisse_dz/data/models/magasin.dart';
 import 'package:caisse_dz/data/models/pannier.dart';
 import 'package:caisse_dz/data/models/retour.dart';
 import 'package:caisse_dz/data/models/client.dart';
@@ -124,15 +127,20 @@ String? selectedSousCategorieFilter;
 String? selectedFournisseurFilter;
 
 List<Produit>           besoinsTest           = [];
+// Quantité par produit calculée depuis le journal des mouvements — voir
+// produit_screen.dart pour le même mécanisme. Remplace Produit.quantite.
+Map<String, double>     quantitesTest         = {};
 List<SousCategorie>     sousCategoriesTest    = [];
 List<Fournisseur>       fournisseursTest      = [];
 List<Categorie>         categoriesTest        = [];
 List<Remise>            remisesTest           = [];
 List<BesoinList>        BesoinListsTest       = [];
 List<BesoinListDetail>  besoinListDetailsTest = [];
+List<Utilisateur>       utilisateursTest      = [];
 
 List<Produit>     besionsSelectionnes     = [];
 List<BesoinList>  besionListsSelectionnes = [];
+List<Produit>     expiresSelectionnes     = [];
 
 class BesionScreen extends StatefulWidget {
   const BesionScreen({super.key});
@@ -142,10 +150,13 @@ class BesionScreen extends StatefulWidget {
 
 class _BesionScreenState extends State<BesionScreen> with TickerProviderStateMixin {
   late TabController _tabController;
+  double seuilMinimum = 0;
+  double seuilMaximum = 0;
 
   // ✅ Constantes pour les index des tabs
   static const int TAB_BESOIN_LIST = 0;
   static const int TAB_OUT_OF_STOCK = 1;
+  static const int TAB_EXPIRED_PRODUCT = 2;
 
   // Period keys for translation lookup
   final List<String> periodeKeys = [
@@ -168,6 +179,7 @@ class _BesionScreenState extends State<BesionScreen> with TickerProviderStateMix
   // Plus besoin de selectedCardIndex, on utilise _tabController.index
   String nombre_besion          = "15";
   String nombre_produit_rupture = "30";
+  String nombre_produit_expire  = "0";
 
   Future<void> loadAllData() async {
     final test = await ProduitServices.getAllProduits();
@@ -177,7 +189,18 @@ class _BesionScreenState extends State<BesionScreen> with TickerProviderStateMix
     final besoinLists       = await BesoinListServices.getAllBesoinList();
     final categories        = await CategorieServices.getAllCategorie();
     final remises           = await RemiseServices.getAllRemise();
-    besoinsTest = test.where((e) => e.quantite <= e.seuilMin).toList();
+    final param              = await ParamServices.getParam();
+    final utilisateurs      = await UtilisateurServices.getAllUtilisateurs();
+    quantitesTest = (await MouvementsServices.totauxParProduit()).quantites;
+    besoinsTest = test.where((e) => (quantitesTest[e.code] ?? 0) <= param.Minimum).toList();
+
+    // Produits expirés : date d'expiration renseignée et strictement antérieure
+    // à aujourd'hui (un produit qui expire aujourd'hui n'est pas encore expiré).
+    final today = DateTime.now();
+    final debutAujourdhui = DateTime(today.year, today.month, today.day);
+    final expires = test
+        .where((e) => e.dateEmpreint != null && e.dateEmpreint!.isBefore(debutAujourdhui))
+        .toList();
 
     setState(() {
       besoinListDetailsTest = besoinListDetails;
@@ -186,8 +209,13 @@ class _BesionScreenState extends State<BesionScreen> with TickerProviderStateMix
       BesoinListsTest       = besoinLists;
       categoriesTest        = categories;
       remisesTest           = remises;
+      utilisateursTest      = utilisateurs;
+      seuilMinimum          = param.Minimum;
+      seuilMaximum          = param.Maximum;
       besionFiltres     = besoinsTest;
       besionlistFiltres = BesoinListsTest;
+      expiresTest       = expires;
+      expireFiltres     = expires;
 
       sousCategorieFilterOptions = sousCategoriesTest.map  ((sc) => sc.nom). toSet().toList();
       FournisseurFilterOptions   = fournisseursTest.map    ((sc) => sc.nom). toSet().toList();
@@ -195,9 +223,11 @@ class _BesionScreenState extends State<BesionScreen> with TickerProviderStateMix
 
       nombre_besion = BesoinListsTest.length.toString();
       nombre_produit_rupture = besoinsTest.length.toString();
+      nombre_produit_expire = expiresTest.length.toString();
 
       besionsSelectionnes.clear();
       besionListsSelectionnes.clear();
+      expiresSelectionnes.clear();
     });
   }
 
@@ -242,7 +272,7 @@ class _BesionScreenState extends State<BesionScreen> with TickerProviderStateMix
           l10n: l10n,
           translator: translator,
         );
-      } else {
+      } else if (currentTab == TAB_OUT_OF_STOCK) {
         // Out of Stock Products (Produits)
         final produitsToExport = filtresActifs ? besionFiltres : besoinsTest;
 
@@ -265,6 +295,34 @@ class _BesionScreenState extends State<BesionScreen> with TickerProviderStateMix
           remises: remisesTest,
           l10n: l10n,
           translator: translator,
+          seuilMin: seuilMinimum,
+          seuilMax: seuilMaximum,
+        );
+      } else {
+        // Expired Products (Produits expirés)
+        final produitsToExport = filtresActifs ? expireFiltres : expiresTest;
+
+        if (produitsToExport.isEmpty) {
+          Navigator.pop(context);
+          await InformationDialog(
+            context: context,
+            titre_type_message: l10n.information,
+            titre_concerne: l10n.expiredProducts,
+            message: l10n.noDataToExport,
+          );
+          return;
+        }
+
+        moduleName = l10n.expiredProducts;
+        excelFile = await ExcelGenerator.generateProduitsExcel(
+          produits: produitsToExport,
+          categories: categoriesTest,
+          sousCategories: sousCategoriesTest,
+          remises: remisesTest,
+          l10n: l10n,
+          translator: translator,
+          seuilMin: seuilMinimum,
+          seuilMax: seuilMaximum,
         );
       }
 
@@ -413,7 +471,7 @@ class _BesionScreenState extends State<BesionScreen> with TickerProviderStateMix
           l10n: l10n,
           translator: translator,
         );
-      } else {
+      } else if (currentTab == TAB_OUT_OF_STOCK) {
         // Out of Stock Products
         if (besionsSelectionnes.isEmpty) {
           Navigator.pop(context);
@@ -434,6 +492,32 @@ class _BesionScreenState extends State<BesionScreen> with TickerProviderStateMix
           remises: remisesTest,
           l10n: l10n,
           translator: translator,
+          seuilMin: seuilMinimum,
+          seuilMax: seuilMaximum,
+        );
+      } else {
+        // Expired Products
+        if (expiresSelectionnes.isEmpty) {
+          Navigator.pop(context);
+          await InformationDialog(
+            context: context,
+            titre_type_message: l10n.information,
+            titre_concerne: l10n.expiredProducts,
+            message: l10n.noProductSelected,
+          );
+          return;
+        }
+
+        moduleName = l10n.expiredProducts;
+        excelFile = await ExcelGenerator.generateProduitsExcel(
+          produits: expiresSelectionnes,
+          categories: categoriesTest,
+          sousCategories: sousCategoriesTest,
+          remises: remisesTest,
+          l10n: l10n,
+          translator: translator,
+          seuilMin: seuilMinimum,
+          seuilMax: seuilMaximum,
         );
       }
 
@@ -561,11 +645,20 @@ class _BesionScreenState extends State<BesionScreen> with TickerProviderStateMix
 
   List<BesoinList>  besionlistFiltres = [];
   List<Produit>     besionFiltres     = [];
+  List<Produit>     expiresTest       = [];
+  List<Produit>     expireFiltres     = [];
+
+  String? selectedCategorieFilterExpire;
+  String? selectedSousCategorieFilterExpire;
+  String? selectedEtatFilterExpire;
+  double? quantiteMinExpire;
+  double? quantiteMaxExpire;
+  final TextEditingController _searchControllerExpire = TextEditingController();
 
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 2, vsync: this);
+    _tabController = TabController(length: 3, vsync: this);
     _tabController.addListener(() {
       if (mounted) {
         setState(() {
@@ -614,8 +707,9 @@ class _BesionScreenState extends State<BesionScreen> with TickerProviderStateMix
       final searchOk = searchText.isEmpty ||
           '${p.searchableText} $nomCategorieB $nomSousCategorieB'.toLowerCase().contains(searchText);
 
-      final quantiteOk = (quantiteMinBesion == null || p.quantite >= quantiteMinBesion!) &&
-          (quantiteMaxBesion == null || p.quantite <= quantiteMaxBesion!);
+      final quantiteBesionP = quantitesTest[p.code] ?? 0;
+      final quantiteOk = (quantiteMinBesion == null || quantiteBesionP >= quantiteMinBesion!) &&
+          (quantiteMaxBesion == null || quantiteBesionP <= quantiteMaxBesion!);
 
       final etatOk = selectedEtatFilterB == null ||
           selectedEtatFilterB == "" ||
@@ -738,6 +832,65 @@ class _BesionScreenState extends State<BesionScreen> with TickerProviderStateMix
     _searchControllerBesion.clear();
   }
 
+  // ✅ Vrai si au moins un champ de filtre "produits en rupture" est renseigné (pour l'indicateur visuel du bouton Filtre).
+  bool get _filtresBesoinActifs =>
+      selectedCategorieFilterBesion != null ||
+      selectedSousCategorieFilterBesion != null ||
+      quantiteMinBesion != null ||
+      quantiteMaxBesion != null ||
+      selectedEtatFilterB != null ||
+      _searchControllerBesion.text.isNotEmpty;
+
+  void appliquerFiltreExpire() {
+    expireFiltres = expiresTest.where((p) {
+      final searchText = _searchControllerExpire.text.toLowerCase();
+      final nomCategorieE = categoriesTest.where((c) => c.id == p.categorieId).firstOrNull?.nom ?? '';
+      final nomSousCategorieE = sousCategoriesTest.where((sc) => sc.id == p.sousCategorieId).firstOrNull?.nom ?? '';
+      final catOk       = selectedCategorieFilterExpire     == null || selectedCategorieFilterExpire!.isEmpty     || nomCategorieE      == selectedCategorieFilterExpire;
+      final sousCatOk   = selectedSousCategorieFilterExpire == null || selectedSousCategorieFilterExpire!.isEmpty || nomSousCategorieE  == selectedSousCategorieFilterExpire;
+      final searchOk = searchText.isEmpty ||
+          '${p.searchableText} $nomCategorieE $nomSousCategorieE'.toLowerCase().contains(searchText);
+
+      final quantiteExpireP = quantitesTest[p.code] ?? 0;
+      final quantiteOk = (quantiteMinExpire == null || quantiteExpireP >= quantiteMinExpire!) &&
+          (quantiteMaxExpire == null || quantiteExpireP <= quantiteMaxExpire!);
+
+      final etatOk = selectedEtatFilterExpire == null ||
+          selectedEtatFilterExpire == "" ||
+          (selectedEtatFilterExpire == "Actif" && p.etat) ||
+          (selectedEtatFilterExpire == "Inactif" && !p.etat);
+
+      return catOk && sousCatOk && quantiteOk && etatOk && searchOk;
+    }).toList();
+
+    if ((selectedCategorieFilterExpire      == null || selectedCategorieFilterExpire!.isEmpty) &&
+        (selectedSousCategorieFilterExpire  == null || selectedSousCategorieFilterExpire!.isEmpty) &&
+        (selectedEtatFilterExpire == null || selectedEtatFilterExpire!.isEmpty) &&
+        quantiteMinExpire == null &&
+        quantiteMaxExpire == null &&
+        _searchControllerExpire.text.isEmpty) {
+      expireFiltres = expiresTest;
+    }
+  }
+
+  void supprimerFilterExpire() {
+    selectedCategorieFilterExpire = null;
+    selectedSousCategorieFilterExpire = null;
+    quantiteMaxExpire = null;
+    quantiteMinExpire = null;
+    selectedEtatFilterExpire = null;
+    _searchControllerExpire.clear();
+  }
+
+  // ✅ Vrai si au moins un champ de filtre "produits expirés" est renseigné (pour l'indicateur visuel du bouton Filtre).
+  bool get _filtresExpirationActifs =>
+      selectedCategorieFilterExpire != null ||
+      selectedSousCategorieFilterExpire != null ||
+      quantiteMinExpire != null ||
+      quantiteMaxExpire != null ||
+      selectedEtatFilterExpire != null ||
+      _searchControllerExpire.text.isNotEmpty;
+
   void supprimerFilterBesoinList() {
     selectedFournisseurFilterBesoinList = null;
     selectedEtatFilterRp = null;
@@ -749,9 +902,19 @@ class _BesionScreenState extends State<BesionScreen> with TickerProviderStateMix
     _dateFinCtrlBesoinList.clear();
   }
 
+  // ✅ Vrai si au moins un champ de filtre "listes de besoin" est renseigné (pour l'indicateur visuel du bouton Filtre).
+  bool get _filtresBesoinListActifs =>
+      selectedFournisseurFilterBesoinList != null ||
+      selectedEtatFilterRp != null ||
+      dateDebutBesoinList != null ||
+      dateFinBesoinList != null ||
+      periodeRapide != null ||
+      _searchControllerBesionList.text.isNotEmpty;
+
   void vider_selectionne() {
     besionListsSelectionnes.clear();
     besionsSelectionnes.clear();
+    expiresSelectionnes.clear();
   }
 
   Future<void> _pickDateDebutBesoinList() async {
@@ -811,28 +974,39 @@ class _BesionScreenState extends State<BesionScreen> with TickerProviderStateMix
     // ✅ Index actuel du tab
     final currentTab = _tabController.index;
 
+    // ✅ Couleur de l'en-tête alignée sur la couleur du tab actif
+    final Color headerColor = currentTab == TAB_BESOIN_LIST
+        ? Appstyle.violet
+        : currentTab == TAB_OUT_OF_STOCK
+            ? Appstyle.indigo
+            : Appstyle.lavande;
+
     // ✅ Noms des tabs
     final tabNames = [
       l10n.besoinList,
       l10n.outOfStockProducts,
+      l10n.expiredProducts,
     ];
 
     // ✅ Icônes des tabs
     final tabIcons = [
       'assets/icons/cardwidget/liste_icon.png',
       'assets/icons/cardwidget/besion_icon.png',
+      'assets/icons/agenda_icon.png',
     ];
 
     // ✅ Compteurs pour les tabs
     final tabCounts = [
       nombre_besion,
       nombre_produit_rupture,
+      nombre_produit_expire,
     ];
 
     // ✅ Couleurs des tabs
     final tabColors = [
       Colors.orange.shade500,
       Appstyle.TnoirC,
+      Colors.redAccent,
     ];
 
     return Scaffold(
@@ -854,16 +1028,14 @@ class _BesionScreenState extends State<BesionScreen> with TickerProviderStateMix
 
             return SingleChildScrollView(
               scrollDirection: Axis.horizontal,
-              child: SingleChildScrollView(
-                scrollDirection: Axis.vertical,
-                child: ConstrainedBox(
-                  constraints: const BoxConstraints(
-                    minWidth: minWidth,
-                    minHeight: minHeight,
-                  ),
-                  child: SizedBox(
-                    width: adjustedWidth,
-                    height: adjustedHeight,
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(
+                  minWidth: minWidth,
+                  minHeight: minHeight,
+                ),
+                child: SizedBox(
+                  width: adjustedWidth,
+                  height: adjustedHeight,
                     child: Row(
                       textDirection: textDirection,
                       crossAxisAlignment: CrossAxisAlignment.start,
@@ -887,7 +1059,7 @@ class _BesionScreenState extends State<BesionScreen> with TickerProviderStateMix
                                           Image.asset(
                                             "assets/icons/cardwidget/besion_icon.png",
                                             width: 40,
-                                            color: Appstyle.blueC,
+                                            color: headerColor,
                                           ),
                                           const SizedBox(width: 10),
                                           Row(
@@ -896,7 +1068,7 @@ class _BesionScreenState extends State<BesionScreen> with TickerProviderStateMix
                                               Text(
                                                 l10n.besoin,
                                                 style: Appstyle.textXLB.copyWith(
-                                                  color       : Appstyle.blueC,
+                                                  color       : headerColor,
                                                   fontWeight  : FontWeight.bold,
                                                 ),
                                               ),
@@ -904,7 +1076,7 @@ class _BesionScreenState extends State<BesionScreen> with TickerProviderStateMix
                                               Text(
                                                 "(${tabNames[currentTab]})",
                                                 style: Appstyle.textXLB.copyWith(
-                                                  color       : Appstyle.blueC,
+                                                  color       : headerColor,
                                                   fontWeight  : FontWeight.bold,
                                                 ),
                                               ),
@@ -916,9 +1088,9 @@ class _BesionScreenState extends State<BesionScreen> with TickerProviderStateMix
                                       Row(
                                         textDirection: textDirection,
                                         children: [
+                                          const ConnectionStatusBar(),
+                                          const SizedBox(width: 20),
                                           TimeDateWidget(
-                                            heure: "18:00",
-                                            date: "25 Nov 2025",
                                             iconHeure: "assets/icons/hour_icon.png",
                                             iconDate: "assets/icons/agenda_icon.png",
                                           ),
@@ -953,9 +1125,7 @@ class _BesionScreenState extends State<BesionScreen> with TickerProviderStateMix
                                     controller: _tabController,
                                     isScrollable: false,
                                     indicator: BoxDecoration(
-                                      color: currentTab == TAB_BESOIN_LIST
-                                          ? Appstyle.blueC
-                                          : Appstyle.violet,
+                                      color: headerColor,
                                       borderRadius: BorderRadius.circular(12),
                                     ),
                                     labelColor: Colors.white,
@@ -969,7 +1139,7 @@ class _BesionScreenState extends State<BesionScreen> with TickerProviderStateMix
                                     unselectedLabelStyle: Appstyle.textXS.copyWith(
                                       fontWeight: FontWeight.w500,
                                     ),
-                                    tabs: List.generate(2, (index) {
+                                    tabs: List.generate(3, (index) {
                                       final isSelected = currentTab == index;
                                       return Tab(
                                         icon: Container(
@@ -1041,6 +1211,7 @@ class _BesionScreenState extends State<BesionScreen> with TickerProviderStateMix
                                                   color: Appstyle.Tblanc,
                                                   icon: filtresActifs ? Icons.visibility_off : Icons.visibility,
                                                   iconColor: Appstyle.violet,
+                                                  showBadge: _filtresBesoinListActifs,
                                                   onPressed: () {
                                                     setState(() {
                                                       filtresActifs = !filtresActifs;
@@ -1195,6 +1366,8 @@ class _BesionScreenState extends State<BesionScreen> with TickerProviderStateMix
                                         child: TableauBesoinListAdvanced(
                                           key: ValueKey(besionlistFiltres),
                                           besoins: besionlistFiltres,
+                                          fournisseurs: fournisseursTest,
+                                          utilisateurs: utilisateursTest,
                                           onSelectionChanged: (selection) {
                                             setState(() {
                                               besionListsSelectionnes = selection;
@@ -1252,6 +1425,7 @@ class _BesionScreenState extends State<BesionScreen> with TickerProviderStateMix
                                                   color: Appstyle.Tblanc,
                                                   icon: filtresActifs ? Icons.visibility_off : Icons.visibility,
                                                   iconColor: Appstyle.violet,
+                                                  showBadge: _filtresBesoinActifs,
                                                   onPressed: () {
                                                     setState(() {
                                                       filtresActifs = !filtresActifs;
@@ -1346,15 +1520,179 @@ class _BesionScreenState extends State<BesionScreen> with TickerProviderStateMix
                                       SizedBox(
                                         height: adjustedHeight * 0.68,
                                         child: TableauProduitAdvanced(
-                                          key: ValueKey(besionFiltres),
+                                          // Clé stable : cf. commentaire dans produit_screen.dart.
+                                          key: const ValueKey('besion-produit-table'),
+                                          col: false,
                                           produits: besionFiltres,
                                           categories: categoriesTest,
                                           sousCategories: sousCategoriesTest,
                                           remises: remisesTest,
                                           fournisseurs: fournisseursTest,
+                                          seuilMinimum: seuilMinimum,
                                           onSelectionChanged: (selection) {
                                             setState(() {
                                               besionsSelectionnes = selection;
+                                            });
+                                          },
+                                        ),
+                                      ),
+                                    ],
+                                  )
+
+                                // ──────────────────────────────────────────────────────────────
+                                // 3. CAS PRODUITS EXPIRÉS (currentTab == TAB_EXPIRED_PRODUCT)
+                                // ──────────────────────────────────────────────────────────────
+                                else if (currentTab == TAB_EXPIRED_PRODUCT)
+                                  Column(
+                                    crossAxisAlignment: isRTL ? CrossAxisAlignment.end : CrossAxisAlignment.start,
+                                    children: [
+                                      // Afficheur
+                                      if (expiresSelectionnes.length == 1)
+                                        AfficheurProduitExpire(
+                                            produit: expiresSelectionnes.first,
+                                            onDetails: () {
+                                              ProduitDetail(context, expiresSelectionnes.first);
+                                            }
+                                        )
+                                      else
+                                        Padding(
+                                          padding: const EdgeInsets.only(bottom: 16.0),
+                                          child: AfficheurStockGlobalWidget(
+                                            nombreBesoinList    : BesoinListsTest.length,
+                                            nombrePanniers      : 16,
+                                            nombreProduitsStock : 15,
+                                            nombreRetours       : 18,
+                                            nombreSmartScan     : 95,
+                                            nombreSorties       : 3,
+                                          ),
+                                        ),
+
+                                      if (expiresSelectionnes.length == 1)
+                                        SizedBox(height: paddingV/2),
+
+                                      // Filtres & Actions - Style FournisseurScreen
+                                      Align(
+                                        alignment: isRTL ? Alignment.topRight : Alignment.topLeft,
+                                        child: Row(
+                                          textDirection: textDirection,
+                                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                          children: [
+                                            Row(
+                                              textDirection: textDirection,
+                                              children: [
+                                                MainButton(
+                                                  text: l10n.filter,
+                                                  textColor: Appstyle.violet,
+                                                  color: Appstyle.Tblanc,
+                                                  icon: filtresActifs ? Icons.visibility_off : Icons.visibility,
+                                                  iconColor: Appstyle.violet,
+                                                  showBadge: _filtresExpirationActifs,
+                                                  onPressed: () {
+                                                    setState(() {
+                                                      filtresActifs = !filtresActifs;
+                                                      if (!filtresActifs) {
+                                                        supprimerFilterExpire();
+                                                        appliquerFiltreExpire();
+                                                      }
+                                                    });
+                                                  },
+                                                ),
+                                                SizedBox(width: paddingH/4),
+                                                if (filtresActifs)
+                                                  MainIconButton(
+                                                    color: Colors.grey.shade400,
+                                                    imagePath: 'assets/icons/action/supprimer_icon.png',
+                                                    onPressed: () {
+                                                      setState(() {
+                                                        supprimerFilterExpire();
+                                                        appliquerFiltreExpire();
+                                                      });
+                                                    },
+                                                  ),
+                                                if (filtresActifs)
+                                                  SizedBox(width: paddingH/4),
+                                                MainButton(
+                                                  text: l10n.extract,
+                                                  textColor: Colors.green,
+                                                  iconColor: Colors.green,
+                                                  color: Appstyle.Tblanc,
+                                                  icon: Icons.download,
+                                                  onPressed: () async {
+                                                    await _exportCurrentModuleToExcel();
+                                                  },
+                                                ),
+                                                SizedBox(width: paddingH / 4),
+                                                MainIconButton(
+                                                  imagePath: "assets/icons/action/extacter_filtre_icon.png",
+                                                  color: Colors.orange,
+                                                  onPressed: () async {
+                                                    await _exportSelectedToExcel();
+                                                  },
+                                                ),
+                                              ],
+                                            ),
+                                            Row(
+                                              textDirection: textDirection,
+                                              mainAxisAlignment: MainAxisAlignment.end,
+                                              children: [
+                                                MainIconButton(
+                                                  imagePath: "assets/icons/action/detail_icon.png",
+                                                  color: Appstyle.violet,
+                                                  onPressed: () async {
+                                                    if (expiresSelectionnes.length == 1) {
+                                                      ProduitDetail(context, expiresSelectionnes.first);
+                                                    } else if (expiresSelectionnes.isEmpty) {
+                                                      await InformationDialog(
+                                                        context: context,
+                                                        titre_type_message: l10n.information,
+                                                        titre_concerne: l10n.expiredProducts,
+                                                        message: l10n.noProductSelected,
+                                                      );
+                                                    } else {
+                                                      await InformationDialog(
+                                                        context: context,
+                                                        titre_type_message: l10n.information,
+                                                        titre_concerne: l10n.expiredProducts,
+                                                        message: l10n.selectSingleProductForDetail,
+                                                      );
+                                                    }
+                                                  },
+                                                ),
+                                              ],
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+
+                                      if (!filtresActifs)
+                                        SizedBox(height: paddingV/2),
+
+                                      // Filtres
+                                      if (filtresActifs)
+                                        Align(
+                                          alignment: isRTL ? Alignment.topRight : Alignment.topLeft,
+                                          child: Padding(
+                                            padding: EdgeInsets.symmetric(vertical: paddingV/2),
+                                            child: filtreExpire(setState, adjustedWidth*1/3, l10n, translator, isRTL),
+                                          ),
+                                        ),
+
+                                      // Tableau
+                                      SizedBox(
+                                        height: adjustedHeight * 0.68,
+                                        child: TableauProduitAdvanced(
+                                          // Clé stable : cf. commentaire dans produit_screen.dart.
+                                          key: const ValueKey('expire-produit-table'),
+                                          col: false,
+                                          produits: expireFiltres,
+                                          categories: categoriesTest,
+                                          sousCategories: sousCategoriesTest,
+                                          remises: remisesTest,
+                                          fournisseurs: fournisseursTest,
+                                          seuilMinimum: seuilMinimum,
+                                          onSelectionChanged: (selection) {
+                                            setState(() {
+                                              expiresSelectionnes = selection;
                                             });
                                           },
                                         ),
@@ -1369,7 +1707,6 @@ class _BesionScreenState extends State<BesionScreen> with TickerProviderStateMix
                     ),
                   ),
                 ),
-              ),
             );
           },
         ),
@@ -1457,7 +1794,7 @@ class _BesionScreenState extends State<BesionScreen> with TickerProviderStateMix
               textDirection: textDirection,
               children: [
                 SizedBox(
-                  width: width*0.9,
+                  width: width * 0.7,
                   child: Row(
                     textDirection: textDirection,
                     children: [
@@ -1490,6 +1827,134 @@ class _BesionScreenState extends State<BesionScreen> with TickerProviderStateMix
                           quantiteMinBesion = min;
                           quantiteMaxBesion = max;
                           appliquerFiltreBesion();
+                        });
+                      },
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 20),
+                const SizedBox(width: 0),
+              ],
+            ),
+          ],
+        )
+    );
+  }
+
+  Widget filtreExpire(void Function(VoidCallback fn) setState, double width, AppLocalizations l10n, ListsConstTranslator translator, bool isRTL) {
+    final textDirection = isRTL ? TextDirection.rtl : TextDirection.ltr;
+
+    return SectionDecorationFiltre(
+        padding: EdgeInsets.all(10),
+        color: Appstyle.Tblanc,
+        child: Column(
+          crossAxisAlignment: isRTL ? CrossAxisAlignment.end : CrossAxisAlignment.start,
+          children: [
+            // Ligne catégorie / sous-catégorie / état
+            Row(
+              textDirection: textDirection,
+              children: [
+                Expanded(
+                  child: ChampAvecLabel(
+                    label: l10n.categorie,
+                    child: TextListe(
+                      value: selectedCategorieFilterExpire,
+                      items: categorieFilterOptions,
+                      onChanged: (v) {
+                        setState(() {
+                          selectedCategorieFilterExpire = v;
+                          selectedSousCategorieFilterExpire = null;
+                          appliquerFiltreExpire();
+                        });
+                      },
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 20),
+                Expanded(
+                  child: ChampAvecLabel(
+                    label: l10n.sousCategorie,
+                    child: TextListe(
+                      value: selectedSousCategorieFilterExpire,
+                      items: sousCategorieFilterOptions
+                          .where((sc) {
+                        if (selectedCategorieFilterExpire == null) return true;
+                        final categorieCode = sousCategoriesTest
+                            .firstWhere((s) => s.nom == sc)
+                            .categorieCode;
+                        return categoriesTest
+                            .where((c) => c.code == categorieCode)
+                            .firstOrNull
+                            ?.nom == selectedCategorieFilterExpire;
+                      })
+                          .toList(),
+                      onChanged: (v) {
+                        setState(() {
+                          selectedSousCategorieFilterExpire = v;
+                          appliquerFiltreExpire();
+                        });
+                      },
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 20),
+                Expanded(
+                  child: ChampAvecLabel(
+                    label: l10n.etat,
+                    child: TextListe(
+                      value: selectedEtatFilterExpire != null ? translator.translateEtat(selectedEtatFilterExpire!) : null,
+                      items: translator.etatDisplayList,
+                      onChanged: (v) {
+                        setState(() {
+                          selectedEtatFilterExpire = translator.etatToFrench(v!);
+                          appliquerFiltreExpire();
+                        });
+                      },
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 15),
+            // Ligne recherche / quantité
+            Row(
+              textDirection: textDirection,
+              children: [
+                SizedBox(
+                  width: width * 0.7,
+                  child: Row(
+                    textDirection: textDirection,
+                    children: [
+                      Expanded(
+                        child: ChampAvecLabel(
+                          label: l10n.search,
+                          child: SearchField(
+                            controller: _searchControllerExpire,
+                            onChanged: (v) {
+                              setState(() {
+                                appliquerFiltreExpire();
+                              });
+                            },
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(width: 20),
+                Expanded(
+                  child: ChampAvecLabel(
+                    width: width * 0.7,
+                    label: l10n.quantity ?? "Quantité",
+                    child: FourchettePrixWidget(
+                      couleur: Appstyle.violet,
+                      minValue: quantiteMinExpire,
+                      maxValue: quantiteMaxExpire,
+                      onChanged: (min, max) {
+                        setState(() {
+                          quantiteMinExpire = min;
+                          quantiteMaxExpire = max;
+                          appliquerFiltreExpire();
                         });
                       },
                     ),
@@ -1541,7 +2006,7 @@ class _BesionScreenState extends State<BesionScreen> with TickerProviderStateMix
                 ),
                 const SizedBox(width: 20),
                 SizedBox(
-                  width: 400,
+                  width: width * 0.7,
                   child: ChampAvecLabel(
                     label: l10n.quickPeriod,
                     child: DropdownButtonFormField<String>(
@@ -1575,7 +2040,7 @@ class _BesionScreenState extends State<BesionScreen> with TickerProviderStateMix
               textDirection: textDirection,
               children: [
                 SizedBox(
-                  width: width*0.9,
+                  width: width * 0.7,
                   child: Row(
                     textDirection: textDirection,
                     children: [

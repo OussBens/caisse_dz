@@ -4,6 +4,8 @@ import 'package:flutter/material.dart';
 import 'package:syncfusion_flutter_datagrid/datagrid.dart';
 import '../../../../data/models/pack.dart';
 import '../../../l10n/app_localizations.dart';
+import 'package:caisse_dz/core/theme/app_style.dart';
+import '../../dialog/produits_liste_dialog.dart';
 import '../../widget/status_badge.dart';
 import '../base_table_data_source.dart';
 
@@ -14,6 +16,7 @@ class PackDataSource extends BaseTableDataSource<Pack> {
     required List<Pack> packs,
     required super.columnConfig,
     required this.l10n,
+    super.utilisateurs = const [],
   }) : super(items: packs);
 
   String formatDate(DateTime? date) {
@@ -40,15 +43,15 @@ class PackDataSource extends BaseTableDataSource<Pack> {
       case 'prixVente':
         return "${pack.prixVente} ${l10n.currency}";
       case 'creeParCode':
-        return pack.creeParCode;
+        return nomUtilisateur(pack.creeParCode);
       case 'creeLe':
         return formatDate(pack.creeLe);
       case 'modifParCode':
-        return pack.modifParCode ?? '';
+        return nomUtilisateur(pack.modifParCode);
       case 'modifLe':
         return formatDate(pack.modifLe);
       case 'annulParCode':
-        return pack.annulParCode ?? '';
+        return nomUtilisateur(pack.annulParCode);
       case 'annulLe':
         return formatDate(pack.annulLe);
       case 'motifAnnul':
@@ -63,6 +66,13 @@ class PackDataSource extends BaseTableDataSource<Pack> {
     if (columnName == 'etat') {
       return Center(child: EtatBadge(isActive: item.etat));
     }
+
+    if (columnName == 'prixVente') {
+      return Center(
+        child: pilluleCellule("${item.prixVente} ${l10n.currency}", Appstyle.crevete),
+      );
+    }
+
     return null;
   }
 

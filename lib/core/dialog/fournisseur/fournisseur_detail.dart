@@ -5,6 +5,7 @@ import 'package:caisse_dz/core/theme/app_style.dart';
 import '../../../data/models/fournisseur.dart';
 import '../../widget/detail_widget.dart';
 import '../../widget/section_decoration.dart';
+import '../../widget/stats_card.dart';
 import '../base_dialog.dart';
 
 Future<void> FournisseurDetail(BuildContext context, Fournisseur fournisseur) async {
@@ -50,14 +51,20 @@ Future<void> FournisseurDetail(BuildContext context, Fournisseur fournisseur) as
                 ),
 
                 const Spacer(),
-
                 Chip(
                   label: Text(
                     fournisseur.etat ? l10n.active : l10n.inactive,
-                    style: Appstyle.textSB.copyWith(color: Appstyle.Tblanc),
+                    style: Appstyle.textSB.copyWith(
+                      color: fournisseur.etat ? Appstyle.Tblanc : Appstyle.Tnoir, // ou une autre couleur
+                    ),
                   ),
-                  backgroundColor: Appstyle.crevete,
-                ),
+                  backgroundColor: fournisseur.etat
+                      ? Appstyle.violet.withOpacity(0.8)
+                      : Appstyle.crevete.withOpacity(0.7), // ou rouge, orange, etc.
+                  labelPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                  elevation: fournisseur.etat ? 2 : 0,
+                )
+
               ],
             ),
 
@@ -179,26 +186,51 @@ Future<void> FournisseurDetail(BuildContext context, Fournisseur fournisseur) as
     },
   );
 }
-
+// Dans fournisseur_detail.dart
 Widget _resumeFournisseur(Fournisseur f, AppLocalizations l10n, FournisseurStats stats) {
-  return Container(
-    decoration: BoxDecoration(
-      color: Appstyle.violet.withOpacity(0.6),
-      borderRadius: BorderRadius.circular(10),
-    ),
-    padding: const EdgeInsets.all(8),
-    child: Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-      children: [
-        detailbadge(l10n.totalAchat, stats.totalAchat),
-        detailbadge(l10n.totalPaid, stats.totalVerse),
-        detailbadge(l10n.totalReturn, stats.totalRetour),
-        detailbadge(l10n.lastPurchaseDate, stats.dateDernierAchat?.toString().split(" ").first ?? "-"),
-        detailbadge(l10n.advance, stats.avance),
-        detailbadge(l10n.credit, stats.credit),
-        detailbadge(l10n.balance, stats.solde),
-        detailbadge(l10n.status, f.etat ? l10n.active : l10n.inactive),
-      ],
-    ),
+  return Column(
+    children: [
+      StatsCard(
+        items: [
+          StatsItem(
+            label: l10n.totalAchat,
+            value: "${stats.totalAchat} ${l10n.currency}",
+          ),
+          StatsItem(
+            label: l10n.totalPaid,
+            value: "${stats.totalVerse} ${l10n.currency}",
+          ),
+          StatsItem(
+            label: l10n.totalReturn,
+            value: "${stats.totalRetour} ${l10n.currency}",
+          ),
+          StatsItem(
+            label: l10n.lastPurchaseDate,
+            value: stats.dateDernierAchat?.toString().split(" ").first ?? "-",
+          ),
+        ],
+      ),
+      const SizedBox(height: 8),
+      StatsCard(
+        items: [
+          StatsItem(
+            label: l10n.advance,
+            value: "${stats.avance} ${l10n.currency}",
+          ),
+          StatsItem(
+            label: l10n.credit,
+            value: "${stats.credit} ${l10n.currency}",
+          ),
+          StatsItem(
+            label: l10n.balance,
+            value: "${stats.solde} ${l10n.currency}",
+          ),
+          StatsItem(
+            label: l10n.telephonie,
+            value: f.telephone,
+          ),
+        ],
+      ),
+    ],
   );
 }

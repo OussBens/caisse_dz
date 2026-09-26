@@ -1,5 +1,8 @@
+import 'package:collection/collection.dart';
 import 'package:caisse_dz/DBCreate.dart';
 import 'package:caisse_dz/Services/CaisseGestion.dart' hide ApiResponse;
+import 'package:caisse_dz/Services/CaisseSession.dart' hide ApiResponse;
+import 'package:caisse_dz/data/models/caisse_mouvement.dart';
 import 'package:caisse_dz/Services/Client.dart' hide ApiResponse;
 import 'package:caisse_dz/Services/Historique.dart' hide ApiResponse;
 import 'package:caisse_dz/Services/Mouvement.dart' hide ApiResponse;
@@ -32,6 +35,7 @@ import '../../../Services/Verssement.dart' hide ApiResponse;
 import '../../../data/models/verssement.dart';
 import '../../utilis/api_response.dart';
 import '../information_dialog.dart';
+import 'package:caisse_dz/core/utilis/number_format.dart';
 
 // ✅ Fonction helper pour obtenir le prochain ID (simplifiée)
 Future<int> _getNextId(String tableName) async {
@@ -50,6 +54,7 @@ Future<ApiResponse<int>> _SavePannier({
   required Client client,
   required double montant,
   required String magasinCode,
+  required String caisseCode,
 }) async {
   print("🚀 _SavePannier: DEBUT");
 
@@ -62,6 +67,7 @@ Future<ApiResponse<int>> _SavePannier({
   final serviceC = ClientServices(db);
   final versementService = VerssementServices(db);
   final pmdService = ProduitMagasinDetailServices(db);
+  final caisseSessionService = CaisseSessionServices(db);
 
   final Produitse = await ProduitServices.getAllProduits();
   print("📦 Produits récupérés: ${Produitse.length}");
@@ -77,12 +83,16 @@ Future<ApiResponse<int>> _SavePannier({
       magasinCode,
     );
 
-    if (magasinDetail != null && magasinDetail.quantite >= quantiteReelle) {
-      await pmdService.decrementQuantite(magasinDetail.id, quantiteReelle);
-      print("      ✅ Déstocké: ${magasinDetail.id}");
-    } else if (magasinDetail != null && magasinDetail.quantite < quantiteReelle) {
-      await pmdService.decrementQuantite(magasinDetail.id, magasinDetail.quantite);
-      print("      ⚠️ Déstockage partiel: ${magasinDetail.quantite}");
+    // Second stock parallèle "Nombre" (Paramètres > Nombre et Quantité) —
+    // quantite n'est plus stockée ici (calculée depuis le journal des
+    // mouvements), seul nombre reste un compteur réel à décrémenter.
+    if (magasinDetail != null && produit.nombre != null) {
+      final nombreADestock = produit.nombre! <= magasinDetail.nombre
+          ? produit.nombre!
+          : magasinDetail.nombre;
+      if (nombreADestock > 0) {
+        await pmdService.decrementNombre(magasinDetail.id, nombreADestock);
+      }
     }
   }
 
@@ -135,6 +145,7 @@ Future<ApiResponse<int>> _SavePannier({
       total: produit.prix * produit.qte,
       creeLe: DateTime.now(),
       quantite: quantiteReelle,
+      nombre: produit.nombre,
       codeProduit: produit.code,
       codePannier: pannier.code,
       creeParCode: userCode,
@@ -165,31 +176,38 @@ Future<ApiResponse<int>> _SavePannier({
     final idm = await _getNextId('mouvements');
     Mouvement Mouv = Mouvement(
       id: idm,
-      code: CodeGenerator.generateCodeWithTimestamp(
+      code: CodeGenerator.generateCode(
         prefix: CodePrefix.mouvement,
         id: idm,
+        digitCount: 8,
       ),
       date: pannier.date,
       type: ListsConst.typeMouvement[0],
       etat: true,
       dateCree: DateTime.now(),
       quantite: quantiteReelle,
+      nombre: produit.nombre,
       prixAchat: produitOriginal?.prixAchat ?? prixAchat,
       prixVente: prod.prix,
       codeProduit: prod.codeProduit,
       creeParCode: userCode,
       codeOperation: pannier.code,
+      magasinCode: magasinCode,
     );
     await servicem.addMouvement(Mouv);
     print("✅ Mouvement ajouté: ${produit.nom}");
 
-    // Mise à jour du produit (quantité globale)
+    // Mise à jour du produit
     if (produitOriginal != null) {
-      produitOriginal.quantite = produitOriginal.quantite - quantiteReelle;
+      if (!produitOriginal.service) {
+        if (produit.nombre != null) {
+          produitOriginal.nombre = produitOriginal.nombre - produit.nombre!;
+        }
+      }
       produitOriginal.dateModif = DateTime.now();
       produitOriginal.modifParCode = userCode;
       await serviceP.updateProduit(produitOriginal);
-      print("✅ Produit mis à jour: nouvelle quantite=${produitOriginal.quantite}");
+      print("✅ Produit mis à jour: ${produitOriginal.code}");
 
       // Historique mise à jour produit
       final idh3 = await _getNextId('Historique');
@@ -234,13 +252,43 @@ Future<ApiResponse<int>> _SavePannier({
       etat: true,
       mode_paiement: pannier.modePaiement!,
       sense: 'Entrée',
-      type: "Pannier",
+      type: "Paiement",
       dateCree: DateTime.now(),
       creeParCode: userCode,
       caisse: pannier.caisse,
+      codeOperation: pannier.code,
     );
     await versementService.addverssement(versement);
     print("✅ Versement ajouté");
+
+    // 7️⃣ Mouvement de caisse (grand-livre) : encaissement de la vente,
+    // journalisé dans la session ouverte de cette caisse.
+    final sessionOuverte = await CaisseSessionServices.getSessionOuverte(caisseCode);
+    if (sessionOuverte != null) {
+      final nextMouvementId = await CaisseSessionServices.getNextMouvementId(db);
+      final mouvementCaisse = CaisseMouvement(
+        id: nextMouvementId,
+        code: CodeGenerator.generateCode(
+          prefix: CodePrefix.caisseMouvement,
+          id: nextMouvementId,
+          digitCount: 8,
+        ),
+        sessionCode: sessionOuverte.code,
+        caisseCode: caisseCode,
+        type: 'encaissement_vente',
+        sens: 'Entrée',
+        montant: montant,
+        modePaiement: pannier.modePaiement,
+        codeOperation: pannier.code,
+        clientCode: client.code,
+        date: DateTime.now(),
+        etat: true,
+        dateCree: DateTime.now(),
+        creeParCode: userCode,
+      );
+      await caisseSessionService.ajouterMouvement(mouvementCaisse);
+      print("✅ Mouvement de caisse ajouté");
+    }
   }
 
   print("✅ _SavePannier: SUCCÈS");
@@ -258,6 +306,7 @@ Future<void> EnregistrerTicketDialog({
 }) async {
   print("🎫 EnregistrerTicketDialog: DEBUT");
 
+  final l10n = AppLocalizations.of(context)!;
   final TextEditingController payeController = TextEditingController();
   final TextEditingController resteController = TextEditingController(
     text: caisse.total.toStringAsFixed(2),
@@ -272,15 +321,27 @@ Future<void> EnregistrerTicketDialog({
     print("❌ ERREUR: Caisse '${caisse.caisse}' non trouvée!");
     await InformationDialog(
       context: context,
-      titre_type_message: "Erreur",
-      titre_concerne: "Caisse",
-      message: "Caisse '${caisse.caisse}' non trouvée.",
+      titre_type_message: l10n.error,
+      titre_concerne: l10n.caisse,
+      message: l10n.caisseNotFound(caisse.caisse),
+    );
+    return;
+  }
+
+  // ✅ Session de caisse obligatoire : aucune vente ne peut être encaissée
+  // tant que la caisse n'a pas été ouverte (voir CaisseSessionServices).
+  final sessionOuverte = await CaisseSessionServices.getSessionOuverte(matchingCaisse.first.code);
+  if (sessionOuverte == null) {
+    await InformationDialog(
+      context: context,
+      titre_type_message: l10n.attention,
+      titre_concerne: l10n.caisse,
+      message: l10n.aucuneSessionOuverte(caisse.caisse),
     );
     return;
   }
 
   final auth = Provider.of<AuthState>(context, listen: false);
-  final l10n = AppLocalizations.of(context)!;
 
   if (!auth.isAuthenticated || auth.username == null || auth.userCode == null) {
     await InformationDialog(
@@ -337,7 +398,7 @@ Future<void> EnregistrerTicketDialog({
                       if (caisse.remiseActive && caisse.remise > 0)
                         _info(
                           l10n.totalBeforeDiscount,
-                          "${caisse.totalAchat.toStringAsFixed(2)} ${l10n.currency}",
+                          "${NumberFormatUtil.formatMontant(caisse.totalAchat, decimales: 2)} ${l10n.currency}",
                           l10n,
                           valueColor: Appstyle.TgrisF,
                         ),
@@ -346,7 +407,7 @@ Future<void> EnregistrerTicketDialog({
                       if (caisse.remiseActive && caisse.remise > 0)
                         _info(
                           l10n.discount,
-                          "${caisse.remise.toStringAsFixed(2)} ${l10n.currency}",
+                          "${NumberFormatUtil.formatMontant(caisse.remise, decimales: 2)} ${l10n.currency}",
                           l10n,
                           valueColor: Colors.green,
                         ),
@@ -354,7 +415,7 @@ Future<void> EnregistrerTicketDialog({
                       // ✅ TOTAL FINAL
                       _info(
                         l10n.totalFinal,
-                        "${(caisse.total-caisse.remise).toStringAsFixed(2)} ${l10n.currency}",
+                        "${NumberFormatUtil.formatMontant((caisse.total-caisse.remise), decimales: 2)} ${l10n.currency}",
                         l10n,
                         valueColor: caisse.remiseActive && caisse.remise > 0
                             ? Colors.green
@@ -444,6 +505,47 @@ Future<void> EnregistrerTicketDialog({
                   onPressed: () async {
                     print("💾 Enregistrement du ticket...");
 
+                    // ✅ Vérifier que le stock (actuel, potentiellement changé
+                    // depuis l'ajout au panier) permet toujours cette vente.
+                    final catalogueActuel = await ProduitServices.getAllProduits();
+                    final echecStock = await premierProduitInsuffisantPourVente(
+                      caisse.produits,
+                      catalogueActuel,
+                      magasinCode: selectedMagasinCode,
+                    );
+                    if (echecStock != null) {
+                      final (produitInsuffisant, quantiteNecessaire, quantiteDisponible) = echecStock;
+                      await InformationDialog(
+                        context: context,
+                        titre_type_message: l10n.error,
+                        titre_concerne: l10n.cart,
+                        message: l10n.stockInsuffisantPourProduit(
+                          produitInsuffisant.code,
+                          quantiteDisponible.toInt().toString(),
+                          quantiteNecessaire.toInt().toString(),
+                        ),
+                      );
+                      return;
+                    }
+
+                    // ✅ Nombre obligatoire pour les produits suivant le
+                    // second stock "nombre" (nombreActif).
+                    for (final ligne in caisse.produits) {
+                      final nombreActifLigne = catalogueActuel
+                              .firstWhereOrNull((p) => p.code == ligne.code)
+                              ?.nombreActif ??
+                          false;
+                      if (nombreActifLigne && (ligne.nombre == null || ligne.nombre! <= 0)) {
+                        await InformationDialog(
+                          context: context,
+                          titre_type_message: l10n.error,
+                          titre_concerne: ligne.nom,
+                          message: l10n.numberMustBeGreaterThanZero,
+                        );
+                        return;
+                      }
+                    }
+
                     // Afficher un indicateur de chargement
                     showDialog(
                       context: context,
@@ -468,8 +570,6 @@ Future<void> EnregistrerTicketDialog({
                         code: codePannier,
                         etat: true,
                         date: caisse.date,
-                        verse: caisse.total - (double.parse(resteController.text)),
-                        reste: double.parse(resteController.text),
                         client_code: client.code,
                         montant: caisse.total,
                         dateCree: DateTime.now(),
@@ -493,6 +593,7 @@ Future<void> EnregistrerTicketDialog({
                         montant: montant,
                         client: client,
                         magasinCode: selectedMagasinCode,
+                        caisseCode: Ccode,
                       );
 
                       // Fermer l'indicateur de chargement
@@ -533,7 +634,7 @@ Future<void> EnregistrerTicketDialog({
                         context: context,
                         titre_type_message: l10n.error,
                         titre_concerne: l10n.ticket,
-                        message: "Erreur: ${e.toString()}",
+                        message: "${l10n.errorOccurred}: ${e.toString()}",
                       );
                     }
                   },

@@ -8,6 +8,8 @@ import '../../../../data/models/categorie.dart';
 import '../../../../data/models/sous_categorie.dart';
 import '../../../data/constant.dart';
 import '../../../l10n/app_localizations.dart';
+import 'package:caisse_dz/core/theme/app_style.dart';
+import '../../dialog/produits_liste_dialog.dart';
 import '../../widget/status_badge.dart';
 import '../base_table_data_source.dart';
 
@@ -25,6 +27,7 @@ class SortieDataSource extends BaseTableDataSource<Sortie> {
     required this.produits,
     required this.categories,
     required this.sousCategories,
+    super.utilisateurs = const [],
   }) : super(items: sorties);
 
   String _nomProduit(String code) =>
@@ -63,6 +66,8 @@ class SortieDataSource extends BaseTableDataSource<Sortie> {
         return _nomSousCategorie(sortie.sousCategorieCode);
       case 'quantite':
         return sortie.quantite;
+      case 'nombre':
+        return sortie.nombre;
       case 'prix':
         return "${sortie.prix} ${l10n.currency}";
       case 'montant':
@@ -78,15 +83,15 @@ class SortieDataSource extends BaseTableDataSource<Sortie> {
       case 'dateCree':
         return formatDate(sortie.dateCree);
       case 'creeParCode':
-        return sortie.creeParCode;
+        return nomUtilisateur(sortie.creeParCode);
       case 'dateModif':
         return formatDate(sortie.dateModif);
       case 'modifParCode':
-        return sortie.modifParCode;
+        return nomUtilisateur(sortie.modifParCode);
       case 'dateAnnul':
         return formatDate(sortie.dateAnnul);
       case 'annulParCode':
-        return sortie.annulParCode;
+        return nomUtilisateur(sortie.annulParCode);
       case 'motifAnnul':
         return sortie.motifAnnul;
 
@@ -99,6 +104,12 @@ class SortieDataSource extends BaseTableDataSource<Sortie> {
   Widget? buildCustomCell(String columnName, DataGridCell cell, Sortie item) {
     if (columnName == 'etat') {
       return Center(child: EtatBadge(isActive: item.etat));
+    }
+
+    if (columnName == 'quantite') {
+      return Center(
+        child: pilluleCellule("${item.quantite}", Appstyle.violet),
+      );
     }
 
     if (columnName == 'montant') {

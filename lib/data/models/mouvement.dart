@@ -8,13 +8,24 @@ class Mouvement {
   String    codeOperation;
   String    codeProduit;
   String    type; // SmartScan
+  // Sous-type pour les mouvements de type "Sortie" (Don/Expiration/Autre) —
+  // voir ListsConst.typeSortie. Non utilisé pour les autres types.
+  String?   sousType;
 
   double    quantite;
+  // Nombre de pièces physiques concernées par ce mouvement (Paramètres >
+  // Nombre et Quantité) — voir Produit.nombre.
+  double?   nombre;
   double    prixAchat;
   double    prixVente;
 
   String?   fournisseurCode;
   String?   clientCode;
+
+  // Magasin où le mouvement a eu lieu (celui de la caisse active au moment
+  // du mouvement) — absent (NULL) sur les mouvements créés avant l'ajout de
+  // cette colonne, cf. DBCreate.dart oldVersion < 43.
+  String?   magasinCode;
 
   DateTime  date;
 
@@ -44,8 +55,11 @@ class Mouvement {
     required this.dateCree,
     required this.creeParCode,
 
+    this.nombre,
+    this.sousType,
     this.fournisseurCode,
     this.clientCode,
+    this.magasinCode,
 
     this.dateModif,
     this.modifParCode,
@@ -61,11 +75,14 @@ class Mouvement {
         code          : map['code'],
         codeProduit   : map['code_produit'],
         quantite      : map['quantite'],
+        nombre        : (map['nombre'] as num?)?.toDouble(),
         prixAchat     : map['prix_achat'],
         prixVente     : map['prix_vente'],
         clientCode        : map['client_code'],
         fournisseurCode   : map['fournisseur_code'],
+        magasinCode   : map['magasin_code'],
         type          : map['type'],
+        sousType      : map['sous_type'],
         etat          : map['etat'] == 1 ,
         date          : DateTime.parse(map['date']),
         creeParCode   : map['cree_par_code'],
@@ -86,12 +103,15 @@ class Mouvement {
       'code'            : code,
       'code_produit'    : codeProduit,
       'quantite'        : quantite,
+      'nombre'          : nombre,
       'prix_achat'      : prixAchat,
       'prix_vente'      : prixVente,
       'client_code'     : clientCode,
       'code_operation'  : codeOperation,
       'fournisseur_code': fournisseurCode,
+      'magasin_code'    : magasinCode,
       'type'            : type,
+      'sous_type'       : sousType,
       'etat'            : etat ? 1 : 0,
       'date'            : date.toIso8601String(),
       'date_cree'       : dateCree.toIso8601String(),

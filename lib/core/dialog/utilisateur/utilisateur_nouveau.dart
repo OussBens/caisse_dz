@@ -1,11 +1,13 @@
 import 'dart:convert';
 import 'dart:ui';
+import 'package:collection/collection.dart';
 import 'package:caisse_dz/DBCreate.dart';
-import 'package:caisse_dz/Services/Magasin.dart';
+import 'package:caisse_dz/Services/CaisseGestion.dart';
 import 'package:caisse_dz/Services/Role.dart' hide ApiResponse;
 import 'package:caisse_dz/Services/UserParam.dart' hide ApiResponse;
 import 'package:caisse_dz/Services/Utilisateur.dart';
 import 'package:caisse_dz/core/Auth/auth_state.dart';
+import 'package:caisse_dz/data/models/gestion_caisse.dart';
 import 'package:caisse_dz/data/models/role.dart';
 import 'package:caisse_dz/data/models/userparam.dart';
 import 'package:caisse_dz/data/models/utilisateur.dart';
@@ -29,10 +31,16 @@ import '../information_dialog.dart';
 
 List<Role> RoleTest = [];
 List<String> roles = [];
+List<CaisseGestion> CaisseTestN = [];
+List<String> caissesN = [];
 
 Future<void> loadAllData() async {
-  RoleTest = await RoleServices.getAllRoles();
+  // ✅ Un nouvel utilisateur ne peut pas se voir assigner le rôle Admin
+  // (unique) : il faut d'abord créer un rôle dédié depuis l'écran Rôles.
+  RoleTest = await RoleServices.getAssignableRoles();
   roles = RoleTest.map((c) => c.rolenom).toList();
+  CaisseTestN = await GCServices.getAllCaisses();
+  caissesN = CaisseTestN.map((c) => c.nomCaisse).toList();
 }
 
 // Modifier _SaveUtilisateur
@@ -62,12 +70,12 @@ Future<ApiResponse<int>> _SaveUtilisateur({required Utilisateur utilisateur, req
   }
 
   // Le reste du code pour UserParam...
-  final magPrinc = await MagasinServices.getAllMagasins();
+  // caisse_dz est mono-magasin : tout utilisateur est rattaché au magasin système.
   UserParam userparam = UserParam(
       id: await _GetNextUPOId(),
       nom: utilisateur.username,
-      magasin: magPrinc.first.nom,
-      magasinid: magPrinc.first.id.toString(),
+      magasin: 'Magasin System',
+      magasinid: '1',
       language: 'fr',
       currency: 'DZD',
       creeParCode: utilisateur.creeParCode,
@@ -112,8 +120,14 @@ final TextEditingController usernameControllerN = TextEditingController();
 final TextEditingController passwordControllerN = TextEditingController();
 final TextEditingController telControllerN = TextEditingController();
 
-String? selectedRoleN = roles.first;
+String? selectedRoleN = roles.firstOrNull;
 String? selectedEtatN = "actif";
+String? selectedCaisseN;
+
+// Nom de la caisse système, toujours présente en base (seedée dans
+// DBCreate.dart), utilisée comme valeur par défaut obligatoire du champ
+// caisse pour tout nouvel utilisateur.
+const String _caisseSystemNom = 'Caisse System';
 
 void resetUtilisateurForm() {
   usernameControllerN.clear();
@@ -121,8 +135,9 @@ void resetUtilisateurForm() {
   passwordControllerN.clear();
   telControllerN.clear();
 
-  selectedRoleN = roles.first;
+  selectedRoleN = roles.firstOrNull;
   selectedEtatN = "actif";
+  selectedCaisseN = caissesN.contains(_caisseSystemNom) ? _caisseSystemNom : caissesN.firstOrNull;
 }
 
 final GlobalKey<FormState> produitFormKey = GlobalKey<FormState>();
@@ -153,6 +168,9 @@ Future<void> UtilisateurNouveau(BuildContext context) async {
   await loadAllData();
   int id = await _GetNextId();
   String rolecode = '';
+
+  // ✅ Champ caisse obligatoire, initialisé avec la caisse système.
+  selectedCaisseN = caissesN.contains(_caisseSystemNom) ? _caisseSystemNom : caissesN.firstOrNull;
 
   // ✅ Initialiser rolecode avec le code du premier rôle
   if (RoleTest.isNotEmpty) {
@@ -201,6 +219,15 @@ Future<void> UtilisateurNouveau(BuildContext context) async {
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
+                              ChampAvecLabel(
+                                label: l10n.code,
+                                child: TextChampL(
+                                  enabled: false,
+                                  controller: TextEditingController(text: code),
+                                  hint: "",
+                                ),
+                              ),
+                              const SizedBox(height: 10),
                               ChampAvecLabel(
                                 label: l10n.user,
                                 obligatoire: true,
@@ -259,6 +286,19 @@ Future<void> UtilisateurNouveau(BuildContext context) async {
 
                               const SizedBox(height: 10),
                               ChampAvecLabel(
+                                label: l10n.cashRegister,
+                                obligatoire: true,
+                                child: TextListe(
+                                  obligatoire: true,
+                                  value: selectedCaisseN,
+                                  items: caissesN,
+                                  clearable: false,
+                                  onChanged: (v) => setState(() => selectedCaisseN = v),
+                                ),
+                              ),
+
+                              const SizedBox(height: 10),
+                              ChampAvecLabel(
                                 label: l10n.observation,
                                 child: TextChampL(
                                   controller: observationControllerN,
@@ -302,8 +342,16 @@ Future<void> UtilisateurNouveau(BuildContext context) async {
                           return;
                         }
 
+                        // ✅ Retirer les espaces superflus : AuthState.login()
+                        // trim() le nom d'utilisateur et le mot de passe
+                        // avant de les comparer/hasher — un espace en trop
+                        // enregistré ici (ex. saisie/collage accidentel)
+                        // empêcherait alors définitivement la connexion.
+                        final trimmedUsername = usernameControllerN.text.trim();
+                        final trimmedPassword = passwordControllerN.text.trim();
+
                         // Validate password length
-                        if (passwordControllerN.text.length < 4) {
+                        if (trimmedPassword.length < 4) {
                           await InformationDialog(
                             context: context,
                             titre_type_message: l10n.error,
@@ -313,15 +361,31 @@ Future<void> UtilisateurNouveau(BuildContext context) async {
                           return;
                         }
 
+                        // ✅ Unicité du nom d'utilisateur avant toute création.
+                        final utilisateurNomExistant = await UtilisateurServices.findUtilisateurByUsername(trimmedUsername);
+                        if (utilisateurNomExistant != null) {
+                          await InformationDialog(
+                            context: context,
+                            titre_type_message: l10n.error,
+                            titre_concerne: l10n.user,
+                            message: l10n.usernameAlreadyExists,
+                          );
+                          return;
+                        }
+
                         // Hash password using the same method as AuthState
-                        final hashedPassword = hashPassword(passwordControllerN.text);
+                        final hashedPassword = hashPassword(trimmedPassword);
+
+                        final caisseCode = selectedCaisseN == null
+                            ? null
+                            : CaisseTestN.where((c) => c.nomCaisse == selectedCaisseN).firstOrNull?.code;
 
                         Utilisateur user = Utilisateur(
                           dernierAcces  : DateTime.now(),
                           observation   : observationControllerN.text,
                           telephone     : telControllerN.text,
                           dateCree      : DateTime.now(),
-                          username      : usernameControllerN.text,
+                          username      : trimmedUsername,
                           password      : hashedPassword, // ✅ Using the same hashing as AuthState
                           credit        : 0,
                           code          : code,
@@ -329,6 +393,7 @@ Future<void> UtilisateurNouveau(BuildContext context) async {
                           etat          : true,
                           id            : id,
                           role_code     : rolecode,
+                          caisseCode    : caisseCode,
                           creeParCode   : userCode,
                         );
 

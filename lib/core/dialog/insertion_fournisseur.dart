@@ -14,11 +14,13 @@ import '../../DBCreate.dart'; // Ajouter cet import
 class InsertionFournisseurDialog extends StatefulWidget {
   final List<Fournisseur> fournisseurs;
   final Function(Fournisseur) onFournisseurSelected;
+  final bool newButton;
 
   const InsertionFournisseurDialog({
     Key? key,
     required this.fournisseurs,
     required this.onFournisseurSelected,
+    this.newButton = true,
   }) : super(key: key);
 
   @override
@@ -64,7 +66,7 @@ class _InsertionFournisseurDialogState
     }).toList();
 
     return BaseDialog(
-      couleur: Appstyle.violetC,
+      couleur: Appstyle.Tblanc,
       width: 1000,
       height: 800,
       header: Row(
@@ -97,19 +99,20 @@ class _InsertionFournisseurDialogState
                   },
                 ),
               ),
-              MainButton(
-                text: l10n.newWord,
-                color: Appstyle.crevete,
-                onPressed: () async {
-                  // Ouvrir le dialog de création
-                  await FournisseurNouveau(context);
+              if (widget.newButton)
+                MainButton(
+                  text: l10n.newWord,
+                  color: Appstyle.crevete,
+                  onPressed: () async {
+                    // Ouvrir le dialog de création
+                    await FournisseurNouveau(context);
 
-                  // Recharger les fournisseurs après la fermeture du dialog
-                  await reloadFournisseurs();
+                    // Recharger les fournisseurs après la fermeture du dialog
+                    await reloadFournisseurs();
 
 
-                },
-              ),
+                  },
+                ),
             ],
           ),
 

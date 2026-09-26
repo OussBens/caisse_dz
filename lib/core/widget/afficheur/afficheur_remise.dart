@@ -3,6 +3,7 @@ import 'package:caisse_dz/core/dialog/remise/remise_detail.dart';
 import 'package:caisse_dz/core/theme/app_style.dart';
 import '../../../../data/models/remise.dart';
 import '../../../../l10n/app_localizations.dart';
+import 'package:caisse_dz/core/utilis/number_format.dart';
 
 class AfficheurRemise extends StatelessWidget {
   final Remise remise;
@@ -84,17 +85,16 @@ class AfficheurRemise extends StatelessWidget {
             flex: 4,
             child: Row(
               children: [
-                _statCard(
-                  remise.tauxType == "POURCENTAGE"
-                      ? l10n.rate
-                      : l10n.amount,
-                  remise.tauxType == "POURCENTAGE"
-                      ? (remise.taux)
-                      : (remise.montant?.toDouble() ?? 0),
-                  Colors.orange,
-                  suffix: remise.tauxType == "POURCENTAGE" ? " %" : " ${l10n.currency}",
-                  l10n: l10n,
-                ),
+                // Afficher le montant ou le taux selon le type
+                if (remise.type == "Par Montant")
+                  _statCard(
+                    l10n.amount,
+                    remise.montant?.toDouble() ?? 0,
+                    Colors.orange,
+                    suffix: " ${l10n.currency}",
+                    l10n: l10n,
+                  ),
+
                 if (remise.type == "Par Produit")
                   _statCard(
                     l10n.productCount,
@@ -103,6 +103,17 @@ class AfficheurRemise extends StatelessWidget {
                     suffix: "",
                     l10n: l10n,
                   ),
+
+                const SizedBox(width: 10),
+
+                // Afficher la réduction (taux) - toujours affiché
+                _statCard(
+                  l10n.reduction,
+                  remise.taux,
+                  Colors.blue,
+                  suffix: remise.tauxType == "POURCENTAGE" ? " %" : " ${l10n.currency}",
+                  l10n: l10n,
+                ),
               ],
             ),
           ),
@@ -147,10 +158,9 @@ class AfficheurRemise extends StatelessWidget {
               ),
               const SizedBox(height: 8),
               // Bouton Liste des produits (uniquement pour les remises de type "Par Produit")
-               if (remise.type == "Par Produit")
+              if (remise.type == "Par Produit")
                 ElevatedButton(
                   onPressed: () {
-                    // Appel de la fonction dédiée pour la liste des produits
                     showRemiseProductsListDialog(context, remise, l10n);
                   },
                   style: ElevatedButton.styleFrom(
@@ -220,7 +230,7 @@ class AfficheurRemise extends StatelessWidget {
           Text(label, style: TextStyle(color: color, fontSize: 12)),
           const SizedBox(height: 4),
           Text(
-            "${value.toStringAsFixed(0)}$suffix",
+            "${NumberFormatUtil.formatMontant(value, decimales: 0)}$suffix",
             style: TextStyle(
               fontWeight: FontWeight.bold,
               color: color,

@@ -1,6 +1,8 @@
+import 'package:collection/collection.dart';
 import 'package:flutter/material.dart';
 import 'package:syncfusion_flutter_datagrid/datagrid.dart';
 
+import '../../../../data/models/fournisseur.dart';
 import '../../../../data/models/smart_scan.dart';
 import '../../../data/constant.dart';
 import '../../../l10n/app_localizations.dart';
@@ -9,12 +11,25 @@ import '../base_table_data_source.dart';
 
 class SmartScanDataSource extends BaseTableDataSource<SmartScan> {
   final AppLocalizations l10n;
+  final List<Fournisseur> fournisseurs;
+  Map<String, double> verseParSmartScan;
+  Map<String, int> nbrVersementParSmartScan;
 
   SmartScanDataSource({
     required List<SmartScan> scans,
     required super.columnConfig,
     required this.l10n,
+    this.fournisseurs = const [],
+    this.verseParSmartScan = const {},
+    this.nbrVersementParSmartScan = const {},
+    super.utilisateurs = const [],
   }) : super(items: scans);
+
+  double _verse(SmartScan s) => verseParSmartScan[s.code] ?? 0;
+  double _reste(SmartScan s) => s.montant - _verse(s);
+
+  String _nomFournisseur(String? code) =>
+      fournisseurs.firstWhereOrNull((f) => f.code == code)?.nom ?? code ?? '';
 
   String formatDate(DateTime? date) {
     if (date == null) return '';
@@ -35,22 +50,18 @@ class SmartScanDataSource extends BaseTableDataSource<SmartScan> {
         return formatDate(scan.date);
       case 'montant':
         return "${scan.montant} ${l10n.currency}";
-      case 'montantCalcul':
-        return "${scan.montantCalcul} ${l10n.currency}";
+      case 'verse':
+        return _verse(scan);
+      case 'reste':
+        return _reste(scan);
+      case 'nbrVersement':
+        return nbrVersementParSmartScan[scan.code] ?? 0;
       case 'nbrProduit':
         return scan.nbrProduit;
-      case 'nbrProduitCalcul':
-        return scan.nbrProduitCalcul;
       case 'fournisseur':
-        return scan.fournisseurCode;
-      case 'quantiteArticle':
-        return scan.quantiteArticle;
-      case 'quantiteArticleCalcul':
-        return scan.quantiteArticleCalcul;
+        return _nomFournisseur(scan.fournisseurCode);
       case 'etat':
         return scan.etat ? l10n.active : l10n.inactive;
-      case 'activity':
-        return scan.activity;
       case 'observation':
         return scan.observation;
 
@@ -58,15 +69,15 @@ class SmartScanDataSource extends BaseTableDataSource<SmartScan> {
       case 'dateCree':
         return formatDate(scan.dateCree);
       case 'creeParCode':
-        return scan.creeParCode;
+        return nomUtilisateur(scan.creeParCode);
       case 'dateModif':
         return formatDate(scan.dateModif);
       case 'modifParCode':
-        return scan.modifParCode;
+        return nomUtilisateur(scan.modifParCode);
       case 'dateAnnul':
         return formatDate(scan.dateAnnul);
       case 'annulParCode':
-        return scan.annulParCode;
+        return nomUtilisateur(scan.annulParCode);
       case 'motifAnnul':
         return scan.motifAnnul;
 
@@ -81,23 +92,15 @@ class SmartScanDataSource extends BaseTableDataSource<SmartScan> {
       return Center(child: EtatBadge(isActive: item.etat));
     }
 
-    if (columnName == 'ecart') {
-      final bool hasGap = item.ecart;
-
+    if (columnName == 'reste') {
+      final double resteValue = _reste(item);
       return Center(
-        child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-          decoration: BoxDecoration(
-            color: hasGap ? Colors.red : Colors.grey,
-            borderRadius: BorderRadius.circular(8),
-          ),
-          child: Text(
-            hasGap ? l10n.yes : l10n.no,
-            style: const TextStyle(
-              color: Colors.white,
-              fontWeight: FontWeight.bold,
-              fontSize: AppConst.FontSizeTable,
-            ),
+        child: Text(
+          "$resteValue ${l10n.currency}",
+          style: TextStyle(
+            fontSize: AppConst.FontSizeTable,
+            color: resteValue > 0 ? Colors.red : Colors.black,
+            fontWeight: resteValue > 0 ? FontWeight.bold : FontWeight.normal,
           ),
         ),
       );
@@ -127,4 +130,14 @@ class SmartScanDataSource extends BaseTableDataSource<SmartScan> {
   }
 
   void update(List<SmartScan> newScans) => updateItems(newScans);
+
+  void updateVerseInfo(
+    Map<String, double> newVerseParSmartScan,
+    Map<String, int> newNbrVersementParSmartScan,
+  ) {
+    verseParSmartScan = newVerseParSmartScan;
+    nbrVersementParSmartScan = newNbrVersementParSmartScan;
+    buildDataGridRows();
+    notifyListeners();
+  }
 }

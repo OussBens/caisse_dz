@@ -9,6 +9,7 @@ class TitleSmall extends StatelessWidget {
   final Color couleur;
   final bool iconRight;
   final double opacity;
+  final double textsize;
   final bool italic; // ⭐ NOUVEAU
 
   const TitleSmall({
@@ -16,6 +17,7 @@ class TitleSmall extends StatelessWidget {
     required this.imagePath,
     required this.text,
     this.imageSize = 20,
+    this.textsize = 26,
     required this.couleur,
     this.iconRight = false,
     this.opacity = 1.0,
@@ -37,6 +39,7 @@ class TitleSmall extends StatelessWidget {
       style: Appstyle.textLB.copyWith(
         color: couleur.withOpacity(opacity),
         fontStyle: italic ? FontStyle.italic : FontStyle.normal, // ⭐ ICI
+        fontSize: textsize,
       ),
     );
 

@@ -1,7 +1,7 @@
 import 'dart:ui';
+import 'package:collection/collection.dart';
 import 'package:caisse_dz/DBCreate.dart';
 import 'package:caisse_dz/Services/Historique.dart';
-import 'package:caisse_dz/Services/Magasin.dart';
 import 'package:caisse_dz/core/Auth/auth_state.dart';
 import 'package:caisse_dz/core/dialog/besionlist/besoinlist_nouveau.dart';
 import 'package:caisse_dz/core/widget/title/titre_avec_ligne.dart';
@@ -11,14 +11,15 @@ import 'package:caisse_dz/core/widget/champ/text_champ_l.dart';
 import 'package:caisse_dz/core/widget/title/title_small.dart';
 import 'package:caisse_dz/l10n/app_localizations.dart';
 import 'package:caisse_dz/Services/MagasinDetail.dart';
+import 'package:caisse_dz/Services/Mouvement.dart';
 import 'package:caisse_dz/core/dialog/base_dialog.dart';
 import 'package:caisse_dz/core/theme/app_style.dart';
+import 'package:caisse_dz/core/widget/code_generateur.dart';
 import 'package:caisse_dz/data/constant.dart';
 import 'package:caisse_dz/data/models/histore.dart';
-import 'package:caisse_dz/data/models/magasin.dart';
+import 'package:caisse_dz/data/models/mouvement.dart';
 import 'package:caisse_dz/data/models/produit.dart';
 import 'package:caisse_dz/data/models/produit_magasin_detail.dart';
-import 'package:collection/collection.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
@@ -32,7 +33,14 @@ final TextEditingController nomController       = TextEditingController();
 
 List<ProduitMagasinDetail>  magasinsDistribues    = [];
 List<ProduitMagasinDetail>  produitsMagasinsTest  = [];
-List<Magasin>               magasinsTest          = [];
+// ✅ Quantité globale calculée depuis le journal des mouvements — remplace Produit.quantite.
+double quantiteGlobaleTest = 0;
+// ✅ Quantités par détail magasin, calculées depuis le journal des mouvements
+// (remplace ProduitMagasinDetail.quantite) — clé = l'objet détail lui-même,
+// pour couvrir aussi bien les lignes existantes que celles pas encore
+// enregistrées (id == 0).
+Map<ProduitMagasinDetail, double> quantitesActuelles = {};
+Map<ProduitMagasinDetail, double> quantitesCibles = {};
 
 // Définir le code du magasin système
 const String SYSTEM_STORE_CODE = "MAG0000";
@@ -43,12 +51,11 @@ bool isSystemStore(String magasinCode) {
 }
 
 String magasinNomByCode(String magasinCode) {
-  return magasinsTest.firstWhereOrNull((m) => m.code == magasinCode)?.nom ?? magasinCode;
+  return isSystemStore(magasinCode) ? 'Magasin System' : magasinCode;
 }
 
 Future<void> _LoadData() async {
   produitsMagasinsTest = await ProduitMagasinDetailServices.getAllDetails();
-  magasinsTest = await MagasinServices.getAllMagasins();
 }
 
 Future<int> _GetNextHistoriqueId() async {
@@ -60,52 +67,97 @@ Future<int> _GetNextHistoriqueId() async {
   return id;
 }
 
+Future<int> _GetNextMouvementId() async {
+  final db = await DbCreator.openDb();
+  int id = 0;
+  await db.transaction((txn) async {
+    id = await MouvementsServices.getNextMouvementId(txn);
+  });
+  return id;
+}
+
+/// Journalise dans `mouvements` (type "Distribution") le changement de
+/// quantité d'une ligne produit_magasin_detail, dans quelque sens que ce
+/// soit — jusqu'ici cet écran modifiait le stock par magasin en silence,
+/// invisible dans le journal des mouvements (contrairement à une vente, un
+/// achat, une sortie ou un retour). `sousType` porte le sens ("Entrée"/
+/// "Sortie"), faute d'un champ dédié sur Mouvement.
+Future<void> _JournaliserDistribution({
+  required MouvementsServices serviceM,
+  required Produit produit,
+  required String magasinCode,
+  required double delta, // positif = ajouté au magasin, négatif = retiré
+  required String codeOperation,
+  required String userCode,
+}) async {
+  if (delta == 0) return;
+
+  final int idm = await _GetNextMouvementId();
+  final mouv = Mouvement(
+    id: idm,
+    code: CodeGenerator.generateCode(prefix: CodePrefix.mouvement, id: idm, digitCount: 8),
+    date: DateTime.now(),
+    codeProduit: produit.code,
+    quantite: delta.abs(),
+    prixAchat: produit.prixAchat,
+    prixVente: produit.prixVente,
+    type: 'Distribution',
+    sousType: delta > 0 ? 'Entrée' : 'Sortie',
+    magasinCode: magasinCode,
+    etat: true,
+    codeOperation: codeOperation,
+    dateCree: DateTime.now(),
+    creeParCode: userCode,
+  );
+  await serviceM.addMouvement(mouv);
+}
+
 Future<void> UpdateDistribution({
   required List<ProduitMagasinDetail> UDetail,  // Nouvelles données (après modification)
   required List<ProduitMagasinDetail> ODetail,  // Anciennes données (avant modification)
+  // Quantités par détail (voir quantitesActuelles/quantitesCibles ci-dessus)
+  // — remplacent ProduitMagasinDetail.quantite, supprimé du modèle.
+  required Map<ProduitMagasinDetail, double> anciennesQuantites,
+  required Map<ProduitMagasinDetail, double> nouvellesQuantites,
+  required Produit produit,
   required String userName,
   required String userCode,
 }) async {
   final db = await DbCreator.openDb();
   final services = ProduitMagasinDetailServices(db);
   final serviceh = HistoriqueServices(db);
+  final serviceM = MouvementsServices(db);
 
-  print("=== UpdateDistribution ===");
-  print("ODetail (original) count: ${ODetail.length}");
-  print("UDetail (updated) count: ${UDetail.length}");
-
-  for (var old in ODetail) {
-    print("Original: ${old.magasinCode} - ${old.quantite}");
-  }
-  for (var newD in UDetail) {
-    print("Updated: ${newD.magasinCode} - ${newD.quantite}");
-  }
+  final String codeOperation = CodeGenerator.generateCodeWithTimestamp(
+    prefix: CodePrefix.transfert,
+    id: produit.id,
+  );
 
   // ✅ 1. Traiter les mises à jour et les suppressions
   for (var oldDetail in ODetail) {
     // Vérifier si c'est un magasin système - on ignore la suppression
     if (isSystemStore(oldDetail.magasinCode)) {
-      print("Magasin système détecté: ${oldDetail.magasinCode} - Ignorer la suppression");
       continue; // Passer ce magasin système
     }
 
+    final ancienneQuantite = anciennesQuantites[oldDetail] ?? 0;
     // Chercher le détail correspondant dans UDetail par ID
-    final matchingNewDetail = UDetail.firstWhere(
+    final matchingNewDetail = UDetail.firstWhereOrNull(
           (newDetail) => newDetail.id == oldDetail.id,
-      orElse: () => ProduitMagasinDetail(
-        id: 0,
-        magasinCode: '',
-        produitCode: '',
-        quantite: 0,
-        dateCree: DateTime.now(),
-        creeParCode: '',
-      ),
     );
 
-    if (matchingNewDetail.id == 0) {
+    if (matchingNewDetail == null) {
       // ✅ Le détail a été supprimé par l'utilisateur
-      print("Suppression: ${oldDetail.magasinCode}");
       await services.deleteDetaile(oldDetail);
+
+      await _JournaliserDistribution(
+        serviceM: serviceM,
+        produit: produit,
+        magasinCode: oldDetail.magasinCode,
+        delta: -ancienneQuantite,
+        codeOperation: codeOperation,
+        userCode: userCode,
+      );
 
       final int idH = await _GetNextHistoriqueId();
       final Historique histo = Historique(
@@ -119,30 +171,41 @@ Future<void> UpdateDistribution({
       );
       await serviceh.addHistorique(histo);
     }
-    else if (matchingNewDetail.quantite != oldDetail.quantite) {
-      // ✅ La quantité a changé - mettre à jour
-      print("Mise à jour: ${oldDetail.magasinCode} - ${oldDetail.quantite} → ${matchingNewDetail.quantite}");
-      await services.updateQuantite(oldDetail.id, matchingNewDetail.quantite);
+    else {
+      final nouvelleQuantite = nouvellesQuantites[matchingNewDetail] ?? ancienneQuantite;
+      if (nouvelleQuantite != ancienneQuantite) {
+        // ✅ La quantité a changé - journaliser le delta
+        await _JournaliserDistribution(
+          serviceM: serviceM,
+          produit: produit,
+          magasinCode: oldDetail.magasinCode,
+          delta: nouvelleQuantite - ancienneQuantite,
+          codeOperation: codeOperation,
+          userCode: userCode,
+        );
 
-      final int idH = await _GetNextHistoriqueId();
-      final Historique histo = Historique(
-          id: idH,
-          code: "HS$idH ${DateTime.now().microsecondsSinceEpoch}",
-          desc: "L'utilisateur $userName a modifié la quantité du produit ${matchingNewDetail.produitCode} dans le magasin ${magasinNomByCode(matchingNewDetail.magasinCode)} : ${oldDetail.quantite.toInt()} → ${matchingNewDetail.quantite.toInt()}",
-          type: "ProduitMagasinDetail",
-          oper: ListsConst.typeHisto[1],
-          dateCree: DateTime.now(),
-          creeParCode: userCode
-      );
-      await serviceh.addHistorique(histo);
+        final int idH = await _GetNextHistoriqueId();
+        final Historique histo = Historique(
+            id: idH,
+            code: "HS$idH ${DateTime.now().microsecondsSinceEpoch}",
+            desc: "L'utilisateur $userName a modifié la quantité du produit ${matchingNewDetail.produitCode} dans le magasin ${magasinNomByCode(matchingNewDetail.magasinCode)} : ${ancienneQuantite.toInt()} → ${nouvelleQuantite.toInt()}",
+            type: "ProduitMagasinDetail",
+            oper: ListsConst.typeHisto[1],
+            dateCree: DateTime.now(),
+            creeParCode: userCode
+        );
+        await serviceh.addHistorique(histo);
+      }
     }
   }
 
   // ✅ 2. Traiter les nouveaux ajouts (détails sans ID)
   for (var newDetail in UDetail) {
-    if (newDetail.id == 0 && newDetail.quantite > 0) {
+    if (newDetail.id == 0) {
+      final nouvelleQuantite = nouvellesQuantites[newDetail] ?? 0;
+      if (nouvelleQuantite <= 0) continue;
+
       // ✅ Nouveau détail à ajouter
-      print("Nouvel ajout: ${newDetail.magasinCode} - ${newDetail.quantite}");
       final newId = await ProduitMagasinDetailServices.getNextId(db);
       newDetail.id = newId;
       newDetail.dateCree = DateTime.now();
@@ -150,11 +213,20 @@ Future<void> UpdateDistribution({
 
       await services.addProduitMagasinDetail(newDetail);
 
+      await _JournaliserDistribution(
+        serviceM: serviceM,
+        produit: produit,
+        magasinCode: newDetail.magasinCode,
+        delta: nouvelleQuantite,
+        codeOperation: codeOperation,
+        userCode: userCode,
+      );
+
       final int idH = await _GetNextHistoriqueId();
       final Historique histo = Historique(
           id: idH,
           code: "HS$idH ${DateTime.now().microsecondsSinceEpoch}",
-          desc: "L'utilisateur $userName a ajouté le produit ${newDetail.produitCode} dans le magasin ${magasinNomByCode(newDetail.magasinCode)} avec quantité ${newDetail.quantite.toInt()}",
+          desc: "L'utilisateur $userName a ajouté le produit ${newDetail.produitCode} dans le magasin ${magasinNomByCode(newDetail.magasinCode)} avec quantité ${nouvelleQuantite.toInt()}",
           type: "ProduitMagasinDetail",
           oper: ListsConst.typeHisto[0],
           dateCree: DateTime.now(),
@@ -167,6 +239,7 @@ Future<void> UpdateDistribution({
 
 Future<void> DistributionProduit(BuildContext context, Produit produit) async {
   await _LoadData();
+  quantiteGlobaleTest = await MouvementsServices.quantiteProduit(produit.code);
 
   prixVenteController.text = produit.prixVente.toStringAsFixed(2);
   prixAchatController.text = produit.prixAchat.toStringAsFixed(2);
@@ -180,34 +253,25 @@ Future<void> DistributionProduit(BuildContext context, Produit produit) async {
       .where((m) => m.produitCode == produit.code)
       .toList();
 
-  // ✅ CRÉER UNE COPIE PROFONDE des données originales pour la comparaison
-  final List<ProduitMagasinDetail> originalDetails = [];
+  // ✅ Quantités actuelles par magasin, calculées depuis le journal des
+  // mouvements (remplace ProduitMagasinDetail.quantite).
+  quantitesActuelles = {};
   for (var detail in currentDetails) {
-    originalDetails.add(ProduitMagasinDetail(
-      id: detail.id,
+    quantitesActuelles[detail] = await MouvementsServices.quantiteProduit(
+      produit.code,
       magasinCode: detail.magasinCode,
-      produitCode: detail.produitCode,
-      quantite: detail.quantite,
-      dateCree: detail.dateCree,
-      creeParCode: detail.creeParCode,
-    ));
+    );
   }
+  // ✅ Quantités cibles éditées par l'utilisateur — copie de départ.
+  quantitesCibles = Map.of(quantitesActuelles);
 
-  // ✅ Initialiser la liste modifiable avec une COPIE
-  magasinsDistribues = [];
-  for (var detail in currentDetails) {
-    magasinsDistribues.add(ProduitMagasinDetail(
-      id: detail.id,
-      magasinCode: detail.magasinCode,
-      produitCode: detail.produitCode,
-      quantite: detail.quantite,
-      dateCree: detail.dateCree,
-      creeParCode: detail.creeParCode,
-    ));
-  }
+  // Les lignes ne portant plus de quantite, une copie de la liste (pas des
+  // objets) suffit pour distinguer "avant" (ODetail) et "après" (UDetail).
+  final List<ProduitMagasinDetail> originalDetails = List.from(currentDetails);
+  magasinsDistribues = List.from(currentDetails);
 
   Map<int, TextEditingController> controllers = {
-    for (var m in magasinsDistribues) m.id: TextEditingController(text: m.quantite.toString())
+    for (var m in magasinsDistribues) m.id: TextEditingController(text: (quantitesCibles[m] ?? 0).toString())
   };
 
   final auth = Provider.of<AuthState>(context, listen: false);
@@ -235,7 +299,7 @@ Future<void> DistributionProduit(BuildContext context, Produit produit) async {
         double totalDistribue() {
           double sum = 0;
           for (var detail in magasinsDistribues) {
-            sum += detail.quantite;
+            sum += quantitesCibles[detail] ?? 0;
           }
           return sum;
         }
@@ -317,9 +381,9 @@ Future<void> DistributionProduit(BuildContext context, Produit produit) async {
                         couleur: Appstyle.violet,
                       ),
                       Text(
-                        "${l10n.totalDistributed}: ${totalDistribue().toInt()} / ${l10n.available}: ${produit.quantite.toInt()}",
+                        "${l10n.totalDistributed}: ${totalDistribue().toInt()} / ${l10n.available}: ${quantiteGlobaleTest.toInt()}",
                         style: Appstyle.textSB.copyWith(
-                          color: totalDistribue() > produit.quantite.toInt()
+                          color: totalDistribue() > quantiteGlobaleTest.toInt()
                               ? Colors.red
                               : Colors.black,
                         ),
@@ -405,7 +469,7 @@ Future<void> DistributionProduit(BuildContext context, Produit produit) async {
                                           ),
                                           onChanged: (val) {
                                             setState(() {
-                                              m.quantite = double.tryParse(val) ?? 0;
+                                              quantitesCibles[m] = double.tryParse(val) ?? 0;
                                               controllers[m.id]?.text = val;
                                             });
                                           },
@@ -419,6 +483,7 @@ Future<void> DistributionProduit(BuildContext context, Produit produit) async {
                                             setState(() {
                                               magasinsDistribues.remove(m);
                                               controllers.remove(m.id);
+                                              quantitesCibles.remove(m);
                                             });
                                           },
                                         )
@@ -452,7 +517,7 @@ Future<void> DistributionProduit(BuildContext context, Produit produit) async {
                     color: Appstyle.violet,
                     icon: Icons.save,
                     onPressed: () async {
-                      if (totalDistribue() > produit.quantite.toInt()) {
+                      if (totalDistribue() > quantiteGlobaleTest.toInt()) {
                         ScaffoldMessenger.of(context).showSnackBar(
                           SnackBar(content: Text(l10n.distributionExceedsStock)),
                         );
@@ -463,8 +528,11 @@ Future<void> DistributionProduit(BuildContext context, Produit produit) async {
                       await UpdateDistribution(
                           userCode: userCode,
                           userName: userName,
+                          produit: produit,
                           ODetail: originalDetails,  // ✅ Utiliser la copie originale
-                          UDetail: magasinsDistribues
+                          UDetail: magasinsDistribues,
+                          anciennesQuantites: quantitesActuelles,
+                          nouvellesQuantites: quantitesCibles,
                       );
 
                       Navigator.pop(context);

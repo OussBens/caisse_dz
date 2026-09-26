@@ -6,11 +6,15 @@ import 'package:caisse_dz/Services/Mouvement.dart';
 import 'package:caisse_dz/Services/Pannier.dart';
 import 'package:caisse_dz/Services/PannierProduit.dart';
 import 'package:caisse_dz/Services/Produits.dart';
+import 'package:caisse_dz/Services/Verssement.dart';
 import 'package:collection/collection.dart';
 import 'package:caisse_dz/core/Auth/auth_state.dart';
 import 'package:caisse_dz/core/dialog/base_dialog.dart';
+import 'package:caisse_dz/core/dialog/pannier/pannier_modif.dart' show updateMagasinStock, updateProduct;
 import 'package:caisse_dz/core/theme/app_style.dart';
 import 'package:caisse_dz/core/widget/button/main_button.dart';
+import 'package:caisse_dz/core/widget/champ/champ_avec_label.dart';
+import 'package:caisse_dz/core/widget/champ/text_champ_l.dart';
 import 'package:caisse_dz/core/widget/title/titre_avec_ligne.dart';
 import 'package:caisse_dz/data/constant.dart';
 import 'package:caisse_dz/data/models/histore.dart';
@@ -19,6 +23,7 @@ import 'package:caisse_dz/l10n/app_localizations.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
+import 'package:caisse_dz/core/utilis/number_format.dart';
 
 Future<int> _GetNextHistoriqueId() async {
   final db = await DbCreator.openDb();
@@ -29,16 +34,26 @@ Future<int> _GetNextHistoriqueId() async {
   return id;
 }
 
-Future<void> _DeletePannier ({
+/// Annulation "douce" des paniers sélectionnés : le ticket, ses lignes, ses
+/// mouvements de stock et ses versements restent en base (conformité
+/// fiscale — rien n'est supprimé ni modifié dans son contenu), seul leur
+/// `etat` bascule à annulé/inactif. Le stock vendu est restitué.
+Future<void> _AnnulerPannier({
   required String         userName,
   required String         userCode,
   required List<Pannier>  panniers,
+  required String         motif,
+  VoidCallback? onSuccess,
 }) async {
   final db  = await DbCreator.openDb();
+
+
   final servicep  = PPServices(db);
+  final servicem  = MouvementsServices(db);
   final services  = PannierServices(db);
   final serviceh  = HistoriqueServices(db);
   final serviceC  = ClientServices(db);
+  final serviceV  = VerssementServices(db);
 
   final clients   = await ClientServices.getAllClients();
   final produits  = await PPServices.getAllPP();
@@ -51,28 +66,93 @@ Future<void> _DeletePannier ({
     final prods   = produits.where((e) => e.codePannier == pannier.code).toList();
     final client  = clients.where((e) => e.code == pannier.client_code).first;
     for(var prod in prods){
-      await servicep.deletePP(prod.id);
+      // Magasin de la vente d'origine (celui du Mouvement annulé plus bas) —
+      // la restitution doit se faire au même magasin, jamais un magasin figé.
+      final mouvOriginal = mouvs.where((e) => e.codeProduit == prod.codeProduit).firstOrNull;
+
+      // Restituer au stock la quantité réservée par ce panier pour ce produit
+      await updateMagasinStock(
+        produitCode: prod.codeProduit,
+        ancienneQuantite: prod.quantite,
+        nouvelleQuantite: 0,
+        ancienNombre: prod.nombre,
+        nouveauNombre: 0,
+        magasinCode: mouvOriginal?.magasinCode,
+      );
+      await updateProduct(
+        produitCode: prod.codeProduit,
+        ancienneQuantite: prod.quantite,
+        nouvelleQuantite: 0,
+        ancienMontant: prod.total,
+        nouveauMontant: 0,
+        ancienNombre: prod.nombre,
+        nouveauNombre: 0,
+      );
+
+      // Ligne conservée (preuve de la vente d'origine), seulement marquée annulée.
+      prod.etat = false;
+      prod.modifLe = DateTime.now();
+      prod.modifParCode = userCode;
+      prod.annulLe = DateTime.now();
+      prod.annulParCode = userCode;
+      prod.motifAnnul = motif;
+      await servicep.updatePP(prod);
+
+      if (mouvOriginal != null) {
+        mouvOriginal.etat = false;
+        mouvOriginal.dateAnnul = DateTime.now();
+        mouvOriginal.annulParCode = userCode;
+        mouvOriginal.motifAnnul = motif;
+        await servicem.updateMouvement(mouvOriginal);
+      }
+
       int idh = await _GetNextHistoriqueId();
       Historique histo = Historique(
         id          : idh,
         code        : 'HS$idh${DateTime.now().millisecondsSinceEpoch}',
         type        : 'pannierProduit',
-        desc        : "l'utilisateur $userName a supprimer le Produit ${nomProduit(prod.codeProduit)} de Pannier ${pannier.code}",
+        desc        : "l'utilisateur $userName a annulé le produit ${nomProduit(prod.codeProduit)} du panier ${pannier.code} (motif: $motif)",
         oper        : ListsConst.typeHisto[2],
         dateCree    : DateTime.now(),
         creeParCode : userCode,
       );
       await serviceh.addHistorique(histo);
-      final mouv  = mouvs.where((e) => e.codeProduit == prod.codeProduit).first;
-      await MouvementsServices.deleteMouvement(mouv.id);
     }
-    await services.deletePannier(pannier.id);
+
+    // Versements liés à ce panier : bascule etat=inactif (même convention que
+    // les versements liés à un retour), jamais de suppression.
+    final versementsPannier = await serviceV.getVerssementsByCodeOperation(pannier.code);
+    for (var v in versementsPannier) {
+      if (!v.etat) continue;
+      v.etat = false;
+      v.dateAnnul = DateTime.now();
+      v.annulParCode = userCode;
+      v.motifAnnul = motif;
+      await serviceV.updateVerssement(v);
+    }
+    if (versementsPannier.isNotEmpty) {
+      int idhv = await _GetNextHistoriqueId();
+      Historique histoV = Historique(
+        id          : idhv,
+        code        : 'HS$idhv${DateTime.now().millisecondsSinceEpoch}',
+        type        : 'Versement',
+        desc        : "l'utilisateur $userName a annulé le(s) versement(s) lié(s) au panier ${pannier.code} (motif: $motif)",
+        oper        : ListsConst.typeHisto[2],
+        dateCree    : DateTime.now(),
+        creeParCode : userCode,
+      );
+      await serviceh.addHistorique(histoV);
+    }
+
+    final response = await services.annulerPannier(pannier.id, motif: motif, userCode: userCode);
     int idh = await _GetNextHistoriqueId();
     Historique histo = Historique(
       id          : idh,
       code        : 'HS$idh${DateTime.now().millisecondsSinceEpoch}',
       type        : 'panniers',
-      desc        : "l'utilisateur $userName a supprimer le pannier ${pannier.code}",
+      desc        : response.success
+          ? "l'utilisateur $userName a annulé le panier ${pannier.code} (motif: $motif)"
+          : "Échec annulation du panier ${pannier.code}: ${response.message}",
       oper        : ListsConst.typeHisto[2],
       dateCree    : DateTime.now(),
       creeParCode : userCode,
@@ -83,9 +163,17 @@ Future<void> _DeletePannier ({
     client.modifParCode   = userCode;
     await serviceC.updateClient(client);
   }
+
+  if (onSuccess != null) {
+    onSuccess();
+  }
 }
 
-Future<void> AnnulerPannier(BuildContext context, List<Pannier> paniersSelectionnes) async {
+Future<void> AnnulerPannier(
+    BuildContext context,
+    List<Pannier> paniersSelectionnes, {
+      VoidCallback? onSuccess, // 👈 Ajouter ce callback
+    }) async {
   final auth = Provider.of<AuthState>(context, listen: false);
   final userName = auth.username!;
   final userCode = auth.userCode!;
@@ -103,6 +191,8 @@ Future<void> AnnulerPannier(BuildContext context, List<Pannier> paniersSelection
     );
     return;
   }
+
+  final motifController = TextEditingController();
 
   return showDialog(
     context: context,
@@ -147,7 +237,7 @@ Future<void> AnnulerPannier(BuildContext context, List<Pannier> paniersSelection
                                 borderRadius: BorderRadius.circular(8),
                               ),
                               child: Text(
-                                "${l10n.cartId(p.code)} - ${l10n.client}: ${nomClient(p.client_code)} - ${l10n.totalAmount}: ${p.montant.toStringAsFixed(2)} ${l10n.currency}",
+                                "${l10n.cartId(p.code)} - ${l10n.client}: ${nomClient(p.client_code)} - ${l10n.totalAmount}: ${NumberFormatUtil.formatMontant(p.montant, decimales: 2)} ${l10n.currency}",
                                 style: Appstyle.textSB
                                     .copyWith(color: Appstyle.Tnoir),
                               ),
@@ -161,7 +251,15 @@ Future<void> AnnulerPannier(BuildContext context, List<Pannier> paniersSelection
                       l10n.confirmCancelCarts,
                       style: Appstyle.textS.copyWith(color: Appstyle.TgrisC),
                     ),
-                    const SizedBox(height: 20),
+                    const SizedBox(height: 12),
+                    ChampAvecLabel(
+                      label: l10n.cancellationReason,
+                      child: TextChampL(
+                        controller: motifController,
+                        hint: '',
+                      ),
+                    ),
+                    const SizedBox(height: 8),
                   ],
                 ),
                 footer: Row(
@@ -175,17 +273,30 @@ Future<void> AnnulerPannier(BuildContext context, List<Pannier> paniersSelection
                     ),
                     const SizedBox(width: 10),
                     MainButton(
-                      text: l10n.delete,
+                      text: l10n.confirm,
                       color: Appstyle.violet,
                       onPressed: () async {
-                        await _DeletePannier(
-                            userName: userName,
-                            userCode: userCode,
-                            panniers: paniersSelectionnes
+                        final motif = motifController.text.trim();
+                        if (motif.isEmpty) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Text(l10n.cancellationReason),
+                              backgroundColor: Colors.red,
+                              duration: const Duration(seconds: 3),
+                            ),
+                          );
+                          return;
+                        }
+                        await _AnnulerPannier(
+                          userName: userName,
+                          userCode: userCode,
+                          panniers: paniersSelectionnes,
+                          motif: motif,
+                          onSuccess: onSuccess, // 👈 Passer le callback
                         );
                         Navigator.pop(context);
                       },
-                      icon: Icons.delete,
+                      icon: Icons.block,
                     ),
                   ],
                 ),

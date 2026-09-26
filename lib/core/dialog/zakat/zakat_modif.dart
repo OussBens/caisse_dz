@@ -1,6 +1,8 @@
 import 'dart:ui';
 import 'package:caisse_dz/DBCreate.dart';
 import 'package:caisse_dz/Services/Historique.dart' hide ApiResponse;
+import 'package:caisse_dz/Services/Produits.dart' hide ApiResponse;
+import 'package:caisse_dz/Services/Mouvement.dart';
 import 'package:caisse_dz/Services/Zakat.dart';
 import 'package:caisse_dz/core/Auth/auth_state.dart';
 import 'package:caisse_dz/l10n/app_localizations.dart';
@@ -23,6 +25,7 @@ import '../../widget/title/title_small.dart';
 import '../../widget/title/titre_avec_ligne.dart';
 import '../base_dialog.dart';
 import '../information_dialog.dart';
+import 'package:caisse_dz/core/utilis/number_format.dart';
 
 final TextEditingController stockControllerZ = TextEditingController();
 final TextEditingController liquiditesControllerZ = TextEditingController();
@@ -32,12 +35,15 @@ final TextEditingController nissabControllerZ = TextEditingController();
 final TextEditingController tauxControllerZ = TextEditingController();
 final TextEditingController observationControllerZ = TextEditingController();
 List<Produit> produitsTest = [];
+// Quantité par produit calculée depuis le journal des mouvements — voir
+// produit_screen.dart pour le même mécanisme. Remplace Produit.quantite.
+Map<String, double> quantitesTest = {};
 bool calculauto = false;
 
 double calculStockAuto() {
   double total = 0;
   for (final p in produitsTest) {
-    total += p.prixVente * p.quantite;
+    total += p.prixVente * (quantitesTest[p.code] ?? 0);
   }
   return total;
 }
@@ -131,8 +137,19 @@ Future<void> ZakatModif(BuildContext context, Zakat zakat) async {
     return;
   }
 
-  String selectedStatutZ = zakat.statut;
-  String selectedEtatZ = zakat.etat ? l10n.active : l10n.inactive;
+  // Charger les produits pour le calcul automatique (n'était jamais fait
+  // ici — calculStockAuto() retournait donc toujours 0 avant ce correctif).
+  try {
+    produitsTest = await ProduitServices.getAllProduits();
+    quantitesTest = (await MouvementsServices.totauxParProduit()).quantites;
+  } catch (e) {
+    print('⚠️ Erreur chargement produits: $e');
+    produitsTest = [];
+    quantitesTest = {};
+  }
+
+  final translatorInit = ListsConstTranslator(l10n);
+  String selectedStatutZ = translatorInit.translateStatutZakat(zakat.statut);
 
   stockControllerZ.text = zakat.stock.toStringAsFixed(2);
   liquiditesControllerZ.text = zakat.liquidites.toStringAsFixed(2);
@@ -141,8 +158,6 @@ Future<void> ZakatModif(BuildContext context, Zakat zakat) async {
   nissabControllerZ.text = zakat.nissab.toStringAsFixed(2);
   tauxControllerZ.text = zakat.taux.toStringAsFixed(2);
   observationControllerZ.text = zakat.observation ?? "";
-  selectedStatutZ = zakat.statut;
-  selectedEtatZ = zakat.etat ? l10n.active : l10n.inactive;
 
   return showDialog(
     context: context,
@@ -181,17 +196,11 @@ Future<void> ZakatModif(BuildContext context, Zakat zakat) async {
                                     child: Column(
                                       children: [
                                         ChampAvecLabel(
-                                          label: l10n.status,
-                                          obligatoire: true,
-                                          child: TextListe(
-                                            obligatoire: true,
-                                            clearable: false,
-                                            value: selectedEtatZ,
-                                            items: translator.etatDisplayList,
-                                            onChanged: (v) => setState(() {
-                                              selectedEtatZ = translator.etatToFrench(v!);
-                                              zakat.etat = (selectedEtatZ == l10n.active);
-                                            }),
+                                          label: l10n.code,
+                                          child: TextChampL(
+                                            enabled: false,
+                                            controller: TextEditingController(text: zakat.code),
+                                            hint: "",
                                           ),
                                         ),
                                         const SizedBox(height: 10),
@@ -352,7 +361,7 @@ Future<void> ZakatModif(BuildContext context, Zakat zakat) async {
                                 children: [
                                   _resumeItem(
                                     title: l10n.totalCapital,
-                                    value: "${calculCapitalTotal().toStringAsFixed(2)} ${l10n.currency}",
+                                    value: "${NumberFormatUtil.formatMontant(calculCapitalTotal(), decimales: 2)} ${l10n.currency}",
                                     icon: Icons.account_balance_wallet,
                                     color: Appstyle.blueF,
                                   ),
@@ -390,7 +399,7 @@ Future<void> ZakatModif(BuildContext context, Zakat zakat) async {
                                   ),
                                   _resumeItem(
                                     title: l10n.zakatAmount,
-                                    value: "${calculMontantZakat().toStringAsFixed(2)} ${l10n.currency}",
+                                    value: "${NumberFormatUtil.formatMontant(calculMontantZakat(), decimales: 2)} ${l10n.currency}",
                                     icon: Icons.monetization_on,
                                     color: calculMontantZakat() > 0
                                         ? Colors.green
@@ -443,9 +452,8 @@ Future<void> ZakatModif(BuildContext context, Zakat zakat) async {
                             zakat.nissab = double.tryParse(nissabControllerZ.text) ?? zakat.nissab;
                             zakat.stock = double.tryParse(stockControllerZ.text) ?? zakat.stock;
                             zakat.taux = double.tryParse(tauxControllerZ.text) ?? zakat.taux;
-                            zakat.statut = selectedStatutZ ?? zakat.statut;
+                            zakat.statut = translator.statutZakatToFrench(selectedStatutZ);
                             zakat.observation = observationControllerZ.text;
-                            zakat.etat = selectedEtatZ == l10n.active;
                             zakat.dateModif = DateTime.now();
                             zakat.modifParCode = userCode;
 

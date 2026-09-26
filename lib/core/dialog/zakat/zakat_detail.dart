@@ -50,12 +50,16 @@ Future<void> ZakatDetail(BuildContext context, Zakat zakat) async {
                 Chip(
                   label: Text(
                     zakat.etat ? l10n.active : l10n.inactive,
-                    style: Appstyle.textSB.copyWith(color: Appstyle.Tblanc),
+                    style: Appstyle.textSB.copyWith(
+                      color: zakat.etat ? Appstyle.Tblanc : Appstyle.Tnoir, // ou une autre couleur
+                    ),
                   ),
-                  backgroundColor: zakat.etat == true
-                      ? Colors.green
-                      : Colors.orange,
-                ),
+                  backgroundColor: zakat.etat
+                      ? Appstyle.violet.withOpacity(0.8)
+                      : Appstyle.crevete.withOpacity(0.7), // ou rouge, orange, etc.
+                  labelPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                  elevation: zakat.etat ? 2 : 0,
+                )
               ],
             ),
 
@@ -73,6 +77,7 @@ Future<void> ZakatDetail(BuildContext context, Zakat zakat) async {
                 title: l10n.financialData,
                 icon: Icons.account_balance_wallet_outlined,
                 child: detailwrap([
+                  detailinfo(l10n.code, zakat.code),
                   detailinfo(l10n.stock, "${zakat.stock} ${l10n.currency}"),
                   detailinfo(l10n.liquidities, "${zakat.liquidites} ${l10n.currency}"),
                   detailinfo(l10n.receivables, "${zakat.creances} ${l10n.currency}"),
@@ -173,14 +178,25 @@ Widget _resumeZakat(Zakat z, AppLocalizations l10n) {
       borderRadius: BorderRadius.circular(10),
     ),
     padding: const EdgeInsets.all(8),
-    child: Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+    child: Column(
       children: [
-        detailbadge(l10n.stock, "${z.stock} ${l10n.currency}"),
-        detailbadge(l10n.liquidities, "${z.liquidites} ${l10n.currency}"),
-        detailbadge(l10n.receivables, "${z.creances} ${l10n.currency}"),
-        detailbadge(l10n.debts, "${z.dettes} ${l10n.currency}"),
-        detailbadge(l10n.zakatAmount, "${z.montantZakat} ${l10n.currency}"),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            detailbadge(l10n.stock, "${z.stock} ${l10n.currency}"),
+            detailbadge(l10n.liquidities, "${z.liquidites} ${l10n.currency}"),
+            detailbadge(l10n.receivables, "${z.creances} ${l10n.currency}"),
+          ],
+        ),
+        const SizedBox(height: 8),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            detailbadge(l10n.debts, "${z.dettes} ${l10n.currency}"),
+            detailbadge(l10n.totalCapital, "${z.capitalTotal} ${l10n.currency}"),
+            detailbadge(l10n.zakatAmount, "${z.montantZakat} ${l10n.currency}"),
+          ],
+        ),
       ],
     ),
   );

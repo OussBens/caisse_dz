@@ -31,11 +31,17 @@ class Produit {
   String? photo;
 
   // --- Stock / Unité ---
-  bool    seuilBool;
-  double  quantite;
-  double  seuilMin;
-  double  seuilMax;
+  // ⚠️ Le stock n'est plus stocké sur le produit : il est calculé
+  // dynamiquement depuis le journal des mouvements, voir
+  // MouvementsServices.quantiteProduit()/totauxParProduit().
   String  uniteMesure;
+
+  // Second stock parallèle (Paramètres > Nombre et Quantité) : nombre de
+  // pièces physiques en stock, indépendant du poids/mesure (quantite) — ex.
+  // boucherie : quantite en kg, nombre en nombre de pièces. Mouvementé
+  // exactement comme quantite (achat +, vente -, retour client +, retour
+  // fournisseur -, sortie -) partout où quantite l'est.
+  double  nombre;
 
   String?   observation;
   DateTime? dateEmpreint;
@@ -60,11 +66,20 @@ class Produit {
   // --- Nouveaux champs ---
   bool    service;
 
+  // Override par produit de Paramters.activeNombreQuantite : si l'option
+  // globale est désactivée, ce produit garde quand même le champ "nombre"
+  // (au lieu de "quantité") quand nombreActif=true.
+  bool    nombreActif;
+
 
   // --Besion-----
 
   String? taille;
   String? couleur;
+
+  // Appareil mobile source (POST /api/sync/push/product), null pour les
+  // produits créés depuis le desktop.
+  String? deviceIdMobile;
 
   Produit({
     required this.id,
@@ -74,10 +89,7 @@ class Produit {
     required this.multicodebar,
     required this.prixVente,
     required this.uniteMesure,
-    required this.quantite,
-    required this.seuilBool,
-    required this.seuilMin,
-    required this.seuilMax,
+    this.nombre = 0,
     required this.prixAchat,
     required this.margeBool,
     required this.tva,
@@ -85,6 +97,7 @@ class Produit {
     required this.dateCree,
     required this.creeParcode,
     required this.service,
+    this.nombreActif = false,
     required this.categorieId,
     required this.sousCategorieId,
     this.remiseId,
@@ -109,6 +122,7 @@ class Produit {
     this.couleur,
      this.photo,
     this.taille,
+    this.deviceIdMobile,
   });
 
   // ------------------------------------------------------------------
@@ -138,17 +152,15 @@ class Produit {
       description           : map['description'],
       categorieId           : map['categorie_id'],
       uniteMesure           : map['unite_mesure'],
-      seuilBool             : map['seuil_bool']   == 1,
       margeBool             : map['marge_bool']   == 1,
       multicodebar          : map['multicodebar'] == 1,
       sousCategorieId       : map['sous_categorie_id'],
-      quantite              : double.parse(map['quantite'].toString()),
-      seuilMin              : double.parse(map['seuil_min'].toString()),
-      seuilMax              : double.parse(map['seuil_max'].toString()),
+      nombre           : (map['nombre'] as num?)?.toDouble() ?? 0,
       etat                  : map['etat'] == 1,
       dateCree              : DateTime.parse(map['date_cree']),
       creeParcode           : map['cree_par_code'],
       service               : map['service'] == 1,
+      nombreActif           : map['nombre_actif'] == 1,
       tva                   : double.parse(map['tva'].toString()),
       prixAchat             : double.parse(map['prix_achat'].toString()),
       prixVente             : double.parse(map['prix_vente'].toString()),
@@ -178,6 +190,7 @@ class Produit {
       motifAnnul            : map['motif_annul'],
       taille                : map['taille'],
       couleur               : map['couleur'],
+      deviceIdMobile        : map['device_id_mobile'],
 
 
     );
@@ -223,10 +236,7 @@ class Produit {
      'prix_vente'           : prixVente,
 
      'unite_mesure'         : uniteMesure,
-     'quantite'             : quantite,
-     'seuil_bool'           : seuilBool ? 1 : 0,
-     'seuil_min'            : seuilMin,
-     'seuil_max'            : seuilMax,
+     'nombre'               : nombre,
 
      'observation'          : observation,
      'date_empreint'        : dateEmpreint?.toIso8601String(),
@@ -246,8 +256,10 @@ class Produit {
      'motif_annul'          : motifAnnul,
 
      'service'              : service ? 1 : 0,
+     'nombre_actif'         : nombreActif ? 1 : 0,
      'taille'               : taille,
      'couleur'              : couleur,
+     'device_id_mobile'     : deviceIdMobile,
    };
  }
   String get searchableText {

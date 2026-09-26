@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:syncfusion_flutter_datagrid/datagrid.dart';
 
 import '../../../../data/models/client.dart';
-import '../../../data/constant.dart';
 import '../../../l10n/app_localizations.dart';
 import '../../widget/status_badge.dart';
 import '../base_table_data_source.dart';
@@ -14,6 +13,7 @@ class ClientDataSource extends BaseTableDataSource<Client> {
     required List<Client> clients,
     required super.columnConfig,
     required this.l10n,
+    super.utilisateurs = const [],
   }) : super(items: clients);
 
   String formatDate(DateTime? date) {
@@ -68,15 +68,15 @@ class ClientDataSource extends BaseTableDataSource<Client> {
       case 'dateCree':
         return formatDate(client.dateCree);
       case 'creeParCode':
-        return client.creeParCode;
+        return nomUtilisateur(client.creeParCode);
       case 'dateModif':
         return formatDate(client.dateModif);
       case 'modifParCode':
-        return client.modifParCode;
+        return nomUtilisateur(client.modifParCode);
       case 'dateAnnul':
         return formatDate(client.dateAnnul);
       case 'annulParCode':
-        return client.annulParCode;
+        return nomUtilisateur(client.annulParCode);
       case 'motifAnnul':
         return client.motifAnnul;
 

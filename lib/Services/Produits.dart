@@ -1,10 +1,13 @@
 import 'package:caisse_dz/DBCreate.dart';
 import 'package:caisse_dz/data/models/produit.dart';
+import 'package:intl/intl.dart';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 
 import '../core/utilis/api_response.dart';
 import '../data/constant.dart';
 import '../data/models/produit_code_detail.dart';
+import 'Mouvement.dart';
+import 'Paramters.dart';
 import 'Photos.dart';
 
 /// Statistiques de stock calculées en direct pour un produit
@@ -56,7 +59,8 @@ class ProduitServices{
     try {
       final data = produit.toMap()
         ..remove('id')
-        ..remove('code');
+        ..remove('code')
+        ..['date_modif'] = DateTime.now().toIso8601String();
 
       final rows = await txn.update(
         'produits',
@@ -142,6 +146,69 @@ class ProduitServices{
     );
   }
 
+  /// Retrouve le code d'un produit à partir d'un code-barre scanné, en
+  /// vérifiant le code-barre principal (produits.code_barre) puis les
+  /// codes-barres secondaires (produit_code_detail). Retourne null si aucun
+  /// produit ne correspond.
+  static Future<String?> getProduitCodeByBarcode(String codebar) async {
+    final db = await DbCreator.openDb();
+
+    final produitMatch = await db.query(
+      'produits',
+      where: 'code_barre = ?',
+      whereArgs: [codebar],
+      limit: 1,
+    );
+    if (produitMatch.isNotEmpty) {
+      return produitMatch.first['code'] as String?;
+    }
+
+    final detailMatch = await db.query(
+      'produit_code_detail',
+      where: 'codebar = ?',
+      whereArgs: [codebar],
+      limit: 1,
+    );
+    if (detailMatch.isNotEmpty) {
+      return detailMatch.first['produit_code'] as String?;
+    }
+
+    return null;
+  }
+
+  /// Retourne le produit (autre que [excludeProduitCode]) qui utilise déjà ce
+  /// code-barre, comme code-barre principal (produits.code_barre) ou
+  /// secondaire (produit_code_detail) — null si le code-barre est libre.
+  /// Sert à garantir l'unicité du code-barre lors de la création/modification
+  /// d'un produit, sur les deux tables.
+  static Future<Produit?> findProduitUsingBarcode(String codebar, {String? excludeProduitCode}) async {
+    final code = await getProduitCodeByBarcode(codebar);
+    if (code == null || code == excludeProduitCode) return null;
+
+    final db = await DbCreator.openDb();
+    final maps = await db.query('produits', where: 'code = ?', whereArgs: [code], limit: 1);
+    if (maps.isEmpty) return null;
+    return Produit.fromMap(maps.first);
+  }
+
+  /// Retourne le produit (autre que [excludeProduitCode]) portant déjà ce
+  /// nom (comparaison insensible à la casse et aux espaces) — null si le
+  /// nom est libre. Sert à empêcher la création/modification d'un produit
+  /// avec un nom déjà utilisé.
+  static Future<Produit?> findProduitByNom(String nom, {String? excludeProduitCode}) async {
+    final db = await DbCreator.openDb();
+    final maps = await db.query(
+      'produits',
+      where: 'LOWER(TRIM(nom)) = ?',
+      whereArgs: [nom.trim().toLowerCase()],
+      limit: 1,
+    );
+    if (maps.isEmpty) return null;
+    final produit = Produit.fromMap(maps.first);
+    if (produit.code == excludeProduitCode) return null;
+    return produit;
+  }
+
   static Future<List<ProduitCodeDetail>> getAllCodeDetailsByCode(String code) async {
 
     final db = await DbCreator.openDb();
@@ -153,6 +220,53 @@ class ProduitServices{
     );
 
     return maps.map((e) => ProduitCodeDetail.fromMap(e)).toList();
+  }
+
+  /// Retourne tous les codes-barres secondaires (produit_code_detail) de tous
+  /// les produits, pour les écrans qui doivent chercher un produit à
+  /// plusieurs codes-barres sans requêter la base à chaque frappe.
+  static Future<List<ProduitCodeDetail>> getAllCodeDetails() async {
+    final db = await DbCreator.openDb();
+    final maps = await db.query('produit_code_detail');
+    return maps.map((e) => ProduitCodeDetail.fromMap(e)).toList();
+  }
+
+  /// Génère un code barre auto (format CAISSEDZ + date du jour + séquence 0001)
+  /// pour les produits qui n'ont pas de code barre physique.
+  /// La séquence redémarre à 0001 chaque jour.
+  static Future<String> generateAutoBarcode() async {
+    final db = await DbCreator.openDb();
+    final datePart = DateFormat('yyyyMMdd').format(DateTime.now());
+    final prefix = '${CodePrefix.barcode}$datePart';
+
+    int extractSeq(String? code) {
+      if (code == null || code.length <= prefix.length || !code.startsWith(prefix)) {
+        return 0;
+      }
+      return int.tryParse(code.substring(prefix.length)) ?? 0;
+    }
+
+    final produitsMatches = await db.query(
+      'produits',
+      where: 'code_barre LIKE ?',
+      whereArgs: ['$prefix%'],
+    );
+    final detailsMatches = await db.query(
+      'produit_code_detail',
+      where: 'codebar LIKE ?',
+      whereArgs: ['$prefix%'],
+    );
+
+    int maxSeq = 0;
+    for (final row in produitsMatches) {
+      maxSeq = maxSeq > extractSeq(row['code_barre'] as String?) ? maxSeq : extractSeq(row['code_barre'] as String?);
+    }
+    for (final row in detailsMatches) {
+      maxSeq = maxSeq > extractSeq(row['codebar'] as String?) ? maxSeq : extractSeq(row['codebar'] as String?);
+    }
+
+    final nextSeq = (maxSeq + 1).toString().padLeft(4, '0');
+    return '$prefix$nextSeq';
   }
 
   Future<void> deleteAllProduitCodeDetailes(String produitCode) async {
@@ -355,7 +469,8 @@ class ProduitServices{
 
       final data = produit.toMap()
           ..remove('id')
-          ..remove('code');
+          ..remove('code')
+          ..['date_modif'] = DateTime.now().toIso8601String();
 
       final rows = await db.update(
         'produits',
@@ -421,17 +536,58 @@ class ProduitServices{
     return (maxId ?? 0) + 1;
   }
 
+  /// Prix moyen d'achat par produit = somme(prix * quantité) / somme(quantité)
+  /// sur toutes les lignes SmartScan (achats fournisseur) actives, groupées
+  /// par produit. Retourne une map code_produit -> prix moyen (0 si aucun achat).
+  static Future<Map<String, double>> getPrixMoyenAchatParProduit() async {
+    final db = await DbCreator.openDb();
+    final rows = await db.rawQuery('''
+      SELECT code_produit AS codeProduit,
+             SUM(prix * quantite) AS montant,
+             SUM(quantite) AS qte
+      FROM smartScanProduit
+      WHERE etat = 1
+      GROUP BY code_produit
+    ''');
+
+    final Map<String, double> resultat = {};
+    for (final row in rows) {
+      final qte = (row['qte'] as num?)?.toDouble() ?? 0;
+      final montant = (row['montant'] as num?)?.toDouble() ?? 0;
+      resultat[row['codeProduit'] as String] = qte > 0 ? montant / qte : 0;
+    }
+    return resultat;
+  }
+
+  /// Prix moyen de vente par produit = somme(prix * quantité) / somme(quantité)
+  /// sur toutes les lignes de pannier (ventes) actives, groupées par produit.
+  /// Retourne une map code_produit -> prix moyen (0 si aucune vente).
+  static Future<Map<String, double>> getPrixMoyenVenteParProduit() async {
+    final db = await DbCreator.openDb();
+    final rows = await db.rawQuery('''
+      SELECT code_produit AS codeProduit,
+             SUM(prix * quantite) AS montant,
+             SUM(quantite) AS qte
+      FROM pannierProduit
+      WHERE etat = 1
+      GROUP BY code_produit
+    ''');
+
+    final Map<String, double> resultat = {};
+    for (final row in rows) {
+      final qte = (row['qte'] as num?)?.toDouble() ?? 0;
+      final montant = (row['montant'] as num?)?.toDouble() ?? 0;
+      resultat[row['codeProduit'] as String] = qte > 0 ? montant / qte : 0;
+    }
+    return resultat;
+  }
+
   /// Calcule en direct les statistiques de mouvement d'un produit
   /// (dernier achat, totaux achat/vente/retours, besoin) à partir
-  /// des tables entree, smartScanProduit, pannierProduit et retours.
+  /// des tables smartScanProduit, pannierProduit et retours.
   static Future<ProduitStats> getProduitStats(Produit produit) async {
     final db = await DbCreator.openDb();
 
-    final entrees = await db.query(
-      'entree',
-      where: 'produit_code = ? AND etat = 1',
-      whereArgs: [produit.code],
-    );
     final scans = await db.query(
       'smartScanProduit',
       where: 'code_produit = ? AND etat = 1',
@@ -463,38 +619,19 @@ class ProduitServices{
     double _sumQuantite(List<Map<String, dynamic>> rows) =>
         rows.fold(0.0, (sum, r) => sum + (r['quantite'] as num).toDouble());
 
-    DateTime? dernierEntreeDate;
-    double dernierEntreeQuantite = 0;
-    for (final e in entrees) {
-      final date = DateTime.parse(e['date'] as String);
-      if (dernierEntreeDate == null || date.isAfter(dernierEntreeDate)) {
-        dernierEntreeDate = date;
-        dernierEntreeQuantite = (e['quantite'] as num).toDouble();
-      }
-    }
-
-    DateTime? dernierScanDate;
-    double dernierScanQuantite = 0;
-    for (final e in scans) {
-      final date = DateTime.parse(e['date_cree'] as String);
-      if (dernierScanDate == null || date.isAfter(dernierScanDate)) {
-        dernierScanDate = date;
-        dernierScanQuantite = (e['quantite'] as num).toDouble();
-      }
-    }
-
     DateTime? dateDernierAchat;
     double quantiteDernierAchat = 0;
-    if (dernierEntreeDate != null &&
-        (dernierScanDate == null || dernierEntreeDate.isAfter(dernierScanDate))) {
-      dateDernierAchat = dernierEntreeDate;
-      quantiteDernierAchat = dernierEntreeQuantite;
-    } else if (dernierScanDate != null) {
-      dateDernierAchat = dernierScanDate;
-      quantiteDernierAchat = dernierScanQuantite;
+    for (final e in scans) {
+      final date = DateTime.parse(e['date_cree'] as String);
+      if (dateDernierAchat == null || date.isAfter(dateDernierAchat)) {
+        dateDernierAchat = date;
+        quantiteDernierAchat = (e['quantite'] as num).toDouble();
+      }
     }
 
-    final bool besoin = produit.quantite < produit.seuilMin;
+    final param = await ParamServices.getParam();
+    final quantiteActuelle = await MouvementsServices.quantiteProduit(produit.code);
+    final bool besoin = quantiteActuelle < param.Minimum;
 
     String besoinStatus;
     if (!besoin) {
@@ -511,7 +648,7 @@ class ProduitServices{
     return ProduitStats(
       quantiteDernierAchat: quantiteDernierAchat,
       dateDernierAchat: dateDernierAchat,
-      totalAchat: _sumQuantite(entrees) + _sumQuantite(scans),
+      totalAchat: _sumQuantite(scans),
       totalVendu: _sumQuantite(paniers),
       totalRetourClient: _sumQuantite(retoursClient),
       totalRetourFournisseur: _sumQuantite(retoursFournisseur),

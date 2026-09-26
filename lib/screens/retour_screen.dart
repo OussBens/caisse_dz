@@ -7,9 +7,13 @@ import 'package:caisse_dz/Services/ExcelPreviewDialog.dart';
 import 'package:caisse_dz/core/Auth/auth_state.dart';
 
 import 'package:caisse_dz/Services/Fournisseur.dart';
+import 'package:caisse_dz/Services/Mouvement.dart';
 import 'package:caisse_dz/Services/Produits.dart';
 import 'package:caisse_dz/Services/Client.dart';
 import 'package:caisse_dz/Services/Retour.dart';
+import 'package:caisse_dz/Services/Paramters.dart';
+import 'package:caisse_dz/Services/Utilisateur.dart';
+import 'package:caisse_dz/data/models/utilisateur.dart';
 
 import 'package:caisse_dz/core/dialog/retour/retour_detail.dart';
 
@@ -36,6 +40,7 @@ import 'package:caisse_dz/core/widget/champ/liste_champ.dart';
 import 'package:caisse_dz/core/widget/champ/date_champ.dart';
 
 import 'package:caisse_dz/core/widget/time_date_widget.dart';
+import 'package:caisse_dz/core/widget/connection_status_bar.dart';
 import 'package:caisse_dz/core/widget/header_module.dart';
 import 'package:caisse_dz/core/widget/search_bar.dart';
 import 'package:caisse_dz/core/widget/side_bar.dart';
@@ -63,6 +68,7 @@ List<Retour>            retoursTest           = [];
 List<Client>            clientsTest           = [];
 List<Fournisseur>       fournisseursTest      = [];
 List<Produit>           produitsTest          = [];
+List<Utilisateur>       utilisateursTest      = [];
 
 List<Retour>      retoursSelectionnes     = [];
 
@@ -72,7 +78,13 @@ class RetourScreen extends StatefulWidget {
   State<RetourScreen> createState() => _RetourScreenState();
 }
 
-class _RetourScreenState extends State<RetourScreen> {
+class _RetourScreenState extends State<RetourScreen> with SingleTickerProviderStateMixin {
+  late TabController _tabController;
+
+  // ✅ Constantes pour les index des tabs
+  static const int TAB_CLIENT = 0;
+  static const int TAB_FOURNISSEUR = 1;
+
   // Period keys for translation lookup
   final List<String> periodeKeys = [
     "today",
@@ -91,6 +103,7 @@ class _RetourScreenState extends State<RetourScreen> {
   List<String> TypeRetourFilterOptions    = [];
   List<String> ProduitFilterOptions       = [];
   List<String> ClientFilterOptions        = [];
+  double seuilMinimum                     = 0;
 
   Future<void> loadAllData() async {
     final test = await ProduitServices.getAllProduits();
@@ -98,20 +111,26 @@ class _RetourScreenState extends State<RetourScreen> {
     final produits          = await ProduitServices.getAllProduits();
     final retours           = await RetourServices.getAllRetour();
     final clients           = await ClientServices.getAllClients();
+    final param              = await ParamServices.getParam();
+    final utilisateurs      = await UtilisateurServices.getAllUtilisateurs();
+    // ✅ Quantités calculées depuis le journal des mouvements — remplace Produit.quantite.
+    final quantitesTest = (await MouvementsServices.totauxParProduit()).quantites;
 
     setState(() {
       fournisseursTest      = fournisseurs;
       produitsTest          = produits;
       retoursTest           = retours;
       clientsTest           = clients;
+      utilisateursTest      = utilisateurs;
       retourFiltres     = retoursTest;
+      seuilMinimum          = param.Minimum;
 
       FournisseurFilterOptions   = fournisseursTest.map    ((sc) => sc.nom). toSet().toList();
       TypeRetourFilterOptions    = retoursTest.map         ((c)  => c.type). toSet().toList();
       ProduitFilterOptions       = produitsTest.map        ((c)  => c.nom).  toSet().toList();
       ClientFilterOptions        = clientsTest.map         ((c)  => c.nom).  toSet().toList();
       besoinsTest = test
-          .where((e) => e.quantite <= e.seuilMin)
+          .where((e) => (quantitesTest[e.code] ?? 0) <= param.Minimum)
           .toList();
 
       retoursSelectionnes.clear();
@@ -392,7 +411,6 @@ class _RetourScreenState extends State<RetourScreen> {
   double? montantMax;
 
   String? periodeRapide;
-  int selectedCardIndex = 0;
 
   final TextEditingController _searchControllerRetour     = TextEditingController();
 
@@ -426,6 +444,23 @@ class _RetourScreenState extends State<RetourScreen> {
   @override
   void initState() {
     super.initState();
+    _tabController = TabController(length: 2, vsync: this);
+    _tabController.addListener(() {
+      if (mounted) {
+        setState(() {
+          vider_selectionne();
+          // Le filtre Client/Fournisseur affiché dépend de l'onglet actif :
+          // on efface celui de l'onglet qu'on quitte pour éviter qu'il masque
+          // silencieusement les résultats de l'onglet qu'on rejoint.
+          if (_tabController.index == TAB_CLIENT) {
+            selectedFournisseurFilterRetour = null;
+          } else {
+            selectedClientFilterRetour = null;
+          }
+          appliquerFiltreRetour();
+        });
+      }
+    });
     loadAllData().then((_) {
       if (mounted) {
         setState(() {
@@ -433,6 +468,12 @@ class _RetourScreenState extends State<RetourScreen> {
         });
       }
     });
+  }
+
+  @override
+  void dispose() {
+    _tabController.dispose();
+    super.dispose();
   }
 
   void appliquerFiltreRetour() {
@@ -538,6 +579,16 @@ class _RetourScreenState extends State<RetourScreen> {
     appliquerFiltreRetour();
   }
 
+  // ✅ Vrai si au moins un champ de filtre retour est renseigné (pour l'indicateur visuel du bouton Filtre).
+  bool get _filtresRetourActifs =>
+      (selectedClientFilterRetour != null && selectedClientFilterRetour!.isNotEmpty) ||
+      (selectedFournisseurFilterRetour != null && selectedFournisseurFilterRetour!.isNotEmpty) ||
+      (selectedProduitFilterRetour != null && selectedProduitFilterRetour!.isNotEmpty) ||
+      (selectedEtatFilterR != null && selectedEtatFilterR!.isNotEmpty) ||
+      dateDebutRetour != null ||
+      dateFinRetour != null ||
+      _searchControllerRetour.text.isNotEmpty;
+
   void supprimerFilterRetour() {
     selectedClientFilterRetour = null;
     selectedTypeFilterRetour= null;
@@ -609,6 +660,30 @@ class _RetourScreenState extends State<RetourScreen> {
     final isRTL = local.locale.languageCode == 'ar';
     final textDirection = isRTL ? TextDirection.rtl : TextDirection.ltr;
 
+    // ✅ Index actuel du tab
+    final currentTab = _tabController.index;
+
+    // ✅ Noms/compteurs/icônes des tabs
+    final tabNames = [l10n.client, l10n.fournisseur];
+    final tabIcons = [
+      "assets/icons/sidebar/client_icon.png",
+      "assets/icons/sidebar/fournisseur_icon.png",
+    ];
+    final tabCounts = [
+      retoursTest.where((r) => r.type == 'Client').length,
+      retoursTest.where((r) => r.type == 'Fournisseur').length,
+    ];
+
+    // ✅ Retours de l'onglet actif (mêmes retours filtrés, restreints au type
+    // du tab courant — une seule table sous-jacente, deux vues)
+    final retourFiltresOngletActif = retourFiltres
+        .where((r) => r.type == (currentTab == TAB_CLIENT ? 'Client' : 'Fournisseur'))
+        .toList();
+
+    // ✅ Indigo sur le 2e onglet (Fournisseur), violet sur le 1er (Client) —
+    // texte du header, indicateur du TabBar et en-tête du tableau.
+    final Color couleurOngletActif = currentTab == TAB_FOURNISSEUR ? Appstyle.indigo : Appstyle.violet;
+
     return Scaffold(
       backgroundColor: Appstyle.violetC,
       body: Directionality(
@@ -627,16 +702,13 @@ class _RetourScreenState extends State<RetourScreen> {
             final paddingH = adjustedWidth * 0.02;
             return SingleChildScrollView(
               scrollDirection: Axis.horizontal,
-              child: SingleChildScrollView(
-                scrollDirection: Axis.vertical,
-                child: ConstrainedBox(
-                  constraints: const BoxConstraints(
-                    minWidth: minWidth,
-                    minHeight: minHeight,
-                  ),
-
-                    child: SizedBox(
-                      width: adjustedWidth,
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(
+                  minWidth: minWidth,
+                  minHeight: minHeight,
+                ),
+                child: SizedBox(
+                  width: adjustedWidth,
                       height: adjustedHeight,
                       child: Row(
                         textDirection: textDirection,
@@ -662,7 +734,7 @@ class _RetourScreenState extends State<RetourScreen> {
                                               Image.asset(
                                                 "assets/icons/cardwidget/retour_icon.png",
                                                 width: 40,
-                                                color: Appstyle.red,
+                                                color: Appstyle.violet,
                                               ),
                                               const SizedBox(width: 10),
                                               Row(
@@ -671,11 +743,18 @@ class _RetourScreenState extends State<RetourScreen> {
                                                   Text(
                                                     l10n.retour,
                                                     style: Appstyle.textXLB.copyWith(
-                                                      color       : Appstyle.red,
+                                                      color       : Appstyle.violet,
                                                       fontWeight  : FontWeight.bold,
                                                     ),
                                                   ),
-                                                  SizedBox(width: 15,),
+                                                  const SizedBox(width: 15),
+                                                  Text(
+                                                    "(${tabNames[currentTab]})",
+                                                    style: Appstyle.textXLB.copyWith(
+                                                      color       : couleurOngletActif,
+                                                      fontWeight  : FontWeight.bold,
+                                                    ),
+                                                  ),
                                                 ],
                                               )
                                             ],
@@ -684,9 +763,9 @@ class _RetourScreenState extends State<RetourScreen> {
                                           Row(
                                             textDirection: textDirection,
                                             children: [
+                                              const ConnectionStatusBar(),
+                                              const SizedBox(width: 20),
                                               TimeDateWidget(
-                                                heure: "18:00",
-                                                date: "25 Nov 2025",
                                                 iconHeure: "assets/icons/hour_icon.png",
                                                 iconDate: "assets/icons/agenda_icon.png",
                                               ),
@@ -703,12 +782,57 @@ class _RetourScreenState extends State<RetourScreen> {
 
                                     SizedBox(height: paddingV/2),
 
-
+                                    /// ✅ TAB BAR (Retour client / Retour fournisseur)
+                                    Container(
+                                      margin: const EdgeInsets.symmetric(horizontal: 0, vertical: 6),
+                                      decoration: BoxDecoration(
+                                        color: Colors.white,
+                                        borderRadius: BorderRadius.circular(16),
+                                        boxShadow: [
+                                          BoxShadow(
+                                            color: Colors.black.withOpacity(0.05),
+                                            blurRadius: 10,
+                                            offset: const Offset(0, 2),
+                                          ),
+                                        ],
+                                      ),
+                                      child: TabBar(
+                                        controller: _tabController,
+                                        isScrollable: false,
+                                        indicator: BoxDecoration(
+                                          color: couleurOngletActif,
+                                          borderRadius: BorderRadius.circular(12),
+                                        ),
+                                        labelColor: Colors.white,
+                                        unselectedLabelColor: Appstyle.gris,
+                                        dividerColor: Colors.transparent,
+                                        indicatorSize: TabBarIndicatorSize.tab,
+                                        padding: const EdgeInsets.all(6),
+                                        labelStyle: Appstyle.textXS.copyWith(fontWeight: FontWeight.w600),
+                                        unselectedLabelStyle: Appstyle.textXS.copyWith(fontWeight: FontWeight.w500),
+                                        tabs: List.generate(2, (index) {
+                                          final isSelected = currentTab == index;
+                                          return Tab(
+                                            icon: Container(
+                                              width: 24,
+                                              height: 24,
+                                              child: Image.asset(
+                                                tabIcons[index],
+                                                width: 20,
+                                                height: 20,
+                                                color: isSelected ? Colors.white : Appstyle.gris,
+                                              ),
+                                            ),
+                                            text: "${tabNames[index]} (${tabCounts[index]})",
+                                          );
+                                        }),
+                                      ),
+                                    ),
 
                                     SizedBox(height: paddingV/2),
 
                                     // Afficheur
-                                    if (retoursSelectionnes.length==1 && selectedCardIndex==0)
+                                    if (retoursSelectionnes.length==1)
                                       AfficheurRetour(
                                           retour: retoursSelectionnes.first,
                                           onDetails:() {
@@ -716,10 +840,10 @@ class _RetourScreenState extends State<RetourScreen> {
                                           }
                                       ),
 
-                                    if (retoursSelectionnes.length == 1 && selectedCardIndex == 0)
+                                    if (retoursSelectionnes.length == 1)
                                       SizedBox(height: paddingV/2),
 
-                                    if ((retoursSelectionnes.length != 1 && selectedCardIndex == 0))
+                                    if (retoursSelectionnes.length != 1)
                                       Padding(
                                         padding: const EdgeInsets.only(bottom: 16.0),
                                         child: AfficheurStockGlobalWidget(
@@ -747,6 +871,7 @@ class _RetourScreenState extends State<RetourScreen> {
                                                 text: l10n.filter,
                                                 textColor: Appstyle.violet,
                                                 color: Appstyle.Tblanc,
+                                                showBadge: _filtresRetourActifs,
                                                 icon: filtresActifs ? Icons.visibility_off : Icons.visibility,
                                                 iconColor:Appstyle.violet ,
                                                 onPressed: () {
@@ -804,7 +929,6 @@ class _RetourScreenState extends State<RetourScreen> {
                                             mainAxisAlignment: MainAxisAlignment.end,
                                             children: [
                                               // Detail
-                                              if (selectedCardIndex == 0)
                                                 MainIconButton(
                                                   imagePath: "assets/icons/action/detail_icon.png",
                                                   color: Appstyle.violet,
@@ -832,7 +956,6 @@ class _RetourScreenState extends State<RetourScreen> {
                                               SizedBox(width: paddingH / 4),
 
                                               // supprimer button
-                                              if (selectedCardIndex == 0)
                                                 MainIconButton(
                                                   imagePath: "assets/icons/action/supprimer_icon.png",
                                                   color: Appstyle.gris,
@@ -854,11 +977,9 @@ class _RetourScreenState extends State<RetourScreen> {
                                                   },
                                                 ),
 
-                                              if (selectedCardIndex == 0)
                                                 SizedBox(width: paddingH / 4),
 
                                               // modifier button
-                                              if (selectedCardIndex == 0)
                                                 MainIconButton(
                                                   imagePath: "assets/icons/action/edit_icon.png",
                                                   color: Appstyle.blueC,
@@ -889,12 +1010,14 @@ class _RetourScreenState extends State<RetourScreen> {
 
                                               SizedBox(width: paddingH / 4),
 
-                                              if (selectedCardIndex == 0)
                                                 MainButton(
                                                   text: l10n.newWord,
                                                   color: Appstyle.crevete,
                                                   onPressed: () async {
-                                                    await RetourNouveau(context);
+                                                    await RetourNouveau(
+                                                      context,
+                                                      initialType: currentTab == TAB_CLIENT ? 'Client' : 'Fournisseur',
+                                                    );
                                                     await loadAllData();
                                                   },
                                                 ),
@@ -908,33 +1031,41 @@ class _RetourScreenState extends State<RetourScreen> {
                                       SizedBox(height: paddingV/2),
 
                                     //filters
-                                    if (selectedCardIndex == 0 && filtresActifs)
+                                    if (filtresActifs)
                                       Align(
                                         alignment: isRTL ? Alignment.topRight : Alignment.topLeft,
                                         child: Padding(
                                           padding: EdgeInsets.symmetric(vertical: paddingV/2),
                                           child: Column(
                                             children: [
-                                              filtreRetour(setState, adjustedWidth*1/3, l10n, translator, isRTL),
+                                              filtreRetour(setState, adjustedWidth*1/3, l10n, translator, isRTL, currentTab),
                                             ],
                                           ),
                                         ),
                                       ),
 
-                                    // TableauRetour avec callback de sélection
+                                    // TableauRetour avec callback de sélection — même table sous-jacente,
+                                    // restreinte au type (Client/Fournisseur) de l'onglet actif, avec les
+                                    // colonnes non pertinentes masquées.
                                     SizedBox(
                                       height: adjustedHeight * 0.68,
-                                      child: selectedCardIndex == 0
-                                          ? TableauRetourAdvanced(
-                                        key: ValueKey(retourFiltres),
-                                        retours: retourFiltres,
+                                      child: TableauRetourAdvanced(
+                                        key: ValueKey('$currentTab-${retourFiltresOngletActif.length}'),
+                                        retours: retourFiltresOngletActif,
+                                        produits: produitsTest,
+                                        clients: clientsTest,
+                                        fournisseurs: fournisseursTest,
+                                        utilisateurs: utilisateursTest,
+                                        colonnesMasquees: currentTab == TAB_CLIENT
+                                            ? const {'type', 'fournisseur'}
+                                            : const {'type', 'client'},
+                                        headerColor: couleurOngletActif,
                                         onSelectionChanged: (selection) {
                                           setState(() {
                                             retoursSelectionnes = selection;
                                           });
                                         },
-                                      )
-                                          : SizedBox(height: paddingV/2),
+                                      ),
                                     ),
                                   ],
                                 ),
@@ -946,7 +1077,6 @@ class _RetourScreenState extends State<RetourScreen> {
                     ),
 
                 ),
-              ),
             );
           },
         ),
@@ -954,8 +1084,9 @@ class _RetourScreenState extends State<RetourScreen> {
     );
   }
 
-  Widget filtreRetour(void Function(VoidCallback fn) setState, double width, AppLocalizations l10n, ListsConstTranslator translator, bool isRTL) {
+  Widget filtreRetour(void Function(VoidCallback fn) setState, double width, AppLocalizations l10n, ListsConstTranslator translator, bool isRTL, int currentTab) {
     final textDirection = isRTL ? TextDirection.rtl : TextDirection.ltr;
+    final bool estOngletClient = currentTab == TAB_CLIENT;
 
     return SectionDecorationFiltre(
         padding: EdgeInsets.all(10),
@@ -963,18 +1094,50 @@ class _RetourScreenState extends State<RetourScreen> {
         child: Column(
           crossAxisAlignment: isRTL ? CrossAxisAlignment.end : CrossAxisAlignment.start,
           children: [
+            // Ligne 1 : le filtre Client (onglet Client) ou Fournisseur (onglet
+            // Fournisseur) — jamais les deux — avec Produit et État à côté.
             Row(
               textDirection: textDirection,
               children: [
                 Expanded(
+                  child: estOngletClient
+                      ? ChampAvecLabel(
+                          label: l10n.client,
+                          child: TextListe(
+                            value: selectedClientFilterRetour,
+                            items: ClientFilterOptions,
+                            onChanged: (v) {
+                              setState(() {
+                                selectedClientFilterRetour = v;
+                                appliquerFiltreRetour();
+                              });
+                            },
+                          ),
+                        )
+                      : ChampAvecLabel(
+                          label: l10n.fournisseur,
+                          child: TextListe(
+                            value: selectedFournisseurFilterRetour,
+                            items: FournisseurFilterOptions,
+                            onChanged: (v) {
+                              setState(() {
+                                selectedFournisseurFilterRetour = v;
+                                appliquerFiltreRetour();
+                              });
+                            },
+                          ),
+                        ),
+                ),
+                const SizedBox(width: 20),
+                Expanded(
                   child: ChampAvecLabel(
-                    label: l10n.type,
+                    label: l10n.produit,
                     child: TextListe(
-                      value: selectedTypeFilterRetour,
-                      items: TypeRetourFilterOptions,
+                      value: selectedProduitFilterRetour,
+                      items: ProduitFilterOptions,
                       onChanged: (v) {
                         setState(() {
-                          selectedTypeFilterRetour = v;
+                          selectedProduitFilterRetour = v;
                           appliquerFiltreRetour();
                         });
                       },
@@ -984,29 +1147,13 @@ class _RetourScreenState extends State<RetourScreen> {
                 const SizedBox(width: 20),
                 Expanded(
                   child: ChampAvecLabel(
-                    label: l10n.client,
+                    label: l10n.etat,
                     child: TextListe(
-                      value: selectedClientFilterRetour,
-                      items: ClientFilterOptions,
+                      value: selectedEtatFilterR != null ? translator.translateEtat(selectedEtatFilterR!) : null,
+                      items: translator.etatDisplayList,
                       onChanged: (v) {
                         setState(() {
-                          selectedClientFilterRetour = v;
-                          appliquerFiltreRetour();
-                        });
-                      },
-                    ),
-                  ),
-                ),
-                const SizedBox(width: 20),
-                Expanded(
-                  child: ChampAvecLabel(
-                    label: l10n.fournisseur,
-                    child: TextListe(
-                      value: selectedFournisseurFilterRetour,
-                      items: FournisseurFilterOptions,
-                      onChanged: (v) {
-                        setState(() {
-                          selectedFournisseurFilterRetour= v;
+                          selectedEtatFilterR = translator.etatToFrench(v!);
                           appliquerFiltreRetour();
                         });
                       },
@@ -1043,7 +1190,7 @@ class _RetourScreenState extends State<RetourScreen> {
                 ),
                 const SizedBox(width: 20),
                 SizedBox(
-                  width: 400,
+                  width: width * 0.7,
                   child: ChampAvecLabel(
                     label: l10n.quickPeriod,
                     child: DropdownButtonFormField<String>(
@@ -1077,52 +1224,13 @@ class _RetourScreenState extends State<RetourScreen> {
               textDirection: textDirection,
               children: [
                 SizedBox(
-                  width: width*0.9,
-                  child: Row(
-                    textDirection: textDirection,
-                    children: [
-                      Expanded(
-                        child: ChampAvecLabel(
-                          label: l10n.search,
-                          child: SearchField(
-                            controller: _searchControllerRetour,
-                            onChanged: (v) {
-                              setState(() {
-                                appliquerFiltreRetour();
-                              });
-                            },
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                const SizedBox(width: 20),
-                Expanded(
+                  width: width * 0.7,
                   child: ChampAvecLabel(
-                    label: l10n.produit,
-                    child: TextListe(
-                      value: selectedProduitFilterRetour,
-                      items: ProduitFilterOptions,
+                    label: l10n.search,
+                    child: SearchField(
+                      controller: _searchControllerRetour,
                       onChanged: (v) {
                         setState(() {
-                          selectedProduitFilterRetour = v;
-                          appliquerFiltreRetour();
-                        });
-                      },
-                    ),
-                  ),
-                ),
-                const SizedBox(width: 20),
-                Expanded(
-                  child: ChampAvecLabel(
-                    label: l10n.etat,
-                    child: TextListe(
-                      value: selectedEtatFilterR != null ? translator.translateEtat(selectedEtatFilterR!) : null,
-                      items: translator.etatDisplayList,
-                      onChanged: (v) {
-                        setState(() {
-                          selectedEtatFilterR = translator.etatToFrench(v!);
                           appliquerFiltreRetour();
                         });
                       },

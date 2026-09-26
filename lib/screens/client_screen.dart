@@ -8,11 +8,15 @@ import 'package:caisse_dz/Services/Pannier.dart';
 import 'package:caisse_dz/Services/Retour.dart';
 import 'package:caisse_dz/Services/Verssement.dart';
 import 'package:caisse_dz/Services/excel_generator.dart';
+import 'package:caisse_dz/Services/Utilisateur.dart';
+import 'package:caisse_dz/data/models/utilisateur.dart';
 import 'package:caisse_dz/core/Auth/auth_state.dart';
 import 'package:caisse_dz/core/dialog/versement/versement_detail.dart';
 import 'package:caisse_dz/core/dialog/versement/versement_modif.dart';
 import 'package:caisse_dz/core/tableau/versement/versement_tableau.dart';
 import 'package:caisse_dz/core/widget/afficheur/afficheur_client_global.dart';
+import 'package:caisse_dz/core/widget/afficheur/afficheur_versement.dart';
+import 'package:caisse_dz/core/widget/afficheur/afficheur_versement_global.dart';
 import 'package:caisse_dz/core/widget/button/Icon_button.dart';
 import 'package:caisse_dz/core/widget/section_decoration_filtre.dart';
 import 'package:caisse_dz/data/models/pannier.dart';
@@ -30,7 +34,6 @@ import '../core/dialog/client/client_situation.dart';
 import '../core/dialog/information_dialog.dart';
 import '../core/dialog/versement/versement_actif.dart';
 import '../core/dialog/versement/versement_nouveau.dart';
-import '../core/dialog/versement/versement_nouveau_retour.dart';
 import '../core/tableau/client/client_tableau.dart';
 import '../core/theme/app_style.dart';
 import '../core/utilis/constant.dart';
@@ -44,6 +47,7 @@ import '../core/widget/header_module.dart';
 import '../core/widget/search_bar.dart';
 import '../core/widget/side_bar.dart';
 import '../core/widget/time_date_widget.dart';
+import '../core/widget/connection_status_bar.dart';
 import '../core/widget/account.dart';
 import '../data/constant.dart';
 import '../data/models/client.dart';
@@ -115,6 +119,8 @@ class _ClientScreenState extends State<ClientScreen> with TickerProviderStateMix
   List<Client> clientsTest = [];
   List<Pannier> paniersTest = [];
   List<Retour> retoursTest = [];
+  List<Utilisateur> utilisateursTest = [];
+  ClientGlobalStats? clientGlobalStats;
 
   @override
   void initState() {
@@ -143,10 +149,13 @@ class _ClientScreenState extends State<ClientScreen> with TickerProviderStateMix
     final verssement = await VerssementServices.getAllverssement();
     final pannier = await PannierServices.getAllPanniers();
     final retour = await RetourServices.getAllRetour();
+    final globalStats = await ClientServices.getGlobalClientStats();
+    final utilisateurs = await UtilisateurServices.getAllUtilisateurs();
 
     if (!mounted) return;
 
     setState(() {
+      utilisateursTest = utilisateurs;
       clientsTest = List.from(client);
       clients = List.from(client);
 
@@ -166,6 +175,7 @@ class _ClientScreenState extends State<ClientScreen> with TickerProviderStateMix
 
       paniersTest = pannier;
       retoursTest = retour;
+      clientGlobalStats = globalStats;
 
       isLoading = false;
 
@@ -173,6 +183,13 @@ class _ClientScreenState extends State<ClientScreen> with TickerProviderStateMix
       verssementClientsSelectionnes.clear();
     });
   }
+
+  // ✅ Vrai si au moins un champ de filtre client est renseigné (pour l'indicateur visuel du bouton Filtre).
+  bool get _filtresClientActifs =>
+      typeClientFilter != null ||
+      activiteClientFilter != null ||
+      (selectedEtatFilter != null && selectedEtatFilter!.isNotEmpty) ||
+      _searchController.text.isNotEmpty;
 
   void appliquerFiltre() {
     final search = _searchController.text.toLowerCase();
@@ -266,6 +283,17 @@ class _ClientScreenState extends State<ClientScreen> with TickerProviderStateMix
 
     appliquerFiltreVers();
   }
+
+  // ✅ Vrai si au moins un champ de filtre versement est renseigné (pour l'indicateur visuel du bouton Filtre).
+  bool get _filtresVersementActifs =>
+      (clientFilterVersment != null && clientFilterVersment!.isNotEmpty) ||
+      (modepaiementFilter != null && modepaiementFilter!.isNotEmpty) ||
+      (selectedEtatVErsementFilter != null && selectedEtatVErsementFilter!.isNotEmpty) ||
+      versemntMin != null ||
+      versemntMax != null ||
+      dateDebut != null ||
+      dateFin != null ||
+      _searchControllerVers.text.isNotEmpty;
 
   void appliquerFiltreVers() {
     verssementsFiltres = versements.where((c) {
@@ -696,7 +724,27 @@ class _ClientScreenState extends State<ClientScreen> with TickerProviderStateMix
 
 
 
-  @override
+  // ---------------- STATISTIQUES VERSEMENTS ----------------
+  String _nomClientVersement(String code) =>
+      clientsTest.firstWhereOrNull((c) => c.code == code)?.nom ?? code;
+
+  // ✅ Total Versé = total encaissé (versements "Entrée" uniquement) — un
+  // remboursement client ("Sortie") n'est pas un encaissement et ne doit
+  // pas gonfler ce total.
+  double _totalVerse() => verssementsTest
+      .where((v) => v.sense == 'Entrée')
+      .fold(0.0, (s, v) => s + v.montant);
+
+  Verssement? _versementMax() {
+    if (verssementsTest.isEmpty) return null;
+    return verssementsTest.reduce((a, b) => a.montant >= b.montant ? a : b);
+  }
+
+  Verssement? _dernierVersement() {
+    if (verssementsTest.isEmpty) return null;
+    return verssementsTest.reduce((a, b) => a.date.isAfter(b.date) ? a : b);
+  }
+
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
@@ -711,6 +759,9 @@ class _ClientScreenState extends State<ClientScreen> with TickerProviderStateMix
 
     // ✅ Index actuel du tab
     final currentTab = _tabController.index;
+
+    // ✅ Couleur de l'en-tête alignée sur la couleur du tab actif
+    final Color headerColor = currentTab == TAB_CLIENT ? Appstyle.violet : Appstyle.indigo;
 
     // ✅ Noms des tabs
     final tabNames = [
@@ -747,16 +798,14 @@ class _ClientScreenState extends State<ClientScreen> with TickerProviderStateMix
 
           return SingleChildScrollView(
             scrollDirection: Axis.horizontal,
-            child: SingleChildScrollView(
-              scrollDirection: Axis.vertical,
-              child: ConstrainedBox(
-                constraints: const BoxConstraints(
-                  minWidth: minWidth,
-                  minHeight: minHeight,
-                ),
-                child: SizedBox(
-                  width: adjustedWidth,
-                  height: adjustedHeight,
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(
+                minWidth: minWidth,
+                minHeight: minHeight,
+              ),
+              child: SizedBox(
+                width: adjustedWidth,
+                height: adjustedHeight,
                   child: Row(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
@@ -775,23 +824,23 @@ class _ClientScreenState extends State<ClientScreen> with TickerProviderStateMix
                                     Image.asset(
                                       "assets/icons/sidebar/client_icon.png",
                                       width: 40,
-                                      color: Appstyle.indigo,
+                                      color: headerColor,
                                     ),
                                     const SizedBox(width: 10),
                                     Text(
                                       "${l10n.client} (${tabNames[currentTab]})",
                                       style: Appstyle.textXLB.copyWith(
-                                        color: Appstyle.indigo,
+                                        color: headerColor,
                                         fontWeight: FontWeight.bold,
                                       ),
                                     ),
                                     const Spacer(),
                                     Row(
                                       children: [
+                                        const ConnectionStatusBar(),
+                                        const SizedBox(width: 20),
                                         TimeDateWidget(
-                                          heure: "18:00",
-                                          date: "25 Nov 2025",
-                                          iconHeure: "assets/icons/hour_icon.png",
+                                           iconHeure: "assets/icons/hour_icon.png",
                                           iconDate: "assets/icons/agenda_icon.png",
                                         ),
                                         const SizedBox(width: 20),
@@ -905,6 +954,12 @@ class _ClientScreenState extends State<ClientScreen> with TickerProviderStateMix
                                         nombreClients: clients.length,
                                         nombreInactifs: clients.where((c) => !c.etat).length,
                                         type: l10n.client,
+                                        totalAchat: clientGlobalStats?.totalAchat,
+                                        nomClientTopAchat: clientGlobalStats?.clientTopAchat?.nom,
+                                        montantTopAchat: clientGlobalStats?.montantTopAchat,
+                                        totalCredit: clientGlobalStats?.totalCredit,
+                                        nomClientTopCredit: clientGlobalStats?.clientTopCredit?.nom,
+                                        montantTopCredit: clientGlobalStats?.montantTopCredit,
                                       ),
 
                                     SizedBox(height: paddingV),
@@ -919,6 +974,7 @@ class _ClientScreenState extends State<ClientScreen> with TickerProviderStateMix
                                               text: l10n.filter,
                                               textColor: Appstyle.violet,
                                               color: Appstyle.Tblanc,
+                                              showBadge: _filtresClientActifs,
                                               icon: filtresActifs ? Icons.visibility_off : Icons.visibility,
                                               iconColor:Appstyle.violet ,
                                               onPressed: () {
@@ -1112,7 +1168,7 @@ class _ClientScreenState extends State<ClientScreen> with TickerProviderStateMix
                                     if (filtresActifs)
                                       Padding(
                                         padding: EdgeInsets.symmetric(vertical: paddingV),
-                                        child: filtreClient(setState, l10n, translator),
+                                        child: filtreClient(setState,adjustedWidth, l10n, translator),
                                       ),
 
                                     if (!filtresActifs)
@@ -1122,8 +1178,15 @@ class _ClientScreenState extends State<ClientScreen> with TickerProviderStateMix
                                     SizedBox(
                                       height: adjustedHeight * 0.68,
                                       child: TableauClientAdvanced(
-                                        key: ValueKey(clientsFiltres),
+                                        // ⚠️ Clé STABLE (pas basée sur clientsFiltres) : cf.
+                                        // commentaire équivalent dans produit_screen.dart —
+                                        // une clé qui change à chaque rafraîchissement force
+                                        // Flutter à recréer tout l'état du tableau (tri,
+                                        // sélection, pagination) au lieu de le préserver via
+                                        // didUpdateWidget().
+                                        key: const ValueKey('client-table'),
                                         clients: clientsFiltres,
+                                        utilisateurs: utilisateursTest,
                                         onSelectionChanged: (selection) {
                                           setState(() {
                                             clientsSelectionnes = selection;
@@ -1141,49 +1204,26 @@ class _ClientScreenState extends State<ClientScreen> with TickerProviderStateMix
                                 Column(
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
-                                    // Afficheur (utilisez un widget approprié ou global)
+                                    // Afficheur
                                     if (verssementClientsSelectionnes.length == 1)
-                                    // Vous pouvez créer un AfficheurVersement ou utiliser un autre widget
-                                      Container(
-                                        padding: EdgeInsets.all(16),
-                                        decoration: BoxDecoration(
-                                          color: Colors.white,
-                                          borderRadius: BorderRadius.circular(16),
-                                          boxShadow: [
-                                            BoxShadow(
-                                              color: Colors.black.withOpacity(0.05),
-                                              blurRadius: 10,
-                                              offset: const Offset(0, 2),
-                                            ),
-                                          ],
-                                        ),
-                                        child: Column(
-                                          crossAxisAlignment: CrossAxisAlignment.start,
-                                          children: [
-                                            Text(
-                                              "${l10n.versement} #${verssementClientsSelectionnes.first.code}",
-                                              style: Appstyle.textMB.copyWith(
-                                                color: Appstyle.violet,
-                                                fontWeight: FontWeight.bold,
-                                              ),
-                                            ),
-                                            SizedBox(height: 8),
-                                            Text(
-                                              "${l10n.client}: ${clientsTest.where((cl) => cl.code == verssementClientsSelectionnes.first.beneficiareCode).firstOrNull?.nom ?? verssementClientsSelectionnes.first.beneficiareCode}",
-                                              style: Appstyle.textS.copyWith(color: Appstyle.TgrisC),
-                                            ),
-                                            Text(
-                                              "${l10n.amount}: ${verssementClientsSelectionnes.first.montant} ${l10n.currency}",
-                                              style: Appstyle.textS.copyWith(color: Appstyle.TgrisC),
-                                            ),
-                                          ],
-                                        ),
+                                      AfficheurVersement(
+                                        versement: verssementClientsSelectionnes.first,
+                                        nomBeneficiaire: _nomClientVersement(
+                                            verssementClientsSelectionnes.first.beneficiareCode),
+                                        onDetails: () {
+                                          VersementDetail(context, verssementClientsSelectionnes.first);
+                                        },
                                       )
                                     else
-                                      AfficheurClientGlobalWidget(
-                                        nombreClients: clients.length,
-                                        nombreInactifs: clients.where((c) => !c.etat).length,
-                                        type: l10n.versement,
+                                      AfficheurVersementGlobalWidget(
+                                        nombreVersements: verssementsTest.length,
+                                        totalVerse: _totalVerse(),
+                                        montantMax: _versementMax()?.montant ?? 0,
+                                        nomBeneficiaireMax: _versementMax() != null
+                                            ? _nomClientVersement(_versementMax()!.beneficiareCode)
+                                            : null,
+                                        montantDernier: _dernierVersement()?.montant ?? 0,
+                                        codeDernier: _dernierVersement()?.code,
                                       ),
 
                                     SizedBox(height: paddingV),
@@ -1198,6 +1238,7 @@ class _ClientScreenState extends State<ClientScreen> with TickerProviderStateMix
                                               text: l10n.filter,
                                               textColor: Appstyle.violet,
                                               color: Appstyle.Tblanc,
+                                              showBadge: _filtresVersementActifs,
                                               icon: filtresActifs ? Icons.visibility_off : Icons.visibility,
                                               iconColor:Appstyle.violet ,    onPressed: () {
                                                 setState(() {
@@ -1312,15 +1353,8 @@ class _ClientScreenState extends State<ClientScreen> with TickerProviderStateMix
                                                 await loadAllData();
                                               },
                                             ),
-                                            SizedBox(width: paddingH / 4),
-                                            MainButton(
-                                              text: l10n.exit,
-                                              color: Appstyle.jaune,
-                                              onPressed: () async {
-                                                await VersementNouveauRetour(context, "Client");
-                                                await loadAllData();
-                                              },
-                                            ),
+
+
                                           ],
                                         ),
                                       ],
@@ -1342,6 +1376,8 @@ class _ClientScreenState extends State<ClientScreen> with TickerProviderStateMix
                                       child: TableauVerssementAdvanced(
                                         key: ValueKey(verssementsFiltres),
                                         verssements: verssementsFiltres,
+                                        clients: clientsTest,
+                                        utilisateurs: utilisateursTest,
                                         onSelectionChanged: (selection) {
                                           setState(() {
                                             verssementClientsSelectionnes = selection;
@@ -1359,14 +1395,13 @@ class _ClientScreenState extends State<ClientScreen> with TickerProviderStateMix
                   ),
                 ),
               ),
-            ),
           );
         },
       ),
     );
   }
 
-  Widget filtreClient(void Function(VoidCallback fn) setState, AppLocalizations l10n, ListsConstTranslator translator) {
+  Widget filtreClient(void Function(VoidCallback fn) setState,double width, AppLocalizations l10n, ListsConstTranslator translator) {
     return SectionDecorationFiltre(
       padding: EdgeInsets.all(10),
       color: Appstyle.Tblanc,
@@ -1428,6 +1463,7 @@ class _ClientScreenState extends State<ClientScreen> with TickerProviderStateMix
             children: [
               Expanded(
                 child: ChampAvecLabel(
+                  width: width * 0.75,
                   label: l10n.search,
                   child: SearchField(
                     controller: _searchController,
@@ -1533,7 +1569,7 @@ class _ClientScreenState extends State<ClientScreen> with TickerProviderStateMix
               ),
               const SizedBox(width: 20),
               SizedBox(
-                width: 400,
+                width: width * 0.75,
                 child: ChampAvecLabel(
                   label: l10n.quickPeriod,
                   child: DropdownButtonFormField<String>(
@@ -1564,7 +1600,7 @@ class _ClientScreenState extends State<ClientScreen> with TickerProviderStateMix
           ),
           const SizedBox(height: 15),
           SizedBox(
-            width: width * 2 / 3,
+            width: width * 6 / 12,
             child: Row(
               children: [
                 Expanded(

@@ -1,12 +1,14 @@
-import 'package:caisse_dz/Services/Magasin.dart';
 import 'package:caisse_dz/l10n/app_localizations.dart';
 import 'package:collection/collection.dart';
 import 'package:flutter/material.dart';
 import '../../../data/models/gestion_caisse.dart';
+import 'package:caisse_dz/Services/Magasin.dart';
 import 'package:caisse_dz/core/theme/app_style.dart';
 import '../../widget/detail_widget.dart';
+import '../../widget/stats_card.dart';
 import '../base_dialog.dart';
 import 'package:caisse_dz/core/Auth/auth_state.dart';
+import 'package:caisse_dz/core/utilis/number_format.dart';
 
 Future<void> CaisseGestionDetail(
     BuildContext context,
@@ -54,15 +56,19 @@ Future<void> CaisseGestionDetail(
                 ),
 
                 const Spacer(),
-
                 Chip(
                   label: Text(
                     caisse.etat ? l10n.active : l10n.inactive,
-                    style: Appstyle.textSB.copyWith(color: Appstyle.Tblanc),
+                    style: Appstyle.textSB.copyWith(
+                      color: caisse.etat ? Appstyle.Tblanc : Appstyle.Tnoir, // ou une autre couleur
+                    ),
                   ),
-                  backgroundColor:
-                  caisse.etat ? Appstyle.crevete : Appstyle.gris,
-                ),
+                  backgroundColor: caisse.etat
+                      ? Appstyle.violet.withOpacity(0.8)
+                      : Appstyle.crevete.withOpacity(0.7), // ou rouge, orange, etc.
+                  labelPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                  elevation: caisse.etat ? 2 : 0,
+                )
               ],
             ),
 
@@ -90,7 +96,7 @@ Future<void> CaisseGestionDetail(
               detailwrap([
                 detailinfo(
                   l10n.initialBalance,
-                  "${caisse.soldeInitial.toStringAsFixed(2)} ${l10n.currency}",
+                  "${NumberFormatUtil.formatMontant(caisse.soldeInitial, decimales: 2)} ${l10n.currency}",
                 ),
               ]),
 
@@ -142,24 +148,23 @@ Future<void> CaisseGestionDetail(
     },
   );
 }
-
+// Dans caisse_gestion_detail.dart
 Widget _resumeCaisse(CaisseGestion c, String nomMagasin, AppLocalizations l10n) {
-  return Container(
-    decoration: BoxDecoration(
-      color: Appstyle.violet.withOpacity(0.6),
-      borderRadius: BorderRadius.circular(10),
-    ),
-    padding: const EdgeInsets.all(8),
-    child: Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-      children: [
-        detailbadge(
-          l10n.initialBalance,
-          "${c.soldeInitial.toStringAsFixed(2)} ${l10n.currency}",
-        ),
-        detailbadge(l10n.store, nomMagasin),
-        detailbadge(l10n.status, c.etat ? l10n.active : l10n.inactive),
-      ],
-    ),
+  return StatsCard(
+    backgroundColor: Appstyle.violet.withOpacity(0.7),
+    items: [
+      StatsItem(
+        label: l10n.initialBalance,
+        value: "${NumberFormatUtil.formatMontant(c.soldeInitial, decimales: 2)} ${l10n.currency}",
+      ),
+      StatsItem(
+        label: l10n.store,
+        value: nomMagasin,
+      ),
+      StatsItem(
+        label: l10n.status,
+        value: c.etat ? l10n.active : l10n.inactive,
+      ),
+    ],
   );
 }

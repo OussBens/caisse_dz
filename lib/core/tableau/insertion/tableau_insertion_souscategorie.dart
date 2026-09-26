@@ -170,7 +170,7 @@ class _TableauSousCategorieInsertionState
   GridColumn _col(String name, String label) {
     return GridColumn(
       columnName: name,
-      width: columnWidths[name] ?? 160,
+      width: columnWidths[name] ?? 180,
       label: Center(
         child: Text(
           label,

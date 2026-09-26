@@ -1,8 +1,13 @@
 import 'dart:ui';
 import 'package:caisse_dz/DBCreate.dart';
+import 'package:caisse_dz/Services/ExcelPreviewDialog.dart';
+import 'package:caisse_dz/Services/PDFPreviewDialog.dart';
 import 'package:caisse_dz/Services/Pannier.dart';
 import 'package:caisse_dz/Services/PannierProduit.dart';
 import 'package:caisse_dz/Services/Produits.dart';
+import 'package:caisse_dz/Services/excel_generator.dart';
+import 'package:caisse_dz/Services/pdf_generator_latin.dart';
+import 'package:caisse_dz/Services/pdf_table_generator.dart';
 import 'package:collection/collection.dart';
 import 'package:caisse_dz/core/Auth/auth_state.dart';
 import 'package:caisse_dz/core/dialog/base_dialog.dart';
@@ -19,11 +24,15 @@ import 'package:caisse_dz/data/constant.dart';
 import 'package:caisse_dz/data/models/client.dart';
 import 'package:caisse_dz/data/models/pannier.dart';
 import 'package:caisse_dz/l10n/app_localizations.dart';
+import 'package:excel/excel.dart' hide Border;
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../../../Services/Client.dart';
+import '../../../Services/Verssement.dart';
+import '../../../data/models/verssement.dart';
 import '../information_dialog.dart';
+import 'package:caisse_dz/core/utilis/number_format.dart';
 
 Future<void> DialogPannierVendu({
   required BuildContext context,
@@ -37,6 +46,8 @@ Future<void> DialogPannierVendu({
   final db = await DbCreator.openDb();
   final pannierService = PannierServices(db);
   final allPanniers = await PannierServices.getAllPanniers();
+  final versements = await VerssementServices.getAllverssement();
+  double resteDe(Pannier p) => p.montant - PannierServices.calculerVerse(versements, p.code);
 
   // Filtrer les paniers de la caisse actuelle
   List<Pannier> panniersCaisse = allPanniers
@@ -67,7 +78,6 @@ Future<void> DialogPannierVendu({
 
   // Options pour les listes déroulantes
   final modePaiementOptions = ["Espèces", "Chèque", "Carte bancaire", "Virement"];
-  final typePannierOptions = ["Ticket", "BL", "BLSC"];
   final etatOptions = ["Actif", "Inactif"];
 
   return showDialog(
@@ -91,8 +101,9 @@ Future<void> DialogPannierVendu({
                 (selectedEtatFilter == "Inactif" && !p.etat);
             final montantOk = (montantMin == null || p.montant >= montantMin!) &&
                 (montantMax == null || p.montant <= montantMax!);
-            final resteOk = (resteMin == null || p.reste >= resteMin!) &&
-                (resteMax == null || p.reste <= resteMax!);
+            final reste = resteDe(p);
+            final resteOk = (resteMin == null || reste >= resteMin!) &&
+                (resteMax == null || reste <= resteMax!);
             final searchOk = searchText.isEmpty ||
                 p.code!.toLowerCase().contains(searchText.toLowerCase()) ||
                 (clients.firstWhereOrNull((c) => c.code == p.client_code)?.nom ?? '').toLowerCase().contains(searchText.toLowerCase());
@@ -102,12 +113,163 @@ Future<void> DialogPannierVendu({
 
           panniersFiltres.sort((a, b) => b.date.compareTo(a.date));
 
+          Future<void> exportExcel() async {
+            if (panniersFiltres.isEmpty) {
+              await InformationDialog(
+                context: context,
+                titre_type_message: l10n.information,
+                titre_concerne: l10n.panier,
+                message: l10n.noDataToExport,
+              );
+              return;
+            }
+
+            try {
+              showDialog(
+                context: context,
+                barrierDismissible: false,
+                builder: (context) => const Center(child: CircularProgressIndicator()),
+              );
+
+              final translator = ListsConstTranslator(l10n);
+              final excelFile = await ExcelGenerator.generatePanniersExcel(
+                panniers: panniersFiltres,
+                versements: versements,
+                l10n: l10n,
+                translator: translator,
+              );
+
+              Navigator.pop(context);
+
+              final excel = Excel.decodeBytes(await excelFile.readAsBytes());
+              var sheet = excel.tables['Panniers'];
+              if (sheet == null && excel.tables.isNotEmpty) sheet = excel.tables.values.first;
+              if (sheet == null) return;
+
+              final headers = <String>[];
+              for (int col = 0; col < sheet.maxColumns; col++) {
+                final cell = sheet.cell(CellIndex.indexByColumnRow(columnIndex: col, rowIndex: 0));
+                if (cell.value != null && cell.value.toString().isNotEmpty) headers.add(cell.value.toString());
+              }
+
+              final data = <List<dynamic>>[];
+              for (int row = 1; row < sheet.maxRows; row++) {
+                final rowData = <dynamic>[];
+                bool hasData = false;
+                for (int col = 0; col < sheet.maxColumns; col++) {
+                  final cell = sheet.cell(CellIndex.indexByColumnRow(columnIndex: col, rowIndex: row));
+                  if (cell.value != null && cell.value.toString().isNotEmpty) {
+                    rowData.add(cell.value);
+                    hasData = true;
+                  } else {
+                    rowData.add('-');
+                  }
+                }
+                if (hasData) data.add(rowData);
+              }
+
+              showDialog(
+                context: context,
+                barrierDismissible: false,
+                builder: (context) => ExcelPreviewDialog(
+                  data: data,
+                  headers: headers,
+                  title: caisseName,
+                  l10n: l10n,
+                  excelFile: excelFile,
+                  onSave: () {
+                    Navigator.pop(context);
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(content: Text(l10n.exportSuccess), backgroundColor: Colors.green),
+                    );
+                  },
+                  onShare: () => Navigator.pop(context),
+                  onCancel: () => Navigator.pop(context),
+                ),
+              );
+            } catch (e) {
+              if (Navigator.canPop(context)) Navigator.pop(context);
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(content: Text('${l10n.exportError}: $e'), backgroundColor: Colors.red),
+              );
+            }
+          }
+
+          Future<void> exportPdf() async {
+            if (panniersFiltres.isEmpty) {
+              await InformationDialog(
+                context: context,
+                titre_type_message: l10n.information,
+                titre_concerne: l10n.panier,
+                message: l10n.noDataToExport,
+              );
+              return;
+            }
+
+            final pdfBytes = await PDFTableGenerator.generateTableReport(
+              title: "${l10n.cashReceipt} - $caisseName",
+              subtitleLines: [
+                "${l10n.numberOfSales}: ${panniersFiltres.length}    "
+                    "${l10n.totalSales}: ${NumberFormatUtil.formatMontant(panniersFiltres.fold(0.0, (sum, p) => sum + p.montant), decimales: 2)} ${l10n.currency}",
+              ],
+              headers: [
+                l10n.code,
+                l10n.date,
+                l10n.client,
+                l10n.typePannier,
+                l10n.amount,
+                l10n.paid,
+                l10n.remaining,
+                l10n.status,
+              ],
+              rows: panniersFiltres.map((p) {
+                final reste = resteDe(p);
+                return [
+                  p.code ?? '',
+                  _formatDate(p.date),
+                  clients.firstWhereOrNull((c) => c.code == p.client_code)?.nom ?? '',
+                  p.typepannier ?? '',
+                  NumberFormatUtil.formatMontant(p.montant, decimales: 2),
+                  NumberFormatUtil.formatMontant((p.montant - reste), decimales: 2),
+                  NumberFormatUtil.formatMontant(reste, decimales: 2),
+                  p.etat ? l10n.active : l10n.inactive,
+                ];
+              }).toList(),
+            );
+
+            showDialog(
+              context: context,
+              barrierDismissible: false,
+              builder: (context) => PDFPreviewDialog(
+                pdfBytes: pdfBytes,
+                l10n: l10n,
+                onPrint: () async {
+                  Navigator.pop(context);
+                  await PDFGeneratorLatin.printPDF(pdfBytes);
+                },
+                onSave: () async {
+                  final file = await PDFGeneratorLatin.savePDF(
+                    pdfBytes,
+                    'RecetteCaisse_${DateTime.now().millisecondsSinceEpoch}.pdf',
+                  );
+                  Navigator.pop(context);
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text(l10n.exportSuccess), backgroundColor: Colors.green),
+                  );
+                  await PDFGeneratorLatin.openPDF(file);
+                },
+                onShare: () => Navigator.pop(context),
+                onCancel: () => Navigator.pop(context),
+              ),
+            );
+          }
+
           return ClipRect(
             child: BackdropFilter(
               filter: ImageFilter.blur(sigmaX: 2, sigmaY: 2),
               child: BaseDialog(
                 width: 1200,
-                height: 700,
+                height: 900,
                 header: TitreAvecLigne(
                   imagePath: 'assets/icons/sidebar/pannier_icon.png',
                   text: "${l10n.cashReceipt} - $caisseName - ${_formatDate(dateDebut)}",
@@ -161,12 +323,14 @@ Future<void> DialogPannierVendu({
                                 child: ChampAvecLabel(
                                   label: l10n.typePannier,
                                   child: TextListe(
-                                    value: selectedTypePannierFilter,
-                                    items: typePannierOptions,
+                                    value: selectedTypePannierFilter != null
+                                        ? translator.translateTypePannier(selectedTypePannierFilter!)
+                                        : null,
+                                    items: translator.typePannierDisplayList,
                                     clearable: true,
                                     onChanged: (v) {
                                       setState(() {
-                                        selectedTypePannierFilter = v;
+                                        selectedTypePannierFilter = v == null || v.isEmpty ? null : translator.typePannierToFrench(v);
                                       });
                                     },
                                   ),
@@ -283,6 +447,32 @@ Future<void> DialogPannierVendu({
 
                     const SizedBox(height: 15),
 
+                    // Boutons d'export
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.start,
+                      children: [
+                        MainButton(
+                          text: l10n.extract,
+                          textColor: Colors.green,
+                          iconColor: Colors.green,
+                          color: Appstyle.Tblanc,
+                          icon: Icons.download,
+                          onPressed: () async => await exportExcel(),
+                        ),
+                        const SizedBox(width: 10),
+                        MainButton(
+                          text: l10n.extractPdf,
+                          textColor: Colors.red,
+                          iconColor: Colors.red,
+                          color: Appstyle.Tblanc,
+                          icon: Icons.picture_as_pdf,
+                          onPressed: () async => await exportPdf(),
+                        ),
+                      ],
+                    ),
+
+                    const SizedBox(height: 10),
+
                     // Compteur des résultats
                     Container(
                       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
@@ -298,7 +488,7 @@ Future<void> DialogPannierVendu({
                             style: Appstyle.textSB.copyWith(color: Appstyle.violet),
                           ),
                           Text(
-                            "${l10n.totalSales}: ${panniersFiltres.fold(0.0, (sum, p) => sum + p.montant).toStringAsFixed(2)} ${l10n.currency}",
+                            "${l10n.totalSales}: ${NumberFormatUtil.formatMontant(panniersFiltres.fold(0.0, (sum, p) => sum + p.montant), decimales: 2)} ${l10n.currency}",
                             style: Appstyle.textSB.copyWith(color: Appstyle.crevete),
                           ),
                         ],
@@ -328,6 +518,7 @@ Future<void> DialogPannierVendu({
                             return _pannierTile(
                               context: context,
                               pannier: p,
+                              reste: resteDe(p),
                               nomClient: clients.firstWhereOrNull((c) => c.code == p.client_code)?.nom ?? '',
                               l10n: l10n,
                               onDetail: () async {
@@ -367,6 +558,7 @@ Future<void> DialogPannierVendu({
 Widget _pannierTile({
   required BuildContext context,
   required Pannier pannier,
+  required double reste,
   required String nomClient,
   required AppLocalizations l10n,
   required VoidCallback onDetail,
@@ -426,7 +618,7 @@ Widget _pannierTile({
                   borderRadius: BorderRadius.circular(4),
                 ),
                 child: Text(
-                  pannier.typepannier ?? "",
+                  pannier.typepannier == "Ticket" ? l10n.ticket : l10n.facture,
                   style: Appstyle.textXS.copyWith(
                     color: _getTypeColor(pannier.typepannier),
                   ),
@@ -445,12 +637,12 @@ Widget _pannierTile({
             crossAxisAlignment: CrossAxisAlignment.end,
             children: [
               Text(
-                "${pannier.montant.toStringAsFixed(2)} ${l10n.currency}",
+                "${NumberFormatUtil.formatMontant(pannier.montant, decimales: 2)} ${l10n.currency}",
                 style: Appstyle.textSB.copyWith(color: Appstyle.violet),
               ),
-              if (pannier.reste > 0)
+              if (reste > 0)
                 Text(
-                  "${l10n.remaining}: ${pannier.reste.toStringAsFixed(2)}",
+                  "${l10n.remaining}: ${NumberFormatUtil.formatMontant(reste, decimales: 2)}",
                   style: Appstyle.textXS.copyWith(color: Colors.orange),
                 ),
             ],
@@ -555,10 +747,10 @@ Future<void> _showProductsListDialog(BuildContext context, Pannier pannier, AppL
                             ),
                           ),
                         ),
-                        DataCell(Text("${p.prix?.toStringAsFixed(2) ?? '0.00'}")),
+                        DataCell(Text(NumberFormatUtil.formatMontant(p.prix ?? 0, decimales: 2))),
                         DataCell(
                           Text(
-                            "${p.total?.toStringAsFixed(2) ?? '0.00'}",
+                            NumberFormatUtil.formatMontant(p.total ?? 0, decimales: 2),
                             style: Appstyle.textSB.copyWith(color: Appstyle.crevete),
                           ),
                         ),
@@ -589,14 +781,13 @@ Future<void> _showProductsListDialog(BuildContext context, Pannier pannier, AppL
   );
 }
 
-/// Obtenir la couleur selon le type de panier
+/// Obtenir la couleur selon le type de panier (BL et BL_SC = Facture)
 Color _getTypeColor(String? type) {
   switch (type) {
     case "Ticket":
       return Appstyle.violet;
     case "BL":
-      return Appstyle.blueC;
-    case "BLSC":
+    case "BL_SC":
       return Appstyle.green;
     default:
       return Appstyle.gris;

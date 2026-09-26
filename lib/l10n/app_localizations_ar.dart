@@ -12,6 +12,9 @@ class AppLocalizationsAr extends AppLocalizations {
   String get dashboard => 'لوحة التحكم';
 
   @override
+  String get situation => 'الوضعية';
+
+  @override
   String get salesToday => 'المبيعات اليوم';
 
   @override
@@ -28,6 +31,10 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get selectPeriod => 'اختر الفترة';
+
+  @override
+  String get pleaseSelectTwoDates =>
+      'الرجاء تحديد تاريخين للحصول على لوحة تحكم توضح إحصائيات هذه الفترة';
 
   @override
   String get salesByHour => 'المبيعات بالساعة';
@@ -51,6 +58,39 @@ class AppLocalizationsAr extends AppLocalizations {
   String get revenueDistribution => 'توزيع الإيرادات';
 
   @override
+  String get revenueByCart => 'إيرادات الصندوق حسب السلة';
+
+  @override
+  String get revenueByProductCard => 'إيرادات الصندوق حسب المنتج';
+
+  @override
+  String get cashRegisterMovement => 'حركة الصندوق';
+
+  @override
+  String get dailyProfitByCart => 'الربح اليومي (الهامش حسب السلة)';
+
+  @override
+  String get profitByPeriod => 'الربح حسب الفترة (الهامش اليومي)';
+
+  @override
+  String get inventory => 'الجرد';
+
+  @override
+  String get net => 'صافي';
+
+  @override
+  String get numberOfDays => 'عدد الأيام';
+
+  @override
+  String get purchaseValue => 'قيمة الشراء';
+
+  @override
+  String get saleValue => 'قيمة البيع';
+
+  @override
+  String get potentialMargin => 'الهامش المحتمل';
+
+  @override
   String get collected => 'المحصل';
 
   @override
@@ -70,6 +110,15 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get outOfStockProducts => 'المنتجات نفذت من المخزون';
+
+  @override
+  String get expiredProducts => 'المنتجات منتهية الصلاحية';
+
+  @override
+  String get highestQuantityProduct => 'أكبر كمية';
+
+  @override
+  String get oldestProduct => 'المنتج الأقدم';
 
   @override
   String get from => 'من';
@@ -189,6 +238,19 @@ class AppLocalizationsAr extends AppLocalizations {
   String get noProductSelected => 'لم يتم اختيار منتج';
 
   @override
+  String get productNotFoundBarcode => 'المنتج غير موجود';
+
+  @override
+  String get aiScanInstructions =>
+      'امسح الباركود بالقارئ، أو أدخله يدويًا، للبحث عن المنتج عبر الإنترنت.';
+
+  @override
+  String get confirmThisProduct => 'هذا هو المنتج';
+
+  @override
+  String get createNewProduct => 'إنشاء جديد';
+
+  @override
   String get cannotDeleteLastCaisse => 'لا يمكن حذف الصندوق الأخير';
 
   @override
@@ -230,7 +292,7 @@ class AppLocalizationsAr extends AppLocalizations {
   String get enregistrer => 'حفظ';
 
   @override
-  String get encaisserBLSC => 'تحصيل BL/SC';
+  String get encaisserBLSC => 'تحصيل الفاتورة';
 
   @override
   String get annuler => 'إلغاء';
@@ -293,6 +355,46 @@ class AppLocalizationsAr extends AppLocalizations {
   String get logout => 'تسجيل الخروج';
 
   @override
+  String get loginWelcome => 'مرحباً';
+
+  @override
+  String get loginToYourAccount => 'تسجيل الدخول إلى حسابك';
+
+  @override
+  String get loginInstructions => 'الرجاء إدخال بيانات الدخول للمتابعة';
+
+  @override
+  String get forgotPassword => 'هل نسيت كلمة المرور؟';
+
+  @override
+  String get rememberMe => 'تذكرني';
+
+  @override
+  String get initialSetupTitle => 'الإعداد الأولي';
+
+  @override
+  String get initialSetupSubtitle =>
+      'قم بإعداد معلومات متجرك قبل البدء. يمكنك دائماً تعديلها لاحقاً من الإعدادات.';
+
+  @override
+  String get finish => 'إنهاء';
+
+  @override
+  String get invalidCredentials => 'اسم المستخدم أو كلمة المرور غير صحيحة';
+
+  @override
+  String get signIn => 'تسجيل الدخول';
+
+  @override
+  String get appNotActivatedQuestion => 'التطبيق غير مفعل؟';
+
+  @override
+  String get activateNow => 'تفعيل الآن';
+
+  @override
+  String get version => 'الإصدار';
+
+  @override
   String get actif => 'نشط';
 
   @override
@@ -338,6 +440,9 @@ class AppLocalizationsAr extends AppLocalizations {
   String get blSc => 'BL/SC';
 
   @override
+  String get facture => 'فاتورة';
+
+  @override
   String get physique => 'فعلي';
 
   @override
@@ -345,6 +450,48 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get piece => 'قطعة';
+
+  @override
+  String get purchaseMode => 'طريقة الشراء';
+
+  @override
+  String get perUnitOption => 'بالوحدة';
+
+  @override
+  String get perBoxOption => 'بالعلبة';
+
+  @override
+  String get perCartonOption => 'بالكرتون';
+
+  @override
+  String get piecesUnit => 'قطعة';
+
+  @override
+  String get boxesUnit => 'علبة';
+
+  @override
+  String get cartonsUnit => 'كرتون';
+
+  @override
+  String equalToPieces(Object count) {
+    return 'أي $count قطعة';
+  }
+
+  @override
+  String availableStockPieces(Object count) {
+    return 'المخزون المتوفر: $count قطعة';
+  }
+
+  @override
+  String insufficientStockDetail(Object demande, Object disponible) {
+    return 'المخزون غير كافٍ!\nالمتوفر: $disponible قطعة\nالمطلوب: $demande قطعة';
+  }
+
+  @override
+  String get noPhotoAvailable => 'لا توجد صورة';
+
+  @override
+  String get imageNotFound => 'الصورة غير موجودة';
 
   @override
   String get litre => 'لتر';
@@ -559,14 +706,22 @@ class AppLocalizationsAr extends AppLocalizations {
   String get selectSingleDiscountToModify => 'يرجى اختيار خصم واحد للتعديل';
 
   @override
-  String get noPackSelected => 'لم يتم اختيار حزمة';
+  String get noDiscountExists =>
+      'لا يوجد أي خصم بعد. أنشئ واحدًا أولاً من تبويب الخصم.';
+
+  @override
+  String get noPackSelected => 'لم يتم اختيار باقة';
 
   @override
   String get selectSinglePackForDetail =>
-      'يرجى اختيار حزمة واحدة لعرض التفاصيل';
+      'يرجى اختيار باقة واحدة لعرض التفاصيل';
 
   @override
-  String get selectSinglePackToModify => 'يرجى اختيار حزمة واحدة للتعديل';
+  String get selectSinglePackToModify => 'يرجى اختيار باقة واحدة للتعديل';
+
+  @override
+  String get noPackExists =>
+      'لا توجد أي باقة بعد. أنشئ واحدة أولاً من تبويب الباقات.';
 
   @override
   String get noSubCategorySelected => 'لم يتم اختيار فئة فرعية';
@@ -624,6 +779,15 @@ class AppLocalizationsAr extends AppLocalizations {
   String get salePrice => 'سعر البيع';
 
   @override
+  String get averagePurchasePrice => 'متوسط سعر الشراء';
+
+  @override
+  String get averageSalePrice => 'متوسط سعر البيع';
+
+  @override
+  String get operationCode => 'كود العملية';
+
+  @override
   String get etat => 'الحالة';
 
   @override
@@ -634,6 +798,13 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get currency => 'د.ج';
+
+  @override
+  String get quantityDecimals => 'خانات عشرية للكمية';
+
+  @override
+  String get quantityDecimalsHint =>
+      'عدد الأرقام بعد الفاصلة في حقول الكمية (في كل التطبيق)';
 
   @override
   String get needCategoryToCreateSubCategory =>
@@ -750,10 +921,10 @@ class AppLocalizationsAr extends AppLocalizations {
   String get loadingError => 'خطأ في تحميل البيانات';
 
   @override
-  String get sourceCashRegister => 'Caisse Src';
+  String get sourceCashRegister => 'الصندوق المصدر';
 
   @override
-  String get destinationCashRegister => 'Caisse Dest';
+  String get destinationCashRegister => 'الصندوق الوجهة';
 
   @override
   String get newCashRegister => 'صندوق جديد';
@@ -781,11 +952,11 @@ class AppLocalizationsAr extends AppLocalizations {
       'Impossible de modifier cette caisse (système)';
 
   @override
-  String get noTransferSelected => 'Aucun transfert sélectionné';
+  String get noTransferSelected => 'لم يتم تحديد أي تحويل';
 
   @override
   String get selectSingleTransferForDetail =>
-      'Veuillez sélectionner un seul transfert pour afficher le détail';
+      'يرجى تحديد تحويل واحد فقط لعرض التفاصيل';
 
   @override
   String get selectSingleTransferToModify =>
@@ -934,6 +1105,9 @@ class AppLocalizationsAr extends AppLocalizations {
   String get clear => 'مسح';
 
   @override
+  String get viderPanier => 'إفراغ السلة';
+
+  @override
   String get newClient => 'عميل جديد';
 
   @override
@@ -946,7 +1120,7 @@ class AppLocalizationsAr extends AppLocalizations {
   String get cashTicket => 'تحصيل التذكرة';
 
   @override
-  String get cashBLSC => 'تحصيل BL/SC';
+  String get cashBLSC => 'تحصيل الفاتورة';
 
   @override
   String get saveTicket => 'حفظ التذكرة';
@@ -973,6 +1147,9 @@ class AppLocalizationsAr extends AppLocalizations {
   String get all => 'الكل';
 
   @override
+  String get sansCodeBarre => 'بدون رمز شريطي';
+
+  @override
   String get exampleRange => 'مثال:100->200';
 
   @override
@@ -995,6 +1172,9 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get quantity => 'الكمية';
+
+  @override
+  String get quantityPieces => 'الكمية (قطعة)';
 
   @override
   String get showHideColumns => 'إظهار / إخفاء الأعمدة';
@@ -1085,6 +1265,12 @@ class AppLocalizationsAr extends AppLocalizations {
   String get initialBalance => 'الرصيد الافتتاحي';
 
   @override
+  String get finalBalance => 'الرصيد الختامي';
+
+  @override
+  String get extractPdf => 'تصدير PDF';
+
+  @override
   String get obs => 'ملاحظة';
 
   @override
@@ -1160,7 +1346,7 @@ class AppLocalizationsAr extends AppLocalizations {
   String get subcategories => 'الفئات الفرعية';
 
   @override
-  String get packs => 'الحزم';
+  String get packs => 'الباقات';
 
   @override
   String get discounts => 'الخصومات';
@@ -1265,7 +1451,7 @@ class AppLocalizationsAr extends AppLocalizations {
   String get appliedRate => 'النسبة المطبقة';
 
   @override
-  String get smartScan => 'المسح الذكي';
+  String get smartScan => 'دخول';
 
   @override
   String get scannedItems => 'العناصر الممسوحة';
@@ -1314,6 +1500,81 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get cancellationReason => 'سبب الإلغاء';
+
+  @override
+  String get fiscalHash => 'البصمة الضريبية';
+
+  @override
+  String get cashRegisterClosures => 'إغلاقات الصندوق';
+
+  @override
+  String get newClosure => 'إغلاق جديد';
+
+  @override
+  String get totalCancelledAmount => 'المبلغ الملغى';
+
+  @override
+  String get cancelledTicketsCount => 'التذاكر الملغاة';
+
+  @override
+  String get paymentMethodBreakdown => 'توزيع حسب طريقة الدفع';
+
+  @override
+  String get zReportTitle => 'تقرير الإغلاق (Z)';
+
+  @override
+  String get confirmClosureMessage =>
+      'سيؤدي هذا إلى إغلاق الفترة نهائيًا وقفل التذاكر المعنية. هل تريد المتابعة؟';
+
+  @override
+  String get closurePeriod => 'الفترة المراد إغلاقها';
+
+  @override
+  String get selectCashRegisterToClose => 'اختر الصندوق المراد إغلاقه';
+
+  @override
+  String get loyaltyPoints => 'نقاط';
+
+  @override
+  String get loyaltyProgram => 'برنامج المكافآت';
+
+  @override
+  String get activateLoyaltyProgram => 'تفعيل برنامج المكافآت';
+
+  @override
+  String get bonusRate => 'المبلغ (دج) مقابل نقطة واحدة';
+
+  @override
+  String get loyaltyBalance => 'رصيد النقاط';
+
+  @override
+  String get pointsEarned => 'نقاط الولاء المكتسبة';
+
+  @override
+  String get numberField => 'العدد';
+
+  @override
+  String get nombreActifLabel => 'حقل العدد مفعّل لهذا المنتج';
+
+  @override
+  String get nombreActifHint =>
+      'العدد هو للإعلام فقط، ويعتمد الحساب على الكمية.';
+
+  @override
+  String get nombreActifUniteRequiredHint =>
+      'متوفر فقط عندما تكون وحدة قياس المنتج كيلوغرام أو لتر.';
+
+  @override
+  String get noClosuresYet => 'لا توجد إغلاقات بعد';
+
+  @override
+  String get fiscalControlExport => 'تصدير المراقبة الضريبية';
+
+  @override
+  String get fiscalRegistryIntact => 'السجل الضريبي سليم';
+
+  @override
+  String get fiscalRegistryCompromised => 'السجل الضريبي مخترق — تم اكتشاف خلل';
 
   @override
   String get otherwiseDefaultColumns => 'وإلا سيتم استخدام الأعمدة الافتراضية';
@@ -1465,6 +1726,10 @@ class AppLocalizationsAr extends AppLocalizations {
   String get service => 'خدمة';
 
   @override
+  String get serviceModeInfo =>
+      'هذا المنتج مصنف كخدمة: لن يتم تغيير كميته أبدًا بواسطة حركات المخزون (مبيعات، مشتريات، إرجاعات، مخارج، إلخ).';
+
+  @override
   String get packaging1 => 'التغليف 1';
 
   @override
@@ -1487,6 +1752,15 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get multicode => 'رموز متعددة';
+
+  @override
+  String get multipleBarcodeLabel => 'كود متعدد';
+
+  @override
+  String get noBarcodeProduct => 'منتج بدون باركود';
+
+  @override
+  String get generateBarcode => 'توليد باركود';
 
   @override
   String get photos => 'الصور';
@@ -1523,6 +1797,9 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get supplierType => 'مورد';
+
+  @override
+  String get hasReturn => 'لديه إرجاع';
 
   @override
   String get userCount => 'عدد المستخدمين';
@@ -1648,7 +1925,7 @@ class AppLocalizationsAr extends AppLocalizations {
   String get pleaseSelectStore => 'الرجاء اختيار متجر';
 
   @override
-  String get insertionPack => 'إدراج حزمة';
+  String get insertionPack => 'إدراج باقة';
 
   @override
   String get insertionProduct => 'إدراج منتج';
@@ -1657,10 +1934,13 @@ class AppLocalizationsAr extends AppLocalizations {
   String get insertionDiscount => 'إدراج خصم';
 
   @override
+  String get insertionSession => 'إدراج جلسة';
+
+  @override
   String get insertionSubcategory => 'إدراج فئة فرعية';
 
   @override
-  String get pleaseSelectPack => 'الرجاء اختيار حزمة';
+  String get pleaseSelectPack => 'الرجاء اختيار باقة';
 
   @override
   String get pleaseSelectProduct => 'الرجاء اختيار منتج';
@@ -1676,6 +1956,9 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get modifyNeedList => 'تعديل قائمة الاحتياج';
+
+  @override
+  String get menu => 'القائمة';
 
   @override
   String get deleteNeeds => 'حذف الاحتياجات';
@@ -1734,7 +2017,7 @@ class AppLocalizationsAr extends AppLocalizations {
   }
 
   @override
-  String get productCode => 'الكود';
+  String get productCode => 'كود المنتج';
 
   @override
   String get productName => 'المنتج';
@@ -1753,6 +2036,10 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get defaultCashRegister => 'الصندوق الافتراضي';
+
+  @override
+  String get cashRegisterLockedToUser =>
+      'الصندوق محدد من طرف حسابك. فقط المسؤول يمكنه تغييره.';
 
   @override
   String get defaultStore => 'المتجر الافتراضي';
@@ -1779,10 +2066,47 @@ class AppLocalizationsAr extends AppLocalizations {
   String get modifyProductPrice => 'تعديل سعر المنتج';
 
   @override
+  String get priceChangeScope => 'تطبيق التعديل على';
+
+  @override
+  String get thisTicketOnly => 'هذا الوصل فقط';
+
+  @override
+  String get entireProduct => 'المنتج (دائم)';
+
+  @override
   String get password => 'كلمة المرور';
 
   @override
   String get invalidPrice => 'سعر غير صالح';
+
+  @override
+  String get invalidQuantity => 'كمية غير صالحة';
+
+  @override
+  String packagingPricePerPieceLowerThanPurchase(String price) {
+    return 'سعر القطعة ($price) أقل من سعر الشراء';
+  }
+
+  @override
+  String barcodeAlreadyUsed(String produit) {
+    return 'هذا الباركود مستخدم بالفعل من طرف المنتج \"$produit\"';
+  }
+
+  @override
+  String get productNameAlreadyExists => 'اسم المنتج هذا موجود بالفعل';
+
+  @override
+  String get clientNameAlreadyExists => 'اسم العميل هذا موجود بالفعل';
+
+  @override
+  String get supplierNameAlreadyExists => 'اسم المورد هذا موجود بالفعل';
+
+  @override
+  String get usernameAlreadyExists => 'اسم المستخدم هذا موجود بالفعل';
+
+  @override
+  String get roleNameAlreadyExists => 'اسم الدور هذا موجود بالفعل';
 
   @override
   String get passwordRequired => 'كلمة المرور مطلوبة';
@@ -1800,13 +2124,13 @@ class AppLocalizationsAr extends AppLocalizations {
   String get cashPrint => 'تحصيل / طباعة';
 
   @override
-  String get cashPrintBLSC => 'تحصيل / طباعة BLSC';
+  String get cashPrintBLSC => 'تحصيل / طباعة الفاتورة';
 
   @override
   String get cashPrintTicket => 'تحصيل / طباعة التذكرة';
 
   @override
-  String get blNumber => 'رقم BL';
+  String get blNumber => 'رقم الفاتورة';
 
   @override
   String get paidAmount => 'المدفوع';
@@ -2073,6 +2397,9 @@ class AppLocalizationsAr extends AppLocalizations {
   String get noStoreDeleted => 'لم يتم حذف أي متجر.';
 
   @override
+  String get storeDeleteSuccess => 'تم حذف المتجر (المتاجر) بنجاح.';
+
+  @override
   String get noProductsAssociated => 'لا توجد منتجات مرتبطة بهذا المتجر';
 
   @override
@@ -2090,43 +2417,44 @@ class AppLocalizationsAr extends AppLocalizations {
   }
 
   @override
-  String get reactivatePack => 'إعادة تنشيط الحزمة';
+  String get reactivatePack => 'إعادة تنشيط الباقة';
 
   @override
-  String get deletePacks => 'حذف الحزم';
+  String get deletePacks => 'حذف الباقات';
 
   @override
-  String get packDetail => 'تفاصيل الحزمة';
+  String get packDetail => 'تفاصيل الباقة';
 
   @override
-  String get modifyPack => 'تعديل الحزمة';
+  String get modifyPack => 'تعديل الباقة';
 
   @override
-  String get newPack => 'حزمة جديدة';
+  String get newPack => 'باقة جديدة';
 
   @override
   String get numberOfItems => 'عدد المنتجات';
 
   @override
-  String get selectedPacks => 'الحزم المحددة:';
+  String get selectedPacks => 'الباقات المحددة:';
 
   @override
-  String get confirmReactivatePacks => 'هل أنت متأكد من إعادة تنشيط هذه الحزم؟';
+  String get confirmReactivatePacks =>
+      'هل أنت متأكد من إعادة تنشيط هذه الباقات؟';
 
   @override
   String get confirmDeletePacks =>
-      'هل أنت متأكد من حذف الحزم المحددة؟\nهذا الإجراء لا رجعة فيه.';
+      'هل أنت متأكد من حذف الباقات المحددة؟\nهذا الإجراء لا رجعة فيه.';
 
   @override
   String get noChangesDetected => 'لم يتم اكتشاف أي تغييرات.';
 
   @override
   String productAlreadyAdded(Object name) {
-    return 'المنتج $name مضاف بالفعل إلى الحزمة.';
+    return 'المنتج $name مضاف بالفعل إلى الباقة.';
   }
 
   @override
-  String get packNameHint => 'اسم الحزمة';
+  String get packNameHint => 'اسم الباقة';
 
   @override
   String get priceHint => 'مثال: 1500.00';
@@ -2138,7 +2466,12 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String productsOfPack(Object code) {
-    return 'منتجات الحزمة $code';
+    return 'منتجات الباقة $code';
+  }
+
+  @override
+  String productsOfSubCategory(Object code) {
+    return 'منتجات الفئة الفرعية $code';
   }
 
   @override
@@ -2149,6 +2482,11 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get modifyCart => 'تعديل السلة';
+
+  @override
+  String insufficientStockAvailable(Object disponible, Object produit) {
+    return 'المخزون غير كافٍ لـ $produit (المتوفر: $disponible)';
+  }
 
   @override
   String get cartType => 'نوع السلة';
@@ -2226,13 +2564,13 @@ class AppLocalizationsAr extends AppLocalizations {
   String get inactive => 'غير نشط';
 
   @override
-  String get noPacks => 'لا توجد حزم';
+  String get noPacks => 'لا توجد بقات';
 
   @override
   String get noStores => 'لا توجد متاجر';
 
   @override
-  String get applyPack => 'تطبيق حزمة';
+  String get applyPack => 'تطبيق باقة';
 
   @override
   String get applyDiscount => 'تطبيق خصم';
@@ -2275,7 +2613,7 @@ class AppLocalizationsAr extends AppLocalizations {
   String get storage => 'التخزين';
 
   @override
-  String get packStore => 'الحزمة والمتجر';
+  String get packStore => 'الباقة والمتجر';
 
   @override
   String get marginAmount => 'مبلغ الهامش';
@@ -2291,6 +2629,9 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get expiryDate => 'تاريخ الانتهاء';
+
+  @override
+  String get daysSinceExpiry => 'الأيام منذ الانتهاء';
 
   @override
   String get productNameHint => 'اسم المنتج';
@@ -2508,8 +2849,28 @@ class AppLocalizationsAr extends AppLocalizations {
   String get deletionImpossible => 'لا يمكن الحذف';
 
   @override
+  String get modificationImpossible => 'لا يمكن التعديل';
+
+  @override
   String roleHasUsers(Object roleName) {
     return 'الدور \'$roleName\' يحتوي على مستخدمين ولا يمكن حذفه.';
+  }
+
+  @override
+  String get cannotModifyAdminRole => 'لا يمكن تعديل دور المسؤول (Admin).';
+
+  @override
+  String get cannotDeleteAdminRole => 'لا يمكن حذف دور المسؤول (Admin).';
+
+  @override
+  String get cannotModifyAdminUser => 'لا يمكن تعديل المستخدم المسؤول (Admin).';
+
+  @override
+  String get cannotDeleteAdminUser => 'لا يمكن حذف المستخدم المسؤول (Admin).';
+
+  @override
+  String userHasActivityDeactivated(Object username) {
+    return '$username لديه سجلات مرتبطة به في التطبيق ولا يمكن حذفه نهائيًا — تم تعطيله بدلاً من ذلك.';
   }
 
   @override
@@ -2534,17 +2895,17 @@ class AppLocalizationsAr extends AppLocalizations {
   String get roleSavedSuccess => 'تم حفظ الدور بنجاح.';
 
   @override
-  String get smartScanHash => 'مسح ذكي';
+  String get smartScanHash => 'دخول';
 
   @override
-  String get deleteSmartScan => 'حذف المسح الذكي';
+  String get deleteSmartScan => 'حذف الدخول';
 
   @override
-  String get selectedSmartScans => 'المسح الذكي المحدد:';
+  String get selectedSmartScans => 'عمليات الدخول المحددة:';
 
   @override
   String get confirmDeleteSmartScans =>
-      'هل أنت متأكد من حذف هذه المسوحات الذكية؟';
+      'هل أنت متأكد من حذف عمليات الدخول هذه؟';
 
   @override
   String get statistics => 'إحصائيات';
@@ -2560,14 +2921,14 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String smartScanProducts(Object code) {
-    return 'منتجات المسح الذكي $code';
+    return 'منتجات الدخول $code';
   }
 
   @override
-  String get smartScanProductsList => 'منتجات المسح الذكي';
+  String get smartScanProductsList => 'منتجات الدخول';
 
   @override
-  String get modifySmartScan => 'تعديل المسح الذكي';
+  String get modifySmartScan => 'تعديل الدخول';
 
   @override
   String get gapDetected => 'تم اكتشاف فجوة';
@@ -2577,13 +2938,13 @@ class AppLocalizationsAr extends AppLocalizations {
       'تم اكتشاف فجوة بين القيم المدخلة والمحسوبة.\nهل تريد المتابعة؟';
 
   @override
-  String get smartScanModifiedSuccess => 'تم تعديل المسح الذكي بنجاح.';
+  String get smartScanModifiedSuccess => 'تم تعديل الدخول بنجاح.';
 
   @override
-  String get newSmartScan => 'مسح ذكي جديد';
+  String get newSmartScan => 'دخول جديد';
 
   @override
-  String get smartScanSavedSuccess => 'تم حفظ المسح الذكي بنجاح.';
+  String get smartScanSavedSuccess => 'تم حفظ الدخول بنجاح.';
 
   @override
   String get back => 'رجوع';
@@ -2613,6 +2974,10 @@ class AppLocalizationsAr extends AppLocalizations {
   String get atLeastOneProduct => 'الرجاء اختيار منتج واحد على الأقل.';
 
   @override
+  String get cartMustKeepOneProduct =>
+      'يجب أن تحتوي السلة على منتج واحد على الأقل. احذف السلة بالكامل إذا لزم الأمر.';
+
+  @override
   String get supplierCodeHint => 'كود المورد';
 
   @override
@@ -2629,7 +2994,7 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get productExistsInSmartScan =>
-      'هذا المنتج موجود بالفعل في المسح الذكي';
+      'هذا المنتج موجود بالفعل في هذا الدخول';
 
   @override
   String get list => 'قائمة';
@@ -2793,6 +3158,24 @@ class AppLocalizationsAr extends AppLocalizations {
   String get transferModifiedSuccess => 'تم تعديل التحويل بنجاح.';
 
   @override
+  String get sourceAndDestinationStoreMustBeDifferent =>
+      'يجب أن يكون المخزن المصدر والمخزن الوجهة مختلفين.';
+
+  @override
+  String get splitEntryAcrossStores => 'توزيع الاستلام على عدة مخازن';
+
+  @override
+  String get splitTotalMustMatchQuantity =>
+      'يجب أن يكون مجموع الكميات الموزعة مساويًا للكمية الإجمالية.';
+
+  @override
+  String get duplicateStoreInSplit =>
+      'لا يمكن أن يظهر نفس المخزن أكثر من مرة في التوزيع.';
+
+  @override
+  String get incompleteStoreSplit => 'يرجى اختيار مخزن وكمية لكل سطر توزيع.';
+
+  @override
   String get observationOptional => 'ملاحظة (اختياري)';
 
   @override
@@ -2826,6 +3209,30 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get userModifiedSuccess => 'تم تعديل المستخدم بنجاح.';
+
+  @override
+  String get changePassword => 'تغيير كلمة المرور';
+
+  @override
+  String get oldPassword => 'كلمة المرور القديمة';
+
+  @override
+  String get newPassword => 'كلمة المرور الجديدة';
+
+  @override
+  String get confirmPassword => 'تأكيد كلمة المرور';
+
+  @override
+  String get passwordsDoNotMatch => 'كلمتا المرور غير متطابقتين';
+
+  @override
+  String get incorrectOldPassword => 'كلمة المرور القديمة غير صحيحة';
+
+  @override
+  String get confirmChangePassword => 'هل أنت متأكد من تغيير كلمة المرور؟';
+
+  @override
+  String get passwordChangedSuccess => 'تم تغيير كلمة المرور بنجاح.';
 
   @override
   String get userSavedSuccess => 'تم حفظ المستخدم بنجاح.';
@@ -3196,6 +3603,9 @@ class AppLocalizationsAr extends AppLocalizations {
   String get panierCode => 'رمز السلة';
 
   @override
+  String get productRevenue => 'إيرادات ';
+
+  @override
   String get totalPanniers => 'إجمالي السلال';
 
   @override
@@ -3311,6 +3721,12 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get supplierReturns => 'إرجاعات الموردين';
+
+  @override
+  String get clientReturn => 'إرجاع عميل';
+
+  @override
+  String get supplierReturn => 'إرجاع مورد';
 
   @override
   String get movementCode => 'رمز الحركة';
@@ -3506,6 +3922,12 @@ class AppLocalizationsAr extends AppLocalizations {
   String get userInformation => 'معلومات المستخدم';
 
   @override
+  String get lastName => 'اللقب';
+
+  @override
+  String get firstName => 'الاسم';
+
+  @override
   String get shopInformation => 'معلومات المتجر';
 
   @override
@@ -3534,6 +3956,151 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get settingsSaved => '✅ تم حفظ الإعدادات';
+
+  @override
+  String get shopAddress => 'العنوان الكامل';
+
+  @override
+  String get shopAddressHint => 'العنوان الكامل للمتجر';
+
+  @override
+  String get shopLogo => 'شعار المتجر';
+
+  @override
+  String get changeLogo => 'تغيير الشعار';
+
+  @override
+  String get shopPhone => 'الهاتف';
+
+  @override
+  String get shopEmail => 'البريد الإلكتروني';
+
+  @override
+  String get legalInformation =>
+      'المعلومات القانونية (RC / NIF / NIS / المادة)';
+
+  @override
+  String get rcLabel => 'السجل التجاري';
+
+  @override
+  String get nifLabel => 'الرقم الجبائي';
+
+  @override
+  String get nisLabel => 'رقم التعريف الإحصائي';
+
+  @override
+  String get articleLabel => 'مادة الضريبة';
+
+  @override
+  String get ticketMessage => 'رسالة الشكر (التذكرة)';
+
+  @override
+  String get ticketMessageHint => 'مثال: شكراً لزيارتكم!';
+
+  @override
+  String get paymentMethodsSection => 'طرق الدفع';
+
+  @override
+  String get paymentMethodsHint => 'اختر طرق الدفع المتاحة عند الدفع';
+
+  @override
+  String get atLeastOnePaymentRequired =>
+      'يجب أن تبقى طريقة دفع واحدة على الأقل مفعّلة';
+
+  @override
+  String get devicesSection => 'الأجهزة والطباعة';
+
+  @override
+  String get printerType => 'نوع الطابعة';
+
+  @override
+  String get printerTypeBluetooth => 'طابعة حرارية بلوتوث';
+
+  @override
+  String get printerTypeUsb => 'طابعة حرارية USB (ESC/POS)';
+
+  @override
+  String get printerTypeReseau => 'طابعة حرارية شبكية (ESC/POS)';
+
+  @override
+  String get printerTypeNormale => 'طابعة عادية (ويندوز)';
+
+  @override
+  String get selectPrinterLabel => 'الطابعة';
+
+  @override
+  String get ipAddressLabel => 'عنوان IP';
+
+  @override
+  String get portLabel => 'المنفذ';
+
+  @override
+  String get rollWidthLabel => 'عرض اللفة';
+
+  @override
+  String get refreshPrinters => 'تحديث';
+
+  @override
+  String get noPrinterConfigured => 'لم يتم اختيار طابعة';
+
+  @override
+  String get backupSection => 'نسخ احتياطي لقاعدة البيانات';
+
+  @override
+  String get backupFolder => 'مجلد النسخ الاحتياطي';
+
+  @override
+  String get documentsFolder => 'مجلد تخزين (Excel، PDF، الفواتير، الإيصالات)';
+
+  @override
+  String get chooseFolder => 'اختر مجلداً';
+
+  @override
+  String get backupNow => 'نسخ احتياطي الآن';
+
+  @override
+  String get restoreBackup => 'استعادة نسخة احتياطية';
+
+  @override
+  String get autoBackup => 'نسخ احتياطي تلقائي';
+
+  @override
+  String get backupFrequency => 'التكرار';
+
+  @override
+  String get frequencyStartup => 'عند كل تشغيل';
+
+  @override
+  String get frequencyDaily => 'يومياً';
+
+  @override
+  String get frequencyWeekly => 'أسبوعياً';
+
+  @override
+  String get lastBackup => 'آخر نسخة احتياطية';
+
+  @override
+  String get neverBackedUp => 'أبداً';
+
+  @override
+  String get backupSuccess => 'تم إنشاء النسخة الاحتياطية بنجاح';
+
+  @override
+  String get backupError => 'خطأ أثناء النسخ الاحتياطي';
+
+  @override
+  String get restoreConfirmTitle => 'استعادة قاعدة البيانات؟';
+
+  @override
+  String get restoreConfirmMessage =>
+      'سيؤدي هذا إلى استبدال جميع البيانات الحالية بالنسخة الاحتياطية المختارة. يجب إعادة تشغيل التطبيق بعد ذلك. هل تريد المتابعة؟';
+
+  @override
+  String get restoreSuccess =>
+      'تمت استعادة قاعدة البيانات. يرجى إعادة تشغيل التطبيق.';
+
+  @override
+  String get restoreError => 'خطأ أثناء الاستعادة';
 
   @override
   String get currencye => 'العملة';
@@ -3597,6 +4164,84 @@ class AppLocalizationsAr extends AppLocalizations {
       'استخدم زر \'جديد\' لمسح إيصال بالذكاء الاصطناعي';
 
   @override
+  String get attachBonFromDisk => 'إرفاق صورة';
+
+  @override
+  String get receiveBonFromPhone => 'الاستلام من الهاتف';
+
+  @override
+  String get connectMobileAppTitle => 'ربط تطبيق CaisseDZ Scanner للهاتف';
+
+  @override
+  String get receptionNoNetwork => 'لم يتم العثور على عنوان شبكة محلية';
+
+  @override
+  String get receptionStartServer => 'تشغيل الخادم';
+
+  @override
+  String get receptionStopServer => 'إيقاف الخادم';
+
+  @override
+  String get receptionStatusConnected => 'الهاتف متصل';
+
+  @override
+  String get receptionStatusWaiting => 'في انتظار اتصال الهاتف…';
+
+  @override
+  String get receptionPhotoMissing => 'تعذر العثور على هذه الصورة على القرص';
+
+  @override
+  String get receptionStatutRecu => 'مستلمة';
+
+  @override
+  String get receptionStatutTraite => 'تمت المعالجة';
+
+  @override
+  String get receptionStatutErreur => 'خطأ';
+
+  @override
+  String get receptionAllStatuses => 'كل الحالات';
+
+  @override
+  String get receptionDateRangeLabel => 'تاريخ الاستلام';
+
+  @override
+  String get pairingCodeLabel => 'رمز الاقتران';
+
+  @override
+  String get regeneratePairingCode => 'إعادة توليد الرمز';
+
+  @override
+  String get pairingCodeCopied => 'تم نسخ الرمز';
+
+  @override
+  String get pairedDevicesSection => 'الهواتف المقترنة';
+
+  @override
+  String get noPairedDevices => 'لا يوجد هاتف مقترن';
+
+  @override
+  String get pairingCodeExpiresLabel => 'تنتهي الصلاحية خلال';
+
+  @override
+  String get pairingCodeExpired => 'انتهت صلاحية الرمز — أعد توليده';
+
+  @override
+  String get scanOrTypeCode => 'امسح رمز QR أو أدخل رمز الاقتران على الهاتف';
+
+  @override
+  String get mobileConnectTooltip => 'ربط هاتف';
+
+  @override
+  String get startingServerAutomatically => 'جارٍ تجهيز الاتصال…';
+
+  @override
+  String get advancedConnectionSettings => 'إعدادات متقدمة (عنوان IP / المنفذ)';
+
+  @override
+  String get scanDateRangeLabel => 'تاريخ المسح';
+
+  @override
   String get aiReceipt => 'إيصال الذكاء الاصطناعي';
 
   @override
@@ -3627,10 +4272,10 @@ class AppLocalizationsAr extends AppLocalizations {
   String get actualQty => 'كمية الحالية';
 
   @override
-  String get quickEntry => 'دخول سريع';
+  String get quickEntry => 'إدخال';
 
   @override
-  String get cashReceipt => 'إيصال الصندوق';
+  String get cashReceipt => 'الصندوق';
 
   @override
   String get cashReceiptTitle => 'إيصال الصندوق';
@@ -3662,6 +4307,21 @@ class AppLocalizationsAr extends AppLocalizations {
   }
 
   @override
+  String conditionalDiscountToActivate(Object amount, Object currency) {
+    return 'خصم مشروط: +$amount $currency للتفعيل';
+  }
+
+  @override
+  String discountAppliedNamed(Object nom) {
+    return '✅ تم تطبيق الخصم \'$nom\'!';
+  }
+
+  @override
+  String packAddedToCart(Object nom, Object quantiteSuffix) {
+    return '✅ تمت إضافة الحزمة \'$nom\'$quantiteSuffix إلى السلة';
+  }
+
+  @override
   String get totalFinal => 'الإجمالي النهائي';
 
   @override
@@ -3669,6 +4329,9 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get quantityMustBeGreaterThanZero => 'يجب ان يكون السعر أعلى من 0';
+
+  @override
+  String get numberMustBeGreaterThanZero => 'يجب أن يكون العدد أعلى من 0';
 
   @override
   String get priceMustBeGreaterThanZero => 'يجب ان تكون الكمية أعلى من 0 ';
@@ -3733,4 +4396,337 @@ class AppLocalizationsAr extends AppLocalizations {
   @override
   String get sourceAndDestinationMustBeDifferent =>
       'يجب أن يكون المصدر والوجهة مختلفين';
+
+  @override
+  String get reduction => 'تخفيض';
+
+  @override
+  String get packactuel => 'الباقة الحالية';
+
+  @override
+  String get remiseactuel => 'الخصم الحالي';
+
+  @override
+  String get categorieactuel => 'الفئة ';
+
+  @override
+  String get souscategorieactuel => 'الفئة الفرعية';
+
+  @override
+  String get entryrapide => 'إدخال سريع';
+
+  @override
+  String get catalog => 'الكتالوج';
+
+  @override
+  String get newCatalogProduct => 'منتج جديد في الكتالوج';
+
+  @override
+  String get editCatalogProduct => 'تعديل منتج الكتالوج';
+
+  @override
+  String get deleteCatalogProducts => 'حذف من الكتالوج';
+
+  @override
+  String get confirmDeleteCatalogProducts =>
+      'هذا الحذف نهائي ويؤثر على الكتالوج المشترك بين جميع متاجر CaisseDZ. هل تريد المتابعة؟';
+
+  @override
+  String get catalogPhotoUrl => 'رابط الصورة';
+
+  @override
+  String get catalogPhotoUrlHint => 'https://...';
+
+  @override
+  String get catalogSyncFailed =>
+      'تم حفظ المنتج محليًا، لكن المزامنة مع الكتالوج البعيد فشلت.';
+
+  @override
+  String productAlreadyExistsLocally(String produit) {
+    return 'هذا المنتج موجود بالفعل في مخزونك: \"$produit\"';
+  }
+
+  @override
+  String stockGlobalInsuffisant(String disponible, String demande) {
+    return 'المخزون الإجمالي غير كافٍ!\nمتوفر: $disponible قطعة\nمطلوب: $demande قطعة';
+  }
+
+  @override
+  String stockInsuffisantMagasin(
+    String magasin,
+    String disponible,
+    String demande,
+  ) {
+    return 'المخزون غير كافٍ في المتجر \'$magasin\'!\nمتوفر: $disponible قطعة\nمطلوب: $demande قطعة\n\nهل تريد أخذ الكمية المتوفرة فقط؟';
+  }
+
+  @override
+  String get produitAucunMagasin => 'هذا المنتج غير متوفر في أي متجر!';
+
+  @override
+  String get packSansProduit => 'هذه الحزمة لا تحتوي على أي منتج';
+
+  @override
+  String produitInexistantBase(String code) {
+    return 'المنتج \'$code\' غير موجود في قاعدة البيانات';
+  }
+
+  @override
+  String stockInsuffisantPourProduit(
+    String code,
+    String disponible,
+    String necessaire,
+  ) {
+    return 'المخزون غير كافٍ للمنتج \'$code\'\nمتوفر: $disponible قطعة\nمطلوب: $necessaire قطعة';
+  }
+
+  @override
+  String produitInexistant(String code) {
+    return 'المنتج \'$code\' غير موجود';
+  }
+
+  @override
+  String get aucunPackDisponible => 'لا توجد حزمة متوفرة';
+
+  @override
+  String stockInsuffisantDetail(String disponible, String demande) {
+    return 'المخزون غير كافٍ!\nمتوفر: $disponible قطعة\nمطلوب: $demande قطعة';
+  }
+
+  @override
+  String stockInsuffisantRestant(String disponible) {
+    return 'المخزون غير كافٍ!\nلم يتبقَ سوى $disponible قطعة متاحة';
+  }
+
+  @override
+  String stockInsuffisantSupplement(String disponible, String demande) {
+    return 'المخزون غير كافٍ!\nمتوفر: $disponible قطعة\nالكمية الإضافية المطلوبة: $demande قطعة';
+  }
+
+  @override
+  String remiseConditionMessage(String nom, String montant) {
+    return 'سيتم تطبيق الخصم \'$nom\' تلقائيًا عندما يصل المجموع إلى $montant دج.';
+  }
+
+  @override
+  String aiScanSavedDetails(
+    String code,
+    String fournisseur,
+    String produits,
+    String total,
+  ) {
+    return 'تم حفظ الدخول بنجاح!\n\nالرمز: $code\nالمورد: $fournisseur\nالمنتجات: $produits\nالمجموع: $total دج';
+  }
+
+  @override
+  String saveFailed(String error) {
+    return 'فشل الحفظ: $error';
+  }
+
+  @override
+  String get confirmModifyClient =>
+      'هل أنت متأكد من رغبتك في تعديل هذا العميل؟';
+
+  @override
+  String get selectClientType => 'يرجى اختيار نوع العميل';
+
+  @override
+  String caisseNotFound(String caisse) {
+    return 'الصندوق \'$caisse\' غير موجود.';
+  }
+
+  @override
+  String get categoryModifiedCascade =>
+      'تم تعديل الفئة بنجاح.\n\nتم تحديث جميع الفئات الفرعية والمنتجات.';
+
+  @override
+  String get confirmModifyCaisse =>
+      'هل أنت متأكد من رغبتك في تعديل هذا الصندوق؟';
+
+  @override
+  String get confirmModifyFournisseur =>
+      'هل أنت متأكد من رغبتك في تعديل هذا المورد؟';
+
+  @override
+  String get confirmModifyPack => 'هل أنت متأكد من رغبتك في تعديل هذه الحزمة؟';
+
+  @override
+  String get confirmModifyBesoinListe =>
+      'هل أنت متأكد من رغبتك في تعديل قائمة الاحتياجات هذه؟';
+
+  @override
+  String get modificationError => 'حدث خطأ أثناء التعديل.';
+
+  @override
+  String get sellPriceMustBePositive => 'يجب أن يكون سعر البيع أكبر من 0';
+
+  @override
+  String get sellPriceMustExceedBuyPrice =>
+      'يجب أن يكون سعر البيع أكبر من سعر الشراء';
+
+  @override
+  String get selectStatus => 'يرجى اختيار الحالة';
+
+  @override
+  String versementLieRetourModif(String code) {
+    return 'هذه الدفعة مرتبطة بالإرجاع $code. يرجى تعديلها من خلال هذا الإرجاع.';
+  }
+
+  @override
+  String versementLieRetourSuppr(String code, String codeRetour) {
+    return 'الدفعة $code مرتبطة بالإرجاع $codeRetour. يرجى حذفها من خلال هذا الإرجاع.';
+  }
+
+  @override
+  String get loginRequiredChangeCategory =>
+      'يجب تسجيل الدخول لتغيير الفئة والفئة الفرعية.';
+
+  @override
+  String get selectRole => 'يرجى اختيار الدور';
+
+  @override
+  String qtyAndBuyPriceMustBePositiveFor(String produit) {
+    return 'يجب أن تكون الكمية وسعر الشراء أكبر من 0 لـ $produit';
+  }
+
+  @override
+  String sellPriceMustExceedBuyPriceFor(String produit) {
+    return 'يجب أن يكون سعر البيع أكبر من سعر الشراء لـ $produit';
+  }
+
+  @override
+  String get selectPannierForReturn =>
+      'يرجى اختيار السلة المعنية بهذا الإرجاع.';
+
+  @override
+  String get selectEntreeOrSmartScanForReturn =>
+      'يرجى اختيار الدخول المعني بهذا الإرجاع.';
+
+  @override
+  String get internetConnected => 'متصل بالإنترنت';
+
+  @override
+  String get internetDisconnected => 'لا يوجد اتصال بالإنترنت';
+
+  @override
+  String get ouvrirCaisse => 'فتح الصندوق';
+
+  @override
+  String get cloturerCaisse => 'إغلاق الصندوق';
+
+  @override
+  String get mouvementManuel => 'حركة يدوية';
+
+  @override
+  String get soldeOuverture => 'رصيد الافتتاح';
+
+  @override
+  String soldeOuvertureSuggere(String montant) {
+    return 'المبلغ المقترح: $montant';
+  }
+
+  @override
+  String get soldeTheorique => 'الرصيد النظري';
+
+  @override
+  String get soldeReel => 'الرصيد الفعلي (المعدود)';
+
+  @override
+  String get ecartCaisse => 'الفرق';
+
+  @override
+  String get ouvertureCaisseSuccess => 'تم فتح الصندوق بنجاح';
+
+  @override
+  String get clotureCaisseSuccess => 'تم إغلاق الصندوق بنجاح';
+
+  @override
+  String sessionDejaOuverte(String caisse) {
+    return 'توجد جلسة صندوق مفتوحة بالفعل لـ \'$caisse\'.';
+  }
+
+  @override
+  String get aucuneSessionOuverteACloturer =>
+      'لا توجد جلسة مفتوحة لإغلاقها لهذا الصندوق.';
+
+  @override
+  String aucuneSessionOuverte(String caisse) {
+    return 'لا توجد جلسة صندوق مفتوحة لـ \'$caisse\'. يرجى فتح الصندوق أولاً.';
+  }
+
+  @override
+  String get entreeManuelle => 'إدخال يدوي';
+
+  @override
+  String get sortieManuelle => 'إخراج يدوي';
+
+  @override
+  String get motifMouvement => 'السبب';
+
+  @override
+  String get mouvementAjouteSuccess => 'تمت إضافة الحركة بنجاح';
+
+  @override
+  String sessionCaisseOuverteDepuis(String date) {
+    return 'الجلسة مفتوحة منذ $date';
+  }
+
+  @override
+  String get sessionCaisseFermee => 'الصندوق مغلق';
+
+  @override
+  String get cashRegisterRequired => 'يرجى اختيار صندوق';
+
+  @override
+  String get cashSessionsTab => 'جلسات الصندوق';
+
+  @override
+  String get cashMovementsTab => 'حركات الصندوق';
+
+  @override
+  String get noSessionsYet => 'لا توجد جلسات بعد';
+
+  @override
+  String get viewMovements => 'عرض الحركات';
+
+  @override
+  String get noSessionSelected => 'لم يتم اختيار أي جلسة';
+
+  @override
+  String get selectSingleSessionForMovements =>
+      'يرجى اختيار جلسة واحدة فقط لعرض حركاتها';
+
+  @override
+  String get sessionStatutOuverte => 'مفتوحة';
+
+  @override
+  String get sessionStatutCloturee => 'مغلقة';
+
+  @override
+  String get cancelSmartScan => 'إلغاء الإدخال';
+
+  @override
+  String get confirmCancelSmartScans =>
+      'هل أنت متأكد أنك تريد إلغاء هذه الإدخالات؟';
+
+  @override
+  String get smartScanContentLocked =>
+      'لا يمكن تعديل محتوى عملية شراء مسجلة — استخدم الإلغاء';
+
+  @override
+  String get smartScanAlreadyCancelled =>
+      'الإدخال غير موجود أو تم إلغاؤه بالفعل';
+
+  @override
+  String get cancelReturns => 'إلغاء المرتجعات';
+
+  @override
+  String get confirmCancelReturns =>
+      'هل أنت متأكد أنك تريد إلغاء هذه المرتجعات؟';
+
+  @override
+  String get cancelExits => 'إلغاء الإخراجات';
+
+  @override
+  String get confirmCancelExits => 'هل أنت متأكد أنك تريد إلغاء هذه الإخراجات؟';
 }

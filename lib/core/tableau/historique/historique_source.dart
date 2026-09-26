@@ -13,6 +13,7 @@ class HistoriqueDataSource extends BaseTableDataSource<Historique> {
     required List<Historique> historiques,
     required super.columnConfig,
     required this.l10n,
+    super.utilisateurs = const [],
   }) : super(items: historiques);
 
   String formatDate(DateTime? date) {
@@ -37,9 +38,7 @@ class HistoriqueDataSource extends BaseTableDataSource<Historique> {
       case 'description':
         return historique.observation;
       case 'creeParCode':
-        return historique.creeParCode;
-      case 'creeParCode':
-        return historique.creeParCode;
+        return nomUtilisateur(historique.creeParCode);
       case 'dateCree':
         return formatDate(historique.dateCree);
 

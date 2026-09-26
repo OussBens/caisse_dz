@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:caisse_dz/Services/Produits.dart';
 import 'package:caisse_dz/core/theme/app_style.dart';
+import 'package:caisse_dz/l10n/app_localizations.dart';
 import '../widget/button/main_button.dart';
 import '../widget/champ/champ_avec_label.dart';
 import '../widget/champ/text_champ_l.dart';
@@ -8,10 +10,14 @@ import 'base_dialog.dart';
 
 class InsertionCodebarDialog extends StatefulWidget {
   final Function(String) onBarcodeAdded;
+  /// Code du produit en cours de modification, à exclure de la vérification
+  /// d'unicité (ses propres codes-barres ne doivent pas se signaler eux-mêmes).
+  final String? excludeProduitCode;
 
   const InsertionCodebarDialog({
     super.key,
     required this.onBarcodeAdded,
+    this.excludeProduitCode,
   });
 
   @override
@@ -25,10 +31,34 @@ class _InsertionCodebarDialogState
   final TextEditingController barcodeController =
   TextEditingController();
 
-  void ajouter() {
+  bool verifying = false;
+  String? erreur;
+
+  Future<void> ajouter() async {
     final code = barcodeController.text.trim();
 
     if (code.isEmpty) return;
+
+    final l10n = AppLocalizations.of(context)!;
+    setState(() {
+      verifying = true;
+      erreur = null;
+    });
+
+    final conflit = await ProduitServices.findProduitUsingBarcode(
+      code,
+      excludeProduitCode: widget.excludeProduitCode,
+    );
+
+    if (!mounted) return;
+
+    if (conflit != null) {
+      setState(() {
+        verifying = false;
+        erreur = l10n.barcodeAlreadyUsed(conflit.nom);
+      });
+      return;
+    }
 
     widget.onBarcodeAdded(code);
     Navigator.pop(context);
@@ -38,7 +68,7 @@ class _InsertionCodebarDialogState
   Widget build(BuildContext context) {
     return BaseDialog(
       width: 500,
-      couleur: Appstyle.violetC,
+     couleur: Appstyle.Tblanc,
 
       header: Row(
         children: [
@@ -77,9 +107,19 @@ class _InsertionCodebarDialogState
               controller: barcodeController,
               hint: "Code barre",
               numeric: true,
+              onChanged: (_) {
+                if (erreur != null) setState(() => erreur = null);
+              },
             ),
           ),
           /// champ code barre
+          if (erreur != null) ...[
+            const SizedBox(height: 8),
+            Text(
+              erreur!,
+              style: const TextStyle(color: Colors.red, fontWeight: FontWeight.w600),
+            ),
+          ],
 
         ],
       ),
@@ -98,7 +138,7 @@ class _InsertionCodebarDialogState
             text: "Ajouter",
             icon: Icons.check,
             color: Appstyle.violet,
-            onPressed: ajouter,
+            onPressed: verifying ? null : ajouter,
           ),
         ],
       ),

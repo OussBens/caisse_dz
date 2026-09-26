@@ -38,3 +38,18 @@ target_include_directories(${BINARY_NAME} PRIVATE "${CMAKE_SOURCE_DIR}")
 
 # Run the Flutter tool portions of the build. This must not be removed.
 add_dependencies(${BINARY_NAME} flutter_assemble)
+
+# sqflite_common_ffi (sqlite3 Dart package) charge la base via
+# DynamicLibrary.open('sqlite3.dll'), qui suit l'ordre de recherche DLL
+# standard de Windows (dossier de l'exe, puis System32/PATH) — ça ne va PAS
+# chercher dans le bundle d'assets Flutter (data/flutter_assets/). Sans
+# copie explicite ici, l'app dépend d'un sqlite3.dll déjà présent ailleurs
+# sur la machine, ce qui n'est pas garanti chez un client. On copie donc le
+# DLL vendu dans assets/libs/ directement à côté de l'exécutable à chaque
+# build, pour que l'app soit autonome.
+add_custom_command(TARGET ${BINARY_NAME} POST_BUILD
+  COMMAND ${CMAKE_COMMAND} -E copy_if_different
+    "${CMAKE_SOURCE_DIR}/../assets/libs/sqlite3.dll"
+    "$<TARGET_FILE_DIR:${BINARY_NAME}>"
+  COMMENT "Copie sqlite3.dll à côté de ${BINARY_NAME}.exe"
+)

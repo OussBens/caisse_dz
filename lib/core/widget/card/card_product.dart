@@ -142,12 +142,17 @@ class CardProduct extends StatelessWidget {
             ),
 
             /// BADGE RUPTURE
+            /// PositionedDirectional (et non Positioned+left) car la Row
+            /// [photo | infos] est inversée par Directionality en arabe : la
+            /// photo passe à droite. "start" suit ce miroir et reste
+            /// toujours au-dessus de la photo au lieu de chevaucher le nom
+            /// du produit.
             if (isRupture)
-              Positioned(
+              PositionedDirectional(
                 top: 6,
-                left: 6,
+                start: 6,
                 child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
                   decoration: BoxDecoration(
                     color: Colors.red,
                     borderRadius: BorderRadius.circular(12),
@@ -161,16 +166,16 @@ class CardProduct extends StatelessWidget {
                   ),
                   child: Text(
                     l10n.outOfStock,
-                    style: Appstyle.textXSB.copyWith(
+                    style: Appstyle.textXS.copyWith(
                       color: Colors.white,
-                      fontWeight: FontWeight.bold,
+                      fontSize: 9
                     ),
                   ),
                 ),
               ),
 
             /// BADGE REMISE
-            if (hasRemise && !isRupture)
+            if (hasRemise )
               Positioned(
                 bottom: 6,
                 right: 6,

@@ -17,6 +17,7 @@ import 'package:caisse_dz/core/Auth/auth_state.dart';
 import 'package:caisse_dz/core/theme/app_style.dart';
 import '../../utilis/api_response.dart';
 import '../../widget/button/main_button.dart';
+import '../../widget/champ/affichage_champ.dart';
 import '../../widget/champ/champ_avec_label.dart';
 import '../../widget/champ/liste_champ.dart';
 import '../../widget/champ/text_champ_l.dart';
@@ -127,6 +128,12 @@ Future<void> CategorieModif(BuildContext context, Categorie categorie) async {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       ChampAvecLabel(
+                        label: l10n.code,
+                        child: AffichageChamp(text: categorie.code),
+                      ),
+                      const SizedBox(height: 10),
+
+                      ChampAvecLabel(
                         label: l10n.status,
                         child: TextListe(
                           clearable: false,
@@ -230,7 +237,7 @@ Future<void> CategorieModif(BuildContext context, Categorie categorie) async {
                                 titre_type_message: l10n.success,
                                 titre_concerne: l10n.modifyCategory,
                                 message: oldNom != nomCategorieController.text.trim()
-                                    ? "Catégorie modifiée avec succès.\n\nToutes les sous-catégories et produits ont été mis à jour."
+                                    ? l10n.categoryModifiedCascade
                                     : l10n.modifySuccess,
                                 onTerminer: () {
                                   Navigator.pop(context);
@@ -241,7 +248,7 @@ Future<void> CategorieModif(BuildContext context, Categorie categorie) async {
                                 context: context,
                                 titre_type_message: l10n.error,
                                 titre_concerne: l10n.modifyCategory,
-                                message: "Erreur lors de la modification : $e",
+                                message: "${l10n.errorOccurred}: $e",
                               );
                             }
                           },

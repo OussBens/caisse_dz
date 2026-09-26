@@ -50,17 +50,17 @@ class Appstyle
 
 
   static TextStyle textXS =  TextStyle(fontFamily:'NunitoSans',fontSize: 13,fontWeight: FontWeight.w400);
-  static TextStyle textXSB =  TextStyle(fontFamily:'NunitoSans',fontSize: 13,fontWeight: FontWeight.w900);
+  static TextStyle textXSB =  TextStyle(fontFamily:'NunitoSans',fontSize: 13,fontWeight: FontWeight.w700);
   static TextStyle textS =  TextStyle(fontFamily:'NunitoSans',fontSize: 14,fontWeight: FontWeight.w400);
-  static TextStyle textSB =  TextStyle(fontFamily:'NunitoSans',fontSize: 14,fontWeight: FontWeight.w900);
+  static TextStyle textSB =  TextStyle(fontFamily:'NunitoSans',fontSize: 14,fontWeight: FontWeight.w700);
   static TextStyle textM =  TextStyle(fontFamily:'NunitoSans',fontSize: 18,fontWeight: FontWeight.w400);
-  static TextStyle textMB =  TextStyle(fontFamily:'NunitoSans',fontSize: 18,fontWeight: FontWeight.w900);
+  static TextStyle textMB =  TextStyle(fontFamily:'NunitoSans',fontSize: 18,fontWeight: FontWeight.w700);
   static TextStyle textL =  TextStyle(fontFamily:'NunitoSans',fontSize: 22,fontWeight: FontWeight.w400);
-  static TextStyle textLB =  TextStyle(fontFamily:'NunitoSans',fontSize: 22,fontWeight: FontWeight.w900);
+  static TextStyle textLB =  TextStyle(fontFamily:'NunitoSans',fontSize: 22,fontWeight: FontWeight.w700);
   static TextStyle textXL =  TextStyle(fontFamily:'NunitoSans',fontSize: 26,fontWeight: FontWeight.w400);
-  static TextStyle textXLB =  TextStyle(fontFamily:'NunitoSans',fontSize: 26,fontWeight: FontWeight.w900);
+  static TextStyle textXLB =  TextStyle(fontFamily:'NunitoSans',fontSize: 26,fontWeight: FontWeight.w700);
   static TextStyle textXXL =  TextStyle(fontFamily:'NunitoSans',fontSize: 34,fontWeight: FontWeight.w400);
-  static TextStyle textXXLB =  TextStyle(fontFamily:'NunitoSans',fontSize: 34,fontWeight: FontWeight.w900);
+  static TextStyle textXXLB =  TextStyle(fontFamily:'NunitoSans',fontSize: 34,fontWeight: FontWeight.w700);
 
   static TextStyle textpop_XS =  TextStyle(fontFamily:'Poppins',fontSize: 12,fontWeight: FontWeight.w400);
   static TextStyle textpop_XSB =  TextStyle(fontFamily:'Poppins',fontSize: 12,fontWeight: FontWeight.w700);
@@ -73,7 +73,55 @@ class Appstyle
   static TextStyle textpop_XL =  TextStyle(fontFamily:'Poppins',fontSize: 34,fontWeight: FontWeight.w400);
   static TextStyle textpop_XLB =  TextStyle(fontFamily:'Poppins',fontSize: 34,fontWeight: FontWeight.w700);
 
+  // ── Design tokens (fondations design system, phase 0) ──────────────
+  // Rôles sémantiques : alias vers les couleurs de marque ci-dessus, pour
+  // que le futur code raisonne en rôle (succès, erreur, surface...) plutôt
+  // qu'en teinte nommée. Les couleurs de marque restent la seule source de
+  // vérité — ces alias ne créent pas de nouvelles valeurs de couleur.
+  static const Color primary = violet;
+  static const Color primaryDark = indigo;
+  static const Color success = green;
+  static const Color warning = jaune;
+  static const Color danger = red;
+  static const Color info = blueC;
+  static const Color surface = Tblanc;
+  static const Color background = grisnew;
+  static const Color textPrimary = Tnoir;
+  static const Color textSecondary = TgrisC;
+  static const Color textMuted = gris;
+  static const Color border = grisC;
 
+  // Échelle d'espacement (multiples de 4) — à utiliser pour tout nouveau
+  // padding/margin plutôt que des valeurs ad hoc, afin de garder un rythme
+  // visuel cohérent entre modules.
+  static const double spaceXS = 4;
+  static const double spaceS = 8;
+  static const double spaceM = 12;
+  static const double spaceL = 16;
+  static const double spaceXL = 24;
+  static const double spaceXXL = 32;
 
+  // Échelle de rayons de bordure.
+  static const double radiusSM = 8;
+  static const double radiusMD = 12;
+  static const double radiusLG = 16;
+  static const double radiusXL = 24;
+
+  // Ombres standard (carte au repos / carte survolée ou active) — évite
+  // que chaque widget ne redéfinisse ses propres valeurs de blur/opacité.
+  static List<BoxShadow> get shadowCard => [
+        BoxShadow(
+          color: Colors.black.withOpacity(0.08),
+          blurRadius: 10,
+          offset: const Offset(0, 3),
+        ),
+      ];
+  static List<BoxShadow> shadowHover({Color? color}) => [
+        BoxShadow(
+          color: (color ?? violet).withOpacity(0.3),
+          blurRadius: 16,
+          offset: const Offset(0, 6),
+        ),
+      ];
 
 }

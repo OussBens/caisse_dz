@@ -1,25 +1,27 @@
 import 'package:caisse_dz/core/dialog/categorie/categorie_detail.dart';
 
 import 'package:caisse_dz/core/theme/app_style.dart';
-import 'package:caisse_dz/core/widget/button/main_button.dart';
 import 'package:caisse_dz/data/models/categorie.dart';
 import 'package:caisse_dz/data/models/sous_categorie.dart';
+import 'package:caisse_dz/data/models/utilisateur.dart';
 import 'package:caisse_dz/l10n/app_localizations.dart';
 import 'package:flutter/material.dart';
 import 'package:syncfusion_flutter_core/theme.dart';
 import 'package:syncfusion_flutter_datagrid/datagrid.dart';
-import 'package:caisse_dz/core/widget/tableau/paginated.dart';
+import '../filter_icon_builder.dart';
 import 'categorie_source.dart';
 
 class TableauCategorieAdvanced extends StatefulWidget {
   final List<Categorie> categories;
   final List<SousCategorie> sousCategories;
+  final List<Utilisateur> utilisateurs;
   final void Function(List<Categorie>)? onSelectionChanged;
 
   const TableauCategorieAdvanced({
     super.key,
     required this.categories,
     this.sousCategories = const [],
+    this.utilisateurs = const [],
     this.onSelectionChanged,
   });
 
@@ -34,18 +36,8 @@ class _TableauCategorieAdvancedState extends State<TableauCategorieAdvanced> {
   late CategorieDataSource dataSource;
   final Map<String, double> columnWidths = {};
 
-  int rowsPerPage = 15;
-  int currentPage = 1;
-
-  List<Categorie> get paginatedData {
-    final start = (currentPage - 1) * rowsPerPage;
-    final end = (start + rowsPerPage).clamp(0, widget.categories.length);
-    if (start >= widget.categories.length) return [];
-    return widget.categories.sublist(start, end);
-  }
-
-  int get totalPages =>
-      (widget.categories.isEmpty) ? 1 : (widget.categories.length / rowsPerPage).ceil().clamp(1, 9999);
+  int _rowsPerPage = 15;
+  static const List<int> _rowsPerPageOptions = [10, 15, 20, 30, 50];
 
   bool selectAll = false;
 
@@ -80,24 +72,46 @@ class _TableauCategorieAdvancedState extends State<TableauCategorieAdvanced> {
     super.didChangeDependencies();
     final l10n = AppLocalizations.of(context)!;
     dataSource = CategorieDataSource(
-      categories: paginatedData,
+      categories: widget.categories,
       columnConfig: columnVisibility.map((k, v) => MapEntry(k, {
         'visible': v['visible'],
         'label': v['label'],
         'field': v['field'],
       })),
       l10n: l10n,
+      utilisateurs: widget.utilisateurs,
+    );
+    dataSource.onRowDoubleTap = (categorie) => CategorieDetail(
+      context,
+      categorie,
+      nombreSousCategories: widget.sousCategories
+          .where((sc) => sc.categorieCode == categorie.code)
+          .length,
     );
 
     // Écoute de la sélection
     dataSource.addListener(() {
-      widget.onSelectionChanged?.call(dataSource.getSelectedRows());
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted) return;
+        setState(() {});
+        widget.onSelectionChanged?.call(dataSource.getSelectedRows());
+      });
     });
+  }
+
+  @override
+  void didUpdateWidget(covariant TableauCategorieAdvanced oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.categories != widget.categories) {
+      dataSource.updateCategories(widget.categories);
+    }
   }
 
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
+
+    final pageCount = (dataSource.items.length / _rowsPerPage).ceil().clamp(1, 9999).toDouble();
 
     return Column(
       children: [
@@ -133,12 +147,13 @@ class _TableauCategorieAdvancedState extends State<TableauCategorieAdvanced> {
                           gridLineColor: Colors.grey.shade300,
                           gridLineStrokeWidth: 0.4,
                           sortIconColor: Appstyle.Tblanc,
-                          filterIconColor: Appstyle.Tblanc,
+                          filterIcon: Builder(builder: (context) => buildFilterIcon(context, dataSource)),
                         ),
                         child: SfDataGrid(
                           headerRowHeight: 36,
                           rowHeight: 38,
                           source: dataSource,
+                          rowsPerPage: _rowsPerPage,
                           selectionMode: SelectionMode.single,
                           allowSorting: true,
                           allowFiltering: true,
@@ -146,20 +161,8 @@ class _TableauCategorieAdvancedState extends State<TableauCategorieAdvanced> {
                           columnWidthMode: ColumnWidthMode.none, // ⭐ ICI
                           allowColumnsResizing: true,
                           columnResizeMode: ColumnResizeMode.onResize,
-                          onCellDoubleTap: (details) {
-                            // ❗ ignorer l'en-tête
-                            if (details.rowColumnIndex.rowIndex <= 0) return;
-
-                            final rowIndex = details.rowColumnIndex.rowIndex - 1;
-                            final Categorie categorie = paginatedData[rowIndex];
-                            CategorieDetail(
-                              context,
-                              categorie,
-                              nombreSousCategories: widget.sousCategories
-                                  .where((sc) => sc.categorieCode == categorie.code)
-                                  .length,
-                            );
-                          },
+                          // Sélection au clic + double-clic pour le détail gérés
+                          // dans BaseTableDataSource.buildRow.
 
                           // ⭐ LIMITES MIN / MAX
                           onColumnResizeUpdate: (details) {
@@ -226,23 +229,36 @@ class _TableauCategorieAdvancedState extends State<TableauCategorieAdvanced> {
           ),
         ),
         const SizedBox(height: 12),
-        PaginationBar(
-          currentPage: currentPage,
-          totalPages: totalPages,
-          rowsPerPage: rowsPerPage,
-          onPageChanged: (page) {
-            setState(() {
-              currentPage = page;
-              dataSource.updateCategories(paginatedData);
-            });
-          },
-          onRowsPerPageChanged: (v) {
-            setState(() {
-              rowsPerPage = v;
-              currentPage = 1;
-              dataSource.updateCategories(paginatedData);
-            });
-          },
+        Container(
+          padding: const EdgeInsets.symmetric(vertical: 6, horizontal: 12),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(14),
+            boxShadow: const [BoxShadow(color: Colors.black12, blurRadius: 10)],
+          ),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              SfDataPager(
+                delegate: dataSource,
+                pageCount: pageCount,
+                direction: Axis.horizontal,
+                itemWidth: 36,
+                itemHeight: 36,
+              ),
+              const SizedBox(width: 20),
+              DropdownButton<int>(
+                value: _rowsPerPage,
+                items: _rowsPerPageOptions
+                    .map((e) => DropdownMenuItem(value: e, child: Text("$e ${l10n.rowsPerPage}")))
+                    .toList(),
+                onChanged: (v) {
+                  if (v == null) return;
+                  setState(() => _rowsPerPage = v);
+                },
+              ),
+            ],
+          ),
         ),
       ],
     );
@@ -276,20 +292,6 @@ class _TableauCategorieAdvancedState extends State<TableauCategorieAdvanced> {
           color: Appstyle.Tblanc,
         ),
       ),
-    );
-  }
-
-  Widget _buildActiveColumnsBar(AppLocalizations l10n) {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.end,
-      children: [
-        MainButton(
-          text: "",
-          color: Appstyle.violet,
-          onPressed: () => _showColumnSettingsPopup(context, l10n),
-          icon: Icons.view_column,
-        )
-      ],
     );
   }
 

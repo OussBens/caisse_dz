@@ -2,20 +2,30 @@ import 'package:caisse_dz/core/dialog/pannier/pannier_detail.dart';
 import 'package:caisse_dz/core/tableau/pannier/pannier_source.dart';
 import 'package:caisse_dz/core/theme/app_style.dart';
 import 'package:caisse_dz/core/widget/button/main_button.dart';
+import 'package:caisse_dz/data/models/client.dart';
 import 'package:caisse_dz/data/models/pannier.dart';
+import 'package:caisse_dz/data/models/utilisateur.dart';
 import 'package:caisse_dz/l10n/app_localizations.dart';
 import 'package:flutter/material.dart';
 import 'package:syncfusion_flutter_core/theme.dart';
 import 'package:syncfusion_flutter_datagrid/datagrid.dart';
-import 'package:caisse_dz/core/widget/tableau/paginated.dart';
+import '../filter_icon_builder.dart';
 
 class TableauPannierAdvanced extends StatefulWidget {
   final List<Pannier> panniers;
+  final List<Client> clients;
+  final Map<String, double> verseParPannier;
+  final Map<String, int> nbrVersementParPannier;
+  final List<Utilisateur> utilisateurs;
   final void Function(List<Pannier>)? onSelectionChanged;
 
   const TableauPannierAdvanced({
     super.key,
     required this.panniers,
+    required this.clients,
+    required this.verseParPannier,
+    required this.nbrVersementParPannier,
+    this.utilisateurs = const [],
     this.onSelectionChanged,
   });
 
@@ -30,24 +40,16 @@ class _TableauPannierAdvancedState extends State<TableauPannierAdvanced> {
 
   late PannierDataSource dataSource;
 
+  // Essai : pagination déléguée à SfDataPager (voir pannier_source.dart pour
+  // le pourquoi) plutôt qu'à la PaginationBar maison — celle-ci ne peut
+  // paginer que ce qu'elle voit AVANT filtrage.
+  int _rowsPerPage = 15;
+  static const List<int> _rowsPerPageOptions = [10, 15, 20, 30, 50];
+
   final Map<String, double> columnWidths = {};
-  int rowsPerPage = 15;
-  int currentPage = 1;
   bool selectAll = false;
 
-  List<Pannier> get paginatedData {
-    final start = (currentPage - 1) * rowsPerPage;
-    final end = (start + rowsPerPage).clamp(0, widget.panniers.length);
-    if (start >= widget.panniers.length) return [];
-    return widget.panniers.sublist(start, end);
-  }
 
-  int get totalPages =>
-      widget.panniers.isEmpty
-          ? 1
-          : (widget.panniers.length / rowsPerPage)
-          .ceil()
-          .clamp(1, 9999);
 
   late Map<String, Map<String, dynamic>> columnVisibility;
 
@@ -66,6 +68,7 @@ class _TableauPannierAdvancedState extends State<TableauPannierAdvanced> {
       'quantiteProduit': {'visible': true, 'label': 'quantity', 'field': 'quantiteProduit'},
       'verse': {'visible': true, 'label': 'paid', 'field': 'verse'},
       'reste': {'visible': true, 'label': 'remaining', 'field': 'reste'},
+      'nbrVersement': {'visible': true, 'label': 'numberOfPayments', 'field': 'nbrVersement'},
       'modePaiement': {'visible': true, 'label': 'payment', 'field': 'modePaiement'},
       'montantAchat': {'visible': true, 'label': 'Montntant Achat', 'field': 'montantAchat'},
       'marge': {'visible': true, 'label': 'Marge', 'field': 'marge'},
@@ -74,8 +77,8 @@ class _TableauPannierAdvancedState extends State<TableauPannierAdvanced> {
       'typepannier': {'visible': false, 'label': 'type', 'field': 'typepannier'},
 
       // Audit
-      'dateCree': {'visible': false, 'label': 'createdAt', 'field': 'dateCree'},
-      'creeParCode': {'visible': false, 'label': 'createdBy', 'field': 'creeParCode'},
+      'dateCree': {'visible': true, 'label': 'createdAt', 'field': 'dateCree'},
+      'creeParCode': {'visible': true, 'label': 'createdBy', 'field': 'creeParCode'},
       'dateModif': {'visible': false, 'label': 'modifiedAt', 'field': 'dateModif'},
       'modifParCode': {'visible': false, 'label': 'modifiedBy', 'field': 'modifParCode'},
       'dateAnnul': {'visible': false, 'label': 'cancelledAt', 'field': 'dateAnnul'},
@@ -95,13 +98,27 @@ class _TableauPannierAdvancedState extends State<TableauPannierAdvanced> {
     final l10n = AppLocalizations.of(context)!;
 
     dataSource = PannierDataSource(
-      panniers: paginatedData,
+      items: widget.panniers,
       columnConfig: columnVisibility,
       l10n: l10n,
+      clients: widget.clients,
+      verseParPannier: widget.verseParPannier,
+      nbrVersementParPannier: widget.nbrVersementParPannier,
+      utilisateurs: widget.utilisateurs,
+      onRowDoubleTap: (pannier) => PannierDetail(context, pannier),
     );
 
     dataSource.addListener(() {
-      widget.onSelectionChanged?.call(dataSource.getSelectedRows());
+      // Resynchronise la barre de pagination (page/nb pages) quand
+      // notifyListeners() vient d'une source interne (ex: tri par en-tête
+      // de colonne, qui revient à la page 1) sans passer par un setState()
+      // englobant — sinon elle reste figée sur l'ancienne page tant que
+      // l'utilisateur ne clique pas dessus.
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted) return;
+        setState(() {});
+        widget.onSelectionChanged?.call(dataSource.getSelectedRows());
+      });
     });
   }
 
@@ -110,8 +127,12 @@ class _TableauPannierAdvancedState extends State<TableauPannierAdvanced> {
     super.didUpdateWidget(oldWidget);
 
     if (oldWidget.panniers != widget.panniers) {
-      final newPaginatedData = paginatedData;
-      dataSource.updateProduits(newPaginatedData);
+      dataSource.updateProduits(widget.panniers);
+    }
+
+    if (oldWidget.verseParPannier != widget.verseParPannier ||
+        oldWidget.nbrVersementParPannier != widget.nbrVersementParPannier) {
+      dataSource.updateVerseInfo(widget.verseParPannier, widget.nbrVersementParPannier);
     }
   }
 
@@ -119,27 +140,47 @@ class _TableauPannierAdvancedState extends State<TableauPannierAdvanced> {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
 
+    // Nombre de pages basé sur le total NON filtré (Syncfusion ne nous
+    // laisse pas lire le nombre de lignes filtrées depuis l'extérieur) :
+    // si un filtre de colonne est actif, ce compteur peut rester plus
+    // large que le nombre réel de résultats — limitation connue de cet
+    // essai, sans impact sur la justesse du filtre/tri lui-même.
+    final pageCount = (dataSource.items.length / _rowsPerPage).ceil().clamp(1, 9999).toDouble();
+
     return Column(
       children: [
         Expanded(child: _buildTable(l10n)),
         const SizedBox(height: 12),
-        PaginationBar(
-          currentPage: currentPage,
-          totalPages: totalPages,
-          rowsPerPage: rowsPerPage,
-          onPageChanged: (page) {
-            setState(() {
-              currentPage = page;
-              dataSource.updateProduits(paginatedData);
-            });
-          },
-          onRowsPerPageChanged: (v) {
-            setState(() {
-              rowsPerPage = v;
-              currentPage = 1;
-              dataSource.updateProduits(paginatedData);
-            });
-          },
+        Container(
+          padding: const EdgeInsets.symmetric(vertical: 6, horizontal: 12),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(14),
+            boxShadow: const [BoxShadow(color: Colors.black12, blurRadius: 10)],
+          ),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              SfDataPager(
+                delegate: dataSource,
+                pageCount: pageCount,
+                direction: Axis.horizontal,
+                itemWidth: 36,
+                itemHeight: 36,
+              ),
+              const SizedBox(width: 20),
+              DropdownButton<int>(
+                value: _rowsPerPage,
+                items: _rowsPerPageOptions
+                    .map((e) => DropdownMenuItem(value: e, child: Text("$e ${l10n.rowsPerPage}")))
+                    .toList(),
+                onChanged: (v) {
+                  if (v == null) return;
+                  setState(() => _rowsPerPage = v);
+                },
+              ),
+            ],
+          ),
         ),
       ],
     );
@@ -160,25 +201,28 @@ class _TableauPannierAdvancedState extends State<TableauPannierAdvanced> {
         borderRadius: BorderRadius.circular(16),
         child: SfDataGridTheme(
           data: SfDataGridThemeData(
-            headerColor: Appstyle.green2.withOpacity(0.7),
+            headerColor: Appstyle.violet.withOpacity(0.7),
             sortIconColor: Appstyle.Tblanc,
-            filterIconColor: Appstyle.Tblanc,
+            // Icône de filtre jaune + agrandie quand la colonne a un filtre
+            // actif (voir filter_icon_builder.dart) — sinon un filtre actif
+            // sur une colonne hors écran passe inaperçu.
+            filterIcon: Builder(builder: (context) => buildFilterIcon(context, dataSource)),
             gridLineColor: Colors.grey.shade300,
             gridLineStrokeWidth: 0.4,
           ),
           child: SfDataGrid(
             source: dataSource,
+            rowsPerPage: _rowsPerPage,
             headerRowHeight: 36,
             rowHeight: 38,
             selectionMode: SelectionMode.single,
             allowSorting: true,
             allowFiltering: true,
-            onCellDoubleTap: (details) {
-              if (details.rowColumnIndex.rowIndex <= 0) return;
-              final rowIndex = details.rowColumnIndex.rowIndex - 1;
-              final Pannier pannier = paginatedData[rowIndex];
-              PannierDetail(context, pannier);
-            },
+            // Sélection au clic + double-clic pour le détail gérés dans
+            // PannierDataSource.buildRow (n'importe quelle colonne) : avec
+            // le filtre/tri Syncfusion natif + SfDataPager, l'index visuel
+            // d'une ligne ne correspond plus à un index direct dans les
+            // données (pas d'API publique pour lire la page affichée).
             columnWidthMode: ColumnWidthMode.none,
             allowColumnsResizing: true,
             columnResizeMode: ColumnResizeMode.onResize,
@@ -249,6 +293,7 @@ class _TableauPannierAdvancedState extends State<TableauPannierAdvanced> {
       case 'quantity': return l10n.quantity;
       case 'paid': return l10n.paid;
       case 'remaining': return l10n.remaining;
+      case 'numberOfPayments': return l10n.numberOfPayments;
       case 'payment': return l10n.payment;
       case 'cashier': return l10n.cashier;
       case 'observation': return l10n.observation;

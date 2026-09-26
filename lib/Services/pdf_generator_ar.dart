@@ -7,10 +7,11 @@ import 'package:intl/intl.dart';
 import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
 import 'package:printing/printing.dart';
-import 'package:path_provider/path_provider.dart';
+import 'package:caisse_dz/Services/ExportStorage.dart';
 import 'package:open_file/open_file.dart';
 import 'package:caisse_dz/data/models/caisse.dart';
 import 'package:caisse_dz/data/models/client.dart';
+import 'package:caisse_dz/core/utilis/number_format.dart';
 
 class PDFGeneratorArabic {
   static const PdfColor primaryColor = PdfColor(0.2, 0.4, 0.6);
@@ -49,6 +50,7 @@ class PDFGeneratorArabic {
     double fontSize = 12,
     bool isBold = false,
     PdfColor? color,
+    pw.TextDecoration? decoration,
   }) {
     if (!_fontsLoaded || _regularFont == null || _boldFont == null) {
       throw Exception('Fonts not loaded! Call loadFonts() first.');
@@ -61,6 +63,7 @@ class PDFGeneratorArabic {
       fontFallback: [_regularFont!, _boldFont!], // Both as fallback
       fontSize: fontSize,
       color: color ?? textColor,
+      decoration: decoration,
     );
   }
 
@@ -73,6 +76,8 @@ class PDFGeneratorArabic {
     required double reste,
     required String invoiceNumber,
     required String invoiceType,
+    String? adresse,
+    Uint8List? logoBytes,
   }) async {
     // Ensure fonts are loaded
     if (!_fontsLoaded) {
@@ -89,12 +94,12 @@ class PDFGeneratorArabic {
       fontFallback: [_regularFont!, _boldFont!],
     );
 
-    // Load logo
+    // Logo boutique (fourni par l'appelant via LogoService), asset de repli sinon
     pw.MemoryImage? logo;
     try {
-      final logoBytes = await _loadLogo();
-      if (logoBytes != null) {
-        logo = pw.MemoryImage(logoBytes);
+      final bytes = logoBytes ?? await _loadLogo();
+      if (bytes != null) {
+        logo = pw.MemoryImage(bytes);
       }
     } catch (e) {
       print('⚠️ Logo not found: $e');
@@ -108,13 +113,13 @@ class PDFGeneratorArabic {
         margin: const pw.EdgeInsets.all(32),
         build: (pw.Context context) {
           return [
-            _buildHeader(magasinName, logo, invoiceType, invoiceNumber),
+            _buildHeader(magasinName, adresse, logo, invoiceType, invoiceNumber),
             pw.SizedBox(height: 20),
             _buildClientInfo(client),
             pw.SizedBox(height: 20),
             _buildInvoiceDetails(caisse, caissierName),
             pw.SizedBox(height: 20),
-            _buildProductsTable(caisse, currency),
+            _buildProductsTable(caisse, currency, invoiceType),
             pw.SizedBox(height: 20),
             _buildTotalsSection(caisse, verse, reste, currency),
             pw.SizedBox(height: 30),
@@ -132,6 +137,7 @@ class PDFGeneratorArabic {
   // ================= HEADER =================
   pw.Widget _buildHeader(
       String magasinName,
+      String? adresse,
       pw.MemoryImage? logo,
       String invoiceType,
       String invoiceNumber) {
@@ -145,6 +151,8 @@ class PDFGeneratorArabic {
               magasinName,
               style: _style(fontSize: 20, isBold: true, color: primaryColor),
             ),
+            if (adresse != null && adresse.isNotEmpty)
+              pw.Text(adresse, style: _style(fontSize: 9)),
             pw.Text(
               _getInvoiceTitle(invoiceType),
               style: _style(isBold: true),
@@ -221,19 +229,25 @@ class PDFGeneratorArabic {
   }
 
   // ================= TABLE =================
-  pw.Widget _buildProductsTable(CaisseState caisse, String currency) {
+  pw.Widget _buildProductsTable(CaisseState caisse, String currency, String invoiceType) {
+    // ✅ Le BL (BLSC) a besoin du code produit et du colis pour préparer la
+    // livraison ; les autres types de facture gardent la table simplifiée.
+    final showColisCode = invoiceType == "BLSC";
+
     return pw.Column(
       children: [
         // Header
         pw.Container(
-          padding: const pw.EdgeInsets.all(8),
+          padding: const pw.EdgeInsets.symmetric(horizontal: 8, vertical: 4),
           decoration: pw.BoxDecoration(color: primaryColor),
           child: pw.Row(
             children: [
-              _cell("المنتج", flex: 3, bold: true, color: PdfColors.white),
-              _cell("الكمية", bold: true, color: PdfColors.white),
-              _cell("السعر", bold: true, color: PdfColors.white),
-              _cell("الإجمالي", bold: true, color: PdfColors.white),
+              _cell("المنتج", flex: showColisCode ? 2 : 3, bold: true, color: PdfColors.white, fontSize: 9),
+              if (showColisCode) _cell("الطرد", bold: true, color: PdfColors.white, fontSize: 9),
+              if (showColisCode) _cell("الكود", bold: true, color: PdfColors.white, fontSize: 9),
+              _cell("الكمية", bold: true, color: PdfColors.white, fontSize: 9),
+              _cell("السعر", bold: true, color: PdfColors.white, fontSize: 9),
+              _cell("الإجمالي", bold: true, color: PdfColors.white, fontSize: 9),
             ],
           ),
         ),
@@ -242,7 +256,7 @@ class PDFGeneratorArabic {
           final index = entry.key;
           final p = entry.value;
           return pw.Container(
-            padding: const pw.EdgeInsets.all(6),
+            padding: const pw.EdgeInsets.symmetric(horizontal: 6, vertical: 4),
             decoration: pw.BoxDecoration(
               color: index % 2 == 0 ? lightGray : PdfColors.white,
               border: pw.Border(
@@ -251,10 +265,36 @@ class PDFGeneratorArabic {
             ),
             child: pw.Row(
               children: [
-                _cell(p.nom, flex: 3),
-                _cell(p.qte.toInt().toString()),
-                _cell("${p.prix.toStringAsFixed(2)} $currency"),
-                _cell("${(p.prix * p.qte).toStringAsFixed(2)} $currency"),
+                _cell(p.nom, flex: showColisCode ? 2 : 3, fontSize: 9),
+                if (showColisCode) _cell(p.colis.isEmpty ? "---" : p.colis, fontSize: 9),
+                if (showColisCode) _cell(p.code, fontSize: 9),
+                _cell(p.qte.toInt().toString(), fontSize: 9),
+                pw.Expanded(
+                  child: pw.Padding(
+                    padding: const pw.EdgeInsets.all(6),
+                    child: pw.Column(
+                      crossAxisAlignment: pw.CrossAxisAlignment.end,
+                      children: [
+                        if (p.aRemise == true)
+                          pw.Text(
+                            "${NumberFormatUtil.formatMontant((p.prixOriginal as double), decimales: 2)} $currency",
+                            textAlign: pw.TextAlign.right,
+                            style: _style(
+                              fontSize: 7,
+                              color: PdfColors.grey,
+                              decoration: pw.TextDecoration.lineThrough,
+                            ),
+                          ),
+                        pw.Text(
+                          "${NumberFormatUtil.formatMontant(p.prix, decimales: 2)} $currency",
+                          textAlign: pw.TextAlign.right,
+                          style: _style(fontSize: 9, color: p.aRemise == true ? PdfColors.red : null),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+                _cell("${NumberFormatUtil.formatMontant((p.prix * p.qte), decimales: 2)} $currency", fontSize: 9),
               ],
             ),
           );
@@ -263,7 +303,7 @@ class PDFGeneratorArabic {
     );
   }
 
-  pw.Widget _cell(String text, {int flex = 1, bool bold = false, PdfColor? color}) {
+  pw.Widget _cell(String text, {int flex = 1, bool bold = false, PdfColor? color, double fontSize = 12}) {
     return pw.Expanded(
       flex: flex,
       child: pw.Padding(
@@ -271,7 +311,7 @@ class PDFGeneratorArabic {
         child: pw.Text(
           text,
           textAlign: pw.TextAlign.right,
-          style: _style(isBold: bold, color: color),
+          style: _style(isBold: bold, color: color, fontSize: fontSize),
         ),
       ),
     );
@@ -280,6 +320,7 @@ class PDFGeneratorArabic {
   // ================= TOTAL =================
   pw.Widget _buildTotalsSection(
       CaisseState caisse, double verse, double reste, String currency) {
+    final hasRemise = caisse.remiseActive == true && caisse.remise > 0;
     return pw.Container(
       padding: const pw.EdgeInsets.all(16),
       decoration: pw.BoxDecoration(
@@ -289,9 +330,18 @@ class PDFGeneratorArabic {
       child: pw.Column(
         crossAxisAlignment: pw.CrossAxisAlignment.end,
         children: [
-          _row("الإجمالي", "${caisse.total.toStringAsFixed(2)} $currency"),
-          _row("المدفوع", "${verse.toStringAsFixed(2)} $currency"),
-          _row("المتبقي", "${reste.toStringAsFixed(2)} $currency"),
+          if (hasRemise) ...[
+            _row("المجموع قبل الخصم", "${NumberFormatUtil.formatMontant(caisse.totalAchat, decimales: 2)} $currency"),
+            _row(
+              (caisse.remisenom != null && caisse.remisenom!.isNotEmpty)
+                  ? "الخصم (${caisse.remisenom})"
+                  : "الخصم",
+              "-${NumberFormatUtil.formatMontant(caisse.remise, decimales: 2)} $currency",
+            ),
+          ],
+          _row("الإجمالي", "${NumberFormatUtil.formatMontant(caisse.total, decimales: 2)} $currency"),
+          _row("المدفوع", "${NumberFormatUtil.formatMontant(verse, decimales: 2)} $currency"),
+          _row("المتبقي", "${NumberFormatUtil.formatMontant(reste, decimales: 2)} $currency"),
         ],
       ),
     );
@@ -306,7 +356,7 @@ class PDFGeneratorArabic {
         borderRadius: pw.BorderRadius.circular(8),
       ),
       child: pw.Text(
-        "تم الدفع: ${verse.toStringAsFixed(2)} $currency | المتبقي: ${reste.toStringAsFixed(2)} $currency",
+        "تم الدفع: ${NumberFormatUtil.formatMontant(verse, decimales: 2)} $currency | المتبقي: ${NumberFormatUtil.formatMontant(reste, decimales: 2)} $currency",
         style: _style(isBold: true),
         textAlign: pw.TextAlign.right,
       ),
@@ -334,7 +384,7 @@ class PDFGeneratorArabic {
   }
 
   static Future<File> savePDF(Uint8List pdfBytes, String fileName) async {
-    final dir = await getApplicationDocumentsDirectory();
+    final dir = await getExportDirectory();
     final file = File('${dir.path}/$fileName.pdf');
     await file.writeAsBytes(pdfBytes);
     return file;

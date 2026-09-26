@@ -10,11 +10,16 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../information_dialog.dart';
+import 'package:caisse_dz/core/utilis/number_format.dart';
 
 Future<void> ModifierPrixProduitDialog({
   required BuildContext context,
   required ProduitPanier produit,
   required Function(double nouveauPrix) onValider,
+  // ✅ Appelé uniquement lorsque l'utilisateur choisit d'appliquer le nouveau
+  // prix au produit complet (mise à jour permanente en base). Si null, seule
+  // l'option "ce bon" est proposée.
+  Future<void> Function(double nouveauPrix)? onValiderProduit,
 }) async{
   final auth = Provider.of<AuthState>(context, listen: false);
   final userName = auth.username;
@@ -41,6 +46,10 @@ Future<void> ModifierPrixProduitDialog({
   final TextEditingController passwordController = TextEditingController();
 
   String? erreur;
+  // ✅ Portée de la modification : false = ce bon uniquement, true = produit
+  // complet (permanent). L'option "produit" n'a de sens que si l'appelant a
+  // fourni [onValiderProduit].
+  bool appliquerAuProduit = false;
 
   return showDialog(
     context: context,
@@ -74,7 +83,7 @@ Future<void> ModifierPrixProduitDialog({
                     /// ───── PRIX ACHAT ─────
                     Text("${l10n.purchasePrice} (${l10n.currency})", style: Appstyle.textSB),
                     const SizedBox(height: 6),
-                    _readOnlyField(produit.prix.toStringAsFixed(2)),
+                    _readOnlyField(NumberFormatUtil.formatMontant(produit.prix, decimales: 2)),
 
                     const SizedBox(height: 14),
 
@@ -97,6 +106,39 @@ Future<void> ModifierPrixProduitDialog({
                       obscureText: true,
                       decoration: _inputDecoration(),
                     ),
+
+                    /// ───── PORTÉE DE LA MODIFICATION ─────
+                    // Proposée seulement si l'appelant sait persister le prix
+                    // au produit (onValiderProduit fourni).
+                    if (onValiderProduit != null) ...[
+                      const SizedBox(height: 14),
+                      Text(l10n.priceChangeScope, style: Appstyle.textSB),
+                      const SizedBox(height: 6),
+                      Wrap(
+                        spacing: 10,
+                        runSpacing: 8,
+                        children: [
+                          ChoiceChip(
+                            label: Text(l10n.thisTicketOnly),
+                            selected: !appliquerAuProduit,
+                            selectedColor: Appstyle.violet,
+                            labelStyle: TextStyle(
+                              color: !appliquerAuProduit ? Colors.white : Appstyle.Tnoir,
+                            ),
+                            onSelected: (_) => setState(() => appliquerAuProduit = false),
+                          ),
+                          ChoiceChip(
+                            label: Text(l10n.entireProduct),
+                            selected: appliquerAuProduit,
+                            selectedColor: Appstyle.violet,
+                            labelStyle: TextStyle(
+                              color: appliquerAuProduit ? Colors.white : Appstyle.Tnoir,
+                            ),
+                            onSelected: (_) => setState(() => appliquerAuProduit = true),
+                          ),
+                        ],
+                      ),
+                    ],
 
                     if (erreur != null) ...[
                       const SizedBox(height: 10),
@@ -123,7 +165,7 @@ Future<void> ModifierPrixProduitDialog({
                       text: l10n.save,
                       color: Appstyle.violet,
                       icon: Icons.save,
-                      onPressed: () {
+                      onPressed: () async {
                         final prix = double.tryParse(prixVenteController.text);
                         final password = passwordController.text;
 
@@ -141,8 +183,13 @@ Future<void> ModifierPrixProduitDialog({
                           return;
                         }
 
+                        // Toujours répercuter le nouveau prix sur la ligne du bon.
                         onValider(prix);
-                        Navigator.pop(context);
+                        // Si portée "produit complet" : persister aussi en base.
+                        if (appliquerAuProduit && onValiderProduit != null) {
+                          await onValiderProduit(prix);
+                        }
+                        if (context.mounted) Navigator.pop(context);
                       },
                     ),
                   ],

@@ -8,6 +8,7 @@ import '../../../data/models/verssement.dart';
 import 'package:caisse_dz/core/theme/app_style.dart';
 import '../../widget/detail_widget.dart';
 import '../../widget/section_decoration.dart';
+import '../../widget/stats_card.dart';
 import '../base_dialog.dart';
 
 Future<void> VersementDetail(BuildContext context, Verssement versement) async {
@@ -55,15 +56,20 @@ Future<void> VersementDetail(BuildContext context, Verssement versement) async {
                 ),
 
                 const Spacer(),
-
                 Chip(
                   label: Text(
-                    versement.etat ? l10n.validated : l10n.cancelled,
-                    style: Appstyle.textSB.copyWith(color: Appstyle.Tblanc),
+                    versement.etat ? l10n.active : l10n.inactive,
+                    style: Appstyle.textSB.copyWith(
+                      color: versement.etat ? Appstyle.Tblanc : Appstyle.Tnoir, // ou une autre couleur
+                    ),
                   ),
-                  backgroundColor:
-                  versement.etat == true ? Appstyle.violet : Appstyle.crevete,
-                ),
+                  backgroundColor: versement.etat
+                      ? Appstyle.violet.withOpacity(0.8)
+                      : Appstyle.crevete.withOpacity(0.7), // ou rouge, orange, etc.
+                  labelPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                  elevation: versement.etat ? 2 : 0,
+                )
+
               ],
             ),
 
@@ -87,6 +93,7 @@ Future<void> VersementDetail(BuildContext context, Verssement versement) async {
                   detailinfo(l10n.date, versement.date),
                   detailinfo(l10n.sense, versement.sense),
                   detailinfo(l10n.cashRegister, versement.caisse),
+                  detailinfo(l10n.operationCode, versement.codeOperation),
                 ]),
               ),
 
@@ -149,21 +156,15 @@ Future<void> VersementDetail(BuildContext context, Verssement versement) async {
   );
 }
 
+// versement_detail.dart - Remplacer _resumeVersement
 Widget _resumeVersement(Verssement r, String nomBeneficiaire, AppLocalizations l10n) {
-  return Container(
-    decoration: BoxDecoration(
-      color: Appstyle.violet.withOpacity(0.6),
-      borderRadius: BorderRadius.circular(10),
-    ),
-    padding: const EdgeInsets.all(8),
-    child: Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-      children: [
-        detailbadge(l10n.amount, r.montant),
-        detailbadge(l10n.type, "${r.typebeneficiare} "),
-        detailbadge(l10n.beneficiary, "$nomBeneficiaire "),
-        detailbadge(l10n.paymentMethod, r.mode_paiement),
-      ],
-    ),
+  return StatsCard(
+    backgroundColor: Appstyle.violet.withOpacity(0.7),
+    items: [
+      StatsItem(label: l10n.amount, value: "${r.montant} ${l10n.currency}"),
+      StatsItem(label: l10n.type, value: r.typebeneficiare),
+      StatsItem(label: l10n.beneficiary, value: nomBeneficiaire),
+      StatsItem(label: l10n.paymentMethod, value: r.mode_paiement),
+    ],
   );
 }

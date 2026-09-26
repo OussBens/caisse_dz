@@ -2,13 +2,17 @@ import 'dart:convert';
 import 'dart:typed_data';
 import 'dart:ui' as ui;
 
+import 'package:collection/collection.dart';
 import 'package:caisse_dz/DBCreate.dart';
 import 'package:caisse_dz/Services/CaisseGestion.dart' hide ApiResponse;
+import 'package:caisse_dz/Services/CaisseSession.dart' hide ApiResponse;
+import 'package:caisse_dz/data/models/caisse_mouvement.dart';
 import 'package:caisse_dz/Services/Client.dart' hide ApiResponse;
 import 'package:caisse_dz/Services/Historique.dart' hide ApiResponse;
 import 'package:caisse_dz/Services/Mouvement.dart' hide ApiResponse;
 import 'package:caisse_dz/Services/Pannier.dart';
 import 'package:caisse_dz/Services/PannierProduit.dart' hide ApiResponse;
+import 'package:caisse_dz/Services/Paramters.dart';
 import 'package:caisse_dz/Services/Produits.dart' hide ApiResponse;
 import 'package:caisse_dz/core/Auth/auth_state.dart';
 import 'package:caisse_dz/core/dialog/base_dialog.dart';
@@ -28,7 +32,10 @@ import 'package:caisse_dz/data/models/produit.dart';
 import 'package:caisse_dz/l10n/app_localizations.dart';
 import 'package:flutter/cupertino.dart' as ui;
 import 'package:flutter/material.dart';
+import 'package:pdf/pdf.dart';
+import 'package:pdf/widgets.dart' as pw;
 import 'package:print_bluetooth_thermal/print_bluetooth_thermal.dart';
+import 'package:printing/printing.dart';
 import 'package:provider/provider.dart';
 import 'package:flutter/cupertino.dart';
 
@@ -36,14 +43,19 @@ import '../../../Services/MagasinDetail.dart';
 import '../../../Services/ReceiptPreviewDialog.dart';
 import '../../../Services/Receipt_Arabic.dart';
 import '../../../Services/Receipt_EN_FR.dart';
+import '../../../Services/receipt_print_helper.dart';
 import '../../../Services/Verssement.dart' hide ApiResponse;
+import '../../../Services/EntrepriseParam.dart';
+import '../../../Services/ImprimanteParam.dart';
 import '../../../Services/printer_manager.dart';
+import '../../../data/models/imprimanteParam.dart';
 import '../../../data/models/verssement.dart';
 import '../../locale/locale_provider.dart';
 import '../../utilis/api_response.dart';
 import '../../widget/code_generateur.dart'; // ✅ Ajout de l'import
 import '../confirmation_dialog.dart';
 import '../information_dialog.dart';
+import 'package:caisse_dz/core/utilis/number_format.dart';
 
 Future<int> _GetNextpannierId() async {
   final db = await DbCreator.openDb();
@@ -89,6 +101,7 @@ Future<ApiResponse<int>> _SavePannier({
   required Client client,
   required double montant,
   required String magasinCode,
+  required String caisseCode,
 }) async {
   final db = await DbCreator.openDb();
   final serviceh = HistoriqueServices(db);
@@ -99,6 +112,7 @@ Future<ApiResponse<int>> _SavePannier({
   final serviceC = ClientServices(db);
   final versementService = VerssementServices(db);
   final pmdService = ProduitMagasinDetailServices(db);
+  final caisseSessionService = CaisseSessionServices(db);
 
   final Produitse = await ProduitServices.getAllProduits();
 
@@ -112,10 +126,15 @@ Future<ApiResponse<int>> _SavePannier({
       magasinCode,
     );
 
-    if (magasinDetail != null && magasinDetail.quantite >= quantiteReelle) {
-      await pmdService.decrementQuantite(magasinDetail.id, quantiteReelle);
-    } else if (magasinDetail != null && magasinDetail.quantite < quantiteReelle) {
-      await pmdService.decrementQuantite(magasinDetail.id, magasinDetail.quantite);
+    // Second stock parallèle "Nombre" (Paramètres > Nombre et Quantité) —
+    // quantite n'est plus stockée ici (calculée depuis le journal des
+    // mouvements), seul nombre reste un compteur réel à décrémenter.
+    if (magasinDetail != null && produit.nombre != null) {
+      if (magasinDetail.nombre >= produit.nombre!) {
+        await pmdService.decrementNombre(magasinDetail.id, produit.nombre!);
+      } else {
+        await pmdService.decrementNombre(magasinDetail.id, magasinDetail.nombre);
+      }
     }
   }
 
@@ -154,6 +173,7 @@ Future<ApiResponse<int>> _SavePannier({
       total: produit.prix * produit.qte,
       creeLe: DateTime.now(),
       quantite: quantiteReelle,
+      nombre: produit.nombre,
       codeProduit: produit.code,
       codePannier: pannier.code,
       creeParCode: userCode,
@@ -183,25 +203,32 @@ Future<ApiResponse<int>> _SavePannier({
     final idm = await _GetNextMouvementId();
     Mouvement Mouv = Mouvement(
       id: idm,
-      code: CodeGenerator.generateCodeWithTimestamp(
+      code: CodeGenerator.generateCode(
         prefix: CodePrefix.mouvement,
         id: idm,
+        digitCount: 8,
       ),
       date: pannier.date,
       type: ListsConst.typeMouvement[0],
       etat: true,
       dateCree: DateTime.now(),
       quantite: quantiteReelle,
+      nombre: produit.nombre,
       prixAchat: produitOriginal.prixAchat,
       prixVente: prod.prix,
       codeProduit: prod.codeProduit,
       creeParCode: userCode,
       codeOperation: pannier.code,
+      magasinCode: magasinCode,
     );
     await servicem.addMouvement(Mouv);
 
-    // Mise à jour du produit (quantité globale)
-    produitOriginal.quantite = produitOriginal.quantite - quantiteReelle;
+    // Mise à jour du produit
+    if (!produitOriginal.service) {
+      if (produit.nombre != null) {
+        produitOriginal.nombre = produitOriginal.nombre - produit.nombre!;
+      }
+    }
     produitOriginal.dateModif = DateTime.now();
     produitOriginal.modifParCode = userCode;
     await serviceP.updateProduit(produitOriginal);
@@ -245,12 +272,41 @@ Future<ApiResponse<int>> _SavePannier({
       etat: true,
       mode_paiement: pannier.modePaiement!,
       sense: 'Entrée',
-      type: "Pannier",
+      type: "Paiement",
       dateCree: DateTime.now(),
       creeParCode: userCode,
       caisse: pannier.caisse,
+      codeOperation: pannier.code,
     );
     await versementService.addverssement(versement);
+
+    // Mouvement de caisse (grand-livre) : encaissement de la vente,
+    // journalisé dans la session ouverte de cette caisse.
+    final sessionOuverte = await CaisseSessionServices.getSessionOuverte(caisseCode);
+    if (sessionOuverte != null) {
+      final nextMouvementId = await CaisseSessionServices.getNextMouvementId(db);
+      final mouvementCaisse = CaisseMouvement(
+        id: nextMouvementId,
+        code: CodeGenerator.generateCode(
+          prefix: CodePrefix.caisseMouvement,
+          id: nextMouvementId,
+          digitCount: 8,
+        ),
+        sessionCode: sessionOuverte.code,
+        caisseCode: caisseCode,
+        type: 'encaissement_vente',
+        sens: 'Entrée',
+        montant: montant,
+        modePaiement: pannier.modePaiement,
+        codeOperation: pannier.code,
+        clientCode: client.code,
+        date: DateTime.now(),
+        etat: true,
+        dateCree: DateTime.now(),
+        creeParCode: userCode,
+      );
+      await caisseSessionService.ajouterMouvement(mouvementCaisse);
+    }
   }
 
   return ApiResponse(success: true, message: "Succès", data: pannier.id);
@@ -262,12 +318,16 @@ Future<ApiResponse<int>> _SavePannier({
 String _generateReceiptText({
   required dynamic caisse,
   required dynamic client,
-  required int panierNumber,
+  required String panierNumber,
   required String magasinName,
   required String caissierName,
   required double verse,
   required double reste,
   required String languageCode,
+  String? telephone,
+  String? messagePersonnalise,
+  int lineWidth = 60,
+  double? pointsGagnes,
 })
 {
   // Check if language is Arabic
@@ -280,6 +340,10 @@ String _generateReceiptText({
       caissierName: caissierName,
       verse: verse,
       reste: reste,
+      telephone: telephone,
+      messagePersonnalise: messagePersonnalise,
+      lineWidth: lineWidth,
+      pointsGagnes: pointsGagnes,
     );
   } else {
     // French or English
@@ -292,85 +356,14 @@ String _generateReceiptText({
       verse: verse,
       reste: reste,
       lang: languageCode,
+      telephone: telephone,
+      messagePersonnalise: messagePersonnalise,
+      lineWidth: lineWidth,
+      pointsGagnes: pointsGagnes,
     );
   }
 }
 
-/// Helper function to convert text to image bytes for preview
-Future<Uint8List> _textToImage(String text) async {
-  // Create a TextPainter to measure and draw text
-  final textPainter = ui.TextPainter(
-    text: ui.TextSpan(
-      text: text,
-      style: const ui.TextStyle(
-        fontFamily: 'monospace',
-        fontSize: 14,
-        color: Colors.black,
-        height: 1.2,
-      ),
-    ),
-    textDirection: ui.TextDirection.ltr,
-    maxLines: null,
-  );
-
-  textPainter.layout(maxWidth: 500);
-
-  final width = textPainter.width.ceilToDouble();
-  final height = textPainter.height.ceilToDouble();
-
-  final padding = 20.0;
-  final totalWidth = width + (padding * 2);
-  final totalHeight = height + (padding * 2);
-
-  final recorder = ui.PictureRecorder();
-  final canvas = Canvas(recorder);
-
-  canvas.drawRect(
-    Rect.fromLTWH(0, 0, totalWidth, totalHeight),
-    Paint()..color = Colors.white,
-  );
-
-  final borderPaint = Paint()
-    ..color = Colors.grey[300]!
-    ..style = PaintingStyle.stroke
-    ..strokeWidth = 1;
-  canvas.drawRect(
-    Rect.fromLTWH(0, 0, totalWidth, totalHeight),
-    borderPaint,
-  );
-
-  textPainter.paint(canvas, Offset(padding, padding));
-
-  final picture = recorder.endRecording();
-  final image = await picture.toImage(totalWidth.toInt(), totalHeight.toInt());
-  final byteData = await image.toByteData(format: ui.ImageByteFormat.png);
-
-  return byteData!.buffer.asUint8List();
-}
-// Ajoutez cette fonction dans chaque fichier de dialogue
-Future<void> _decrementStockReel({
-  required String produitCode,
-  required String magasinCode,
-  required double quantiteReelle,
-  required String userName,
-}) async {
-  final db = await DbCreator.openDb();
-  final pmdService = ProduitMagasinDetailServices(db);
-
-  // Récupérer le détail produit-magasin
-  final magasinDetail = await pmdService.getSingleByProduitAndMagasin(
-    produitCode,
-    magasinCode,
-  );
-
-  if (magasinDetail != null && magasinDetail.quantite >= quantiteReelle) {
-    // Déstocker du magasin
-    await pmdService.decrementQuantite(magasinDetail.id, quantiteReelle);
-  } else if (magasinDetail != null && magasinDetail.quantite < quantiteReelle) {
-    // Déstocker ce qui est disponible (cas de stock partiel)
-    await pmdService.decrementQuantite(magasinDetail.id, magasinDetail.quantite);
-  }
-}
 Future<void> EncaissementTicketDialog({
   required  BuildContext  context,
   required  CaisseState   caisse,
@@ -384,7 +377,6 @@ Future<void> EncaissementTicketDialog({
   final TextEditingController resteController = TextEditingController(
     text: caisse.total.toStringAsFixed(2),
   );
-  int p = pannier;
   List<CaisseGestion> CaisseTest = [];
 
   Future<void> _LoadAllData() async {
@@ -409,6 +401,29 @@ Future<void> EncaissementTicketDialog({
 
   final String userName = auth.username!;
   final String userCode = auth.userCode!;
+
+  // ✅ Caisse existante + session de caisse obligatoire : aucune vente ne
+  // peut être encaissée tant que la caisse n'a pas été ouverte.
+  final matchingCaisse = CaisseTest.where((e) => e.nomCaisse == caisse.caisse);
+  if (matchingCaisse.isEmpty) {
+    await InformationDialog(
+      context: context,
+      titre_type_message: l10n.error,
+      titre_concerne: l10n.caisse,
+      message: l10n.caisseNotFound(caisse.caisse),
+    );
+    return;
+  }
+  final sessionOuverte = await CaisseSessionServices.getSessionOuverte(matchingCaisse.first.code);
+  if (sessionOuverte == null) {
+    await InformationDialog(
+      context: context,
+      titre_type_message: l10n.attention,
+      titre_concerne: l10n.caisse,
+      message: l10n.aucuneSessionOuverte(caisse.caisse),
+    );
+    return;
+  }
 
   /// Calculs
   int nombreProduits = caisse.produits.length;
@@ -468,7 +483,7 @@ Future<void> EncaissementTicketDialog({
                       if (caisse.remiseActive && caisse.remise > 0)
                         _info(
                           l10n.totalBeforeDiscount,
-                          "${caisse.totalAchat.toStringAsFixed(2)} ${l10n.currency}",
+                          "${NumberFormatUtil.formatMontant(caisse.totalAchat, decimales: 2)} ${l10n.currency}",
                           l10n,
                           valueColor: Appstyle.TgrisF,
                         ),
@@ -477,7 +492,7 @@ Future<void> EncaissementTicketDialog({
                       if (caisse.remiseActive && caisse.remise > 0)
                         _info(
                           l10n.discount,
-                          "${caisse.remise.toStringAsFixed(2)} ${l10n.currency}",
+                          "${NumberFormatUtil.formatMontant(caisse.remise, decimales: 2)} ${l10n.currency}",
                           l10n,
                           valueColor: Colors.green,
                         ),
@@ -485,7 +500,7 @@ Future<void> EncaissementTicketDialog({
                       // ✅ TOTAL FINAL
                       _info(
                         l10n.totalFinal,
-                        "${(caisse.total-caisse.remise).toStringAsFixed(2)} ${l10n.currency}",
+                        "${NumberFormatUtil.formatMontant(caisse.total, decimales: 2)} ${l10n.currency}",
                         l10n,
                         valueColor: caisse.remiseActive && caisse.remise > 0
                             ? Colors.green
@@ -523,12 +538,12 @@ Future<void> EncaissementTicketDialog({
                               paiementTotal = value ?? true;
                               if (paiementTotal) {
                                 payeController.text =
-                                    caisse.total.toStringAsFixed(2);
+                                    NumberFormatUtil.formatMontant(caisse.total, decimales: 2);
                                 resteController.text = "0.00";
                               } else {
                                 payeController.text = "";
                                 resteController.text =
-                                    caisse.total.toStringAsFixed(2);
+                                    NumberFormatUtil.formatMontant(caisse.total, decimales: 2);
                               }
                             });
                           },
@@ -598,6 +613,47 @@ Future<void> EncaissementTicketDialog({
                       return;
                     }
 
+                    // ✅ Vérifier que le stock (actuel, potentiellement changé
+                    // depuis l'ajout au panier) permet toujours cette vente.
+                    final catalogueActuel = await ProduitServices.getAllProduits();
+                    final echecStock = await premierProduitInsuffisantPourVente(
+                      caisse.produits,
+                      catalogueActuel,
+                      magasinCode: selectedMagasinCode,
+                    );
+                    if (echecStock != null) {
+                      final (produitInsuffisant, quantiteNecessaire, quantiteDisponible) = echecStock;
+                      await InformationDialog(
+                        context: context,
+                        titre_type_message: l10n.error,
+                        titre_concerne: l10n.cart,
+                        message: l10n.stockInsuffisantPourProduit(
+                          produitInsuffisant.code,
+                          quantiteDisponible.toInt().toString(),
+                          quantiteNecessaire.toInt().toString(),
+                        ),
+                      );
+                      return;
+                    }
+
+                    // ✅ Nombre obligatoire pour les produits suivant le
+                    // second stock "nombre" (nombreActif).
+                    for (final ligne in caisse.produits) {
+                      final nombreActifLigne = catalogueActuel
+                              .firstWhereOrNull((p) => p.code == ligne.code)
+                              ?.nombreActif ??
+                          false;
+                      if (nombreActifLigne && (ligne.nombre == null || ligne.nombre! <= 0)) {
+                        await InformationDialog(
+                          context: context,
+                          titre_type_message: l10n.error,
+                          titre_concerne: ligne.nom,
+                          message: l10n.numberMustBeGreaterThanZero,
+                        );
+                        return;
+                      }
+                    }
+
                     await ConfirmationDialog(
                       context: context,
                       titre: l10n.attention,
@@ -621,10 +677,10 @@ Future<void> EncaissementTicketDialog({
                             id: idp,
                             code: codePannier, // ✅ Code formaté
                             etat: true,
-                            date: caisse.date,
-                            verse: caisse.total -
-                                (double.parse(resteController.text)),
-                            reste: double.parse(resteController.text),
+                            // ✅ Date de vente = moment du clic sur Encaisser,
+                            // pas caisse.date (figée depuis l'ouverture de
+                            // l'onglet caisse, potentiellement des heures plus tôt).
+                            date: DateTime.now(),
                             client_code: client.code,
                             montant: caisse.total,
                             dateCree: DateTime.now(),
@@ -648,6 +704,7 @@ Future<void> EncaissementTicketDialog({
                               client: client,
                               montant: montant,
                             magasinCode:selectedMagasinCode,
+                            caisseCode: Ccode,
                           );
 
                           await InformationDialog(
@@ -659,147 +716,55 @@ Future<void> EncaissementTicketDialog({
                                 ? l10n.lepannierestenregestre
                                 : l10n.lepanniernestpasenregestre,
                           );
-                          onSuccess();
-                          // Generate receipt text based on current language
+
+                          // ✅ Si l'enregistrement a échoué, on s'arrête ici :
+                          // ne pas vider le panier ni imprimer un ticket pour
+                          // une vente qui n'a pas été réellement enregistrée.
+                          if (!response.success) {
+                            return;
+                          }
+
+                          // ⚠️ Générer le texte du ticket AVANT onSuccess() :
+                          // onSuccess() (_onOperationSuccess) vide
+                          // caisse.produits en place (même instance de
+                          // CaisseState), donc appelé avant, le ticket
+                          // imprimé n'avait plus aucun produit à lister.
+                          final entreprise = await EntrepriseParamServices.getEntrepriseParam();
+                          final imprimanteParam = await ImprimanteParamServices.getImprimanteParam();
+
+                          // ✅ Programme de bonus : montre les points gagnés
+                          // sur le ticket uniquement si le programme est actif
+                          // et que la vente est rattachée à un vrai client
+                          // (pas le client comptoir, code vide).
+                          final paramGeneral = await ParamServices.getParam();
+                          final pointsGagnes = (paramGeneral.activeBonus &&
+                                  paramGeneral.bonusTaux > 0 &&
+                                  client.code.isNotEmpty)
+                              ? pannier.montant / paramGeneral.bonusTaux
+                              : null;
+
                           final receiptText = _generateReceiptText(
                             caisse: caisse,
                             client: client,
-                            panierNumber: p,
-                            magasinName: l10n.magaprinc,
+                            panierNumber: codePannier,
+                            magasinName: entreprise.nomBoutique,
                             caissierName: userName,
                             verse: verse,
                             reste: reste,
                             languageCode: currentLanguage,
+                            telephone: entreprise.telephone,
+                            messagePersonnalise: entreprise.messageTicket,
+                            lineWidth: imprimanteParam.ligneCaracteres,
+                            pointsGagnes: pointsGagnes,
                           );
-                          final receiptImage = await _textToImage(receiptText);
-
-                          bool isDialogActive = true;
-
-                          final shouldPrint = await showDialog<bool>(
+                          onSuccess();
+                          await imprimerRecuThermique(
                             context: context,
-                            barrierDismissible: false,
-                            builder: (previewContext) {
-                              return ReceiptPreviewDialog(
-                                receiptImage: receiptImage,
-                                l10n: l10n,
-                                onPrint: () {
-                                  isDialogActive = false;
-                                  Navigator.pop(previewContext, true);
-                                },
-                                onCancel: () {
-                                  isDialogActive = false;
-                                  Navigator.pop(previewContext, false);
-                                },
-                              );
-                            },
+                            receiptText: receiptText,
+                            barcodeData: codePannier,
+                            l10n: l10n,
+                            imprimanteParam: imprimanteParam,
                           );
-
-                          if (shouldPrint == true && isDialogActive) {
-                            final loadingContext = context;
-                            showDialog(
-                              context: loadingContext,
-                              barrierDismissible: false,
-                              builder: (loadingContext) =>
-                              const Center(
-                                child: CircularProgressIndicator(),
-                              ),
-                            );
-
-                            try {
-                              final printerManager = PrinterManager();
-
-                              final bluetoothEnabled = await printerManager
-                                  .initBluetooth();
-                              if (!bluetoothEnabled) {
-                                throw Exception(l10n.bluetoothDisabled);
-                              }
-
-                              final printers = await printerManager
-                                  .getBondedPrinters();
-
-                              if (printers.isEmpty) {
-                                throw Exception(l10n.noPrinterFound);
-                              }
-
-                              BluetoothInfo? selectedPrinter;
-                              if (printers.length == 1) {
-                                selectedPrinter = printers.first;
-                              } else {
-                                Navigator.pop(loadingContext);
-
-                                selectedPrinter = await showDialog<BluetoothInfo>(
-                                  context: loadingContext,
-                                  builder: (context) =>
-                                      SimpleDialog(
-                                        title: Text(l10n.selectPrinter),
-                                        children: printers.map((printer) =>
-                                            SimpleDialogOption(
-                                              onPressed: () =>
-                                                  Navigator.pop(context, printer),
-                                              child: Text(printer.name),
-                                            )).toList(),
-                                      ),
-                                );
-
-                                if (selectedPrinter != null) {
-                                  showDialog(
-                                    context: loadingContext,
-                                    barrierDismissible: false,
-                                    builder: (context) =>
-                                    const Center(
-                                      child: CircularProgressIndicator(),
-                                    ),
-                                  );
-                                }
-                              }
-
-                              if (selectedPrinter == null) {
-                                if (Navigator.canPop(loadingContext)) {
-                                  Navigator.pop(loadingContext);
-                                }
-                                return;
-                              }
-
-                              final connected = await printerManager.connect(
-                                  selectedPrinter.macAdress);
-                              if (!connected) {
-                                throw Exception(l10n.connectionFailed);
-                              }
-
-                              final receiptBytes = utf8.encode(receiptText);
-                              final printed = await printerManager.print(
-                                  receiptBytes);
-                              if (!printed) {
-                                throw Exception(l10n.printFailed);
-                              }
-
-                              await printerManager.disconnect();
-
-                              if (Navigator.canPop(loadingContext)) {
-                                Navigator.pop(loadingContext);
-                              }
-
-
-
-                              await InformationDialog(
-                                context: context,
-                                titre_type_message: l10n.success,
-                                titre_concerne: l10n.ticket,
-                                message: l10n.ticketPrintedSuccess,
-                              );
-
-                            } catch (e) {
-                              if (Navigator.canPop(loadingContext)) {
-                                Navigator.pop(loadingContext);
-                              }
-                              await InformationDialog(
-                                context: context,
-                                titre_type_message: l10n.attention,
-                                titre_concerne: l10n.print,
-                                message: l10n.printError,
-                              );
-                            }
-                          }
 
                           if (Navigator.canPop(context)) {
                             Navigator.pop(context, true);

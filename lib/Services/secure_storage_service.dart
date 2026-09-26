@@ -24,7 +24,15 @@ class SecureStorageService {
     return encrypt.Key(keyBytes);
   }
 
-  final encrypt.IV _iv = encrypt.IV.fromLength(16); // Fixed IV or generate dynamically
+  // IV dérivé de manière déterministe (et non aléatoire) pour que les données
+  // chiffrées lors d'un lancement précédent restent déchiffrables au lancement
+  // suivant — un IV aléatoire par process rendait tout EncryptedPreferences
+  // illisible dès le redémarrage de l'application.
+  encrypt.IV get _iv {
+    final bytes = utf8.encode('${_encryptionKey}_iv');
+    final hashed = sha256.convert(bytes);
+    return encrypt.IV(Uint8List.fromList(hashed.bytes.sublist(0, 16)));
+  }
 
   // Encrypt and store data
   Future<void> writeSecureData(String key, dynamic value) async {

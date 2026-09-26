@@ -3,9 +3,11 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 
 import 'package:caisse_dz/core/theme/app_style.dart';
+import 'package:caisse_dz/core/utilis/quantite_format.dart';
 import '../../../data/models/caisse.dart';
 import '../../../l10n/app_localizations.dart';
 import '../../dialog/information_dialog.dart';
+import 'package:caisse_dz/core/utilis/number_format.dart';
 
 class ProduitPanier {
   String nom;
@@ -14,10 +16,28 @@ class ProduitPanier {
   double prix;
   double prixachat;
   double qte;
+  // Nombre de pièces physiques (Paramètres > Nombre et Quantité), saisi
+  // librement — indépendant de qte/piecesParEmballage. Voir Produit.nombre.
+  double? nombre;
+  // Reflète Produit.nombreActif au moment de l'ajout au panier : contrôle si
+  // la cellule "Nombre" de cette ligne est éditable ou vide (voir la colonne
+  // "Nombre" dans TableauCaisse, affichée dès qu'UN produit du panier a
+  // l'option active, mais éditable seulement pour CE produit-là).
+  bool nombreActif;
   int? piecesParEmballage;
   int? produitId;
   String? packNom;
+
+  /// Prix unitaire avant application d'une remise produit automatique
+  /// (voir caisse_screen.dart::_remiseProduitApplicable) — null si aucune
+  /// remise n'a été appliquée à l'ajout au panier.
+  double? prixOriginal;
+
+  /// Nom de la remise produit appliquée, le cas échéant (voir [prixOriginal]).
+  String? remiseNom;
+
   bool get isFromPack => packNom != null && packNom!.isNotEmpty;
+  bool get aRemise => prixOriginal != null;
 
   ProduitPanier({
     required this.nom,
@@ -26,9 +46,13 @@ class ProduitPanier {
     required this.prix,
     required this.prixachat,
     required this.qte,
+    this.nombre,
+    this.nombreActif = false,
     this.piecesParEmballage,
     this.produitId,
     this.packNom,
+    this.prixOriginal,
+    this.remiseNom,
   });
 
   double get montant => prix * qte;
@@ -40,6 +64,15 @@ class TableauCaisse extends StatefulWidget {
   final double size;
   final List<ProduitPanier> produits;
   final bool readOnly;
+
+  /// Affiche la colonne "Code" — masquée quand un panneau latéral affiche
+  /// déjà le code produit, pour gagner de la place (voir caisse_screen.dart).
+  final bool showCode;
+
+  /// Affiche la colonne éditable "Nombre" (Paramètres > Nombre et Quantité)
+  /// — masquée par défaut, activée par caisse_screen.dart si le paramètre
+  /// est actif.
+  final bool afficherNombre;
 
   final ProduitPanier? selectedProduit;
   final Function(ProduitPanier produit)? onProduitSelected;
@@ -58,6 +91,8 @@ class TableauCaisse extends StatefulWidget {
     this.caissenom,
     required this.size,
     required this.produits,
+    this.showCode = true,
+    this.afficherNombre = false,
     this.onTotalChanged,
     this.selectedProduit,
     this.onProduitSelected,
@@ -78,6 +113,60 @@ class _TableauCaisseState extends State<TableauCaisse> {
   double get total => widget.produits.fold(0.0, (s, p) => s + p.montant);
 
   final ScrollController _horizontalScrollController = ScrollController();
+
+  // Controller/FocusNode persistants par ligne (clé = objet ProduitPanier).
+  // Un TextEditingController recréé à chaque frappe (comme avant, dans le
+  // .map() du build) fait retomber le curseur en position 0 et donne
+  // l'impression d'une saisie "inversée". On ne resynchronise le texte
+  // depuis p.qte que si le champ n'a pas le focus (ex. quantité incrémentée
+  // en rajoutant le même produit au panier ailleurs dans l'écran).
+  final Map<ProduitPanier, TextEditingController> _qteControllers = {};
+  final Map<ProduitPanier, FocusNode> _qteFocusNodes = {};
+
+  // Même pattern que _qteControllers, pour la colonne "Nombre" (Paramètres >
+  // Nombre et Quantité) — un contrôleur par ligne, pas recréé à chaque frappe.
+  final Map<ProduitPanier, TextEditingController> _nombreControllers = {};
+  final Map<ProduitPanier, FocusNode> _nombreFocusNodes = {};
+
+  TextEditingController _qteControllerFor(ProduitPanier p) {
+    final text = QuantiteFormat.format(p.qte);
+    final focus = _qteFocusNodes.putIfAbsent(p, () => FocusNode());
+    var ctrl = _qteControllers[p];
+    if (ctrl == null) {
+      ctrl = TextEditingController(text: text);
+      _qteControllers[p] = ctrl;
+    } else if (!focus.hasFocus && ctrl.text != text) {
+      ctrl.text = text;
+    }
+    return ctrl;
+  }
+
+  TextEditingController _nombreControllerFor(ProduitPanier p) {
+    final text = p.nombre != null ? QuantiteFormat.format(p.nombre!) : '';
+    final focus = _nombreFocusNodes.putIfAbsent(p, () => FocusNode());
+    var ctrl = _nombreControllers[p];
+    if (ctrl == null) {
+      ctrl = TextEditingController(text: text);
+      _nombreControllers[p] = ctrl;
+    } else if (!focus.hasFocus && ctrl.text != text) {
+      ctrl.text = text;
+    }
+    return ctrl;
+  }
+
+  void _pruneQteControllers() {
+    final produitsActuels = widget.produits.toSet();
+    final codesAbsents = _qteControllers.keys.where((p) => !produitsActuels.contains(p)).toList();
+    for (final p in codesAbsents) {
+      _qteControllers.remove(p)?.dispose();
+      _qteFocusNodes.remove(p)?.dispose();
+    }
+    final codesAbsentsNombre = _nombreControllers.keys.where((p) => !produitsActuels.contains(p)).toList();
+    for (final p in codesAbsentsNombre) {
+      _nombreControllers.remove(p)?.dispose();
+      _nombreFocusNodes.remove(p)?.dispose();
+    }
+  }
 
   @override
   void didUpdateWidget(covariant TableauCaisse oldWidget) {
@@ -103,11 +192,24 @@ class _TableauCaisseState extends State<TableauCaisse> {
   @override
   void dispose() {
     _horizontalScrollController.dispose();
+    for (final c in _qteControllers.values) {
+      c.dispose();
+    }
+    for (final f in _qteFocusNodes.values) {
+      f.dispose();
+    }
+    for (final c in _nombreControllers.values) {
+      c.dispose();
+    }
+    for (final f in _nombreFocusNodes.values) {
+      f.dispose();
+    }
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
+    _pruneQteControllers();
     final l10n = AppLocalizations.of(context)!;
     final totalApresRemise = total - widget.remiseValue;
 
@@ -117,7 +219,7 @@ class _TableauCaisseState extends State<TableauCaisse> {
     final bool isLargeScreen = screenWidth >= 900;
 
     // ✅ Définir les largeurs des colonnes
-    double colCheckbox, colCode, colProduit, colColis, colPrix, colQte, colQtePiece, colMt, colSuppr;
+    double colCheckbox, colCode, colProduit, colColis, colPrix, colQte, colQtePiece, colNombre, colMt, colSuppr;
     double fontSize, iconSize, checkboxScale, columnSpacing, horizontalMargin;
 
     if (isSmallScreen) {
@@ -127,7 +229,8 @@ class _TableauCaisseState extends State<TableauCaisse> {
       colColis = 45;
       colPrix = 40;
       colQte = 30;
-      colQtePiece = 30;
+      colQtePiece = 50;
+      colNombre = 34;
       colMt = 40;
       colSuppr = 28;
       fontSize = 9;
@@ -136,13 +239,14 @@ class _TableauCaisseState extends State<TableauCaisse> {
       columnSpacing = 2;
       horizontalMargin = 2;
     } else if (isMediumScreen) {
-      colCheckbox = 26;
+      colCheckbox = 18;
       colCode = 54;
       colProduit = 80;
       colColis = 50;
       colPrix = 50;
       colQte = 40;
-      colQtePiece = 50;
+      colQtePiece = 70;
+      colNombre = 44;
       colMt = 50;
       colSuppr = 30;
       fontSize = 10;
@@ -151,13 +255,14 @@ class _TableauCaisseState extends State<TableauCaisse> {
       columnSpacing = 4;
       horizontalMargin = 4;
     } else {
-      colCheckbox = 26;
+      colCheckbox = 18;
       colCode = 60;
       colProduit = 120;
       colColis = 60;
       colPrix = 50;
       colQte = 50;
-      colQtePiece = 50;
+      colQtePiece = 70;
+      colNombre = 55;
       colMt = 60;
       colSuppr = 30;
       fontSize = 12;
@@ -168,8 +273,10 @@ class _TableauCaisseState extends State<TableauCaisse> {
     }
 
     // ✅ Calculer la largeur totale du tableau
-    final totalWidth = colCheckbox + colCode + colProduit + colColis + colPrix + colQte + colQtePiece + colMt + colSuppr +
-        (columnSpacing * 8) + (horizontalMargin * 2);
+    final int nbColonnes = (widget.showCode ? 9 : 8) + (widget.afficherNombre ? 1 : 0);
+    final totalWidth = colCheckbox + (widget.showCode ? colCode : 0) + colProduit + colColis + colPrix + colQte + colQtePiece +
+        (widget.afficherNombre ? colNombre : 0) + colMt + colSuppr +
+        (columnSpacing * (nbColonnes - 1)) + (horizontalMargin * 2);
 
     return Column(
       children: [
@@ -214,21 +321,22 @@ class _TableauCaisseState extends State<TableauCaisse> {
                           ),
                         ),
                       ),
-                      DataColumn(
-                        label: SizedBox(
-                          width: colCode,
-                          child: Text(
-                            "Code",
-                            overflow: TextOverflow.ellipsis,
-                            style: TextStyle(fontSize: fontSize),
+                      if (widget.showCode)
+                        DataColumn(
+                          label: SizedBox(
+                            width: colCode,
+                            child: Text(
+                              l10n.code,
+                              overflow: TextOverflow.ellipsis,
+                              style: TextStyle(fontSize: fontSize),
+                            ),
                           ),
                         ),
-                      ),
                       DataColumn(
                         label: SizedBox(
                           width: colProduit,
                           child: Text(
-                            "Produit",
+                            l10n.productName,
                             overflow: TextOverflow.ellipsis,
                             style: TextStyle(fontSize: fontSize),
                           ),
@@ -238,7 +346,7 @@ class _TableauCaisseState extends State<TableauCaisse> {
                         label: SizedBox(
                           width: colColis,
                           child: Text(
-                            "Colis",
+                            l10n.parcel,
                             overflow: TextOverflow.ellipsis,
                             style: TextStyle(fontSize: fontSize),
                           ),
@@ -248,7 +356,7 @@ class _TableauCaisseState extends State<TableauCaisse> {
                         label: SizedBox(
                           width: colPrix,
                           child: Text(
-                            "Prix",
+                            l10n.price,
                             overflow: TextOverflow.ellipsis,
                             style: TextStyle(fontSize: fontSize),
                           ),
@@ -258,7 +366,7 @@ class _TableauCaisseState extends State<TableauCaisse> {
                         label: SizedBox(
                           width: colQte,
                           child: Text(
-                            "Qté",
+                            l10n.qty,
                             overflow: TextOverflow.ellipsis,
                             style: TextStyle(fontSize: fontSize),
                           ),
@@ -268,17 +376,28 @@ class _TableauCaisseState extends State<TableauCaisse> {
                         label: SizedBox(
                           width: colQtePiece,
                           child: Text(
-                            "Qté (pce)",
+                            l10n.quantityPieces,
                             overflow: TextOverflow.ellipsis,
                             style: TextStyle(fontSize: fontSize),
                           ),
                         ),
                       ),
+                      if (widget.afficherNombre)
+                        DataColumn(
+                          label: SizedBox(
+                            width: colNombre,
+                            child: Text(
+                              l10n.numberField,
+                              overflow: TextOverflow.ellipsis,
+                              style: TextStyle(fontSize: fontSize),
+                            ),
+                          ),
+                        ),
                       DataColumn(
                         label: SizedBox(
                           width: colMt,
                           child: Text(
-                            "Mt",
+                            l10n.total,
                             overflow: TextOverflow.ellipsis,
                             style: TextStyle(fontSize: fontSize),
                           ),
@@ -336,27 +455,28 @@ class _TableauCaisseState extends State<TableauCaisse> {
                           ),
 
                           // ✅ CODE
-                          DataCell(
-                            GestureDetector(
-                              onDoubleTap: () {
-                                if (!widget.readOnly) {
-                                  widget.onProduitDoubleClick?.call(p);
-                                }
-                              },
-                              child: SizedBox(
-                                width: colCode,
-                                child: Text(
-                                  p.code,
-                                  overflow: TextOverflow.ellipsis,
-                                  style: Appstyle.textpop_S.copyWith(
-                                    color: isSelected ? Appstyle.violet : Appstyle.TgrisF,
-                                    fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-                                    fontSize: fontSize,
+                          if (widget.showCode)
+                            DataCell(
+                              GestureDetector(
+                                onDoubleTap: () {
+                                  if (!widget.readOnly) {
+                                    widget.onProduitDoubleClick?.call(p);
+                                  }
+                                },
+                                child: SizedBox(
+                                  width: colCode,
+                                  child: Text(
+                                    p.code,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: Appstyle.textpop_S.copyWith(
+                                      color: isSelected ? Appstyle.violet : Appstyle.TgrisF,
+                                      fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                                      fontSize: fontSize,
+                                    ),
                                   ),
                                 ),
                               ),
                             ),
-                          ),
 
                           // ✅ NOM PRODUIT
                           DataCell(
@@ -441,7 +561,7 @@ class _TableauCaisseState extends State<TableauCaisse> {
                             SizedBox(
                               width: colPrix,
                               child: Text(
-                                "${p.prix.toStringAsFixed(2)}",
+                                "${NumberFormatUtil.formatMontant(p.prix, decimales: 2)}",
                                 overflow: TextOverflow.ellipsis,
                                 style: Appstyle.textpop_S.copyWith(
                                   color: Appstyle.TgrisF,
@@ -457,7 +577,7 @@ class _TableauCaisseState extends State<TableauCaisse> {
                                 ? SizedBox(
                               width: colQte,
                               child: Text(
-                                p.qte.toString(),
+                                QuantiteFormat.format(p.qte),
                                 overflow: TextOverflow.ellipsis,
                                 style: Appstyle.textpop_SB.copyWith(
                                   color: Appstyle.Tblue,
@@ -470,7 +590,9 @@ class _TableauCaisseState extends State<TableauCaisse> {
                               child: TextField(
                                 textAlign: TextAlign.center,
                                 keyboardType: TextInputType.number,
-                                controller: TextEditingController(text: p.qte.toString()),
+                                controller: _qteControllerFor(p),
+                                focusNode: _qteFocusNodes[p],
+                                inputFormatters: QuantiteFormat.inputFormatters,
                                 style: Appstyle.textpop_SB.copyWith(
                                   color: Appstyle.Tblue,
                                   fontSize: fontSize,
@@ -482,7 +604,7 @@ class _TableauCaisseState extends State<TableauCaisse> {
                                   constraints: BoxConstraints(minHeight: isSmallScreen ? 20 : 25),
                                 ),
                                 onChanged: (v) async {
-                                  final nouvelleQte = double.tryParse(v) ?? 1;
+                                  final nouvelleQte = double.tryParse(v.replaceAll(',', '.')) ?? 1;
                                   if (nouvelleQte <= 0) {
                                     _removeProduit(p);
                                     return;
@@ -526,12 +648,59 @@ class _TableauCaisseState extends State<TableauCaisse> {
                             ),
                           ),
 
+                          // ✅ NOMBRE (Paramètres > Nombre et Quantité) — colonne visible dès
+                          // qu'UN produit du panier a l'option active, mais éditable/affichée
+                          // uniquement sur les lignes des produits qui l'ont eux-mêmes activée.
+                          if (widget.afficherNombre)
+                            DataCell(
+                              !p.nombreActif
+                                  ? SizedBox(width: colNombre)
+                                  : widget.readOnly
+                                      ? SizedBox(
+                                          width: colNombre,
+                                          child: Text(
+                                            p.nombre != null ? QuantiteFormat.format(p.nombre!) : '',
+                                            overflow: TextOverflow.ellipsis,
+                                            style: Appstyle.textpop_SB.copyWith(
+                                              color: Appstyle.Tblue,
+                                              fontSize: fontSize,
+                                            ),
+                                          ),
+                                        )
+                                      : SizedBox(
+                                          width: colNombre,
+                                          child: TextField(
+                                            textAlign: TextAlign.center,
+                                            keyboardType: TextInputType.number,
+                                            controller: _nombreControllerFor(p),
+                                            focusNode: _nombreFocusNodes[p],
+                                            inputFormatters: QuantiteFormat.inputFormatters,
+                                            style: Appstyle.textpop_SB.copyWith(
+                                              color: Appstyle.Tblue,
+                                              fontSize: fontSize,
+                                            ),
+                                            decoration: InputDecoration(
+                                              contentPadding: const EdgeInsets.symmetric(horizontal: 2, vertical: 2),
+                                              isDense: true,
+                                              border: const OutlineInputBorder(),
+                                              constraints: BoxConstraints(minHeight: isSmallScreen ? 20 : 25),
+                                            ),
+                                            onChanged: (v) {
+                                              final saisie = v.replaceAll(',', '.').trim();
+                                              setState(() {
+                                                p.nombre = saisie.isEmpty ? null : double.tryParse(saisie);
+                                              });
+                                            },
+                                          ),
+                                        ),
+                            ),
+
                           // ✅ MONTANT
                           DataCell(
                             SizedBox(
                               width: colMt,
                               child: Text(
-                                p.montant.toStringAsFixed(2),
+                                NumberFormatUtil.formatMontant(p.montant, decimales: 2),
                                 overflow: TextOverflow.ellipsis,
                                 style: Appstyle.textpop_S.copyWith(
                                   color: Appstyle.TgrisF,
@@ -596,7 +765,7 @@ class _TableauCaisseState extends State<TableauCaisse> {
               children: [
                 if (widget.produits.isNotEmpty && widget.remiseValue > 0)
                   Text(
-                    "${l10n.discount} : -${widget.remiseValue.toStringAsFixed(2)} ${l10n.currency}",
+                    "${l10n.discount} : -${NumberFormatUtil.formatMontant(widget.remiseValue, decimales: 2)} ${l10n.currency}",
                     style: Appstyle.textpop_S.copyWith(
                       color: Colors.green,
                       fontSize: isSmallScreen ? 10 : (isMediumScreen ? 11 : 12),
@@ -607,7 +776,10 @@ class _TableauCaisseState extends State<TableauCaisse> {
                     widget.remiseInfo!.montantCondition > 0 &&
                     !widget.remiseActive)
                   Text(
-                    "Remise conditionnelle: +${widget.remiseInfo!.montantCondition.toStringAsFixed(2)} DA pour activer",
+                    l10n.conditionalDiscountToActivate(
+                      NumberFormatUtil.formatMontant(widget.remiseInfo!.montantCondition, decimales: 2),
+                      l10n.currency,
+                    ),
                     style: Appstyle.textpop_S.copyWith(
                       color: Colors.orange,
                       fontSize: isSmallScreen ? 10 : (isMediumScreen ? 11 : 12),
@@ -615,7 +787,7 @@ class _TableauCaisseState extends State<TableauCaisse> {
                   ),
 
                 Text(
-                  "${l10n.total} : ${totalApresRemise.toStringAsFixed(2)} ${l10n.currency}",
+                  "${l10n.total} : ${NumberFormatUtil.formatMontant(totalApresRemise, decimales: 2)} ${l10n.currency}",
                   style: Appstyle.textpop_SB.copyWith(
                     fontSize: isSmallScreen ? 16 : (isMediumScreen ? 18 : 20),
                     color: widget.remiseValue > 0 ? Colors.green : Appstyle.TgrisF,

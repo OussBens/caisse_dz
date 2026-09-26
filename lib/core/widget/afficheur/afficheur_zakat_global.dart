@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:caisse_dz/core/theme/app_style.dart';
 import '../../../l10n/app_localizations.dart';
+import 'package:caisse_dz/core/utilis/number_format.dart';
 
 class DashboardZakat extends StatefulWidget {
   final double totalZakat;
@@ -126,7 +127,8 @@ class _DashboardZakatState extends State<DashboardZakat>
     );
   }
 
-  Widget _space() => const SizedBox(width: 14);
+  // ✅ Espace réduit de 14 à 10 (70%)
+  Widget _space() => const SizedBox(width: 10);
 }
 
 class _AnimatedStatCard extends StatelessWidget {
@@ -158,10 +160,11 @@ class _AnimatedStatCard extends StatelessWidget {
       child: FadeTransition(
         opacity: animation,
         child: Container(
-          padding: const EdgeInsets.all(20),
+          // ✅ Padding réduit de 20 à 14 (70%)
+          padding: const EdgeInsets.all(14),
           decoration: BoxDecoration(
             color: Colors.white,
-            borderRadius: BorderRadius.circular(24),
+            borderRadius: BorderRadius.circular(18), // ✅ Réduit de 24 à 18
             boxShadow: [
               BoxShadow(
                 color: color.withOpacity(0.1),
@@ -177,28 +180,31 @@ class _AnimatedStatCard extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
+              // ✅ Icone padding réduit de 10 à 7
               Container(
-                padding: const EdgeInsets.all(10),
+                padding: const EdgeInsets.all(7),
                 decoration: BoxDecoration(
                   color: color.withOpacity(0.12),
-                  borderRadius: BorderRadius.circular(16),
+                  borderRadius: BorderRadius.circular(12), // ✅ Réduit de 16 à 12
                 ),
                 child: Icon(
                   icon,
                   color: color,
-                  size: 28,
+                  size: 20, // ✅ Réduit de 28 à 20
                 ),
               ),
-              const SizedBox(height: 16),
+              // ✅ Espace réduit de 16 à 11
+              const SizedBox(height: 11),
               Text(
                 title,
                 style: Appstyle.textSB.copyWith(
                   color: color,
                   fontWeight: FontWeight.w600,
-                  letterSpacing: 0.5,
+                  letterSpacing: 0.4, // ✅ Réduit de 0.5 à 0.4
                 ),
               ),
-              const SizedBox(height: 8),
+              // ✅ Espace réduit de 8 à 6
+              const SizedBox(height: 6),
               Row(
                 crossAxisAlignment: CrossAxisAlignment.end,
                 children: [
@@ -207,7 +213,7 @@ class _AnimatedStatCard extends StatelessWidget {
                     style: Appstyle.textXXLB.copyWith(
                       color: color,
                       fontWeight: FontWeight.bold,
-                      fontSize: 36,
+                      fontSize: 26, // ✅ Réduit de 36 à 26
                       height: 1,
                     ),
                     animation: animation,
@@ -215,7 +221,8 @@ class _AnimatedStatCard extends StatelessWidget {
                     isPercentage: isPercentage,
                   ),
                   if (suffix.isNotEmpty) ...[
-                    const SizedBox(width: 4),
+                    // ✅ Espace réduit de 4 à 3
+                    const SizedBox(width: 3),
                     Text(
                       " $suffix",
                       style: Appstyle.textSB.copyWith(
@@ -226,19 +233,22 @@ class _AnimatedStatCard extends StatelessWidget {
                   ],
                 ],
               ),
-              const SizedBox(height: 8),
+              // ✅ Espace réduit de 8 à 6
+              const SizedBox(height: 6),
               Text(
                 subtitle,
                 style: Appstyle.textXS.copyWith(
                   color: color.withOpacity(0.8),
                   fontWeight: FontWeight.w400,
+                  fontSize: 10, // ✅ Taille réduite
                 ),
                 overflow: TextOverflow.ellipsis,
                 maxLines: 2,
               ),
-              const SizedBox(height: 12),
+              // ✅ Espace réduit de 12 à 8
+              const SizedBox(height: 8),
               Container(
-                height: 3,
+                height: 2, // ✅ Réduit de 3 à 2
                 width: double.infinity,
                 decoration: BoxDecoration(
                   gradient: LinearGradient(
@@ -284,13 +294,13 @@ class _AnimatedCounter extends StatelessWidget {
         }
         String formattedValue;
         if (isPercentage) {
-          formattedValue = displayValue.toStringAsFixed(1);
+          formattedValue = NumberFormatUtil.formatMontant(displayValue, decimales: 1);
         } else if (displayValue == displayValue.toInt()) {
           formattedValue = displayValue.toInt().toString();
         } else {
           formattedValue = isMoney
-              ? displayValue.toStringAsFixed(0)
-              : displayValue.toStringAsFixed(1);
+              ? NumberFormatUtil.formatMontant(displayValue, decimales: 0)
+              : NumberFormatUtil.formatMontant(displayValue, decimales: 1);
         }
         return Text(
           formattedValue,

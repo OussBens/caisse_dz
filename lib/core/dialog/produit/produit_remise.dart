@@ -21,15 +21,17 @@ import '../../widget/title/titre_avec_ligne.dart';
 import '../base_dialog.dart';
 import '../information_dialog.dart';
 
-List<Remise> remisesTest = [];
+// ✅ Liste des remises de type "Par Produit" uniquement
+List<Remise> remisesParProduit = [];
 
 String? _nomRemise(int? id) =>
-    remisesTest.where((r) => r.id == id).firstOrNull?.nom;
+    remisesParProduit.where((r) => r.id == id).firstOrNull?.nom;
 
 Future<void> loadAllData() async {
   try {
-    final packtest = await RemiseServices.getAllRemise();
-    remisesTest = packtest;
+    final allRemises = await RemiseServices.getAllRemise();
+    // ✅ Filtrer pour garder uniquement les remises de type "Par Produit"
+    remisesParProduit = allRemises.where((r) => r.type == "Par Produit").toList();
   } catch (e) {
     debugPrint("Erreur chargement : $e");
   }
@@ -77,7 +79,7 @@ Future<ApiResponse<int>> _updateProduit({
   return lastResponse!;
 }
 
-Future<void> RemiseProduit(BuildContext context, List<Produit> produitsSelectionnes) async {
+Future<bool?> RemiseProduit(BuildContext context, List<Produit> produitsSelectionnes) async {
   final auth = Provider.of<AuthState>(context, listen: false);
   final userName = auth.username!;
   final userCode = auth.userCode!;
@@ -90,20 +92,33 @@ Future<void> RemiseProduit(BuildContext context, List<Produit> produitsSelection
       titre_concerne: l10n.user,
       message: l10n.loginRequired,
     );
-    return;
+    return null;
   }
 
   await loadAllData();
 
+  // ✅ Vérifier s'il y a des remises de type "Par Produit"
+  if (remisesParProduit.isEmpty) {
+    await InformationDialog(
+      context: context,
+      titre_type_message: l10n.information,
+      titre_concerne: l10n.discount,
+      message: l10n.noData, // Utiliser une clé existante
+      // Ou
+      // message: l10n.error,
+    );
+    return null;
+  }
+
   Remise? selectedRemiseObj;
   String? selectedRemise;
 
-  if (remisesTest.isNotEmpty) {
-    selectedRemiseObj = remisesTest.first;
+  if (remisesParProduit.isNotEmpty) {
+    selectedRemiseObj = remisesParProduit.first;
     selectedRemise = selectedRemiseObj.nom;
   }
 
-  return showDialog(
+  return showDialog<bool>(
     context: context,
     barrierDismissible: false,
     barrierColor: Appstyle.gris.withOpacity(0.2),
@@ -111,8 +126,9 @@ Future<void> RemiseProduit(BuildContext context, List<Produit> produitsSelection
       return StatefulBuilder(
         builder: (context, setState) {
           final l10n = AppLocalizations.of(context)!;
+          // ✅ Utiliser la liste filtrée des remises
           final List<String> remiseNames =
-          remisesTest.map((r) => r.nom).where((e) => e.isNotEmpty).toSet().toList();
+          remisesParProduit.map((r) => r.nom).where((e) => e.isNotEmpty).toSet().toList();
           final String? safeValue = remiseNames.contains(selectedRemise) ? selectedRemise : null;
 
           return ClipRect(
@@ -128,9 +144,18 @@ Future<void> RemiseProduit(BuildContext context, List<Produit> produitsSelection
                 content: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(
-                      l10n.selectedProducts,
-                      style: TextStyle(fontWeight: FontWeight.w600, color: Appstyle.Tnoir),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text(
+                          l10n.selectedProducts,
+                          style: TextStyle(fontWeight: FontWeight.w600, color: Appstyle.Tnoir),
+                        ),
+                        Text(
+                          l10n.remiseactuel,
+                          style: TextStyle(fontWeight: FontWeight.w500, color: Appstyle.Tnoir),
+                        ),
+                      ],
                     ),
                     const SizedBox(height: 10),
                     Expanded(
@@ -150,7 +175,7 @@ Future<void> RemiseProduit(BuildContext context, List<Produit> produitsSelection
                                 children: [
                                   Expanded(
                                     child: Text(
-                                      "${p.code} (${p.nom})",
+                                      "${p.nom} (${p.code})",
                                       style: Appstyle.textSB.copyWith(color: Appstyle.Tnoir),
                                     ),
                                   ),
@@ -180,7 +205,7 @@ Future<void> RemiseProduit(BuildContext context, List<Produit> produitsSelection
                         onChanged: (v) {
                           setState(() {
                             selectedRemise = v;
-                            selectedRemiseObj = remisesTest.firstWhere((r) => r.nom == v);
+                            selectedRemiseObj = remisesParProduit.firstWhere((r) => r.nom == v);
                           });
                         },
                       ),
@@ -230,7 +255,7 @@ Future<void> RemiseProduit(BuildContext context, List<Produit> produitsSelection
                               titre_concerne: l10n.product,
                               message: l10n.discountAppliedSuccess,
                               onTerminer: () {
-                                Navigator.pop(context);
+                                Navigator.pop(context, true);
                               },
                             );
                           },

@@ -1,18 +1,17 @@
 import 'dart:ui';
-import 'package:collection/collection.dart';
 import 'package:caisse_dz/l10n/app_localizations.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 import 'package:caisse_dz/DBCreate.dart';
 import 'package:caisse_dz/core/dialog/base_dialog.dart';
-import 'package:caisse_dz/core/dialog/insertion_magasin.dart';
 
 import 'package:caisse_dz/data/constant.dart';
 
 import 'package:caisse_dz/Services/CaisseGestion.dart';
-import 'package:caisse_dz/Services/Magasin.dart' hide ApiResponse;
 import 'package:caisse_dz/Services/Historique.dart' hide ApiResponse;
+import 'package:caisse_dz/Services/Magasin.dart';
+import 'package:caisse_dz/data/models/magasin.dart';
 
 import 'package:caisse_dz/core/Auth/auth_state.dart';
 import 'package:caisse_dz/core/theme/app_style.dart';
@@ -24,7 +23,6 @@ import 'package:caisse_dz/core/widget/champ/champ_avec_label.dart';
 import 'package:caisse_dz/core/widget/title/titre_avec_ligne.dart';
 
 import 'package:caisse_dz/data/models/histore.dart';
-import 'package:caisse_dz/data/models/magasin.dart';
 import 'package:caisse_dz/data/models/gestion_caisse.dart';
 
 import '../../utilis/api_response.dart';
@@ -39,14 +37,9 @@ final TextEditingController observationControllerM = TextEditingController();
 String? selectedTypeC ;
 
 // Dropdowns
-String? selectedMagasinM;
 String? selectedEtatM;
-List<Magasin> magasinsTest = [];
-
-Future<void> _loadAllData() async {
-  final service = await MagasinServices.getAllMagasins();
-  magasinsTest  = service;
-}
+String? selectedMagasinCodeM;
+List<Magasin> magasinsDisponiblesM = [];
 
 Future<int> _GetNextHistoriqueId() async {
   final db = await DbCreator.openDb();
@@ -99,32 +92,20 @@ Future<void> CaisseGestionModif(BuildContext context, CaisseGestion caisse) asyn
     return;
   }
 
-  await _loadAllData();
-
-  // Si aucun magasin, message et sortie
-  if (magasinsTest.isEmpty) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(AppLocalizations.of(context)!.noStoreAvailable),
-        backgroundColor: Colors.red,
-      ),
-    );
-    return;
-  }
-
-  final nomMagasinInitial = magasinsTest.where((m) => m.code == caisse.magasinCode).firstOrNull?.nom;
-  selectedMagasinM = nomMagasinInitial != null && magasinsTest.any((m) => m.nom == nomMagasinInitial)
-      ? nomMagasinInitial
-      : magasinsTest.first.nom;
-
   // Pré-remplissage
   codeControllerM.text = caisse.code;
   nomCaisseControllerM.text = caisse.nomCaisse;
   soldeInitialControllerM.text = caisse.soldeInitial.toString();
   observationControllerM.text = caisse.observation ?? "";
-  String magasinCode = caisse.magasinCode;
   selectedEtatM = caisse.etat ? "Actif" : "Inactif";
   selectedTypeC = caisse.typecaisse;
+
+  magasinsDisponiblesM = (await MagasinServices.getAllMagasins()).where((m) => m.etat).toList();
+  selectedMagasinCodeM = magasinsDisponiblesM.any((m) => m.code == caisse.magasinCode)
+      ? caisse.magasinCode
+      : (magasinsDisponiblesM.isNotEmpty ? magasinsDisponiblesM.first.code : caisse.magasinCode);
+
+  if (!context.mounted) return;
 
   return showDialog(
     context: context,
@@ -182,44 +163,6 @@ Future<void> CaisseGestionModif(BuildContext context, CaisseGestion caisse) asyn
                               ),
                               const SizedBox(height: 10),
 
-                              /// MAGASIN
-                              ChampAvecLabel(
-                                label: l10n.store,
-                                obligatoire: true,
-                                buttonAjout: true,
-                                onAjoutPressed: () async {
-                                  await showDialog(
-                                    context: context,
-                                    barrierColor: Appstyle.gris.withOpacity(0.25),
-                                    builder: (_) {
-                                      return InsertionMagasinDialog(
-                                        magasins: magasinsTest,
-                                        onMagasinSelected: (magasin) {
-                                          setState(() {
-                                            selectedMagasinM = magasin.nom;
-                                            magasinCode = magasin.code;
-                                          });
-                                        },
-                                        multiselection: false,
-                                      );
-                                    },
-                                  );
-                                },
-                                child: TextListe(
-                                  obligatoire: true,
-                                  clearable: false,
-                                  value: selectedMagasinM ?? "",
-                                  items: magasinsTest.map((c) => c.nom).toList(),
-                                  onChanged: (v) {
-                                    setState(() {
-                                      selectedMagasinM = v;
-                                      magasinCode = magasinsTest.firstWhere((m) => m.nom == v).code;
-                                    });
-                                  },
-                                ),
-                              ),
-                              const SizedBox(height: 10),
-
                               ChampAvecLabel(
                                 label: l10n.type,
                                 obligatoire: true,
@@ -231,6 +174,36 @@ Future<void> CaisseGestionModif(BuildContext context, CaisseGestion caisse) asyn
                                   onChanged: (v) {
                                     setState(() {
                                       selectedTypeC = v == l10n.physical ? "physique" : "compte";
+                                    });
+                                  },
+                                ),
+                              ),
+                              const SizedBox(height: 10),
+
+                              // Magasin de rattachement — modifiable ici
+                              // maintenant (auparavant figé à vie sur le
+                              // magasin choisi à la création).
+                              ChampAvecLabel(
+                                label: l10n.magasin,
+                                obligatoire: true,
+                                child: TextListe(
+                                  obligatoire: true,
+                                  clearable: false,
+                                  value: magasinsDisponiblesM
+                                      .firstWhere(
+                                        (m) => m.code == selectedMagasinCodeM,
+                                        orElse: () => Magasin(
+                                          id: 0, code: '', nom: '', etat: true,
+                                          dateCree: DateTime.now(), creeParCode: userCode,
+                                        ),
+                                      )
+                                      .nom,
+                                  items: magasinsDisponiblesM.map((m) => m.nom).toList(),
+                                  onChanged: (v) {
+                                    setState(() {
+                                      selectedMagasinCodeM = magasinsDisponiblesM
+                                          .firstWhere((m) => m.nom == v)
+                                          .code;
                                     });
                                   },
                                 ),
@@ -321,7 +294,7 @@ Future<void> CaisseGestionModif(BuildContext context, CaisseGestion caisse) asyn
                         await ConfirmationDialog(
                           context: context,
                           titre: l10n.modifyCashRegister,
-                          message: "Êtes-vous sûr de vouloir modifier cette caisse ?",
+                          message: l10n.confirmModifyCaisse,
                           onConfirmer: () async {
                             // Création de l'objet CaisseGestion mis à jour
                             CaisseGestion NCaisse = CaisseGestion(
@@ -333,7 +306,7 @@ Future<void> CaisseGestionModif(BuildContext context, CaisseGestion caisse) asyn
                               dateModif: DateTime.now(),
                               nomCaisse: nomCaisseControllerM.text,
                               typecaisse: selectedTypeC == l10n.physical ? "physique" : "compte",
-                              magasinCode: magasinCode,
+                              magasinCode: selectedMagasinCodeM ?? caisse.magasinCode,
                               creeParCode: caisse.creeParCode,
                               observation: observationControllerM.text,
                               soldeInitial: double.tryParse(soldeInitialControllerM.text) ?? 0,

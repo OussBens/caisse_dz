@@ -13,13 +13,41 @@ import '../../widget/title/titre_avec_ligne.dart';
 import '../base_dialog.dart';
 import '../information_dialog.dart';
 
-Future<int> _DeleteUser({required List<Utilisateur> users}) async {
+Future<int> _DeleteUser({required BuildContext context, required List<Utilisateur> users}) async {
   final db = await DbCreator.openDb();
   final userServices = UtilisateurServices(db);
+  final l10n = AppLocalizations.of(context)!;
 
   int i = 0;
 
   for (var user in users) {
+    // ✅ L'utilisateur Admin ne peut pas être supprimé.
+    if (user.role.trim().toLowerCase() == 'admin') {
+      await InformationDialog(
+        context: context,
+        titre_type_message: l10n.deletionImpossible,
+        titre_concerne: l10n.user,
+        message: l10n.cannotDeleteAdminUser,
+      );
+      continue;
+    }
+
+    // ✅ Un utilisateur ayant déjà une activité en base (créateur/vendeur/
+    // caissier... sur au moins un enregistrement) ne peut pas être supprimé
+    // définitivement : on le désactive à la place.
+    if (await UtilisateurServices.hasActivity(user.code)) {
+      await userServices.deactivateUtilisateur(user.id);
+      if (context.mounted) {
+        await InformationDialog(
+          context: context,
+          titre_type_message: l10n.information,
+          titre_concerne: l10n.user,
+          message: l10n.userHasActivityDeactivated(user.username),
+        );
+      }
+      continue;
+    }
+
     await userServices.deleteUtilisateur(user.id);
     i++;
   }
@@ -132,7 +160,7 @@ Future<void> AnnulerUtilisateur(BuildContext context, List<Utilisateur> utilisat
                           titre: l10n.users,
                           message: l10n.confirmDeleteUsers,
                           onConfirmer: () async {
-                            final i = await _DeleteUser(users: utilisateursSelectionnes);
+                            final i = await _DeleteUser(context: context, users: utilisateursSelectionnes);
 
                             await InformationDialog(
                               context: context,

@@ -4,19 +4,24 @@ import 'package:syncfusion_flutter_datagrid/datagrid.dart';
 
 import 'package:caisse_dz/core/theme/app_style.dart';
 import '../../../data/models/besoinList.dart';
+import '../../../data/models/fournisseur.dart';
+import '../../../data/models/utilisateur.dart';
 import '../../../l10n/app_localizations.dart';
 import '../../dialog/besionlist/besoinlist_detail.dart';
-import '../../widget/button/main_button.dart';
-import '../../widget/tableau/paginated.dart';
+import '../filter_icon_builder.dart';
 import 'besoinlist_source.dart';
 
 class TableauBesoinListAdvanced extends StatefulWidget {
   final List<BesoinList> besoins;
+  final List<Fournisseur> fournisseurs;
+  final List<Utilisateur> utilisateurs;
   final void Function(List<BesoinList>)? onSelectionChanged;
 
   const TableauBesoinListAdvanced({
     super.key,
     required this.besoins,
+    this.fournisseurs = const [],
+    this.utilisateurs = const [],
     this.onSelectionChanged,
   });
 
@@ -30,22 +35,9 @@ class _TableauBesoinListAdvancedState extends State<TableauBesoinListAdvanced> {
   bool garderSelectionColonnes = true;
   late final Map<String, bool> colonnesParDefaut;
   final Map<String, double> columnWidths = {};
-  int rowsPerPage = 15;
-  int currentPage = 1;
+  int _rowsPerPage = 15;
+  static const List<int> _rowsPerPageOptions = [10, 15, 20, 30, 50];
   bool selectAll = false;
-
-  // ================= PAGINATION =================
-  List<BesoinList> get paginatedData {
-    final start = (currentPage - 1) * rowsPerPage;
-    final end = (start + rowsPerPage).clamp(0, widget.besoins.length);
-    if (start >= widget.besoins.length) return [];
-    return widget.besoins.sublist(start, end);
-  }
-
-  int get totalPages =>
-      widget.besoins.isEmpty
-          ? 1
-          : (widget.besoins.length / rowsPerPage).ceil();
 
   late Map<String, Map<String, dynamic>> columnVisibility;
 
@@ -84,41 +76,71 @@ class _TableauBesoinListAdvancedState extends State<TableauBesoinListAdvanced> {
     super.didChangeDependencies();
     final l10n = AppLocalizations.of(context)!;
     dataSource = BesoinListDataSource(
-      besoins: paginatedData,
+      besoins: widget.besoins,
       columnConfig: columnVisibility,
       l10n: l10n,
+      fournisseurs: widget.fournisseurs,
+      utilisateurs: widget.utilisateurs,
     );
+    dataSource.onRowDoubleTap = (besoin) => BesoinListDetailDialog(context, besoin);
 
     dataSource.addListener(() {
-      widget.onSelectionChanged?.call(dataSource.getSelectedRows());
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted) return;
+        setState(() {});
+        widget.onSelectionChanged?.call(dataSource.getSelectedRows());
+      });
     });
+  }
+
+  @override
+  void didUpdateWidget(covariant TableauBesoinListAdvanced oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.besoins != widget.besoins) {
+      dataSource.updateBesoinsList(widget.besoins);
+    }
   }
 
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
 
+    final pageCount = (dataSource.items.length / _rowsPerPage).ceil().clamp(1, 9999).toDouble();
+
     return Column(
       children: [
         Expanded(child: _buildTable(l10n)),
         const SizedBox(height: 12),
-        PaginationBar(
-          currentPage: currentPage,
-          totalPages: totalPages,
-          rowsPerPage: rowsPerPage,
-          onPageChanged: (page) {
-            setState(() {
-              currentPage = page;
-              dataSource.updateBesoinsList(paginatedData);
-            });
-          },
-          onRowsPerPageChanged: (v) {
-            setState(() {
-              rowsPerPage = v;
-              currentPage = 1;
-              dataSource.updateBesoinsList(paginatedData);
-            });
-          },
+        Container(
+          padding: const EdgeInsets.symmetric(vertical: 6, horizontal: 12),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(14),
+            boxShadow: const [BoxShadow(color: Colors.black12, blurRadius: 10)],
+          ),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              SfDataPager(
+                delegate: dataSource,
+                pageCount: pageCount,
+                direction: Axis.horizontal,
+                itemWidth: 36,
+                itemHeight: 36,
+              ),
+              const SizedBox(width: 20),
+              DropdownButton<int>(
+                value: _rowsPerPage,
+                items: _rowsPerPageOptions
+                    .map((e) => DropdownMenuItem(value: e, child: Text("$e ${l10n.rowsPerPage}")))
+                    .toList(),
+                onChanged: (v) {
+                  if (v == null) return;
+                  setState(() => _rowsPerPage = v);
+                },
+              ),
+            ],
+          ),
         ),
       ],
     );
@@ -135,16 +157,33 @@ class _TableauBesoinListAdvancedState extends State<TableauBesoinListAdvanced> {
       padding: const EdgeInsets.all(8),
       child: ClipRRect(
         borderRadius: BorderRadius.circular(16),
-        child: SfDataGridTheme(
+        child: LayoutBuilder(
+          builder: (context, constraints) {
+            final visibleColumns = columnVisibility.entries
+                .where((e) => e.value['visible'] as bool)
+                .toList();
+            // ✅ Largeur idéale = largeur du tableau / nombre de colonnes
+            // affichées, pour que les colonnes remplissent toute la largeur
+            // disponible au lieu de laisser un vide avec la largeur fixe
+            // précédente.
+            const reservedColumnsWidth = 60.0 /* settings */ + 55.0 /* select */;
+            final idealColumnWidth = visibleColumns.isEmpty
+                ? 180.0
+                : ((constraints.maxWidth - reservedColumnsWidth) /
+                        visibleColumns.length)
+                    .clamp(120.0, 400.0);
+
+            return SfDataGridTheme(
           data: SfDataGridThemeData(
-            headerColor:  Appstyle.blueC.withOpacity(0.8),
+            headerColor: Appstyle.violet.withOpacity(0.7),
             sortIconColor: Appstyle.Tblanc,
-            filterIconColor: Appstyle.Tblanc,
+            filterIcon: Builder(builder: (context) => buildFilterIcon(context, dataSource)),
             gridLineColor: Colors.grey.shade300,
             gridLineStrokeWidth: 0.4,
           ),
           child: SfDataGrid(
             source: dataSource,
+            rowsPerPage: _rowsPerPage,
             headerRowHeight: 36,
             rowHeight: 38,
             allowSorting: true,
@@ -152,13 +191,8 @@ class _TableauBesoinListAdvancedState extends State<TableauBesoinListAdvanced> {
             selectionMode: SelectionMode.single,
             allowColumnsResizing: true,
             columnResizeMode: ColumnResizeMode.onResize,
-
-            onCellDoubleTap: (details) {
-              if (details.rowColumnIndex.rowIndex <= 0) return;
-              final rowIndex = details.rowColumnIndex.rowIndex - 1;
-              final besoin = paginatedData[rowIndex];
-              BesoinListDetailDialog(context, besoin);
-            },
+            // Sélection au clic + double-clic pour le détail gérés dans
+            // BaseTableDataSource.buildRow (n'importe quelle colonne).
 
             onColumnResizeUpdate: (details) {
               double w = details.width;
@@ -199,17 +233,17 @@ class _TableauBesoinListAdvancedState extends State<TableauBesoinListAdvanced> {
                   ),
                 ),
               ),
-              ...columnVisibility.entries
-                  .where((e) => e.value['visible'])
-                  .map(
+              ...visibleColumns.map(
                     (e) => GridColumn(
                   columnName: e.key,
-                  width: columnWidths[e.key] ?? 180,
+                  width: columnWidths[e.key] ?? idealColumnWidth,
                   label: _header(_getTranslatedLabel(e.value['label'], l10n)),
                 ),
               ),
             ],
           ),
+        );
+          },
         ),
       ),
     );
@@ -247,20 +281,6 @@ class _TableauBesoinListAdvancedState extends State<TableauBesoinListAdvanced> {
   );
 
   // ================= COLONNES =================
-  Widget _buildActiveColumnsBar(AppLocalizations l10n) {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.end,
-      children: [
-        MainButton(
-          text: "",
-          color: Appstyle.violet,
-          onPressed: () => _showColumnSettingsPopup(context, l10n),
-          icon: Icons.view_column,
-        )
-      ],
-    );
-  }
-
   void _showColumnSettingsPopup(BuildContext context, AppLocalizations l10n) {
     showDialog(
       context: context,

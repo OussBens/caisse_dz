@@ -9,6 +9,7 @@ import '../../../data/models/retour.dart';
 import '../../widget/detail_widget.dart';
 import 'package:caisse_dz/l10n/app_localizations.dart';
 import '../../widget/section_decoration.dart';
+import '../../widget/stats_card.dart';
 import '../base_dialog.dart';
 
 Future<void> RetourDetail(BuildContext context, Retour retour) async {
@@ -58,14 +59,20 @@ Future<void> RetourDetail(BuildContext context, Retour retour) async {
                 ),
 
                 const Spacer(),
-
                 Chip(
                   label: Text(
                     retour.etat ? l10n.active : l10n.inactive,
-                    style: Appstyle.textSB.copyWith(color: Appstyle.Tblanc),
+                    style: Appstyle.textSB.copyWith(
+                      color: retour.etat ? Appstyle.Tblanc : Appstyle.Tnoir, // ou une autre couleur
+                    ),
                   ),
-                  backgroundColor: Appstyle.crevete,
-                ),
+                  backgroundColor: retour.etat
+                      ? Appstyle.violet.withOpacity(0.8)
+                      : Appstyle.crevete.withOpacity(0.7), // ou rouge, orange, etc.
+                  labelPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                  elevation: retour.etat ? 2 : 0,
+                )
+
               ],
             ),
 
@@ -95,6 +102,7 @@ Future<void> RetourDetail(BuildContext context, Retour retour) async {
                 child: detailwrap([
                   detailinfo(l10n.productName, nomProduit),
                   detailinfo(l10n.quantity, retour.quantite),
+                  detailinfo(l10n.numberField, retour.nombre),
                   detailinfo(l10n.purchasePrice, "${retour.prixAchat ?? 0} ${l10n.currency}"),
                   detailinfo(l10n.salePrice, "${retour.prixVente ?? 0} ${l10n.currency}"),
                 ]),
@@ -147,22 +155,14 @@ Future<void> RetourDetail(BuildContext context, Retour retour) async {
     },
   );
 }
-
+// retour_detail.dart - Remplacer _resumeRetour
 Widget _resumeRetour(Retour r, AppLocalizations l10n) {
-  return Container(
-    decoration: BoxDecoration(
-      color: Appstyle.violet.withOpacity(0.6),
-      borderRadius: BorderRadius.circular(10),
-    ),
-    padding: const EdgeInsets.all(8),
-    child: Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-      children: [
-        detailbadge(l10n.quantity, r.quantite ?? 0),
-        detailbadge(l10n.purchasePrice, "${r.prixAchat ?? 0} ${l10n.currency}"),
-        detailbadge(l10n.salePrice, "${r.prixVente ?? 0} ${l10n.currency}"),
-        detailbadge(l10n.type, r.type ?? "-"),
-      ],
-    ),
+  return StatsCard(
+     items: [
+      StatsItem(label: l10n.quantity, value: r.quantite ?? 0),
+      StatsItem(label: l10n.purchasePrice, value: "${r.prixAchat ?? 0} ${l10n.currency}"),
+      StatsItem(label: l10n.salePrice, value: "${r.prixVente ?? 0} ${l10n.currency}"),
+      StatsItem(label: l10n.type, value: r.type ?? "-"),
+    ],
   );
 }

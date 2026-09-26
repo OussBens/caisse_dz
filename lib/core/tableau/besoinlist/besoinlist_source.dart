@@ -1,6 +1,8 @@
+import 'package:collection/collection.dart';
 import 'package:flutter/material.dart';
 import 'package:syncfusion_flutter_datagrid/datagrid.dart';
 import '../../../../data/models/besoinList.dart';
+import '../../../../data/models/fournisseur.dart';
 import '../../../data/constant.dart';
 import '../../../l10n/app_localizations.dart';
 import '../../widget/status_badge.dart';
@@ -8,12 +10,18 @@ import '../base_table_data_source.dart';
 
 class BesoinListDataSource extends BaseTableDataSource<BesoinList> {
   final AppLocalizations l10n;
+  final List<Fournisseur> fournisseurs;
 
   BesoinListDataSource({
     required List<BesoinList> besoins,
     required super.columnConfig,
     required this.l10n,
+    this.fournisseurs = const [],
+    super.utilisateurs = const [],
   }) : super(items: besoins);
+
+  String _nomFournisseur(String? code) =>
+      fournisseurs.firstWhereOrNull((f) => f.code == code)?.nom ?? code ?? '';
 
   String formatDate(DateTime? date) {
     if (date == null) return '';
@@ -40,21 +48,21 @@ class BesoinListDataSource extends BaseTableDataSource<BesoinList> {
       case 'quantite':
         return besoin.quantite;
       case 'fournisseur':
-        return besoin.fournisseurCode;
+        return _nomFournisseur(besoin.fournisseurCode);
       case 'etat':
         return besoin.etat ? l10n.actif : l10n.inactif;
       case 'dateCree':
         return formatDate(besoin.dateCree);
       case 'creeParCode':
-        return besoin.creeParCode;
+        return nomUtilisateur(besoin.creeParCode);
       case 'dateModif':
         return formatDate(besoin.dateModif);
       case 'modifParCode':
-        return besoin.modifParCode;
+        return nomUtilisateur(besoin.modifParCode);
       case 'dateAnnul':
         return formatDate(besoin.dateAnnul);
       case 'annulParCode':
-        return besoin.annulParCode;
+        return nomUtilisateur(besoin.annulParCode);
       case 'motifAnnul':
         return besoin.motifAnnul;
       default:

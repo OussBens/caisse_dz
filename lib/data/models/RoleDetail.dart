@@ -14,7 +14,6 @@ class RoleDetail {
   bool    stock;
   bool    besoin;
   bool    utilisateur;
-  bool    magasin;
   bool    gestionCaisse;
   bool    zakat;
   bool    parametre;
@@ -32,7 +31,6 @@ class RoleDetail {
 
   RoleDetail({
     required this.id,
-    required this.magasin,
     required this.pannier,
     required this.fournisseur,
     required this.entree,
@@ -79,7 +77,6 @@ class RoleDetail {
       caisse        : map['caisse']         == 1,
       retour        : map['retour']         == 1,
       pannier       : map['pannier']        == 1,
-      magasin       : map['magasin']        == 1,
       produit       : map['produit']        == 1,
       parametre     : map['parametre']      == 1,
       historique    : map['historique']     == 1,
@@ -118,7 +115,6 @@ class RoleDetail {
       'caisse'        : caisse        ? 1 : 0,
       'retour'        : retour        ? 1 : 0,
       'pannier'       : pannier       ? 1 : 0,
-      'magasin'       : magasin       ? 1 : 0,
       'produit'       : produit       ? 1 : 0,
       'parametre'     : parametre     ? 1 : 0,
       'historique'    : historique    ? 1 : 0,
@@ -142,4 +138,25 @@ class RoleDetail {
         .map((e) => e?.toString().toLowerCase() ?? '')
         .join(' ');
   }
+
+  /// Traduit les colonnes booléennes fixes en liste de strings, pour l'API
+  /// mobile (POST /api/auth/login -> user.permissions).
+  List<String> get permissionsList => [
+        if (dash) 'dash',
+        if (caisse) 'caisse',
+        if (produit) 'produit',
+        if (pannier) 'pannier',
+        if (client) 'client',
+        if (fournisseur) 'fournisseur',
+        if (entree) 'entree',
+        if (sortie) 'sortie',
+        if (retour) 'retour',
+        if (stock) 'stock',
+        if (besoin) 'besoin',
+        if (utilisateur) 'utilisateur',
+        if (gestionCaisse) 'gestionCaisse',
+        if (zakat) 'zakat',
+        if (parametre) 'parametre',
+        if (historique) 'historique',
+      ];
 }

@@ -63,7 +63,7 @@ class _InsertionCaisseDialogState extends State<InsertionCaisseDialog> {
     }).toList();
 
     return BaseDialog(
-      couleur: Appstyle.violetC,
+      couleur: Appstyle.Tblanc,
       width: 1000,
       height: 800,
       header: Row(

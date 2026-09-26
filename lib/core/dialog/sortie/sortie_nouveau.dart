@@ -1,6 +1,10 @@
 import 'dart:ui';
 import 'package:caisse_dz/DBCreate.dart';
 import 'package:caisse_dz/Services/Sortie.dart';
+import 'package:caisse_dz/Services/CaisseParam.dart';
+import 'package:caisse_dz/Services/Magasin.dart';
+import 'package:caisse_dz/Services/MagasinDetail.dart';
+import 'package:caisse_dz/data/models/magasin.dart';
 import 'package:caisse_dz/core/Auth/auth_state.dart';
 import 'package:caisse_dz/l10n/app_localizations.dart';
 import 'package:caisse_dz/Services/Produits.dart' hide ApiResponse;
@@ -29,7 +33,15 @@ import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 import 'package:flutter/material.dart';
 import '../../utilis/api_response.dart';
+import '../../utilis/stock_guard.dart';
 import '../information_dialog.dart';
+
+// Sortie n'a pas besoin de l'heure précise, seulement du jour — format
+// date-only cohérent que l'on affiche par défaut et après sélection au
+// calendrier, pour ne pas dépendre de si l'utilisateur a ouvert le
+// datepicker ou non.
+String _formatDateOnlyS(DateTime d) =>
+    "${d.year.toString().padLeft(4, '0')}-${d.month.toString().padLeft(2, '0')}-${d.day.toString().padLeft(2, '0')}";
 
 Future<int> _GetNextHistoriqueId() async {
   final db = await DbCreator.openDb();
@@ -69,16 +81,36 @@ Future<ApiResponse<int>> _SaveSortie({
   final serviceh = HistoriqueServices(db);
   final serviceM = MouvementsServices(db);
   final servicep = ProduitServices(db);
+  final pmdService = ProduitMagasinDetailServices(db);
 
   final produits = await ProduitServices.getAllProduits();
   final response = await services.addSortie(sortie);
   await serviceM.addMouvement(mouv);
 
   final prod = produits.where((e) => e.code == sortie.produitCode).first;
-  prod.quantite = prod.quantite - sortie.quantite;
+  if (!prod.service) {
+    if (sortie.nombre != null) prod.nombre = prod.nombre - sortie.nombre!;
+  }
   prod.modifParCode = userCode;
   prod.dateModif = DateTime.now();
   await servicep.updateProduit(prod);
+
+  // Déstockage réel par magasin — jusqu'ici seul le stock global était
+  // touché, produit_magasin_detail ne suivait pas les sorties.
+  if (!prod.service && sortie.magasinCode != null) {
+    final magasinDetail = await pmdService.getSingleByProduitAndMagasin(
+      prod.code,
+      sortie.magasinCode!,
+    );
+    if (magasinDetail != null) {
+      if (sortie.nombre != null && magasinDetail.nombre > 0) {
+        final nombreADestock = sortie.nombre! <= magasinDetail.nombre
+            ? sortie.nombre!
+            : magasinDetail.nombre;
+        await pmdService.decrementNombre(magasinDetail.id, nombreADestock);
+      }
+    }
+  }
 
   int idh = await _GetNextHistoriqueId();
   Historique histo = Historique(
@@ -103,6 +135,7 @@ List<SousCategorie> sousCategoriesTestS = [];
 
 final TextEditingController observationControllerS = TextEditingController();
 final TextEditingController quantiteControllerS = TextEditingController();
+final TextEditingController nombreControllerS = TextEditingController();
 final TextEditingController montantControllerS = TextEditingController(text: '0.00');
 final TextEditingController codeControllerS = TextEditingController();
 final TextEditingController prixControllerS = TextEditingController(text: '0.00');
@@ -111,11 +144,17 @@ final TextEditingController dateControllerS = TextEditingController();
 String? selectedProduitS;
 String? selectedTypeS;
 String? selectedType;
+String? selectedMagasinCodeS;
+List<Magasin> magasinsDisponiblesS = [];
 
 Future<void> _LoadData() async {
   produitsTest = await ProduitServices.getAllProduits();
   categoriesTestS = await CategorieServices.getAllCategorie();
   sousCategoriesTestS = await SousCategoriesServices.getAllSousCategorie();
+  magasinsDisponiblesS = (await MagasinServices.getAllMagasins()).where((m) => m.etat).toList();
+  selectedMagasinCodeS = magasinsDisponiblesS.any((m) => m.code == 'MAG0000')
+      ? 'MAG0000'
+      : (magasinsDisponiblesS.isNotEmpty ? magasinsDisponiblesS.first.code : null);
 }
 
 void calculerMontant() {
@@ -128,6 +167,7 @@ void calculerMontant() {
 void resetSortieForm() {
   observationControllerS.clear();
   quantiteControllerS.clear();
+  nombreControllerS.clear();
   montantControllerS.clear();
   codeControllerS.clear();
   prixControllerS.clear();
@@ -163,11 +203,23 @@ Future<void> SortieNouveau(BuildContext context) async {
     digitCount: 6, // "SRT000001"
   );
   codeControllerS.text = code;
+  // ✅ Date du jour par défaut, modifiable si besoin.
+  dateControllerS.text = _formatDateOnlyS(DateTime.now());
 
   final auth = Provider.of<AuthState>(context, listen: false);
   final userName = auth.username!;
   final userCode = auth.userCode!;
   final l10n = AppLocalizations.of(context)!;
+
+  // ✅ Le magasin ne se choisit jamais indépendamment ici : il suit toujours
+  // la caisse actuellement sélectionnée par l'utilisateur (CaisseParam,
+  // synchronisée par ParametreCaisseDialog), plus jamais un choix libre
+  // parmi tous les magasins.
+  if (auth.userCode != null) {
+    final db = await DbCreator.openDb();
+    final param = await CaisseParamServices(db).getCaisseParamByUserCode(auth.userCode!);
+    if (param != null) selectedMagasinCodeS = param.magasinCode;
+  }
 
   if (!auth.isAuthenticated || auth.username == null || auth.userCode == null) {
     await InformationDialog(
@@ -188,7 +240,11 @@ Future<void> SortieNouveau(BuildContext context) async {
         builder: (context, setState) {
           final l10n = AppLocalizations.of(context)!;
           final translator = ListsConstTranslator(l10n);
-          selectedType  = translator.typeSortieDisplayList.first;
+          // Initialise le type une seule fois (sans écraser la sélection de
+          // l'utilisateur à chaque rebuild) et garantit que la valeur française
+          // associée n'est jamais nulle au moment de l'enregistrement.
+          selectedType ??= translator.typeSortieDisplayList.first;
+          selectedTypeS ??= translator.typeSortieToFrench(selectedType!);
           return ClipRect(
             child: BackdropFilter(
               filter: ImageFilter.blur(sigmaX: 2, sigmaY: 2),
@@ -203,6 +259,10 @@ Future<void> SortieNouveau(BuildContext context) async {
 
                 content: Form(
                   key: produitFormKey,
+                  // Affiche le message « champ requis » dès que l'utilisateur
+                  // interagit avec un champ obligatoire, sans attendre le clic
+                  // sur Enregistrer.
+                  autovalidateMode: AutovalidateMode.onUserInteraction,
                   child: SingleChildScrollView(
                     child: Row(
                       crossAxisAlignment: CrossAxisAlignment.start,
@@ -231,6 +291,7 @@ Future<void> SortieNouveau(BuildContext context) async {
                                     barrierColor: Appstyle.gris.withOpacity(0.25),
                                     builder: (_) {
                                       return InsertionProduitDialog(
+                                        newButton:false,
                                         multiselection: false,
                                         produits: produitsTest,
                                         onProduitSelected: (p) {
@@ -247,7 +308,7 @@ Future<void> SortieNouveau(BuildContext context) async {
                                   obligatoire: true,
                                   clearable: false,
                                   value: selectedProduitS,
-                                  items: produitsTest.map((e) => e.nom).toList(),
+                                  items: produitsTest.where((e) => e.etat).map((e) => e.nom).toList(),
                                   onChanged: (v) => setState(() {
                                     selectedProduitS = v;
                                     prod = produitsTest.where((e) => e.nom == v).first;
@@ -272,6 +333,32 @@ Future<void> SortieNouveau(BuildContext context) async {
                               ),
                               const SizedBox(height: 10),
 
+                              // Magasin d'où le produit sort — toujours celui
+                              // de la caisse actuellement sélectionnée par
+                              // l'utilisateur, jamais un choix libre (cf.
+                              // synchronisation dans ParametreCaisseDialog).
+                              ChampAvecLabel(
+                                label: l10n.magasin,
+                                obligatoire: true,
+                                child: TextListe(
+                                  obligatoire: true,
+                                  clearable: false,
+                                  enabled: false,
+                                  value: magasinsDisponiblesS
+                                      .firstWhere(
+                                        (m) => m.code == selectedMagasinCodeS,
+                                        orElse: () => Magasin(
+                                          id: 0, code: '', nom: '', etat: true,
+                                          dateCree: DateTime.now(), creeParCode: userCode,
+                                        ),
+                                      )
+                                      .nom,
+                                  items: magasinsDisponiblesS.map((m) => m.nom).toList(),
+                                  onChanged: (_) {},
+                                ),
+                              ),
+                              const SizedBox(height: 10),
+
                               ChampAvecLabel(
                                 label: l10n.date,
                                 obligatoire: true,
@@ -287,7 +374,7 @@ Future<void> SortieNouveau(BuildContext context) async {
                                       initialDate: DateTime.now(),
                                     );
                                     if (d != null) {
-                                      dateControllerS.text = "$d";
+                                      dateControllerS.text = _formatDateOnlyS(d);
                                     }
                                   },
                                 ),
@@ -309,9 +396,24 @@ Future<void> SortieNouveau(BuildContext context) async {
                                   obligatoire: true,
                                   controller: quantiteControllerS,
                                   numeric: true,
+                                  isQuantite: true,
                                   hint: "0",
                                 ),
                               ),
+                              if (prod?.nombreActif ?? false) ...[
+                                const SizedBox(height: 10),
+                                ChampAvecLabel(
+                                  label: l10n.numberField,
+                                  obligatoire: true,
+                                  child: TextChampL(
+                                    controller: nombreControllerS,
+                                    obligatoire: true,
+                                    numeric: true,
+                                    isQuantite: true,
+                                    hint: "0",
+                                  ),
+                                ),
+                              ],
                               const SizedBox(height: 10),
 
                               ChampAvecLabel(
@@ -391,12 +493,48 @@ Future<void> SortieNouveau(BuildContext context) async {
                           );
                           return;
                         }
+                        // ✅ Nombre obligatoire quand le produit suit le
+                        // second stock "nombre" (nombreActif).
+                        final double nombreSaisiS = double.tryParse(nombreControllerS.text) ?? 0;
+                        if ((prod?.nombreActif ?? false) && nombreSaisiS <= 0) {
+                          await InformationDialog(
+                            context: context,
+                            titre_type_message: l10n.error,
+                            titre_concerne: l10n.exit,
+                            message: l10n.numberMustBeGreaterThanZero,
+                          );
+                          return;
+                        }
+                        // ✅ Vérifier que le stock ne passera pas en négatif
+                        // (scope au magasin choisi pour cette sortie).
+                        final quantiteDisponibleS = await MouvementsServices.quantiteProduit(
+                          prod!.code,
+                          magasinCode: selectedMagasinCodeS,
+                        );
+                        if (!StockGuard.suffisant(quantiteDisponibleS, quantite, service: prod!.service)) {
+                          await InformationDialog(
+                            context: context,
+                            titre_type_message: l10n.error,
+                            titre_concerne: l10n.exit,
+                            message: l10n.stockInsuffisantPourProduit(
+                              prod!.code,
+                              quantiteDisponibleS.toInt().toString(),
+                              quantite.toInt().toString(),
+                            ),
+                          );
+                          return;
+                        }
+
                         final categorieCodeS = categoriesTestS
                             .where((c) => c.id == prod!.categorieId)
                             .firstOrNull?.code;
                         final sousCategorieCodeS = sousCategoriesTestS
                             .where((sc) => sc.id == prod!.sousCategorieId)
                             .firstOrNull?.code;
+
+                        final nombreS = nombreControllerS.text.trim().isEmpty
+                            ? null
+                            : double.tryParse(nombreControllerS.text);
 
                         Sortie sortie = Sortie(
                           id: id,
@@ -407,31 +545,37 @@ Future<void> SortieNouveau(BuildContext context) async {
                           date: DateTime.parse(dateControllerS.text),
                           montant: double.parse(montantControllerS.text),
                           quantite: double.parse(quantiteControllerS.text),
+                          nombre: nombreS,
                           dateCree: DateTime.now(),
                           categorieCode: categorieCodeS,
                           produitCode: prod!.code,
                           creeParCode: userCode,
                           observation: observationControllerS.text,
                           sousCategorieCode: sousCategorieCodeS,
+                          magasinCode: selectedMagasinCodeS,
                         );
 
                         int idm = await _GetNextMouvementId();
                         Mouvement mouv = Mouvement(
                           id: idm,
-                          code: CodeGenerator.generateCodeWithTimestamp(
+                          code: CodeGenerator.generateCode(
                             prefix: CodePrefix.mouvement,
                             id: idm,
+                            digitCount: 8,
                           ), // ✅ Utilisation du générateur
                           date: DateTime.parse(dateControllerS.text),
                           codeProduit: prod!.code,
                           quantite: double.parse(quantiteControllerS.text),
+                          nombre: nombreS,
                           prixAchat: prod!.prixAchat,
                           prixVente: double.parse(prixControllerS.text),
-                          type: "Sortie ( $selectedTypeS )",
+                          type: "Sortie",
+                          sousType: selectedTypeS,
                           etat: true,
                           codeOperation: code,
                           dateCree: DateTime.now(),
                           creeParCode: userCode,
+                          magasinCode: selectedMagasinCodeS,
                         );
 
                         final response = await _SaveSortie(

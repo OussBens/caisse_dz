@@ -12,11 +12,13 @@ import 'categorie/categorie_nouveau.dart';
 class InsertionCategorieDialog extends StatefulWidget {
   final List<Categorie> categories;
   final Function(Categorie) onCategorieSelected;
+  final bool newButton;
 
   const InsertionCategorieDialog({
     Key? key,
     required this.categories,
     required this.onCategorieSelected,
+    this.newButton = true,
   }) : super(key: key);
 
   @override
@@ -39,7 +41,7 @@ class _InsertionCategorieDialogState extends State<InsertionCategorieDialog> {
     }).toList();
 
     return BaseDialog(
-      couleur: Appstyle.violetC,
+      couleur: Appstyle.Tblanc,
       width: 1000,
       height: 800,
       header: Row(
@@ -72,13 +74,14 @@ class _InsertionCategorieDialogState extends State<InsertionCategorieDialog> {
                   },
                 ),
               ),
-              MainButton(
-                text: l10n.newWord,
-                color: Appstyle.crevete,
-                onPressed: () {
-                  CategorieNouveau(context);
-                },
-              ),
+              if (widget.newButton)
+                MainButton(
+                  text: l10n.newWord,
+                  color: Appstyle.crevete,
+                  onPressed: () {
+                    CategorieNouveau(context);
+                  },
+                ),
             ],
           ),
 

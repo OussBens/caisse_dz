@@ -3,10 +3,11 @@ import 'dart:ui';
 import 'package:caisse_dz/DBCreate.dart';
 import 'package:caisse_dz/Services/CaisseGestion.dart';
 import 'package:caisse_dz/Services/Historique.dart' hide ApiResponse;
-import 'package:caisse_dz/Services/Magasin.dart' hide ApiResponse;
+import 'package:caisse_dz/Services/Magasin.dart';
+import 'package:caisse_dz/data/models/magasin.dart';
 import 'package:caisse_dz/core/Auth/auth_state.dart';
+import 'package:caisse_dz/core/Auth/license_tier.dart';
 import 'package:caisse_dz/core/dialog/base_dialog.dart';
-import 'package:caisse_dz/core/dialog/insertion_magasin.dart';
 import 'package:caisse_dz/core/theme/app_style.dart';
 import 'package:caisse_dz/core/widget/button/main_button.dart';
 import 'package:caisse_dz/core/widget/champ/champ_avec_label.dart';
@@ -17,7 +18,6 @@ import 'package:caisse_dz/core/widget/code_generateur.dart'; // ✅ Ajout de l'i
 import 'package:caisse_dz/data/constant.dart';
 import 'package:caisse_dz/data/models/gestion_caisse.dart';
 import 'package:caisse_dz/data/models/histore.dart';
-import 'package:caisse_dz/data/models/magasin.dart';
 import 'package:caisse_dz/l10n/app_localizations.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
@@ -25,11 +25,16 @@ import 'package:provider/provider.dart';
 import '../../utilis/api_response.dart';
 import '../information_dialog.dart';
 
+// Magasin système, utilisé comme valeur par défaut de la sélection ci-dessous
+// (et toujours la seule option en Basic/Avancé tant qu'un seul magasin
+// existe) — une caisse peut désormais être rattachée à n'importe quel
+// magasin actif plutôt que d'y être figée.
+const String kSystemMagasinCode = 'MAG0000';
+
 final TextEditingController codeControllerC = TextEditingController();
 final TextEditingController nomCaisseController = TextEditingController();
 final TextEditingController soldeInitialController = TextEditingController();
 final TextEditingController observationControllerC = TextEditingController();
-List<Magasin> magasinsTest = [];
 
 Future<int> _GetNextHistoriqueId() async {
   final db = await DbCreator.openDb();
@@ -47,11 +52,6 @@ Future<int> _GetNextId() async {
     id = await GCServices.getNextCaisseId(txn);
   });
   return id;
-}
-
-Future<void> _loadAllData() async {
-  final service = await MagasinServices.getAllMagasins();
-  magasinsTest  = service;
 }
 
 Future<ApiResponse<int>> _SaveData({
@@ -82,43 +82,20 @@ Future<ApiResponse<int>> _SaveData({
 }
 
 // ================= DROPDOWN =================
-String? selectedMagasinC;
 String? selectedTypeC = ListsConst.typeCaisse.first;
+String? selectedMagasinCodeC;
+List<Magasin> magasinsDisponiblesC = [];
 
 void resetCaisseForm() {
   codeControllerC.clear();
   nomCaisseController.clear();
   soldeInitialController.clear();
   observationControllerC.clear();
-
-  // Par défaut, sélectionner le premier magasin si la liste existe
-  if (magasinsTest.isNotEmpty) {
-    selectedMagasinC = magasinsTest.first.nom;
-  } else {
-    selectedMagasinC = null;
-  }
 }
 
 final GlobalKey<FormState> produitFormKey = GlobalKey<FormState>();
 
 Future<void> CaisseGestionNouveau(BuildContext context) async {
-  await _loadAllData();
-
-  // Si aucun magasin, on peut afficher un message ou ne pas ouvrir le dialog
-  if (magasinsTest.isEmpty) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(AppLocalizations.of(context)!.noStoreAvailable),
-        backgroundColor: Colors.red,
-      ),
-    );
-    return;
-  }
-
-  if (magasinsTest.isNotEmpty) {
-    selectedMagasinC = magasinsTest.first.nom;
-  }
-
   final auth = Provider.of<AuthState>(context, listen: false);
   int id = await _GetNextId();
 
@@ -143,12 +120,33 @@ Future<void> CaisseGestionNouveau(BuildContext context) async {
     return;
   }
 
-  // Sélectionner le premier magasin par défaut
-  selectedMagasinC = magasinsTest.first.nom;
-  String magasincode = magasinsTest.first.code;
+  // Palier Basic limité à une seule caisse — Avancé/Premium illimité. Défense
+  // en profondeur : au-delà de ce message, rien n'empêche techniquement de
+  // recréer une caisse si ce dialog était appelé ailleurs, mais c'est le
+  // seul point d'entrée de création actuel.
+  if (auth.licenseTier == LicenseTier.basic) {
+    final caissesExistantes = await GCServices.getAllCaisses();
+    if (caissesExistantes.where((c) => c.etat).isNotEmpty) {
+      if (!context.mounted) return;
+      await InformationDialog(
+        context: context,
+        titre_type_message: AppLocalizations.of(context)!.information,
+        titre_concerne: AppLocalizations.of(context)!.cashRegisterDetail,
+        message: "Votre offre Basic est limitée à une seule caisse. Passez à l'offre Avancée pour en ajouter.",
+      );
+      return;
+    }
+  }
 
   resetCaisseForm();
   codeControllerC.text = code; // ✅ Afficher le code généré
+
+  magasinsDisponiblesC = (await MagasinServices.getAllMagasins()).where((m) => m.etat).toList();
+  selectedMagasinCodeC = magasinsDisponiblesC.any((m) => m.code == kSystemMagasinCode)
+      ? kSystemMagasinCode
+      : (magasinsDisponiblesC.isNotEmpty ? magasinsDisponiblesC.first.code : null);
+
+  if (!context.mounted) return;
 
   return showDialog(
     context: context,
@@ -208,45 +206,6 @@ Future<void> CaisseGestionNouveau(BuildContext context) async {
                               ),
                               const SizedBox(height: 10),
 
-                              /// MAGASIN
-                              ChampAvecLabel(
-                                label: l10n.store,
-                                buttonAjout: true,
-                                obligatoire: true,
-                                onAjoutPressed: () async {
-                                  await showDialog(
-                                    context: context,
-                                    barrierColor: Appstyle.gris.withOpacity(0.25),
-                                    builder: (_) {
-                                      return InsertionMagasinDialog(
-                                        magasins: magasinsTest,
-                                        onMagasinSelected: (magasin) {
-                                          setState(() {
-                                            selectedMagasinC  = magasin.nom;
-                                            magasincode       = magasin.code;
-                                          });
-                                        },
-                                        multiselection: false,
-                                      );
-                                    },
-                                  );
-                                },
-                                child: TextListe(
-                                  obligatoire: true,
-                                  clearable: false,
-                                  value: selectedMagasinC ?? "",
-                                  items: magasinsTest.map((c) => c.nom).toList(),
-                                  onChanged: (v) {
-                                    setState(() {
-                                      selectedMagasinC  = v;
-                                      magasincode       = magasinsTest.where((c) => c.nom == v).first.code;
-                                    });
-                                  },
-                                ),
-                              ),
-
-                              const SizedBox(height: 10),
-
                               ChampAvecLabel(
                                 label: l10n.type,
                                 obligatoire: true,
@@ -258,6 +217,36 @@ Future<void> CaisseGestionNouveau(BuildContext context) async {
                                   onChanged: (v) {
                                     setState(() {
                                       selectedTypeC = v == l10n.physical ? "physique" : "compte";
+                                    });
+                                  },
+                                ),
+                              ),
+                              const SizedBox(height: 10),
+
+                              // Magasin de rattachement de la caisse — jusqu'ici
+                              // toujours forcé à MAG0000 (kSystemMagasinCode),
+                              // désormais choisi parmi les magasins actifs.
+                              ChampAvecLabel(
+                                label: l10n.magasin,
+                                obligatoire: true,
+                                child: TextListe(
+                                  obligatoire: true,
+                                  clearable: false,
+                                  value: magasinsDisponiblesC
+                                      .firstWhere(
+                                        (m) => m.code == selectedMagasinCodeC,
+                                        orElse: () => Magasin(
+                                          id: 0, code: '', nom: '', etat: true,
+                                          dateCree: DateTime.now(), creeParCode: userCode,
+                                        ),
+                                      )
+                                      .nom,
+                                  items: magasinsDisponiblesC.map((m) => m.nom).toList(),
+                                  onChanged: (v) {
+                                    setState(() {
+                                      selectedMagasinCodeC = magasinsDisponiblesC
+                                          .firstWhere((m) => m.nom == v)
+                                          .code;
                                     });
                                   },
                                 ),
@@ -343,7 +332,7 @@ Future<void> CaisseGestionNouveau(BuildContext context) async {
                           dateCree: DateTime.now(),
                           nomCaisse: nomCaisseController.text,
                           typecaisse: selectedTypeC == "physique" ? "physique" : "compte",
-                          magasinCode: magasincode,
+                          magasinCode: selectedMagasinCodeC ?? kSystemMagasinCode,
                           creeParCode: userCode,
                           observation: observationControllerC.text,
                           soldeInitial: double.parse(soldeInitialController.text),

@@ -156,4 +156,140 @@ class MouvementsServices {
     final maxId = result.first['maxId'] as int?;
     return (maxId ?? 0) + 1;
   }
+
+  /// Vrai si ce type/sousType de mouvement ajoute au stock (achat, retour
+  /// client, distribution entrante) ou en retire (vente, sortie, retour
+  /// fournisseur, distribution sortante) — centralisé ici pour que
+  /// [quantiteProduit]/[nombreProduit] et tout futur code de calcul du stock
+  /// utilisent exactement la même règle.
+  static bool estEntree(String? type, {String? sousType, String? clientCode, String? fournisseurCode}) {
+    switch (type) {
+      case 'Achat':
+        return true;
+      case 'Vente':
+      case 'Sortie':
+        return false;
+      case 'Retour':
+        // Retour client : la marchandise revient (entrée). Retour
+        // fournisseur : elle repart (sortie).
+        return clientCode != null;
+      case 'Distribution':
+        return sousType == 'Entrée';
+      default:
+        // Type inconnu/futur : ne pas faire disparaître silencieusement la
+        // quantité du calcul plutôt que de deviner un sens erroné.
+        return true;
+    }
+  }
+
+  /// Quantité en stock d'un produit calculée à partir du journal des
+  /// mouvements (somme des entrées moins les sorties, mouvements annulés
+  /// exclus) plutôt que lue depuis un compteur mis en cache — voir la
+  /// dérive constatée entre Produit.quantite et produit_magasin_detail qui a
+  /// motivé ce calcul.
+  ///
+  /// [magasinCode] absent : total TOUS magasins confondus, y compris les
+  /// mouvements dont magasin_code est encore NULL (créés avant l'ajout de
+  /// cette colonne, ou par des flux pas encore magasin-conscients comme
+  /// SmartScan/IA) — vue admin.
+  /// [magasinCode] fourni : ne compte QUE les mouvements explicitement
+  /// attribués à ce magasin (les mouvements à magasin_code NULL sont
+  /// exclus, on ne peut pas deviner leur magasin) — la somme par magasin
+  /// peut donc être inférieure au total tant que tous les flux n'attribuent
+  /// pas encore de magasin.
+  static Future<double> quantiteProduit(String codeProduit, {String? magasinCode}) async {
+    final db = await DbCreator.openDb();
+    final where = StringBuffer('code_produit = ? AND etat = 1');
+    final args = <dynamic>[codeProduit];
+    if (magasinCode != null) {
+      where.write(' AND magasin_code = ?');
+      args.add(magasinCode);
+    }
+
+    final rows = await db.query('mouvements', where: where.toString(), whereArgs: args);
+
+    double total = 0;
+    for (final row in rows) {
+      final quantite = (row['quantite'] as num?)?.toDouble() ?? 0;
+      final estUneEntree = estEntree(
+        row['type'] as String?,
+        sousType: row['sous_type'] as String?,
+        clientCode: row['client_code'] as String?,
+        fournisseurCode: row['fournisseur_code'] as String?,
+      );
+      total += estUneEntree ? quantite : -quantite;
+    }
+    return total;
+  }
+
+  /// Version "en lot" de [quantiteProduit]/[nombreProduit] : UNE seule
+  /// requête sur tout le journal (au lieu d'une par produit) puis agrégation
+  /// en mémoire — indispensable pour alimenter un tableau (DataGridSource
+  /// est synchrone, il faut la carte déjà calculée avant le rendu) sans
+  /// déclencher des centaines de requêtes individuelles.
+  static Future<({Map<String, double> quantites, Map<String, double> nombres})> totauxParProduit({
+    String? magasinCode,
+  }) async {
+    final db = await DbCreator.openDb();
+    final where = StringBuffer('etat = 1');
+    final args = <dynamic>[];
+    if (magasinCode != null) {
+      where.write(' AND magasin_code = ?');
+      args.add(magasinCode);
+    }
+
+    final rows = await db.query('mouvements', where: where.toString(), whereArgs: args);
+
+    final quantites = <String, double>{};
+    final nombres = <String, double>{};
+
+    for (final row in rows) {
+      final codeProduit = row['code_produit'] as String?;
+      if (codeProduit == null) continue;
+
+      final estUneEntree = estEntree(
+        row['type'] as String?,
+        sousType: row['sous_type'] as String?,
+        clientCode: row['client_code'] as String?,
+        fournisseurCode: row['fournisseur_code'] as String?,
+      );
+
+      final quantite = (row['quantite'] as num?)?.toDouble() ?? 0;
+      quantites[codeProduit] = (quantites[codeProduit] ?? 0) + (estUneEntree ? quantite : -quantite);
+
+      final nombre = row['nombre'] as num?;
+      if (nombre != null) {
+        nombres[codeProduit] = (nombres[codeProduit] ?? 0) + (estUneEntree ? nombre.toDouble() : -nombre.toDouble());
+      }
+    }
+
+    return (quantites: quantites, nombres: nombres);
+  }
+
+  /// Même calcul que [quantiteProduit], pour le second stock parallèle
+  /// "nombre" (Paramètres > Nombre et Quantité, voir Produit.nombre).
+  static Future<double> nombreProduit(String codeProduit, {String? magasinCode}) async {
+    final db = await DbCreator.openDb();
+    final where = StringBuffer('code_produit = ? AND etat = 1 AND nombre IS NOT NULL');
+    final args = <dynamic>[codeProduit];
+    if (magasinCode != null) {
+      where.write(' AND magasin_code = ?');
+      args.add(magasinCode);
+    }
+
+    final rows = await db.query('mouvements', where: where.toString(), whereArgs: args);
+
+    double total = 0;
+    for (final row in rows) {
+      final nombre = (row['nombre'] as num?)?.toDouble() ?? 0;
+      final estUneEntree = estEntree(
+        row['type'] as String?,
+        sousType: row['sous_type'] as String?,
+        clientCode: row['client_code'] as String?,
+        fournisseurCode: row['fournisseur_code'] as String?,
+      );
+      total += estUneEntree ? nombre : -nombre;
+    }
+    return total;
+  }
 }

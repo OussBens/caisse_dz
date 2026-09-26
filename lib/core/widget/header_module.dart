@@ -1,4 +1,8 @@
+import 'package:caisse_dz/core/Auth/auth_state.dart';
+import 'package:caisse_dz/l10n/app_localizations.dart';
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
+import 'package:provider/provider.dart';
 
 class HeaderModule extends StatelessWidget {
   final Widget child; // contenu à afficher à l'intérieur
@@ -45,7 +49,76 @@ class HeaderModule extends StatelessWidget {
               ),
             ],
       ),
-      child: child,
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: [
+          Expanded(child: child),
+          const SizedBox(width: 14),
+          const _HeaderExitButton(),
+        ],
+      ),
+    );
+  }
+}
+
+/// Bouton de déconnexion, déplacé depuis le pied de la sidebar vers le coin
+/// haut-droit du header (présent sur tous les écrans via [HeaderModule]) —
+/// petit bouton circulaire animé au survol, à l'image de [MainIconButton].
+class _HeaderExitButton extends StatefulWidget {
+  const _HeaderExitButton();
+
+  @override
+  State<_HeaderExitButton> createState() => _HeaderExitButtonState();
+}
+
+class _HeaderExitButtonState extends State<_HeaderExitButton> {
+  bool _isHovered = false;
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+    final double size = _isHovered ? 40 : 34;
+
+    return Tooltip(
+      message: l10n.exit,
+      child: MouseRegion(
+        onEnter: (_) => setState(() => _isHovered = true),
+        onExit: (_) => setState(() => _isHovered = false),
+        cursor: SystemMouseCursors.click,
+        child: GestureDetector(
+          onTap: () {
+            final auth = Provider.of<AuthState>(context, listen: false);
+            auth.logout(
+              username: auth.username!,
+              userCode: auth.userCode!,
+            );
+            context.go('/login');
+          },
+          child: AnimatedContainer(
+            duration: const Duration(milliseconds: 200),
+            curve: Curves.easeInOut,
+            width: size,
+            height: size,
+            decoration: BoxDecoration(
+              color: _isHovered ? Colors.red : Colors.white,
+              shape: BoxShape.circle,
+              border: Border.all(color: Colors.red, width: 1.6),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.red.withOpacity(_isHovered ? 0.35 : 0.15),
+                  blurRadius: _isHovered ? 8 : 4,
+                  offset: const Offset(0, 2),
+                ),
+              ],
+            ),
+            child: Icon(
+              Icons.exit_to_app,
+              color: _isHovered ? Colors.white : Colors.red,
+              size: 18,
+            ),
+          ),
+        ),
+      ),
     );
   }
 }

@@ -2,6 +2,7 @@
 import 'package:caisse_dz/core/theme/app_style.dart';
 import 'package:caisse_dz/l10n/app_localizations.dart';
 import 'package:flutter/material.dart';
+import 'package:caisse_dz/core/utilis/number_format.dart';
 
 class ClientAfficheurWidget extends StatelessWidget {
   final String nom;
@@ -23,6 +24,11 @@ class ClientAfficheurWidget extends StatelessWidget {
   final double? credit;
   final double? solde;
 
+  /// Si vrai (par défaut), un solde positif est affiché en vert (ex: Client :
+  /// il a payé plus qu'acheté). Si faux, un solde positif est affiché en
+  /// rouge (ex: Fournisseur : solde = achat - versé, positif = on doit encore).
+  final bool soldePositifFavorable;
+
   final VoidCallback? onDetails;
 
   const ClientAfficheurWidget({
@@ -41,6 +47,7 @@ class ClientAfficheurWidget extends StatelessWidget {
     this.avance,
     this.credit,
     this.solde,
+    this.soldePositifFavorable = true,
     this.onDetails,
   });
 
@@ -139,7 +146,9 @@ class ClientAfficheurWidget extends StatelessWidget {
                   label: l10n.balance,
                   value: solde!,
                   icon: Icons.account_balance_wallet,
-                  color: solde! >= 0 ? Colors.green : Colors.red,
+                  color: (solde! >= 0) == soldePositifFavorable
+                      ? Colors.green
+                      : Colors.red,
                   highlight: true,
                 ),
             ],
@@ -218,7 +227,7 @@ class ClientAfficheurWidget extends StatelessWidget {
           Icon(icon, color: color),
           const SizedBox(height: 6),
           Text(
-            "${value.toStringAsFixed(0)} DA",
+            "${NumberFormatUtil.formatMontant(value, decimales: 0)} DA",
             style: Appstyle.textMB.copyWith(
               color: highlight ? color : Appstyle.Tnoir,
               fontWeight: FontWeight.bold,

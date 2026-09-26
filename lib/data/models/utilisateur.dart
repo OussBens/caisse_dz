@@ -3,10 +3,17 @@ class Utilisateur {
 
   String username;
   String password;
+  String? nom;
+  String? prenom;
   String telephone;
   String code;
   String role; // Admin Caissier Magasinier
   String role_code;
+
+  // Caisse attachée à l'utilisateur : verrouille la caisse de l'écran
+  // caisse (paramètre) sur cette valeur pour tout rôle autre que Admin.
+  String? caisseCode;
+
   DateTime dernierAcces;
 
   double credit;
@@ -14,6 +21,10 @@ class Utilisateur {
   bool etat;
 
   String? observation;
+
+  // Token d'API mobile (POST /api/auth/login), vérifié via le header
+  // Authorization Bearer sur les endpoints de sync avec l'app compagnon.
+  String? apiToken;
 
   // Audit
   DateTime  dateCree;
@@ -38,8 +49,12 @@ class Utilisateur {
     required this.role,
     required this.etat,
     required this.id,
-    
+
+    this.caisseCode,
+    this.nom,
+    this.prenom,
     this.observation,
+    this.apiToken,
     this.dateModif,
     this.modifParCode,
     this.dateAnnul,
@@ -57,13 +72,17 @@ class Utilisateur {
       credit        : map['credit'],
       username      : map['username'],
       password      : map['password'],
+      nom           : map['nom'],
+      prenom        : map['prenom'],
       dateCree      : DateTime.parse(map['date_cree']),
       role_code     : map['role_code'],
+      caisseCode    : map['caisse_code'],
       telephone     : map['telephone'],
       creeParCode   : map['cree_par_code'],
       dernierAcces  : DateTime.parse(map['dernier_acces']),
 
       observation   : map['observation'],
+      apiToken      : map['api_token'],
       motifAnnul    : map['motif_annul'],
       modifParCode      : map['modif_par_code'],
       annulParCode      : map['annul_par_code'],
@@ -87,13 +106,17 @@ class Utilisateur {
       'credit'        : credit,
       'username'      : username,
       'password'      : password,
+      'nom'           : nom,
+      'prenom'        : prenom,
       'role_code'     : role_code,
+      'caisse_code'   : caisseCode,
       'date_cree'     : dateCree.toIso8601String(),
       'telephone'     : telephone,
       'cree_par_code' : creeParCode,
       'dernier_acces' : dernierAcces.toIso8601String(),
 
       'observation'   : observation,
+      'api_token'     : apiToken,
       'motif_annul'   : motifAnnul,
       'date_modif'    : dateModif?.toIso8601String(),
       'date_annul'    : dateAnnul?.toIso8601String(),

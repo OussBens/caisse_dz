@@ -1,18 +1,20 @@
 import 'dart:ui';
+import 'package:collection/collection.dart';
 import 'package:caisse_dz/Services/CaisseParam.dart';
 import 'package:caisse_dz/Services/Historique.dart' hide ApiResponse;
+import 'package:caisse_dz/Services/Magasin.dart';
 import 'package:caisse_dz/core/Auth/auth_state.dart';
 import 'package:caisse_dz/data/constant.dart';
+import 'package:caisse_dz/data/models/magasin.dart';
 import 'package:caisse_dz/l10n/app_localizations.dart';
 import 'package:flutter/material.dart';
 import 'package:caisse_dz/DBCreate.dart';
-import 'package:caisse_dz/Services/Magasin.dart' hide ApiResponse;
 import 'package:caisse_dz/Services/CaisseGestion.dart' hide ApiResponse;
-import 'package:caisse_dz/data/models/magasin.dart';
 import 'package:caisse_dz/data/models/gestion_caisse.dart';
 import 'package:caisse_dz/core/dialog/base_dialog.dart';
 import 'package:caisse_dz/core/theme/app_style.dart';
 import 'package:caisse_dz/core/widget/champ/liste_champ.dart';
+import 'package:caisse_dz/core/widget/champ/text_champ_l.dart';
 import 'package:caisse_dz/core/widget/button/main_button.dart';
 import 'package:caisse_dz/core/widget/champ/champ_avec_label.dart';
 import 'package:caisse_dz/core/widget/title/titre_avec_ligne.dart';
@@ -45,20 +47,35 @@ Future<void> ParametreCaisseDialog({
   }) onValider,
 }) async {
   List<CaisseGestion> caisseTest = [];
-  List<Magasin> magasinTest = [];
+  List<Magasin> magasinsTest = [];
 
   Future<void> _LoadAllData() async {
     final db = await DbCreator.openDb();
     caisseTest = await GCServices.getAllCaisses();
-    magasinTest = await MagasinServices.getAllMagasins();
+    magasinsTest = await MagasinServices.getAllMagasins();
   }
   await _LoadAllData();
 
+  // ✅ Le magasin n'est jamais choisi indépendamment : il suit toujours la
+  // caisse sélectionnée (CaisseGestion.magasinCode). Corrige un bug où
+  // changer de caisse ici ne rafraîchissait pas Param.magasinCode/
+  // selectedMagasin, laissant le magasin utilisé par le reste de l'app
+  // obsolète après un changement de caisse.
+  String? _nomMagasinDeLaCaisse(String? nomCaisse) {
+    final caisse = caisseTest.where((c) => c.nomCaisse == nomCaisse).firstOrNull;
+    if (caisse == null) return null;
+    return magasinsTest.where((m) => m.code == caisse.magasinCode).firstOrNull?.nom;
+  }
+
+  void _synchroniserMagasin(String? nomCaisse) {
+    final caisse = caisseTest.where((c) => c.nomCaisse == nomCaisse).firstOrNull;
+    Param.magasinCode = caisse?.magasinCode ?? Param.magasinCode;
+    Param.selectedMagasin = _nomMagasinDeLaCaisse(nomCaisse) ?? Param.selectedMagasin;
+  }
+
   bool caisseDefault = Param.caisseParDefaut;
-  bool magasinDefault = Param.magasinParDefaut;
 
   String? caisseSelectionnee = Param.selectedCaisse;
-  String? magasinSelectionne = Param.selectedMagasin;
 
   // Stocker la clé, pas la valeur d'affichage
   String? colisKey = Param.selectedColis ?? ColisTranslator.UNITE;
@@ -66,11 +83,28 @@ Future<void> ParametreCaisseDialog({
   String? erreur;
 
   final List<String> listeCaisses = caisseTest.map((caisse) => caisse.nomCaisse).toList();
-  final List<String> listeMagasins = magasinTest.map((magasin) => magasin.nom).toList();
 
   final auth = Provider.of<AuthState>(context, listen: false);
   final userName = auth.username;
   final userCode = auth.userCode;
+
+  // ✅ Seul le rôle Admin peut choisir librement la caisse ici : les autres
+  // rôles sont verrouillés sur la caisse attachée à leur compte
+  // (Utilisateur.caisseCode, cf. utilisateur_nouveau/modif).
+  final bool peutChangerCaisse = auth.role == "Admin";
+  if (!peutChangerCaisse && auth.userCaisseCode != null) {
+    final caisseAttachee = caisseTest
+        .where((c) => c.code == auth.userCaisseCode)
+        .firstOrNull
+        ?.nomCaisse;
+    if (caisseAttachee != null) {
+      caisseSelectionnee = caisseAttachee;
+      Param.selectedCaisse = caisseAttachee;
+    }
+  }
+  // ✅ Toujours resynchroniser le magasin sur la caisse effective (verrouillée
+  // ou librement choisie), y compris à l'ouverture du dialog.
+  _synchroniserMagasin(caisseSelectionnee);
 
   return showDialog(
     context: context,
@@ -126,40 +160,10 @@ Future<void> ParametreCaisseDialog({
                         ),
                       ],
                     ),
-                    const SizedBox(height: 14),
-
-                    // ▸ Radio Magasin par défaut
-                    Text(l10n.defaultStore, style: Appstyle.textSB),
-                    const SizedBox(height: 6),
-                    Row(
-                      children: [
-                        Expanded(
-                          child: RadioListTile<bool>(
-                            title: Text(l10n.yes),
-                            value: true,
-                            groupValue: magasinDefault,
-                            onChanged: (v) => setState(() {
-                              magasinDefault = v!;
-                              Param.magasinParDefaut = v;
-                            }),
-                          ),
-                        ),
-                        Expanded(
-                          child: RadioListTile<bool>(
-                            title: Text(l10n.no),
-                            value: false,
-                            groupValue: magasinDefault,
-                            onChanged: (v) => setState(() {
-                              magasinDefault = v!;
-                              Param.magasinParDefaut = v;
-                            }),
-                          ),
-                        ),
-                      ],
-                    ),
                     const SizedBox(height: 40),
 
-                    // ▸ Liste déroulante Caisse
+                    // ▸ Liste déroulante Caisse — verrouillée pour tout rôle
+                    // autre que Admin (cf. peutChangerCaisse ci-dessus).
                     ChampAvecLabel(
                       label: l10n.cashRegister,
                       obligatoire: true,
@@ -167,30 +171,35 @@ Future<void> ParametreCaisseDialog({
                         value: caisseSelectionnee,
                         items: listeCaisses,
                         clearable: false,
+                        enabled: peutChangerCaisse,
                         onChanged: (v) {
                           setState(() {
                             caisseSelectionnee = v;
                             Param.selectedCaisse = v!;
+                            _synchroniserMagasin(v);
                           });
                         },
                       ),
                     ),
-                    const SizedBox(height: 14),
+                    if (!peutChangerCaisse) ...[
+                      const SizedBox(height: 6),
+                      Text(
+                        l10n.cashRegisterLockedToUser,
+                        style: Appstyle.textXS.copyWith(color: Appstyle.gris),
+                      ),
+                    ],
+                    const SizedBox(height: 10),
 
-                    // ▸ Liste déroulante Magasin
+                    // ▸ Magasin — jamais choisi indépendamment, toujours
+                    // dérivé de la caisse sélectionnée ci-dessus.
                     ChampAvecLabel(
-                      label: l10n.store,
-                      obligatoire: true,
-                      child: TextListe(
-                        value: magasinSelectionne,
-                        items: listeMagasins,
-                        clearable: false,
-                        onChanged: (v) {
-                          setState(() {
-                            magasinSelectionne = v;
-                            Param.selectedMagasin = v!;
-                          });
-                        },
+                      label: l10n.magasin,
+                      child: TextChampL(
+                        controller: TextEditingController(
+                          text: _nomMagasinDeLaCaisse(caisseSelectionnee) ?? '',
+                        ),
+                        enabled: false,
+                        hint: "",
                       ),
                     ),
                     const SizedBox(height: 14),
@@ -242,7 +251,6 @@ Future<void> ParametreCaisseDialog({
                       icon: Icons.save,
                       onPressed: () async {
                         if (caisseSelectionnee!.isEmpty ||
-                            magasinSelectionne!.isEmpty ||
                             colisKey!.isEmpty) {
                           setState(() => erreur = l10n.allFieldsRequired);
                           return;

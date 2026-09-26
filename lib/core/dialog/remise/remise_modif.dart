@@ -215,7 +215,7 @@ Future<void> RemiseModif(BuildContext context, Remise remise) async {
   nomRemiseController.text = remise.nom;
   observRemiseController.text = remise.observation ?? '';
   tauxController.text = remise.taux.toString();
-  montantRemiseController.text = remise.taux.toString();
+  montantRemiseController.text = remise.montant?.toString() ?? '0';
   debutController.text = "${remise.debut}";
   finController.text = remise.fin != null ? "${remise.fin}" : '';
 
@@ -309,6 +309,9 @@ Future<void> RemiseModif(BuildContext context, Remise remise) async {
                                 creeParCode: remise.creeParCode,
                                 etat: true,
                               );
+                              // ✅ Actif seulement si la date du jour est
+                              // dans la nouvelle période [debut, fin].
+                              remised.etat = remised.estActifSelonDates;
 
                               final response = await _saveRemise(
                                 remised: remised,
@@ -377,7 +380,7 @@ Widget _buildRemiseParProduitModif(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   ChampAvecLabel(
-                    label: l10n.reference,
+                    label: l10n.code,
                     child: AffichageChamp(text: remise.code),
                   ),
                   const SizedBox(height: 20),
@@ -584,6 +587,31 @@ Widget _buildRemiseParMontantModif(
             children: [
               ChampAvecLabel(
                 obligatoire: true,
+                label: l10n.greaterThan,
+                child: TextChampL(
+                  obligatoire: true,
+                  controller: montantRemiseController,
+                  hint: l10n.discountApplicationAmount,
+                  numeric: true,
+                  validator: (value) {
+                    if (value == null || value.trim().isEmpty) {
+                      return l10n.requiredField;
+                    }
+                    final String cleanValue = value.trim().replaceAll(',', '.');
+                    final double? montant = double.tryParse(cleanValue);
+                    if (montant == null) {
+                      return l10n.invalidNumber;
+                    }
+                    if (montant <= 0) {
+                      return l10n.valueMustBeGreaterThanZero;
+                    }
+                    return null;
+                  },
+                ),
+              ),
+              const SizedBox(height: 10),
+              ChampAvecLabel(
+                obligatoire: true,
                 label: l10n.rateType,
                 child: TextListe(
                   obligatoire: true,
@@ -765,6 +793,7 @@ void _ouvrirInsertionProduitRemise(
   showDialog(
     context: context,
     builder: (_) => InsertionProduitDialog(
+      newButton:false,
       multiselection: false,
       produits: produitsTest,
       onProduitSelected: (Produit produit) {

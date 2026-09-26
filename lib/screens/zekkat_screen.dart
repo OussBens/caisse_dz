@@ -1,11 +1,8 @@
-import 'dart:io';
-
-import 'package:caisse_dz/DBCreate.dart';
-import 'package:caisse_dz/Services/Historique.dart' hide ApiResponse;
-import 'package:caisse_dz/Services/ParamZakat.dart';
-import 'package:caisse_dz/Services/Zakat.dart' hide ApiResponse;
+import 'package:caisse_dz/Services/Zakat.dart';
 import 'package:caisse_dz/Services/excel_generator.dart';
 import 'package:caisse_dz/Services/ExcelPreviewDialog.dart';
+import 'package:caisse_dz/Services/Utilisateur.dart';
+import 'package:caisse_dz/data/models/utilisateur.dart';
 import 'package:caisse_dz/core/Auth/auth_state.dart';
 import 'package:caisse_dz/core/dialog/zakat/zakat_actif.dart';
 import 'package:caisse_dz/core/dialog/zakat/zakat_detail.dart';
@@ -23,16 +20,13 @@ import 'package:caisse_dz/core/widget/button/main_button.dart';
 import 'package:caisse_dz/core/widget/champ/champ_avec_label.dart';
 import 'package:caisse_dz/core/widget/champ/date_champ.dart';
 import 'package:caisse_dz/core/widget/champ/liste_champ.dart';
-import 'package:caisse_dz/core/widget/champ/text_champ_l.dart';
 import 'package:caisse_dz/core/widget/fourchette._widget.dart';
 import 'package:caisse_dz/core/widget/header_module.dart';
 import 'package:caisse_dz/core/widget/search_bar.dart';
 import 'package:caisse_dz/core/widget/section_decoration_filtre.dart';
 import 'package:caisse_dz/core/widget/side_bar.dart';
 import 'package:caisse_dz/core/widget/time_date_widget.dart';
-import 'package:caisse_dz/data/constant.dart';
-import 'package:caisse_dz/data/models/histore.dart';
-import 'package:caisse_dz/data/models/paramZakat.dart';
+import 'package:caisse_dz/core/widget/connection_status_bar.dart';
 import 'package:caisse_dz/data/models/zakat.dart';
 import 'package:caisse_dz/l10n/app_localizations.dart';
 import 'package:excel/excel.dart';
@@ -40,16 +34,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../core/dialog/information_dialog.dart';
-import '../core/utilis/api_response.dart';
 
-Future<int> _GetNextHistoriqueId() async {
-  final db = await DbCreator.openDb();
-  int id = 0;
-  await db.transaction((txn) async {
-    id = await HistoriqueServices.getNextHistoriqueId(txn);
-  });
-  return id;
-}
 
 class ZakatScreen extends StatefulWidget {
   const ZakatScreen({super.key});
@@ -58,13 +43,7 @@ class ZakatScreen extends StatefulWidget {
   State<ZakatScreen> createState() => _ZakatScreenState();
 }
 
-class _ZakatScreenState extends State<ZakatScreen> with TickerProviderStateMixin {
-  late TabController _tabController;
-
-  // ✅ Constantes pour les index des tabs
-  static const int TAB_ZAKAT = 0;
-  static const int TAB_PARAMETRE = 1;
-
+class _ZakatScreenState extends State<ZakatScreen> {
   final Map<String, String> periodesRapides = {
     "today": "today",
     "yesterday": "yesterday",
@@ -79,33 +58,23 @@ class _ZakatScreenState extends State<ZakatScreen> with TickerProviderStateMixin
   };
 
   List<Zakat> zakatTest = [];
-  ParamZakat paramZakat = ParamZakat(
-      id: 0,
-      Nissab: 0,
-      Taux: 0,
-      creeParCode: 'ADMIN',
-      dateCree: DateTime.now(),
-  );
+  List<Utilisateur> utilisateursTest = [];
 
-  // Plus besoin de selectedCardIndex, on utilise _tabController.index
   String nombre_zakat = "20";
 
   Future<void> _loadAllData() async {
     final zakats = await ZakatServices.getAllZakat();
-    final param = await ParamZAKATServices.getParamZakat();
+    final utilisateurs = await UtilisateurServices.getAllUtilisateurs();
 
     setState(() {
       zakatTest = zakats;
       zakatsFiltres = zakats;
-      paramZakat = param;
-      nisabController.text = param.Nissab.toString();
-      tauxZakatController.text = param.Taux.toString();
+      utilisateursTest = utilisateurs;
       nombre_zakat = zakats.length.toString();
       zakatsSelectionnes.clear();
     });
   }
 
-  // Excel Export Methods (adaptées avec _tabController.index)
   Future<void> _exportCurrentModuleToExcel() async {
     try {
       showDialog(
@@ -117,20 +86,6 @@ class _ZakatScreenState extends State<ZakatScreen> with TickerProviderStateMixin
       );
 
       final l10n = AppLocalizations.of(context)!;
-
-      // ✅ Utilisation de _tabController.index
-      final currentTab = _tabController.index;
-
-      if (currentTab == TAB_PARAMETRE) {
-        Navigator.pop(context);
-        await InformationDialog(
-          context: context,
-          titre_type_message: l10n.information,
-          titre_concerne: l10n.parametre,
-          message: l10n.noDataToExport,
-        );
-        return;
-      }
 
       final zakatsToExport = filtresActifs ? zakatsFiltres : zakatTest;
 
@@ -256,19 +211,6 @@ class _ZakatScreenState extends State<ZakatScreen> with TickerProviderStateMixin
     final l10n = AppLocalizations.of(context)!;
 
     try {
-      // ✅ Utilisation de _tabController.index
-      final currentTab = _tabController.index;
-
-      if (currentTab == TAB_PARAMETRE) {
-        await InformationDialog(
-          context: context,
-          titre_type_message: l10n.information,
-          titre_concerne: l10n.parametre,
-          message: l10n.noDataToExport,
-        );
-        return;
-      }
-
       if (zakatsSelectionnes.isEmpty) {
         await InformationDialog(
           context: context,
@@ -384,42 +326,6 @@ class _ZakatScreenState extends State<ZakatScreen> with TickerProviderStateMixin
     }
   }
 
-  Future<ApiResponse<int>> SaveParam({
-    required String UserCode,
-    required String UserName,
-  }) async {
-    final db = await DbCreator.openDb();
-    final service = await ParamZAKATServices(db);
-    final serviceess = await HistoriqueServices(db);
-    final l10n = AppLocalizations.of(context)!;
-
-    ParamZakat param = ParamZakat(
-      id: paramZakat.id,
-      Nissab: double.parse(nisabController.text),
-      Taux: double.parse(tauxZakatController.text),
-      creeParCode: paramZakat.creeParCode,
-      dateCree: paramZakat.dateCree,
-      modifParCode: UserCode,
-      dateModif: DateTime.now(),
-    );
-
-    final response = await service.updateZakat(param);
-    final int id = await _GetNextHistoriqueId();
-
-    final Historique histo = Historique(
-      id: id,
-      code: "HS $id ${DateTime.now().microsecondsSinceEpoch}",
-      desc: "${l10n.modificationOf} ${l10n.zakatParameter} ${l10n.by} $UserName",
-      oper: ListsConst.typeHisto[2],
-      type: 'paramter',
-      dateCree: DateTime.now(),
-      creeParCode: UserCode,
-    );
-
-    await serviceess.addHistorique(histo);
-    return response;
-  }
-
   DateTime? dateDebut;
   DateTime? dateFin;
   final TextEditingController _dateDebutCtrl = TextEditingController();
@@ -436,13 +342,6 @@ class _ZakatScreenState extends State<ZakatScreen> with TickerProviderStateMixin
   double? montantMax;
   String? selectedEtatFilter;
   final TextEditingController _searchController = TextEditingController();
-
-  late final TextEditingController nisabController = TextEditingController(
-      text: paramZakat.Nissab.toString()
-  );
-  late final TextEditingController tauxZakatController = TextEditingController(
-    text: paramZakat.Taux.toString(),
-  );
 
   double calculTotalZakat(List<Zakat> list) {
     return list.fold(0.0, (sum, z) => sum + z.montantZakat);
@@ -465,21 +364,7 @@ class _ZakatScreenState extends State<ZakatScreen> with TickerProviderStateMixin
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 2, vsync: this);
-    _tabController.addListener(() {
-      if (mounted) {
-        setState(() {
-          zakatsSelectionnes.clear();
-        });
-      }
-    });
     _loadAllData();
-  }
-
-  @override
-  void dispose() {
-    _tabController.dispose();
-    super.dispose();
   }
 
   String _getLocalizedPeriod(String key, AppLocalizations l10n) {
@@ -637,36 +522,24 @@ class _ZakatScreenState extends State<ZakatScreen> with TickerProviderStateMixin
     _dateFinCtrl.clear();
   }
 
+  // ✅ Vrai si au moins un champ de filtre zakat est renseigné (pour l'indicateur visuel du bouton Filtre).
+  bool get _filtresZakatActifs =>
+      montantMin != null ||
+      montantMax != null ||
+      selectedEtatFilter != null ||
+      dateDebut != null ||
+      dateFin != null ||
+      periodeRapide != null ||
+      _searchController.text.isNotEmpty;
+
   @override
   Widget build(BuildContext context) {
     final auth = Provider.of<AuthState>(context, listen: false);
     final userName = auth.username!;
-    final userCode = auth.userCode!;
     final l10n = AppLocalizations.of(context)!;
     final local = context.watch<LocaleProvider>();
     final isRTL = local.locale.languageCode == 'ar';
     final textDirection = isRTL ? TextDirection.rtl : TextDirection.ltr;
-
-    // ✅ Index actuel du tab
-    final currentTab = _tabController.index;
-
-    // ✅ Noms des tabs
-    final tabNames = [
-      l10n.zakat,
-      l10n.parametre,
-    ];
-
-    // ✅ Icônes des tabs
-    final tabIcons = [
-      'assets/icons/sidebar/zakat_icon.png',
-      'assets/icons/sidebar/parametre_icon.png',
-    ];
-
-    // ✅ Compteurs pour les tabs
-    final tabCounts = [
-      nombre_zakat,
-      '',
-    ];
 
     return Scaffold(
       backgroundColor: Appstyle.violetC,
@@ -687,16 +560,14 @@ class _ZakatScreenState extends State<ZakatScreen> with TickerProviderStateMixin
             textDirection: textDirection,
             child: SingleChildScrollView(
               scrollDirection: Axis.horizontal,
-              child: SingleChildScrollView(
-                scrollDirection: Axis.vertical,
-                child: ConstrainedBox(
-                  constraints: const BoxConstraints(
-                    minWidth: minWidth,
-                    minHeight: minHeight,
-                  ),
-                  child: SizedBox(
-                    width: adjustedWidth,
-                    height: adjustedHeight,
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(
+                  minWidth: minWidth,
+                  minHeight: minHeight,
+                ),
+                child: SizedBox(
+                  width: adjustedWidth,
+                  height: adjustedHeight,
                     child: Row(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
@@ -724,7 +595,7 @@ class _ZakatScreenState extends State<ZakatScreen> with TickerProviderStateMixin
                                           ),
                                           const SizedBox(width: 10),
                                           Text(
-                                            "${l10n.zakat} (${tabNames[currentTab]})",
+                                            l10n.zakat,
                                             style: Appstyle.textXLB.copyWith(
                                               color: Appstyle.violet,
                                               fontWeight: FontWeight.bold,
@@ -737,9 +608,9 @@ class _ZakatScreenState extends State<ZakatScreen> with TickerProviderStateMixin
                                       Row(
                                         textDirection: textDirection,
                                         children: [
+                                          const ConnectionStatusBar(),
+                                          const SizedBox(width: 20),
                                           TimeDateWidget(
-                                            heure: "18:00",
-                                            date: "25 Nov 2025",
                                             iconHeure: "assets/icons/hour_icon.png",
                                             iconDate: "assets/icons/agenda_icon.png",
                                           ),
@@ -755,72 +626,7 @@ class _ZakatScreenState extends State<ZakatScreen> with TickerProviderStateMixin
                                 ),
                                 SizedBox(height: paddingV / 2),
 
-                                /// ✅ TAB BAR (remplace les CardWidget) - Style FournisseurScreen
-                                Container(
-                                  margin: const EdgeInsets.symmetric(horizontal: 0, vertical: 6),
-                                  decoration: BoxDecoration(
-                                    color: Colors.white,
-                                    borderRadius: BorderRadius.circular(16),
-                                    boxShadow: [
-                                      BoxShadow(
-                                        color: Colors.black.withOpacity(0.05),
-                                        blurRadius: 10,
-                                        offset: const Offset(0, 2),
-                                      ),
-                                    ],
-                                  ),
-                                  child: TabBar(
-                                    controller: _tabController,
-                                    isScrollable: false,
-                                    indicator: BoxDecoration(
-                                      color: currentTab == TAB_ZAKAT
-                                          ? Appstyle.violet
-                                          : Appstyle.crevete,
-                                      borderRadius: BorderRadius.circular(12),
-                                    ),
-                                    labelColor: Colors.white,
-                                    unselectedLabelColor: Appstyle.gris,
-                                    dividerColor: Colors.transparent,
-                                    indicatorSize: TabBarIndicatorSize.tab,
-                                    padding: const EdgeInsets.all(6),
-                                    labelStyle: Appstyle.textXS.copyWith(
-                                      fontWeight: FontWeight.w600,
-                                    ),
-                                    unselectedLabelStyle: Appstyle.textXS.copyWith(
-                                      fontWeight: FontWeight.w500,
-                                    ),
-                                    tabs: List.generate(2, (index) {
-                                      final isSelected = currentTab == index;
-                                      return Tab(
-                                        icon: Container(
-                                          width: 24,
-                                          height: 24,
-                                          child: Image.asset(
-                                            tabIcons[index],
-                                            width: 20,
-                                            height: 20,
-                                            color: isSelected ? Colors.white : Appstyle.gris,
-                                          ),
-                                        ),
-                                        text: index == TAB_PARAMETRE
-                                            ? tabNames[index]
-                                            : "${tabNames[index]} (${tabCounts[index]})",
-                                      );
-                                    }),
-                                  ),
-                                ),
-
-                                SizedBox(height: paddingV / 2),
-
-                                // ═══════════════════════════════════════════════════════════════════════════════
-                                // SECTION PRINCIPALE - GESTION PAR TYPE DE TAB
-                                // ═══════════════════════════════════════════════════════════════════════════════
-
-                                // ──────────────────────────────────────────────────────────────
-                                // 1. CAS ZAKAT (currentTab == TAB_ZAKAT)
-                                // ──────────────────────────────────────────────────────────────
-                                if (currentTab == TAB_ZAKAT)
-                                  Column(
+                                Column(
                                     crossAxisAlignment: isRTL ? CrossAxisAlignment.end : CrossAxisAlignment.start,
                                     children: [
                                       // Afficheur
@@ -858,6 +664,7 @@ class _ZakatScreenState extends State<ZakatScreen> with TickerProviderStateMixin
                                                     ? Icons.visibility_off
                                                     : Icons.visibility,
                                                 iconColor: Appstyle.violet,
+                                                showBadge: _filtresZakatActifs,
                                                 onPressed: () {
                                                   setState(() {
                                                     filtresActifs = !filtresActifs;
@@ -1000,6 +807,7 @@ class _ZakatScreenState extends State<ZakatScreen> with TickerProviderStateMixin
                                         child: TableauZakatAdvanced(
                                           zakats: zakatsFiltres,
                                           key: ValueKey(zakatsFiltres),
+                                          utilisateurs: utilisateursTest,
                                           onSelectionChanged: (selection) {
                                             setState(() {
                                               zakatsSelectionnes = selection;
@@ -1008,82 +816,6 @@ class _ZakatScreenState extends State<ZakatScreen> with TickerProviderStateMixin
                                         ),
                                       ),
                                     ],
-                                  )
-
-                                // ──────────────────────────────────────────────────────────────
-                                // 2. CAS PARAMETRE (currentTab == TAB_PARAMETRE)
-                                // ──────────────────────────────────────────────────────────────
-                                else if (currentTab == TAB_PARAMETRE)
-                                  Container(
-                                    padding: EdgeInsets.all(16),
-                                    child: Column(
-                                      crossAxisAlignment: isRTL ? CrossAxisAlignment.end : CrossAxisAlignment.start,
-                                      children: [
-                                        Container(
-                                          width: adjustedWidth * 0.35,
-                                          padding: EdgeInsets.symmetric(vertical: 15, horizontal: 10),
-                                          decoration: BoxDecoration(
-                                            color: Appstyle.Tblanc,
-                                            borderRadius: BorderRadius.circular(14),
-                                          ),
-                                          child: Column(
-                                            crossAxisAlignment: isRTL ? CrossAxisAlignment.end : CrossAxisAlignment.start,
-                                            children: [
-                                              Text(
-                                                l10n.zakatParameter,
-                                                style: Appstyle.textMB.copyWith(color: Appstyle.Tnoir),
-                                              ),
-                                              SizedBox(height: 20),
-                                              ChampAvecLabel(
-                                                label: l10n.nissab,
-                                                child: TextChampL(
-                                                  controller: nisabController,
-                                                  hint: '560000.00 DA',
-                                                  numeric: true,
-                                                ),
-                                              ),
-                                              SizedBox(height: 20),
-                                              ChampAvecLabel(
-                                                label: l10n.zakatRate,
-                                                child: TextChampL(
-                                                  controller: tauxZakatController,
-                                                  hint: '2.5',
-                                                  numeric: true,
-                                                ),
-                                              ),
-                                              SizedBox(height: 30),
-                                              MainButton(
-                                                text: l10n.save,
-                                                color: Appstyle.crevete,
-                                                onPressed: () async {
-                                                  final response = await SaveParam(
-                                                    UserName: userName,
-                                                    UserCode: userCode,
-                                                  );
-                                                  if (!response.success) {
-                                                    ScaffoldMessenger.of(context).showSnackBar(
-                                                      SnackBar(
-                                                        content: Text(l10n.settingsNotSaved),
-                                                        backgroundColor: Colors.red,
-                                                      ),
-                                                    );
-                                                    return;
-                                                  }
-                                                  ScaffoldMessenger.of(context).showSnackBar(
-                                                    SnackBar(
-                                                      content: Text(l10n.settingsSavedSuccess),
-                                                      backgroundColor: Colors.green,
-                                                    ),
-                                                  );
-                                                },
-                                                iconOnRight: !isRTL,
-                                                icon: Icons.save,
-                                              ),
-                                            ],
-                                          ),
-                                        ),
-                                      ],
-                                    ),
                                   ),
                               ],
                             ),
@@ -1093,7 +825,6 @@ class _ZakatScreenState extends State<ZakatScreen> with TickerProviderStateMixin
                     ),
                   ),
                 ),
-              ),
             ),
           );
         },
@@ -1114,7 +845,7 @@ class _ZakatScreenState extends State<ZakatScreen> with TickerProviderStateMixin
             textDirection: textDirection,
             children: [
               SizedBox(
-                width: width * 0.9,
+                width: width * 0.7,
                 child: Row(
                   textDirection: textDirection,
                   children: [
@@ -1198,7 +929,7 @@ class _ZakatScreenState extends State<ZakatScreen> with TickerProviderStateMixin
               ),
               const SizedBox(width: 20),
               SizedBox(
-                width: 400,
+                width: width * 0.7,
                 child: ChampAvecLabel(
                   label: l10n.quickPeriod,
                   child: DropdownButtonFormField<String>(

@@ -1,3 +1,4 @@
+import 'package:caisse_dz/core/theme/app_style.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import '../../../data/models/besoinList.dart';
@@ -47,7 +48,7 @@ class AfficheurBesoinList extends StatelessWidget {
           ElevatedButton(
             onPressed: onDetails,
             style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.blue,
+              backgroundColor: Appstyle.violet,
               padding: const EdgeInsets.symmetric(
                 horizontal: 22,
                 vertical: 14,

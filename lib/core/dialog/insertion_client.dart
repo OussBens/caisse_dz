@@ -14,11 +14,13 @@ import '../../DBCreate.dart'; // Ajouter cet import
 class InsertionClientDialog extends StatefulWidget {
   final List<Client> clients;
   final Function(Client) onClientSelected;
+  final bool newButton;
 
   const InsertionClientDialog({
     Key? key,
     required this.clients,
     required this.onClientSelected,
+    this.newButton = true,
   }) : super(key: key);
 
   @override
@@ -64,7 +66,7 @@ class _InsertionClientDialogState extends State<InsertionClientDialog> {
     }).toList();
 
     return BaseDialog(
-      couleur: Appstyle.violetC,
+      couleur: Appstyle.Tblanc,
       width: 1000,
       height: 800,
       header: Row(
@@ -97,19 +99,20 @@ class _InsertionClientDialogState extends State<InsertionClientDialog> {
                   },
                 ),
               ),
-              MainButton(
-                text: l10n.newWord,
-                color: Appstyle.crevete,
-                onPressed: () async {
-                  // Ouvrir le dialog de création
-                  await ClientNouveau(context);
+              if (widget.newButton)
+                MainButton(
+                  text: l10n.newWord,
+                  color: Appstyle.crevete,
+                  onPressed: () async {
+                    // Ouvrir le dialog de création
+                    await ClientNouveau(context);
 
-                  // Recharger les clients après la fermeture du dialog
-                  await reloadClients();
+                    // Recharger les clients après la fermeture du dialog
+                    await reloadClients();
 
 
-                },
-              ),
+                  },
+                ),
             ],
           ),
 

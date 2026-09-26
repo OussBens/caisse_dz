@@ -1,6 +1,8 @@
+import 'package:collection/collection.dart';
 import 'package:flutter/material.dart';
 import 'package:syncfusion_flutter_datagrid/datagrid.dart';
 
+import '../../../../data/models/gestion_caisse.dart';
 import '../../../../data/models/transfert.dart';
 import '../../../l10n/app_localizations.dart';
 import '../../widget/status_badge.dart';
@@ -8,12 +10,18 @@ import '../base_table_data_source.dart';
 
 class TransfertCaisseDataSource extends BaseTableDataSource<TransfertCaisse> {
   final AppLocalizations l10n;
+  final List<CaisseGestion> caisses;
 
   TransfertCaisseDataSource({
     required List<TransfertCaisse> transferts,
     required super.columnConfig,
     required this.l10n,
+    this.caisses = const [],
+    super.utilisateurs = const [],
   }) : super(items: transferts);
+
+  String _nomCaisse(String? code) =>
+      caisses.firstWhereOrNull((c) => c.code == code)?.nomCaisse ?? code ?? '';
 
   String formatDate(DateTime? date) {
     if (date == null) return '';
@@ -33,9 +41,9 @@ class TransfertCaisseDataSource extends BaseTableDataSource<TransfertCaisse> {
       case 'dateTransfert':
         return formatDate(t.dateTransfert);
       case 'caisseExpCode':
-        return t.caisseExpCode;
+        return _nomCaisse(t.caisseExpCode);
       case 'caisseDestCode':
-        return t.caisseDestCode;
+        return _nomCaisse(t.caisseDestCode);
       case 'montant':
         return "${t.montant} ${l10n.currency}";
       case 'etat':
@@ -47,15 +55,15 @@ class TransfertCaisseDataSource extends BaseTableDataSource<TransfertCaisse> {
       case 'dateCree':
         return formatDate(t.dateCree);
       case 'creeParCode':
-        return t.creeParCode;
+        return nomUtilisateur(t.creeParCode);
       case 'dateModif':
         return formatDate(t.dateModif);
       case 'modifParCode':
-        return t.modifParCode;
+        return nomUtilisateur(t.modifParCode);
       case 'dateAnnul':
         return formatDate(t.dateTransfert);
       case 'annulParCode':
-        return t.annulParCode;
+        return nomUtilisateur(t.annulParCode);
       case 'motifAnnul':
         return t.motifAnnul;
       default:

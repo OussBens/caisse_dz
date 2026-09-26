@@ -11,6 +11,7 @@ import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 
 import 'package:caisse_dz/core/widget/champ/champ_avec_label.dart';
+import 'package:caisse_dz/core/widget/code_generateur.dart';
 import 'package:caisse_dz/core/widget/title/titre_avec_ligne.dart';
 import 'package:caisse_dz/core/dialog/insertion_fournisseur.dart';
 import 'package:caisse_dz/core/widget/button/ajouter_manuel.dart';
@@ -30,15 +31,24 @@ import 'package:caisse_dz/Services/Produits.dart' hide ApiResponse;
 import 'package:caisse_dz/l10n/app_localizations.dart';
 
 import '../../utilis/api_response.dart';
+import '../../utilis/quantite_format.dart';
 import '../information_dialog.dart';
+import 'package:caisse_dz/core/utilis/number_format.dart';
 
 // ---- CONTROLLERS ----
-final TextEditingController codeControllerB           = TextEditingController(text: "BSL00001");
+final TextEditingController codeControllerB           = TextEditingController();
 final TextEditingController dateControllerB           = TextEditingController();
 final TextEditingController montantControllerB        = TextEditingController(text: "0");
 final TextEditingController quantiteControllerB       = TextEditingController(text: "0");
 final TextEditingController observationControllerB    = TextEditingController();
 final TextEditingController nombreArticleControllerB  = TextEditingController(text: "0");
+
+// Controllers persistants des lignes produit (clé = code produit). Les
+// recréer à chaque frappe (comme avant, dans le itemBuilder) fait retomber
+// le curseur en position 0 après chaque caractère et donne l'impression
+// d'une saisie "inversée" — voir tableProduits().
+final Map<String, TextEditingController> quantiteControllersProduitB = {};
+final Map<String, TextEditingController> prixControllersProduitB     = {};
 
 List<BesoinListDetail>  produitsBesoin        = [];
 List<Produit>           produitsSelectionnes  = [];
@@ -130,9 +140,20 @@ Future<void> _LoadAllData() async {
 void recalculerTotaux() {
   nombreArticleControllerB.text = produitsBesoin.length.toString();
   final quantiteTotale      = produitsBesoin.fold(0.0, (s, p) => s + p.quantite);
-  quantiteControllerB.text  = quantiteTotale.toStringAsFixed(0);
+  quantiteControllerB.text  = NumberFormatUtil.formatMontant(quantiteTotale, decimales: 0);
   final montantTotal      = produitsBesoin.fold(0.0, (s, p) => s + p.montant);
   montantControllerB.text = montantTotal.toStringAsFixed(2);
+}
+
+void _clearProduitsBesoinControllers() {
+  for (final c in quantiteControllersProduitB.values) {
+    c.dispose();
+  }
+  for (final c in prixControllersProduitB.values) {
+    c.dispose();
+  }
+  quantiteControllersProduitB.clear();
+  prixControllersProduitB.clear();
 }
 
 void resetBesoinForm() {
@@ -141,11 +162,11 @@ void resetBesoinForm() {
   quantiteControllerB.text        = "0";
   montantControllerB.text         = "0";
   observationControllerB.clear();
-  codeControllerB.text = "BSL00001";
   fournisseurSelected = null;
   selectedProduit = null;
   produitsBesoin.clear();
   produitsSelectionnes.clear();
+  _clearProduitsBesoinControllers();
 }
 
 final GlobalKey<FormState> produitFormKey = GlobalKey<FormState>();
@@ -154,9 +175,18 @@ Future<void> BesoinListNouveau(BuildContext context, List<Fournisseur> fournisse
   await _LoadAllData();
 
   produitsBesoin.clear();
+  _clearProduitsBesoinControllers();
   recalculerTotaux();
   dateControllerB.text  = "";
   fournisseurSelected   = fournisseursTest.first.nom;
+
+  // ✅ Aperçu de la référence (l'id réel est refetché à la sauvegarde)
+  final int previewId = await _GetNextBesionListid();
+  codeControllerB.text = CodeGenerator.generateCode(
+    prefix: CodePrefix.besoinListe,
+    id: previewId,
+    digitCount: 6,
+  );
 
   final auth = Provider.of<AuthState>(context, listen: false);
 
@@ -356,16 +386,21 @@ Future<void> BesoinListNouveau(BuildContext context, List<Fournisseur> fournisse
                       await InformationDialog(
                         context: context,
                         titre_type_message: l10n.error,
-                        titre_concerne: "BesoinList",
+                        titre_concerne: l10n.besoinList,
                         message: l10n.fillRequiredFields,
                       );
                       return;
                     }
 
                     int id = await _GetNextBesionListid();
+                    final String besionListCode = CodeGenerator.generateCode(
+                      prefix: CodePrefix.besoinListe,
+                      id: id,
+                      digitCount: 6,
+                    );
                     BesoinList besionList = BesoinList(
                       id            : id,
-                      code          : "BL$id${DateTime.now().millisecondsSinceEpoch}",
+                      code          : besionListCode,
                       numero        : "BL $id",
                       date          : DateFormat('dd/MM/yyyy').parse(dateControllerB.text),
                       montant       : double.parse(montantControllerB.text),
@@ -390,7 +425,7 @@ Future<void> BesoinListNouveau(BuildContext context, List<Fournisseur> fournisse
                       await InformationDialog(
                         context: context,
                         titre_type_message: l10n.error,
-                        titre_concerne: "BesoinList",
+                        titre_concerne: l10n.besoinList,
                         message: response.message ,
                       );
                       return;
@@ -404,7 +439,7 @@ Future<void> BesoinListNouveau(BuildContext context, List<Fournisseur> fournisse
                     final Historique histo = Historique(
                       id: idH,
                       code: "HS$idH ${DateTime.now().microsecondsSinceEpoch}",
-                      desc: "L'utilisateur $userName a ajouté un nouveau besoinlist sous le code de ${"BL$id${DateTime.now().millisecondsSinceEpoch}"}",
+                      desc: "L'utilisateur $userName a ajouté un nouveau besoinlist sous le code de $besionListCode",
                       oper: ListsConst.typeHisto[0],
                       type: "BesoinList",
                       dateCree: DateTime.now(),
@@ -454,8 +489,10 @@ Widget tableProduits(
       itemCount   : produitsBesoin.length,
       itemBuilder : (_, i) {
         final p         = produitsBesoin[i];
-        final qCtrl     = TextEditingController(text  : p.quantite.toString());
-        final prixCtrl  = TextEditingController(text  : p.prix.toString());
+        final qCtrl     = quantiteControllersProduitB.putIfAbsent(
+            p.ProduitCode, () => TextEditingController(text: QuantiteFormat.format(p.quantite)));
+        final prixCtrl  = prixControllersProduitB.putIfAbsent(
+            p.ProduitCode, () => TextEditingController(text: p.prix.toString()));
 
         void update() {
           setState(() {
@@ -476,6 +513,7 @@ Widget tableProduits(
                 child : TextField(
                   controller    : qCtrl,
                   keyboardType  : TextInputType.number,
+                  inputFormatters: QuantiteFormat.inputFormatters,
                   decoration    : const InputDecoration(isDense: true),
                   onChanged     : (_) => update(),
                 ),
@@ -494,7 +532,7 @@ Widget tableProduits(
               Expanded(
                 flex  : 2,
                 child : Text(
-                  p.montant.toStringAsFixed(2),
+                  NumberFormatUtil.formatMontant(p.montant, decimales: 2),
                   style : Appstyle.textSB.copyWith(color: Appstyle.violet),
                 ),
               ),
@@ -504,6 +542,8 @@ Widget tableProduits(
                 onPressed : () {
                   setState(() {
                     produitsBesoin.removeAt(i);
+                    quantiteControllersProduitB.remove(p.ProduitCode)?.dispose();
+                    prixControllersProduitB.remove(p.ProduitCode)?.dispose();
                     recalculerTotaux();
                   });
                 },
@@ -524,6 +564,7 @@ void ouvrirInsertionProduit(
   showDialog(
     context : context,
     builder : (_) => InsertionProduitDialog(
+      newButton:false,
       filtreBesion: true,
       multiselection    : true,
       produits          : produitsTest,

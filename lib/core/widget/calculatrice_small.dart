@@ -17,6 +17,7 @@ class CalculatriceSmallWidget extends StatelessWidget {
         {
           "text": l10n.encaisserTicket,
           "action": "ENCAISSEMENT_TICKET",
+          "shortcut": "F4",
           "flex": 2,
           "color": Appstyle.violet,
           "textColor": Colors.white,
@@ -25,20 +26,9 @@ class CalculatriceSmallWidget extends StatelessWidget {
           "iconRight": true
         },
         {
-          "text": l10n.enregistrer,
-          "action": "ENREGISTER_TICKET",
-          "flex": 2,
-          "color": Appstyle.crevete,
-          "textColor": Colors.white,
-          "icon": Icons.save,
-          "padding": EdgeInsets.symmetric(vertical: 18, horizontal: 8),
-          "iconRight": true
-        }
-      ],
-      [
-        {
           "text": l10n.encaisserBLSC,
           "action": "ENCAISSEMENT_BLSC",
+          "shortcut": "F5",
           "flex": 2,
           "color": Appstyle.green,
           "textColor": Colors.white,
@@ -47,8 +37,20 @@ class CalculatriceSmallWidget extends StatelessWidget {
           "iconRight": true
         },
         {
+          "text": l10n.enregistrer,
+          "action": "ENREGISTER_TICKET",
+          "shortcut": "F6",
+          "flex": 2,
+          "color": Appstyle.crevete,
+          "textColor": Colors.white,
+          "icon": Icons.save,
+          "padding": EdgeInsets.symmetric(vertical: 18, horizontal: 8),
+          "iconRight": true
+        },
+        {
           "text": l10n.annuler,
           "action": "SUPPRIMER_CAISSE",
+          "shortcut": "F9",
           "flex": 2,
           "color": Appstyle.gris,
           "textColor": Colors.white,
@@ -59,53 +61,9 @@ class CalculatriceSmallWidget extends StatelessWidget {
       ],
       [
         {
-          "text": l10n.newClient,
-          "action": "NEW_CLIENT",
-          "flex": 2,
-          "color": Appstyle.indigo,
-          "textColor": Colors.white,
-          "icon": Icons.person_add,
-          "padding": EdgeInsets.symmetric(vertical: 18, horizontal: 8),
-          "iconRight": true
-        },
-        {
-          "text": l10n.newProduct,
-          "action": "NEW_PRODUCT",
-          "flex": 2,
-          "color": Appstyle.jaune,
-          "textColor": Colors.white,
-          "icon": Icons.production_quantity_limits,
-          "padding": EdgeInsets.symmetric(vertical: 18, horizontal: 8),
-          "iconRight": true
-        }
-      ],
-      [
-        {
-          "text": l10n.quickEntry,
-          "action": "QUICK_ENTRY",
-          "flex": 2,
-          "color": Appstyle.blueC,
-          "textColor": Colors.white,
-          "icon": Icons.add_business,
-          "padding": EdgeInsets.symmetric(vertical: 18, horizontal: 8),
-          "iconRight": true
-        },
-        {
-          "text": l10n.cashReceipt,
-          "action": "CASH_RECEIPT",
-          "flex": 2,
-          "color": Appstyle.green2,
-          "textColor": Colors.white,
-          "icon": Icons.receipt,
-          "padding": EdgeInsets.symmetric(vertical: 18, horizontal: 8),
-          "iconRight": true
-        }
-      ],
-      // ✅ NOUVELLE LIGNE : Bouton PACK
-      [
-        {
           "text": "PACK",
           "action": "PACK",
+          "shortcut": "Ctrl+P",
           "flex": 2,
           "color": Appstyle.violet,
           "textColor": Colors.white,
@@ -116,14 +74,86 @@ class CalculatriceSmallWidget extends StatelessWidget {
         {
           "text": l10n.discount,
           "action": "REMISE",
+          "shortcut": "Ctrl+R",
           "flex": 2,
           "color": Appstyle.crevete,
           "textColor": Colors.white,
           "icon": Icons.percent,
           "padding": EdgeInsets.symmetric(vertical: 18, horizontal: 8),
           "iconRight": true
+        },
+        {
+          "text": l10n.quickEntry,
+          "action": "QUICK_ENTRY",
+          "shortcut": "E",
+          "flex": 2,
+          "color": Appstyle.blueC,
+          "textColor": Colors.white,
+          "icon": Icons.add_business,
+          "padding": EdgeInsets.symmetric(vertical: 18, horizontal: 8),
+          "iconRight": true
+        },
+        {
+          "text": l10n.viderPanier,
+          "action": "CLEAR_PANIER",
+          "shortcut": "F10",
+          "flex": 2,
+          "color": Appstyle.gris,
+          "textColor": Colors.white,
+          "icon": Icons.delete_forever,
+          "padding": EdgeInsets.symmetric(vertical: 18, horizontal: 8),
+          "iconRight": true
         }
       ],
+
+      [
+        {
+          "text": l10n.newClient,
+          "action": "NEW_CLIENT",
+          "shortcut": "C",
+          "flex": 2,
+          "color": Appstyle.indigo,
+          "textColor": Colors.white,
+          "icon": Icons.person_add,
+          "padding": EdgeInsets.symmetric(vertical: 18, horizontal: 8),
+          "iconRight": true
+        },
+        {
+          "text": l10n.cashReceipt,
+          "action": "CASH_RECEIPT",
+          "shortcut": "R",
+          "flex": 2,
+          "color": Appstyle.green2,
+          "textColor": Colors.white,
+          "icon": Icons.receipt,
+          "padding": EdgeInsets.symmetric(vertical: 18, horizontal: 8),
+          "iconRight": true
+        },
+        {
+          "text": l10n.productRevenue,
+          "action": "CASH_RECEIPT_PRODUIT",
+          "shortcut": "P",
+          "flex": 2,
+          "color": Appstyle.maron,
+          "textColor": Colors.white,
+          "icon": Icons.inventory_2,
+          "padding": EdgeInsets.symmetric(vertical: 18, horizontal: 8),
+          "iconRight": true
+        },
+        {
+          "text": l10n.newProduct,
+          "action": "NEW_PRODUCT",
+          "shortcut": "N",
+          "flex": 2,
+          "color": Appstyle.jaune,
+          "textColor": Colors.white,
+          "icon": Icons.production_quantity_limits,
+          "padding": EdgeInsets.symmetric(vertical: 18, horizontal: 8),
+          "iconRight": true
+        }
+      ],
+
+
     ];
 
     return Column(
@@ -157,6 +187,7 @@ class CalculatriceSmallWidget extends StatelessWidget {
                     textColor: textcolor,
                     iconOnRight: iconright,
                     iconColor: btn["iconColor"],
+                    shortcutLabel: btn["shortcut"],
                   ),
                 ),
               );

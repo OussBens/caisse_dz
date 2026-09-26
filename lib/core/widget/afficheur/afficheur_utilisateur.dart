@@ -5,6 +5,7 @@ import 'package:caisse_dz/core/theme/app_style.dart';
 import '../../../../data/models/pannier.dart';
 import '../../../../data/models/utilisateur.dart';
 import '../../../../l10n/app_localizations.dart';
+import 'package:caisse_dz/core/utilis/number_format.dart';
 
 class AfficheurUtilisateur extends StatelessWidget {
 
@@ -211,8 +212,8 @@ class AfficheurUtilisateur extends StatelessWidget {
           const SizedBox(height: 6),
           Text(
             isMoney
-                ? "${value.toStringAsFixed(0)} ${l10n.currency}"
-                : value.toStringAsFixed(0),
+                ? "${NumberFormatUtil.formatMontant(value, decimales: 0)} ${l10n.currency}"
+                : NumberFormatUtil.formatMontant(value, decimales: 0),
             style: TextStyle(
               fontWeight: FontWeight.bold,
               color: color,
