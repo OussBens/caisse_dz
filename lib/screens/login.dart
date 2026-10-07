@@ -1,6 +1,5 @@
 import 'package:caisse_dz/core/theme/app_style.dart';
 import 'package:caisse_dz/core/widget/button/main_button.dart';
-import 'package:caisse_dz/core/widget/mobile_pairing_button.dart';
 import 'package:caisse_dz/l10n/app_localizations.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
@@ -15,13 +14,59 @@ class LoginScreen extends StatefulWidget {
   State<LoginScreen> createState() => _LoginScreenState();
 }
 
-class _LoginScreenState extends State<LoginScreen> {
+class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStateMixin {
   final TextEditingController usernameController = TextEditingController();
   final TextEditingController passwordController = TextEditingController();
 
   bool loading = false;
   String? error;
   bool rememberMe = false;
+
+  // Animation d'entrée du logo (slide gauche → centre + fade), jouée une
+  // seule fois à l'ouverture de l'écran de login — léger effet "ressort"
+  // (easeOutBack) pour un rendu moderne et énergique plutôt qu'un simple fondu.
+  late final AnimationController _logoController;
+  late final Animation<Offset> _logoSlide;
+  late final Animation<double> _logoFade;
+
+  // Titre "Connexion à votre compte" : fondu + léger glissement du bas vers
+  // le haut, décalé après le logo (Interval démarrant à 0.35) sur le même
+  // contrôleur — un seul enchaînement logo → titre au lieu de deux
+  // animations indépendantes qui démarreraient en même temps.
+  late final Animation<double> _titleFade;
+  late final Animation<Offset> _titleSlide;
+
+  @override
+  void initState() {
+    super.initState();
+    _logoController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 900),
+    );
+    _logoSlide = Tween<Offset>(
+      begin: const Offset(-1.8, 0),
+      end: Offset.zero,
+    ).animate(CurvedAnimation(parent: _logoController, curve: Curves.easeOutBack));
+    _logoFade = CurvedAnimation(
+      parent: _logoController,
+      curve: const Interval(0.0, 0.6, curve: Curves.easeOut),
+    );
+    _titleFade = CurvedAnimation(
+      parent: _logoController,
+      curve: const Interval(0.35, 1.0, curve: Curves.easeOut),
+    );
+    _titleSlide = Tween<Offset>(
+      begin: const Offset(0, 0.4),
+      end: Offset.zero,
+    ).animate(CurvedAnimation(parent: _logoController, curve: const Interval(0.35, 1.0, curve: Curves.easeOut)));
+    _logoController.forward();
+  }
+
+  @override
+  void dispose() {
+    _logoController.dispose();
+    super.dispose();
+  }
 
   // Style de champ unique (au lieu d'être dupliqué pour username/password) —
   // bordure/focus alignés sur le violet de marque plutôt que le bleu
@@ -121,27 +166,40 @@ class _LoginScreenState extends State<LoginScreen> {
                         mainAxisSize: MainAxisSize.min,
                         crossAxisAlignment: CrossAxisAlignment.center,
                         children: [
-                          // Logo
-                          Image.asset(
-                            'assets/icons/caisse_dz_logo.png',
-                            height: 120,
-                            errorBuilder: (context, error, stackTrace) {
-                              return const Icon(
-                                Icons.shopping_cart,
-                                size: 80,
-                                color: Colors.blue,
-                              );
-                            },
+                          // Logo — animation d'entrée slide gauche → centre
+                          SlideTransition(
+                            position: _logoSlide,
+                            child: FadeTransition(
+                              opacity: _logoFade,
+                              child: Image.asset(
+                                'assets/icons/caisse_dz_logo.png',
+                                height: 120,
+                                errorBuilder: (context, error, stackTrace) {
+                                  return const Icon(
+                                    Icons.shopping_cart,
+                                    size: 80,
+                                    color: Colors.blue,
+                                  );
+                                },
+                              ),
+                            ),
                           ),
                           const SizedBox(height: 30),
 
-                          // Titre
-                          Text(
-                            l10n.loginToYourAccount,
-                            style: TextStyle(
-                              fontSize: 28,
-                              fontWeight: FontWeight.bold,
-                              color: Appstyle.violet,
+                          // Titre — fondu + glissement du bas vers le haut,
+                          // enchaîné après l'animation du logo.
+                          SlideTransition(
+                            position: _titleSlide,
+                            child: FadeTransition(
+                              opacity: _titleFade,
+                              child: Text(
+                                l10n.loginToYourAccount,
+                                style: TextStyle(
+                                  fontSize: 28,
+                                  fontWeight: FontWeight.bold,
+                                  color: Appstyle.violet,
+                                ),
+                              ),
                             ),
                           ),
                           const SizedBox(height: 8),
@@ -355,7 +413,6 @@ class _LoginScreenState extends State<LoginScreen> {
               ),
             ],
           ),
-          const Positioned(top: 16, right: 16, child: MobilePairingButton()),
         ],
       ),
     );

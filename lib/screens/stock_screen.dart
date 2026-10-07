@@ -1,6 +1,13 @@
+import 'package:caisse_dz/Services/excel_apercu.dart';
+import 'package:caisse_dz/Services/StatistiquesGlobales.dart';
+import 'package:caisse_dz/core/widget/filtre/periode_rapide_filter.dart';
+import 'package:caisse_dz/core/widget/filtre/ligne_filtre_tiers.dart';
 import 'dart:io';
+import 'package:caisse_dz/Services/export_spinner.dart';
 
 import 'package:collection/collection.dart';
+import 'package:caisse_dz/DBCreate.dart';
+import 'package:caisse_dz/Services/CaisseParam.dart';
 import 'package:caisse_dz/Services/excel_generator.dart';
 import 'package:caisse_dz/Services/ExcelPreviewDialog.dart';
 import 'package:caisse_dz/core/Auth/auth_state.dart';
@@ -51,7 +58,6 @@ import 'package:caisse_dz/core/widget/time_date_widget.dart';
 import 'package:caisse_dz/core/widget/connection_status_bar.dart';
 import 'package:caisse_dz/core/widget/header_module.dart';
 import 'package:caisse_dz/core/widget/search_bar.dart';
-import 'package:caisse_dz/core/widget/side_bar.dart';
 
 import 'package:caisse_dz/data/models/sous_categorie.dart';
 import 'package:caisse_dz/data/models/fournisseur.dart';
@@ -103,24 +109,15 @@ class StockScreen extends StatefulWidget {
 class _StockScreenState extends State<StockScreen> with TickerProviderStateMixin {
   late TabController _tabController;
   late BarcodeScanListener _barcodeScanListener;
+  // Garde anti-double-clic pour l'export Excel (voir client_screen.dart pour
+  // le détail du bug évité).
+  bool _exportEnCours = false;
 
   // ✅ Constantes pour les index des tabs
   static const int TAB_STOCK = 0;
   static const int TAB_MOUVEMENT = 1;
 
   // Period keys for translation lookup
-  final List<String> periodeKeys = [
-    "today",
-    "yesterday",
-    "week",
-    "lastWeek",
-    "month",
-    "lastMonth",
-    "last7days",
-    "last30days",
-    "year",
-    "lastYear",
-  ];
 
   List<String> sousCategorieFilterOptions = [];
   List<String> TypeMouvementFilterOptions = [];
@@ -139,6 +136,7 @@ class _StockScreenState extends State<StockScreen> with TickerProviderStateMixin
   // produit_screen.dart, même mécanisme (MouvementsServices.totauxParProduit).
   Map<String, double> quantitesParMagasin = {};
   String? magasinFiltreCode;
+  bool _magasinFiltreInitialise = false;
   List<Magasin> magasinsDisponiblesStock = [];
 
   Future<void> _chargerQuantitesParMagasin() async {
@@ -146,6 +144,10 @@ class _StockScreenState extends State<StockScreen> with TickerProviderStateMixin
     if (!mounted) return;
     setState(() => quantitesParMagasin = totaux.quantites);
   }
+
+  // Cards globales (AfficheurStockGlobalWidget) : vrais compteurs, voir
+  // StatistiquesGlobalesServices.
+  CompteursGlobaux compteursGlobaux = const CompteursGlobaux();
 
   Future<void> loadAllData() async {
     final test = await ProduitServices.getAllProduits();
@@ -160,9 +162,28 @@ class _StockScreenState extends State<StockScreen> with TickerProviderStateMixin
     final param              = await ParamServices.getParam();
     final utilisateurs      = await UtilisateurServices.getAllUtilisateurs();
     final magasins           = (await MagasinServices.getAllMagasins()).where((m) => m.etat).toList();
+
+    final auth = Provider.of<AuthState>(context, listen: false);
+    // Quantités par magasin :
+    // - sans la permission "voir le stock de tous les magasins" (cas des
+    //   non-admin) : toujours le magasin de la caisse de l'utilisateur ;
+    // - non-admin autorisé : ce magasin par défaut, puis libre ;
+    // - admin : "Tous les magasins" par défaut.
+    if (!auth.canVoirStockTousMagasins) {
+      magasinFiltreCode = await MagasinServices.getMagasinCodeUtilisateur(auth.userCode!);
+    } else if (!_magasinFiltreInitialise) {
+      _magasinFiltreInitialise = true;
+      if (auth.role != 'Admin') {
+        magasinFiltreCode = await MagasinServices.getMagasinCodeUtilisateur(auth.userCode!);
+      }
+    }
+
     final totaux             = await MouvementsServices.totauxParProduit(magasinCode: magasinFiltreCode);
 
+    final compteurs = await StatistiquesGlobalesServices.getCompteurs();
+    if (!mounted) return;
     setState(() {
+      compteursGlobaux = compteurs;
       sousCategoriesTest    = sousCategories;
       fournisseursTest      = fournisseurs;
       clientsTest           = clients;
@@ -194,15 +215,11 @@ class _StockScreenState extends State<StockScreen> with TickerProviderStateMixin
   }
 
   // Excel Export Methods (adaptées avec _tabController.index)
-  Future<void> _exportCurrentModuleToExcel() async {
+  Future<void> _exportCurrentModuleToExcel({bool enPdf = false}) async {
+    if (_exportEnCours) return;
+    setState(() => _exportEnCours = true);
+    final fermerSpinner = ouvrirSpinnerExport(context);
     try {
-      showDialog(
-        context: context,
-        barrierDismissible: false,
-        builder: (context) => const Center(
-          child: CircularProgressIndicator(),
-        ),
-      );
 
       final l10n = AppLocalizations.of(context)!;
       final translator = ListsConstTranslator(l10n);
@@ -218,7 +235,7 @@ class _StockScreenState extends State<StockScreen> with TickerProviderStateMixin
         final produitsToExport = filtresActifs ? produitsFiltres : produitsTest;
 
         if (produitsToExport.isEmpty) {
-          Navigator.pop(context);
+          fermerSpinner();
           await InformationDialog(
             context: context,
             titre_type_message: l10n.information,
@@ -244,7 +261,7 @@ class _StockScreenState extends State<StockScreen> with TickerProviderStateMixin
         final mouvementsToExport = filtresActifs ? mouvementsFiltres : mouvementsTest;
 
         if (mouvementsToExport.isEmpty) {
-          Navigator.pop(context);
+          fermerSpinner();
           await InformationDialog(
             context: context,
             titre_type_message: l10n.information,
@@ -265,13 +282,20 @@ class _StockScreenState extends State<StockScreen> with TickerProviderStateMixin
         );
       }
 
-      Navigator.pop(context);
+      fermerSpinner();
 
       if (excelFile == null) {
         throw Exception('Failed to generate Excel file');
       }
 
       // Decode the Excel file to show preview
+      // Extract PDF : même fichier que l'export Excel, mis en page en PDF.
+      if (enPdf) {
+        fermerSpinner();
+        await ouvrirApercuPdfDepuisExcel(context, fichier: excelFile, titre: moduleName);
+        return;
+      }
+
       final excel = Excel.decodeBytes(await excelFile.readAsBytes());
 
       final sheetName = currentTab == TAB_STOCK ? 'Produits' : 'Mouvements';
@@ -358,9 +382,7 @@ class _StockScreenState extends State<StockScreen> with TickerProviderStateMixin
         );
       }
     } catch (e) {
-      if (Navigator.canPop(context)) {
-        Navigator.pop(context);
-      }
+      fermerSpinner();
 
       print('Excel export error: $e');
       ScaffoldMessenger.of(context).showSnackBar(
@@ -369,21 +391,19 @@ class _StockScreenState extends State<StockScreen> with TickerProviderStateMixin
           backgroundColor: Colors.red,
         ),
       );
+    } finally {
+      if (mounted) setState(() => _exportEnCours = false);
     }
   }
 
   Future<void> _exportSelectedToExcel() async {
+    if (_exportEnCours) return;
+    setState(() => _exportEnCours = true);
     final l10n = AppLocalizations.of(context)!;
     final translator = ListsConstTranslator(l10n);
 
+    final fermerSpinner = ouvrirSpinnerExport(context);
     try {
-      showDialog(
-        context: context,
-        barrierDismissible: false,
-        builder: (context) => const Center(
-          child: CircularProgressIndicator(),
-        ),
-      );
 
       // ✅ Utilisation de _tabController.index
       final currentTab = _tabController.index;
@@ -394,7 +414,7 @@ class _StockScreenState extends State<StockScreen> with TickerProviderStateMixin
       if (currentTab == TAB_STOCK) {
         // Produits (Stock)
         if (produitsSelectionnes.isEmpty) {
-          Navigator.pop(context);
+          fermerSpinner();
           await InformationDialog(
             context: context,
             titre_type_message: l10n.information,
@@ -418,7 +438,7 @@ class _StockScreenState extends State<StockScreen> with TickerProviderStateMixin
       } else {
         // Mouvements
         if (mouvementsSelectionnes.isEmpty) {
-          Navigator.pop(context);
+          fermerSpinner();
           await InformationDialog(
             context: context,
             titre_type_message: l10n.information,
@@ -439,7 +459,7 @@ class _StockScreenState extends State<StockScreen> with TickerProviderStateMixin
         );
       }
 
-      Navigator.pop(context);
+      fermerSpinner();
 
       if (excelFile == null) {
         throw Exception('Failed to generate Excel file');
@@ -522,9 +542,7 @@ class _StockScreenState extends State<StockScreen> with TickerProviderStateMixin
         );
       }
     } catch (e) {
-      if (Navigator.canPop(context)) {
-        Navigator.pop(context);
-      }
+      fermerSpinner();
 
       print('Excel export error: $e');
       ScaffoldMessenger.of(context).showSnackBar(
@@ -533,6 +551,8 @@ class _StockScreenState extends State<StockScreen> with TickerProviderStateMixin
           backgroundColor: Colors.red,
         ),
       );
+    } finally {
+      if (mounted) setState(() => _exportEnCours = false);
     }
   }
 
@@ -611,21 +631,6 @@ class _StockScreenState extends State<StockScreen> with TickerProviderStateMixin
         "${d.year}";
   }
 
-  String _getPeriodeDisplayName(String key, AppLocalizations l10n) {
-    switch (key) {
-      case "today": return l10n.today;
-      case "yesterday": return l10n.yesterday;
-      case "week": return l10n.thisWeek;
-      case "lastWeek": return l10n.lastWeek;
-      case "month": return l10n.thisMonth;
-      case "lastMonth": return l10n.lastMonth;
-      case "last7days": return l10n.last7Days;
-      case "last30days": return l10n.last30Days;
-      case "year": return l10n.thisYear;
-      case "lastYear": return l10n.lastYear;
-      default: return key;
-    }
-  }
 
   void appliquerFiltre() {
     produitsFiltres = produitsTest.where((p) {
@@ -950,13 +955,7 @@ class _StockScreenState extends State<StockScreen> with TickerProviderStateMixin
                 child: SizedBox(
                   width: adjustedWidth,
                   height: adjustedHeight,
-                    child: Row(
-                      textDirection: textDirection,
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        SideBarWidget(),
-                        Expanded(
-                          child: SingleChildScrollView(
+                    child: SingleChildScrollView(
                             padding: const EdgeInsets.all(16),
                             child: Column(
                               crossAxisAlignment: isRTL ? CrossAxisAlignment.end : CrossAxisAlignment.start,
@@ -1098,12 +1097,12 @@ class _StockScreenState extends State<StockScreen> with TickerProviderStateMixin
                                         Padding(
                                           padding: const EdgeInsets.only(bottom: 16.0),
                                           child: AfficheurStockGlobalWidget(
-                                            nombreBesoinList    : 30,
-                                            nombrePanniers      : 120,
-                                            nombreProduitsStock : produitsTest.length,
-                                            nombreRetours       : 15,
-                                            nombreSmartScan     : 154,
-                                            nombreSorties       : 77,
+                                            nombreBesoinList: compteursGlobaux.besoinLists,
+                                            nombrePanniers: compteursGlobaux.panniers,
+                                            nombreProduitsStock: compteursGlobaux.produitsEnStock,
+                                            nombreRetours: compteursGlobaux.retours,
+                                            nombreSmartScan: compteursGlobaux.smartScans,
+                                            nombreSorties: compteursGlobaux.sorties,
                                           ),
                                         ),
 
@@ -1157,8 +1156,20 @@ class _StockScreenState extends State<StockScreen> with TickerProviderStateMixin
                                                   iconColor: Colors.green,
                                                   color: Appstyle.Tblanc,
                                                   icon: Icons.download,
+                                                  loading: _exportEnCours,
                                                   onPressed: () async {
                                                     await _exportCurrentModuleToExcel();
+                                                  },
+                                                ),
+                                                SizedBox(width: paddingH / 4),
+                                                MainButton(
+                                                  text: l10n.extractPdf,
+                                                  textColor: Colors.red,
+                                                  iconColor: Colors.red,
+                                                  color: Appstyle.Tblanc,
+                                                  icon: Icons.picture_as_pdf,
+                                                  onPressed: () async {
+                                                    await _exportCurrentModuleToExcel(enPdf: true);
                                                   },
                                                 ),
                                                 SizedBox(width: paddingH / 4),
@@ -1213,7 +1224,7 @@ class _StockScreenState extends State<StockScreen> with TickerProviderStateMixin
                                           alignment: isRTL ? Alignment.topRight : Alignment.topLeft,
                                           child: Padding(
                                             padding: EdgeInsets.symmetric(vertical: paddingV/2),
-                                            child: filtreProduit(setState, adjustedWidth*1/3, l10n, translator, isRTL),
+                                            child: filtreProduit(setState, adjustedWidth, l10n, translator, isRTL),
                                           ),
                                         ),
 
@@ -1268,12 +1279,12 @@ class _StockScreenState extends State<StockScreen> with TickerProviderStateMixin
                                         Padding(
                                           padding: const EdgeInsets.only(bottom: 16.0),
                                           child: AfficheurStockGlobalWidget(
-                                            nombreBesoinList    : 30,
-                                            nombrePanniers      : 120,
-                                            nombreProduitsStock : produitsTest.length,
-                                            nombreRetours       : 15,
-                                            nombreSmartScan     : 154,
-                                            nombreSorties       : 77,
+                                            nombreBesoinList: compteursGlobaux.besoinLists,
+                                            nombrePanniers: compteursGlobaux.panniers,
+                                            nombreProduitsStock: compteursGlobaux.produitsEnStock,
+                                            nombreRetours: compteursGlobaux.retours,
+                                            nombreSmartScan: compteursGlobaux.smartScans,
+                                            nombreSorties: compteursGlobaux.sorties,
                                           ),
                                         ),
 
@@ -1327,8 +1338,20 @@ class _StockScreenState extends State<StockScreen> with TickerProviderStateMixin
                                                   iconColor: Colors.green,
                                                   color: Appstyle.Tblanc,
                                                   icon: Icons.download,
+                                                  loading: _exportEnCours,
                                                   onPressed: () async {
                                                     await _exportCurrentModuleToExcel();
+                                                  },
+                                                ),
+                                                SizedBox(width: paddingH / 4),
+                                                MainButton(
+                                                  text: l10n.extractPdf,
+                                                  textColor: Colors.red,
+                                                  iconColor: Colors.red,
+                                                  color: Appstyle.Tblanc,
+                                                  icon: Icons.picture_as_pdf,
+                                                  onPressed: () async {
+                                                    await _exportCurrentModuleToExcel(enPdf: true);
                                                   },
                                                 ),
                                                 SizedBox(width: paddingH / 4),
@@ -1415,9 +1438,6 @@ class _StockScreenState extends State<StockScreen> with TickerProviderStateMixin
                               ],
                             ),
                           ),
-                        ),
-                      ],
-                    ),
                   ),
                 ),
             );
@@ -1428,6 +1448,8 @@ class _StockScreenState extends State<StockScreen> with TickerProviderStateMixin
   }
   Widget filtreProduit(void Function(VoidCallback fn) setState, double width, AppLocalizations l10n, ListsConstTranslator translator, bool isRTL) {
     final textDirection = isRTL ? TextDirection.rtl : TextDirection.ltr;
+    // ✅ Permission spéciale (voir RoleDetail) : filtre "Tous les magasins".
+    final canVoirStockTousMagasins = Provider.of<AuthState>(context, listen: false).canVoirStockTousMagasins;
     List<String> marqueFilterOptions = produitsTest
         .map((p) => p.marque)
         .toSet()
@@ -1505,29 +1527,41 @@ class _StockScreenState extends State<StockScreen> with TickerProviderStateMixin
               ],
             ),
             const SizedBox(height: 15),
-            // Quantité affichée = calculée depuis le journal des mouvements
-            // pour ce magasin (ou tous magasins si "Tous").
-            Row(
+            // Magasin / état. Quantité affichée = calculée depuis le journal
+            // des mouvements pour ce magasin (ou tous magasins si "Tous").
+            LigneFiltreTiers(
               textDirection: textDirection,
               children: [
-                Expanded(
-                  child: ChampAvecLabel(
-                    label: l10n.magasin,
-                    child: TextListe(
-                      value: magasinFiltreCode == null
+                ChampAvecLabel(
+                  label: l10n.magasin,
+                  child: TextListe(
+                    enabled: canVoirStockTousMagasins,
+                    value: magasinFiltreCode == null
+                        ? null
+                        : magasinsDisponiblesStock
+                            .firstWhereOrNull((m) => m.code == magasinFiltreCode)
+                            ?.nom,
+                    hint: "Tous les magasins",
+                    items: magasinsDisponiblesStock.map((m) => m.nom).toList(),
+                    onChanged: (v) {
+                      magasinFiltreCode = (v == null || v.isEmpty)
                           ? null
-                          : magasinsDisponiblesStock
-                              .firstWhereOrNull((m) => m.code == magasinFiltreCode)
-                              ?.nom,
-                      hint: "Tous les magasins",
-                      items: magasinsDisponiblesStock.map((m) => m.nom).toList(),
-                      onChanged: (v) {
-                        magasinFiltreCode = (v == null || v.isEmpty)
-                            ? null
-                            : magasinsDisponiblesStock.firstWhereOrNull((m) => m.nom == v)?.code;
-                        _chargerQuantitesParMagasin();
-                      },
-                    ),
+                          : magasinsDisponiblesStock.firstWhereOrNull((m) => m.nom == v)?.code;
+                      _chargerQuantitesParMagasin();
+                    },
+                  ),
+                ),
+                ChampAvecLabel(
+                  label: l10n.etat,
+                  child: TextListe(
+                    value: selectedEtatFilterS != null ? translator.translateEtat(selectedEtatFilterS!) : null,
+                    items: translator.etatDisplayList,
+                    onChanged: (v) {
+                      setState(() {
+                        selectedEtatFilterS = translator.etatToFrench(v!);
+                        appliquerFiltre();
+                      });
+                    },
                   ),
                 ),
               ],
@@ -1593,45 +1627,18 @@ class _StockScreenState extends State<StockScreen> with TickerProviderStateMixin
               ],
             ),
             const SizedBox(height: 15),
-            Row(
+            LigneFiltreTiers(
               textDirection: textDirection,
               children: [
-                SizedBox(
-                  width: width * 0.7,
-                  child: Row(
-                    textDirection: textDirection,
-                    children: [
-                      Expanded(
-                        child: ChampAvecLabel(
-                          label: l10n.search,
-                          child: SearchField(
-                            controller: _searchController,
-                            onChanged: (v) {
-                              setState(() {
-                                appliquerFiltre();
-                              });
-                            },
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                const SizedBox(width: 20),
-                Expanded(
-                  child: ChampAvecLabel(
-                    width: width * 0.7,
-                    label: l10n.etat,
-                    child: TextListe(
-                      value: selectedEtatFilterS != null ? translator.translateEtat(selectedEtatFilterS!) : null,
-                      items: translator.etatDisplayList,
-                      onChanged: (v) {
-                        setState(() {
-                          selectedEtatFilterS = translator.etatToFrench(v!);
-                          appliquerFiltre();
-                        });
-                      },
-                    ),
+                ChampAvecLabel(
+                  label: l10n.search,
+                  child: SearchField(
+                    controller: _searchController,
+                    onChanged: (v) {
+                      setState(() {
+                        appliquerFiltre();
+                      });
+                    },
                   ),
                 ),
               ],
@@ -1704,117 +1711,77 @@ class _StockScreenState extends State<StockScreen> with TickerProviderStateMixin
               ],
             ),
             const SizedBox(height: 15),
-            Row(
+            LigneFiltreTiers(
               textDirection: textDirection,
               children: [
-                Expanded(
-                  child: ChampAvecLabel(
-                    label: l10n.from,
-                    child: TextDate(
-                      hint: l10n.startDate,
-                      controller: _dateDebutCtrl,
-                      onTap: _pickDateDebut,
-                    ),
+                ChampAvecLabel(
+                  label: l10n.from,
+                  child: TextDate(
+                    hint: l10n.startDate,
+                    controller: _dateDebutCtrl,
+                    onTap: _pickDateDebut,
                   ),
                 ),
-                const SizedBox(width: 20),
-                Expanded(
-                  child: ChampAvecLabel(
-                    label: l10n.to,
-                    child: TextDate(
-                      hint: l10n.endDate,
-                      enabled: dateDebut != null,
-                      controller: _dateFinCtrl,
-                      onTap: _pickDateFin,
-                    ),
+                ChampAvecLabel(
+                  label: l10n.to,
+                  child: TextDate(
+                    hint: l10n.endDate,
+                    enabled: dateDebut != null,
+                    controller: _dateFinCtrl,
+                    onTap: _pickDateFin,
                   ),
                 ),
-                const SizedBox(width: 20),
-                SizedBox(
-                  width: width * 0.7,
-                  child: ChampAvecLabel(
-                    label: l10n.quickPeriod,
-                    child: DropdownButtonFormField<String>(
-                      value: periodeRapide,
-                      decoration: InputDecoration(
-                        hintText: l10n.choosePeriod,
-                        isDense: true,
-                        border: OutlineInputBorder(),
-                      ),
-                      items: periodeKeys.map((key) {
-                        return DropdownMenuItem<String>(
-                          value: key,
-                          child: Text(_getPeriodeDisplayName(key, l10n)),
-                        );
-                      }).toList(),
-                      onChanged: (v) {
-                        if (v != null) {
-                          setState(() {
-                            periodeRapide = v;
-                            _appliquerPeriodeRapide(v, l10n);
-                          });
-                        }
-                      },
-                    ),
-                  ),
+                ChampPeriodeRapide(
+                  l10n: l10n,
+                  value: periodeRapide,
+                  onSelected: (v) {
+                    setState(() {
+                      periodeRapide = v;
+                      _appliquerPeriodeRapide(v, l10n);
+                    });
+                  },
                 ),
               ],
             ),
             const SizedBox(height: 15),
-            Row(
+            LigneFiltreTiers(
               textDirection: textDirection,
               children: [
-                SizedBox(
-                  width: width * 0.7,
-                  child: Row(
-                    textDirection: textDirection,
-                    children: [
-                      Expanded(
-                        child: ChampAvecLabel(
-                          label: l10n.search,
-                          child: SearchField(
-                            controller: _searchControllerMouvement,
-                            onChanged: (v) {
-                              setState(() {
-                                appliquerFiltreMouvement();
-                              });
-                            },
-                          ),
-                        ),
-                      ),
-                    ],
+                ChampAvecLabel(
+                  label: l10n.search,
+                  child: SearchField(
+                    controller: _searchControllerMouvement,
+                    onChanged: (v) {
+                      setState(() {
+                        appliquerFiltreMouvement();
+                      });
+                    },
                   ),
                 ),
-                const SizedBox(width: 20),
-                Expanded(
-                  child: ChampAvecLabel(
-                    label: l10n.produit,
-                    child: TextListe(
-                      value: selectedProduitFilter,
-                      items: ProduitFilterOptions,
-                      onChanged: (v) {
-                        setState(() {
-                          selectedProduitFilter = v;
-                          appliquerFiltreMouvement();
-                        });
-                      },
-                    ),
+                ChampAvecLabel(
+                  label: l10n.produit,
+                  child: TextListe(
+                    value: selectedProduitFilter,
+                    items: ProduitFilterOptions,
+                    onChanged: (v) {
+                      setState(() {
+                        selectedProduitFilter = v;
+                        appliquerFiltreMouvement();
+                      });
+                    },
                   ),
                 ),
-                const SizedBox(width: 20),
-                Expanded(
-                  child: ChampAvecLabel(
-                    label: l10n.etat,
-                    child: TextListe(
-                      value: selectedEtatFilterM != null ? translator.translateEtat(selectedEtatFilterM!) : null,
-                      items: translator.etatDisplayList,
-                      onChanged: (v) {
-                        setState(() {
-                          selectedEtatFilterM = translator.etatToFrench(v!);
-                          appliquerFiltreMouvement();
-                        });
-                      },
-                    ),
+                ChampAvecLabel(
+                  label: l10n.etat,
+                  child: TextListe(
+                    value: selectedEtatFilterM != null ? translator.translateEtat(selectedEtatFilterM!) : null,
+                    items: translator.etatDisplayList,
+                    onChanged: (v) {
+                      setState(() {
+                        selectedEtatFilterM = translator.etatToFrench(v!);
+                        appliquerFiltreMouvement();
+                      });
+                    },
                   ),
                 ),
               ],

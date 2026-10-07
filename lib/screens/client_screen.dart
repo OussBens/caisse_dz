@@ -1,5 +1,9 @@
+import 'package:caisse_dz/Services/excel_apercu.dart';
+import 'package:caisse_dz/core/widget/filtre/periode_rapide_filter.dart';
 
+import 'package:caisse_dz/core/widget/filtre/ligne_filtre_tiers.dart';
 import 'dart:io';
+import 'package:caisse_dz/Services/export_spinner.dart';
 
 import 'package:collection/collection.dart';
 import 'package:caisse_dz/Services/Client.dart';
@@ -45,7 +49,6 @@ import '../core/widget/champ/liste_champ.dart';
 import '../core/widget/fourchette._widget.dart';
 import '../core/widget/header_module.dart';
 import '../core/widget/search_bar.dart';
-import '../core/widget/side_bar.dart';
 import '../core/widget/time_date_widget.dart';
 import '../core/widget/connection_status_bar.dart';
 import '../core/widget/account.dart';
@@ -67,18 +70,6 @@ class _ClientScreenState extends State<ClientScreen> with TickerProviderStateMix
   static const int TAB_VERSEMENT = 1;
 
   // Period keys for translation lookup
-  final List<String> periodeKeys = [
-    "today",
-    "yesterday",
-    "week",
-    "lastWeek",
-    "month",
-    "lastMonth",
-    "last7days",
-    "last30days",
-    "year",
-    "lastYear",
-  ];
 
   // Plus besoin de selectedCardIndex, on utilise _tabController.index
   int nombreClient = 5;
@@ -88,6 +79,12 @@ class _ClientScreenState extends State<ClientScreen> with TickerProviderStateMix
   String? typeClientFilter;
   String? activiteClientFilter;
   bool filtresActifs = false;
+  // Garde anti-double-clic pour l'export Excel : sans elle, un double-clic
+  // sur "Extract" pendant la génération lance deux exports en parallèle,
+  // chacun avec son propre showDialog(barrierDismissible:false)/Navigator.pop
+  // — les pops peuvent fermer le mauvais dialog et laisser un spinner
+  // bloquant à l'écran pour de bon.
+  bool _exportEnCours = false;
   List<Client> clientsFiltres = [];
   String? selectedEtatFilter;
 
@@ -216,21 +213,6 @@ class _ClientScreenState extends State<ClientScreen> with TickerProviderStateMix
     _searchController.clear();
   }
 
-  String _getPeriodeDisplayName(String key, AppLocalizations l10n) {
-    switch (key) {
-      case "today": return l10n.today;
-      case "yesterday": return l10n.yesterday;
-      case "week": return l10n.thisWeek;
-      case "lastWeek": return l10n.lastWeek;
-      case "month": return l10n.thisMonth;
-      case "lastMonth": return l10n.lastMonth;
-      case "last7days": return l10n.last7Days;
-      case "last30days": return l10n.last30Days;
-      case "year": return l10n.thisYear;
-      case "lastYear": return l10n.lastYear;
-      default: return key;
-    }
-  }
 
   void _appliquerPeriodeRapide(String p, AppLocalizations l10n) {
     final now = DateTime.now();
@@ -406,15 +388,11 @@ class _ClientScreenState extends State<ClientScreen> with TickerProviderStateMix
   }
 
   // Excel Export Methods
-  Future<void> _exportToExcel() async {
+  Future<void> _exportToExcel({bool enPdf = false}) async {
+    if (_exportEnCours) return;
+    setState(() => _exportEnCours = true);
+    final fermerSpinner = ouvrirSpinnerExport(context);
     try {
-      showDialog(
-        context: context,
-        barrierDismissible: false,
-        builder: (context) => const Center(
-          child: CircularProgressIndicator(),
-        ),
-      );
 
       final l10n = AppLocalizations.of(context)!;
       final translator = ListsConstTranslator(l10n);
@@ -431,7 +409,7 @@ class _ClientScreenState extends State<ClientScreen> with TickerProviderStateMix
         case TAB_CLIENT: // 0 - Clients
           final clientsToExport = filtresActifs ? clientsFiltres : clients;
           if (clientsToExport.isEmpty) {
-            Navigator.pop(context);
+            fermerSpinner();
             await InformationDialog(
               context: context,
               titre_type_message: l10n.information,
@@ -452,7 +430,7 @@ class _ClientScreenState extends State<ClientScreen> with TickerProviderStateMix
         case TAB_VERSEMENT: // 1 - Versements
           final versementsToExport = filtresActifs ? verssementsFiltres : versements;
           if (versementsToExport.isEmpty) {
-            Navigator.pop(context);
+            fermerSpinner();
             await InformationDialog(
               context: context,
               titre_type_message: l10n.information,
@@ -471,7 +449,7 @@ class _ClientScreenState extends State<ClientScreen> with TickerProviderStateMix
           break;
 
         default:
-          Navigator.pop(context);
+          fermerSpinner();
           await InformationDialog(
             context: context,
             titre_type_message: l10n.information,
@@ -485,7 +463,14 @@ class _ClientScreenState extends State<ClientScreen> with TickerProviderStateMix
         throw Exception('Failed to generate Excel file');
       }
 
-      Navigator.pop(context);
+      fermerSpinner();
+
+      // Extract PDF : même fichier que l'export Excel, mis en page en PDF.
+      if (enPdf) {
+        fermerSpinner();
+        await ouvrirApercuPdfDepuisExcel(context, fichier: excelFile, titre: moduleName);
+        return;
+      }
 
       final excel = Excel.decodeBytes(await excelFile.readAsBytes());
 
@@ -584,9 +569,7 @@ class _ClientScreenState extends State<ClientScreen> with TickerProviderStateMix
         );
       }
     } catch (e) {
-      if (Navigator.canPop(context)) {
-        Navigator.pop(context);
-      }
+      fermerSpinner();
 
       print('Excel export error: $e');
       ScaffoldMessenger.of(context).showSnackBar(
@@ -595,9 +578,12 @@ class _ClientScreenState extends State<ClientScreen> with TickerProviderStateMix
           backgroundColor: Colors.red,
         ),
       );
+    } finally {
+      if (mounted) setState(() => _exportEnCours = false);
     }
   }
   Future<void> _exportSelectedToExcel() async {
+    if (_exportEnCours) return;
     if (clientsSelectionnes.isEmpty) {
       final l10n = AppLocalizations.of(context)!;
       await InformationDialog(
@@ -609,14 +595,9 @@ class _ClientScreenState extends State<ClientScreen> with TickerProviderStateMix
       return;
     }
 
+    setState(() => _exportEnCours = true);
+    final fermerSpinner = ouvrirSpinnerExport(context);
     try {
-      showDialog(
-        context: context,
-        barrierDismissible: false,
-        builder: (context) => const Center(
-          child: CircularProgressIndicator(),
-        ),
-      );
 
       final l10n = AppLocalizations.of(context)!;
       final translator = ListsConstTranslator(l10n);
@@ -628,7 +609,7 @@ class _ClientScreenState extends State<ClientScreen> with TickerProviderStateMix
         translator: translator,
       );
 
-      Navigator.pop(context); // Close loading dialog
+      fermerSpinner();
 
       // Decode the Excel file to show preview
       final excel = Excel.decodeBytes(await excelFile.readAsBytes());
@@ -707,9 +688,7 @@ class _ClientScreenState extends State<ClientScreen> with TickerProviderStateMix
         );
       }
     } catch (e) {
-      if (Navigator.canPop(context)) {
-        Navigator.pop(context);
-      }
+      fermerSpinner();
 
       print('Excel export error: $e');
       ScaffoldMessenger.of(context).showSnackBar(
@@ -718,6 +697,8 @@ class _ClientScreenState extends State<ClientScreen> with TickerProviderStateMix
           backgroundColor: Colors.red,
         ),
       );
+    } finally {
+      if (mounted) setState(() => _exportEnCours = false);
     }
   }
 
@@ -731,18 +712,24 @@ class _ClientScreenState extends State<ClientScreen> with TickerProviderStateMix
   // ✅ Total Versé = total encaissé (versements "Entrée" uniquement) — un
   // remboursement client ("Sortie") n'est pas un encaissement et ne doit
   // pas gonfler ce total.
-  double _totalVerse() => verssementsTest
-      .where((v) => v.sense == 'Entrée')
-      .fold(0.0, (s, v) => s + v.montant);
+  // Cards Versement : versements actifs dans le sens qui compte pour un
+  // client ('Entrée' — même convention que le total de la situation client).
+  List<Verssement> get _versementsComptes => verssementsTest
+      .where((v) => v.etat && v.sense == 'Entrée')
+      .toList();
+
+  double _totalVerse() => _versementsComptes.fold(0.0, (s, v) => s + v.montant);
 
   Verssement? _versementMax() {
-    if (verssementsTest.isEmpty) return null;
-    return verssementsTest.reduce((a, b) => a.montant >= b.montant ? a : b);
+    final liste = _versementsComptes;
+    if (liste.isEmpty) return null;
+    return liste.reduce((a, b) => a.montant >= b.montant ? a : b);
   }
 
   Verssement? _dernierVersement() {
-    if (verssementsTest.isEmpty) return null;
-    return verssementsTest.reduce((a, b) => a.date.isAfter(b.date) ? a : b);
+    final liste = _versementsComptes;
+    if (liste.isEmpty) return null;
+    return liste.reduce((a, b) => a.date.isAfter(b.date) ? a : b);
   }
 
   @override
@@ -806,12 +793,7 @@ class _ClientScreenState extends State<ClientScreen> with TickerProviderStateMix
               child: SizedBox(
                 width: adjustedWidth,
                 height: adjustedHeight,
-                  child: Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      SideBarWidget(),
-                      Expanded(
-                        child: SingleChildScrollView(
+                  child: SingleChildScrollView(
                           padding: const EdgeInsets.all(16.0),
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
@@ -1007,8 +989,20 @@ class _ClientScreenState extends State<ClientScreen> with TickerProviderStateMix
                                               iconColor: Colors.green,
                                               color: Appstyle.Tblanc,
                                               icon: Icons.download,
+                                              loading: _exportEnCours,
                                               onPressed: () async {
                                                 await _exportToExcel();
+                                              },
+                                            ),
+                                            SizedBox(width: paddingH / 4),
+                                            MainButton(
+                                              text: l10n.extractPdf,
+                                              textColor: Colors.red,
+                                              iconColor: Colors.red,
+                                              color: Appstyle.Tblanc,
+                                              icon: Icons.picture_as_pdf,
+                                              onPressed: () async {
+                                                await _exportToExcel(enPdf: true);
                                               },
                                             ),
                                             SizedBox(width: paddingH / 4),
@@ -1216,7 +1210,7 @@ class _ClientScreenState extends State<ClientScreen> with TickerProviderStateMix
                                       )
                                     else
                                       AfficheurVersementGlobalWidget(
-                                        nombreVersements: verssementsTest.length,
+                                        nombreVersements: verssementsTest.where((v) => v.etat).length,
                                         totalVerse: _totalVerse(),
                                         montantMax: _versementMax()?.montant ?? 0,
                                         nomBeneficiaireMax: _versementMax() != null
@@ -1270,8 +1264,20 @@ class _ClientScreenState extends State<ClientScreen> with TickerProviderStateMix
                                               iconColor: Colors.green,
                                               color: Appstyle.Tblanc,
                                               icon: Icons.download,
+                                              loading: _exportEnCours,
                                               onPressed: () async {
                                                 await _exportToExcel();
+                                              },
+                                            ),
+                                            SizedBox(width: paddingH / 4),
+                                            MainButton(
+                                              text: l10n.extractPdf,
+                                              textColor: Colors.red,
+                                              iconColor: Colors.red,
+                                              color: Appstyle.Tblanc,
+                                              icon: Icons.picture_as_pdf,
+                                              onPressed: () async {
+                                                await _exportToExcel(enPdf: true);
                                               },
                                             ),
                                             SizedBox(width: paddingH / 4),
@@ -1390,9 +1396,6 @@ class _ClientScreenState extends State<ClientScreen> with TickerProviderStateMix
                             ],
                           ),
                         ),
-                      ),
-                    ],
-                  ),
                 ),
               ),
           );
@@ -1459,20 +1462,17 @@ class _ClientScreenState extends State<ClientScreen> with TickerProviderStateMix
             ],
           ),
           const SizedBox(height: 15),
-          Row(
+          LigneFiltreTiers(
             children: [
-              Expanded(
-                child: ChampAvecLabel(
-                  width: width * 0.75,
-                  label: l10n.search,
-                  child: SearchField(
-                    controller: _searchController,
-                    onChanged: (_) {
-                      setState(() {
-                        appliquerFiltre();
-                      });
-                    },
-                  ),
+              ChampAvecLabel(
+                label: l10n.search,
+                child: SearchField(
+                  controller: _searchController,
+                  onChanged: (_) {
+                    setState(() {
+                      appliquerFiltre();
+                    });
+                  },
                 ),
               ),
             ],
@@ -1543,99 +1543,68 @@ class _ClientScreenState extends State<ClientScreen> with TickerProviderStateMix
             ],
           ),
           const SizedBox(height: 15),
-          Row(
+          LigneFiltreTiers(
             children: [
-              Expanded(
-                child: ChampAvecLabel(
-                  label: l10n.from,
-                  child: TextDate(
-                    hint: l10n.startDate,
-                    controller: _dateDebutCtrl,
-                    onTap: _pickDateDebut,
-                  ),
+              ChampAvecLabel(
+                label: l10n.from,
+                child: TextDate(
+                  hint: l10n.startDate,
+                  controller: _dateDebutCtrl,
+                  onTap: _pickDateDebut,
                 ),
               ),
-              const SizedBox(width: 20),
-              Expanded(
-                child: ChampAvecLabel(
-                  label: l10n.to,
-                  child: TextDate(
-                    hint: l10n.endDate,
-                    enabled: dateDebut != null,
-                    controller: _dateFinCtrl,
-                    onTap: _pickDateFin,
-                  ),
+              ChampAvecLabel(
+                label: l10n.to,
+                child: TextDate(
+                  hint: l10n.endDate,
+                  enabled: dateDebut != null,
+                  controller: _dateFinCtrl,
+                  onTap: _pickDateFin,
                 ),
               ),
-              const SizedBox(width: 20),
-              SizedBox(
-                width: width * 0.75,
-                child: ChampAvecLabel(
-                  label: l10n.quickPeriod,
-                  child: DropdownButtonFormField<String>(
-                    value: periodeRapide,
-                    decoration: InputDecoration(
-                      hintText: l10n.choosePeriod,
-                      isDense: true,
-                      border: OutlineInputBorder(),
-                    ),
-                    items: periodeKeys.map((key) {
-                      return DropdownMenuItem<String>(
-                        value: key,
-                        child: Text(_getPeriodeDisplayName(key, l10n)),
-                      );
-                    }).toList(),
-                    onChanged: (v) {
-                      if (v != null) {
-                        setState(() {
-                          periodeRapide = v;
-                          _appliquerPeriodeRapide(v, l10n);
-                        });
-                      }
-                    },
-                  ),
-                ),
+              // Même largeur que la période rapide du filtre Retour.
+              ChampPeriodeRapide(
+                l10n: l10n,
+                value: periodeRapide,
+                onSelected: (v) {
+                  setState(() {
+                    periodeRapide = v;
+                    _appliquerPeriodeRapide(v, l10n);
+                  });
+                },
               ),
             ],
           ),
           const SizedBox(height: 15),
-          SizedBox(
-            width: width * 6 / 12,
-            child: Row(
-              children: [
-                Expanded(
-                  child: ChampAvecLabel(
-                    label: l10n.search,
-                    child: SearchField(
-                      controller: _searchControllerVers,
-                      onChanged: (v) {
-                        setState(() {
-                          appliquerFiltreVers();
-                        });
-                      },
-                    ),
-                  ),
+          LigneFiltreTiers(
+            children: [
+              ChampAvecLabel(
+                label: l10n.search,
+                child: SearchField(
+                  controller: _searchControllerVers,
+                  onChanged: (v) {
+                    setState(() {
+                      appliquerFiltreVers();
+                    });
+                  },
                 ),
-                const SizedBox(width: 20),
-                Expanded(
-                  child: ChampAvecLabel(
-                    label: l10n.valide,
-                    child: TextListe(
-                      value: selectedEtatVErsementFilter != null
-                          ? translator.translateEtatVersement(selectedEtatVErsementFilter!)
-                          : null,
-                      items: translator.etatVersementDisplayList,
-                      onChanged: (v) {
-                        setState(() {
-                          selectedEtatVErsementFilter = translator.etatVersementToFrench(v!);
-                          appliquerFiltreVers();
-                        });
-                      },
-                    ),
-                  ),
+              ),
+              ChampAvecLabel(
+                label: l10n.valide,
+                child: TextListe(
+                  value: selectedEtatVErsementFilter != null
+                      ? translator.translateEtatVersement(selectedEtatVErsementFilter!)
+                      : null,
+                  items: translator.etatVersementDisplayList,
+                  onChanged: (v) {
+                    setState(() {
+                      selectedEtatVErsementFilter = translator.etatVersementToFrench(v!);
+                      appliquerFiltreVers();
+                    });
+                  },
                 ),
-              ],
-            ),
+              ),
+            ],
           ),
         ],
       ),

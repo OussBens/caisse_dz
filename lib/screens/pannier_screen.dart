@@ -1,4 +1,9 @@
+import 'package:caisse_dz/Services/excel_apercu.dart';
+import 'package:caisse_dz/Services/Produits.dart';
+import 'package:caisse_dz/core/widget/filtre/periode_rapide_filter.dart';
+import 'package:caisse_dz/core/widget/filtre/ligne_filtre_tiers.dart';
 import 'package:caisse_dz/DBCreate.dart';
+import 'package:caisse_dz/Services/export_spinner.dart';
 import 'package:caisse_dz/Services/Client.dart';
 import 'package:caisse_dz/Services/Pannier.dart';
 import 'package:caisse_dz/Services/PannierProduit.dart';
@@ -27,7 +32,6 @@ import 'package:caisse_dz/core/widget/champ/liste_champ.dart';
 import 'package:caisse_dz/core/widget/fourchette._widget.dart';
 import 'package:caisse_dz/core/widget/header_module.dart';
 import 'package:caisse_dz/core/widget/search_bar.dart';
-import 'package:caisse_dz/core/widget/side_bar.dart';
 import 'package:caisse_dz/core/widget/time_date_widget.dart';
 import 'package:caisse_dz/core/widget/connection_status_bar.dart';
 import 'package:caisse_dz/data/constant.dart';
@@ -78,18 +82,6 @@ class _PannierScreenState extends State<PannierScreen> {
     );
   }
   // Period keys for translation lookup
-  final List<String> periodeKeys = [
-    "today",
-    "yesterday",
-    "week",
-    "lastWeek",
-    "month",
-    "lastMonth",
-    "last7days",
-    "last30days",
-    "year",
-    "lastYear",
-  ];
 
   List<Pannier> paniersTest = [];
   List<Client> clientsTest = [];
@@ -99,6 +91,8 @@ class _PannierScreenState extends State<PannierScreen> {
   Map<String, double> verseParPannier = {};
   Map<String, int> nbrVersementParPannier = {};
   Set<String> panniersAvecRetour = {};
+  // Code produit -> nom, pour afficher le produit star par son nom.
+  Map<String, String> nomsProduits = {};
 
   Future<void> _LoadAllData() async {
     supprimerFilter();
@@ -108,6 +102,9 @@ class _PannierScreenState extends State<PannierScreen> {
     pannierProduitsTest = await PPServices.getAllPP();
     versementsTest = await VerssementServices.getAllverssement();
     utilisateursTest = await UtilisateurServices.getAllUtilisateurs();
+    nomsProduits = {
+      for (final p in await ProduitServices.getAllProduits()) p.code: p.nom,
+    };
     verseParPannier = PannierServices.verseParPannier(versementsTest);
     nbrVersementParPannier = PannierServices.nbrVersementParPannier(versementsTest);
 
@@ -142,6 +139,9 @@ class _PannierScreenState extends State<PannierScreen> {
   List<Pannier> paniersSelectionnes = [];
 
   bool filtresActifs = false;
+  // Garde anti-double-clic pour l'export Excel (voir client_screen.dart pour
+  // le détail du bug évité).
+  bool _exportEnCours = false;
   bool? filtreetat;
 
   final TextEditingController _searchController = TextEditingController();
@@ -151,11 +151,14 @@ class _PannierScreenState extends State<PannierScreen> {
   double? resteMin;
   double? resteMax;
 
+  // Quantités vendues par produit : lignes actives de paniers actifs
+  // (PannierProduit.etat est un booléen).
   Map<String, double> calculerVentesProduits(List<PannierProduit> lignes) {
     final Map<String, double> ventes = {};
+    final panniersActifs = paniersTest.where((p) => p.etat).map((p) => p.code).toSet();
 
     for (final l in lignes) {
-      if (l.etat != "actif") continue;
+      if (!l.etat || !panniersActifs.contains(l.codePannier)) continue;
 
       final code = l.codeProduit;
       final qte = l.quantite;
@@ -179,7 +182,7 @@ class _PannierScreenState extends State<PannierScreen> {
       }
     });
 
-    return star;
+    return nomsProduits[star] ?? star;
   }
 
   double getQuantiteStarGlobal(List<PannierProduit> lignes) {
@@ -324,21 +327,6 @@ class _PannierScreenState extends State<PannierScreen> {
     }
   }
 
-  String _getPeriodeDisplayName(String key, AppLocalizations l10n) {
-    switch (key) {
-      case "today": return l10n.today;
-      case "yesterday": return l10n.yesterday;
-      case "week": return l10n.thisWeek;
-      case "lastWeek": return l10n.lastWeek;
-      case "month": return l10n.thisMonth;
-      case "lastMonth": return l10n.lastMonth;
-      case "last7days": return l10n.last7Days;
-      case "last30days": return l10n.last30Days;
-      case "year": return l10n.thisYear;
-      case "lastYear": return l10n.lastYear;
-      default: return key;
-    }
-  }
 
   void _appliquerPeriodeRapide(String p, AppLocalizations l10n) {
     final now = DateTime.now();
@@ -421,15 +409,11 @@ class _PannierScreenState extends State<PannierScreen> {
   }
 
   // Excel Export Methods
-  Future<void> _exportToExcel() async {
+  Future<void> _exportToExcel({bool enPdf = false}) async {
+    if (_exportEnCours) return;
+    setState(() => _exportEnCours = true);
+    final fermerSpinner = ouvrirSpinnerExport(context);
     try {
-      showDialog(
-        context: context,
-        barrierDismissible: false,
-        builder: (context) => const Center(
-          child: CircularProgressIndicator(),
-        ),
-      );
 
       final l10n = AppLocalizations.of(context)!;
       final translator = ListsConstTranslator(l10n);
@@ -438,7 +422,7 @@ class _PannierScreenState extends State<PannierScreen> {
       final panniersToExport = filtresActifs ? pannierFiltres : paniersTest;
 
       if (panniersToExport.isEmpty) {
-        Navigator.pop(context);
+        fermerSpinner();
         await InformationDialog(
           context: context,
           titre_type_message: l10n.information,
@@ -455,9 +439,16 @@ class _PannierScreenState extends State<PannierScreen> {
         translator: translator,
       );
 
-      Navigator.pop(context);
+      fermerSpinner();
 
       // Decode the Excel file to show preview
+      // Extract PDF : même fichier que l'export Excel, mis en page en PDF.
+      if (enPdf) {
+        fermerSpinner();
+        await ouvrirApercuPdfDepuisExcel(context, fichier: excelFile, titre: AppLocalizations.of(context)!.panier);
+        return;
+      }
+
       final excel = Excel.decodeBytes(await excelFile.readAsBytes());
 
       var sheet = excel.tables['Panniers'];
@@ -543,9 +534,7 @@ class _PannierScreenState extends State<PannierScreen> {
         );
       }
     } catch (e) {
-      if (Navigator.canPop(context)) {
-        Navigator.pop(context);
-      }
+      fermerSpinner();
 
       print('Excel export error: $e');
       ScaffoldMessenger.of(context).showSnackBar(
@@ -554,11 +543,14 @@ class _PannierScreenState extends State<PannierScreen> {
           backgroundColor: Colors.red,
         ),
       );
+    } finally {
+      if (mounted) setState(() => _exportEnCours = false);
     }
   }
 
   // Export selected panniers only
   Future<void> _exportSelectedToExcel() async {
+    if (_exportEnCours) return;
     if (paniersSelectionnes.isEmpty) {
       final l10n = AppLocalizations.of(context)!;
       await InformationDialog(
@@ -570,14 +562,9 @@ class _PannierScreenState extends State<PannierScreen> {
       return;
     }
 
+    setState(() => _exportEnCours = true);
+    final fermerSpinner = ouvrirSpinnerExport(context);
     try {
-      showDialog(
-        context: context,
-        barrierDismissible: false,
-        builder: (context) => const Center(
-          child: CircularProgressIndicator(),
-        ),
-      );
 
       final l10n = AppLocalizations.of(context)!;
       final translator = ListsConstTranslator(l10n);
@@ -589,7 +576,7 @@ class _PannierScreenState extends State<PannierScreen> {
         translator: translator,
       );
 
-      Navigator.pop(context);
+      fermerSpinner();
 
       // Decode the Excel file to show preview
       final excel = Excel.decodeBytes(await excelFile.readAsBytes());
@@ -667,9 +654,7 @@ class _PannierScreenState extends State<PannierScreen> {
         );
       }
     } catch (e) {
-      if (Navigator.canPop(context)) {
-        Navigator.pop(context);
-      }
+      fermerSpinner();
 
       print('Excel export error: $e');
       ScaffoldMessenger.of(context).showSnackBar(
@@ -678,6 +663,8 @@ class _PannierScreenState extends State<PannierScreen> {
           backgroundColor: Colors.red,
         ),
       );
+    } finally {
+      if (mounted) setState(() => _exportEnCours = false);
     }
   }
 
@@ -696,9 +683,11 @@ class _PannierScreenState extends State<PannierScreen> {
 
     final produitStar = getProduitStarGlobal(pannierProduitsTest);
     final quantiteStar = getQuantiteStarGlobal(pannierProduitsTest);
-    final double total = paniers.fold(0.0, (s, c) => s + c.montant);
-
-    final int nb = paniersSelectionnes.isEmpty ? paniers.length : paniers.length;
+    // Cards globales : paniers actifs uniquement (un panier annulé n'est
+    // pas une vente).
+    final paniersActifs = paniers.where((p) => p.etat).toList();
+    final double total = paniersActifs.fold(0.0, (s, c) => s + c.montant);
+    final int nb = paniersActifs.length;
     final double moyenne = nb == 0 ? 0 : total / nb;
 
     return Scaffold(
@@ -726,12 +715,7 @@ class _PannierScreenState extends State<PannierScreen> {
               child: SizedBox(
                 width: adjustedWidth,
                     height: adjustedHeight,
-                    child: Row(
-                       children: [
-                        SideBarWidget(),
-
-                        Expanded(
-                          child: SingleChildScrollView(
+                    child: SingleChildScrollView(
                             padding: const EdgeInsets.all(16),
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
@@ -795,7 +779,7 @@ class _PannierScreenState extends State<PannierScreen> {
                                   AfficheurPaniersGlobalWidget(
                                     totalPanier: total,
                                     produitStar: produitStar,
-                                    nombrePaniers: paniers.length,
+                                    nombrePaniers: nb,
                                     moyenneParPanier: moyenne,
                                     produitStarQuantite: quantiteStar,
                                   ),
@@ -845,8 +829,20 @@ class _PannierScreenState extends State<PannierScreen> {
                                           iconColor: Colors.green,
                                           color: Appstyle.Tblanc,
                                           icon: Icons.download,
+                                          loading: _exportEnCours,
                                           onPressed: () async {
                                             await _exportToExcel();
+                                          },
+                                        ),
+                                        SizedBox(width: paddingH / 4),
+                                        MainButton(
+                                          text: l10n.extractPdf,
+                                          textColor: Colors.red,
+                                          iconColor: Colors.red,
+                                          color: Appstyle.Tblanc,
+                                          icon: Icons.picture_as_pdf,
+                                          onPressed: () async {
+                                            await _exportToExcel(enPdf: true);
                                           },
                                         ),
                                         SizedBox(width: paddingH / 4),
@@ -969,9 +965,6 @@ class _PannierScreenState extends State<PannierScreen> {
                               ],
                             ),
                           ),
-                        ),
-                      ],
-                    ),
                   ),
 
               ),
@@ -1109,81 +1102,52 @@ class _PannierScreenState extends State<PannierScreen> {
             ],
           ),
           const SizedBox(height: 15),
-          Row(
+          LigneFiltreTiers(
             children: [
-              Expanded(
-                child: ChampAvecLabel(
-                  label: l10n.from,
-                  child: TextDate(
-                    hint: l10n.startDate,
-                    controller: _dateDebutCtrl,
-                    onTap: _pickDateDebut,
-                  ),
+              ChampAvecLabel(
+                label: l10n.from,
+                child: TextDate(
+                  hint: l10n.startDate,
+                  controller: _dateDebutCtrl,
+                  onTap: _pickDateDebut,
                 ),
               ),
-              const SizedBox(width: 20),
-              Expanded(
-                child: ChampAvecLabel(
-                  label: l10n.to,
-                  child: TextDate(
-                    hint: l10n.endDate,
-                    enabled: dateDebut != null,
-                    controller: _dateFinCtrl,
-                    onTap: _pickDateFin,
-                  ),
+              ChampAvecLabel(
+                label: l10n.to,
+                child: TextDate(
+                  hint: l10n.endDate,
+                  enabled: dateDebut != null,
+                  controller: _dateFinCtrl,
+                  onTap: _pickDateFin,
                 ),
               ),
-              const SizedBox(width: 20),
-              SizedBox(
-                width: width * 0.75,
-                child: ChampAvecLabel(
-                  label: l10n.quickPeriod,
-                  child: DropdownButtonFormField<String>(
-                    value: periodeRapide,
-                    decoration: InputDecoration(
-                      hintText: l10n.choosePeriod,
-                      isDense: true,
-                      border: OutlineInputBorder(),
-                    ),
-                    items: periodeKeys.map((key) {
-                      return DropdownMenuItem<String>(
-                        value: key,
-                        child: Text(_getPeriodeDisplayName(key, l10n)),
-                      );
-                    }).toList(),
-                    onChanged: (v) {
-                      if (v != null) {
-                        setState(() {
-                          periodeRapide = v;
-                          _appliquerPeriodeRapide(v, l10n);
-                        });
-                      }
-                    },
-                  ),
-                ),
+              ChampPeriodeRapide(
+                l10n: l10n,
+                value: periodeRapide,
+                onSelected: (v) {
+                  setState(() {
+                    periodeRapide = v;
+                    _appliquerPeriodeRapide(v, l10n);
+                  });
+                },
               ),
             ],
           ),
           const SizedBox(height: 15),
-          SizedBox(
-            width: width * 0.75,
-            child: Row(
-              children: [
-                Expanded(
-                  child: ChampAvecLabel(
-                    label: l10n.search,
-                    child: SearchField(
-                      controller: _searchController,
-                      onChanged: (v) {
-                        setState(() {
-                          appliquerFiltre();
-                        });
-                      },
-                    ),
-                  ),
+          LigneFiltreTiers(
+            children: [
+              ChampAvecLabel(
+                label: l10n.search,
+                child: SearchField(
+                  controller: _searchController,
+                  onChanged: (v) {
+                    setState(() {
+                      appliquerFiltre();
+                    });
+                  },
                 ),
-              ],
-            ),
+              ),
+            ],
           ),
         ],
       ),

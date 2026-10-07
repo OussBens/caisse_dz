@@ -1,11 +1,13 @@
+import 'package:caisse_dz/Services/StatistiquesGlobales.dart';
+import 'package:caisse_dz/core/widget/filtre/periode_rapide_filter.dart';
+import 'package:caisse_dz/core/widget/filtre/ligne_filtre_tiers.dart';
 import 'dart:async';
+import 'package:caisse_dz/core/dialog/dialog_kind.dart';
 import 'dart:io';
 import 'package:caisse_dz/DBCreate.dart';
 import 'package:caisse_dz/Services/BonReception.dart';
 import 'package:caisse_dz/Services/BonReceptionPhotos.dart';
-import 'package:caisse_dz/Services/BonReceptionServer.dart';
 import 'package:caisse_dz/core/dialog/AI/ai_receipt_dialog.dart';
-import 'package:caisse_dz/core/dialog/AI/reception_connection_dialog.dart';
 import 'package:caisse_dz/core/widget/photo/bon_reception_card.dart';
 import 'package:caisse_dz/core/widget/ai_smart_icon.dart';
 import 'package:caisse_dz/data/models/bon_reception.dart';
@@ -15,6 +17,8 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import 'package:caisse_dz/Services/ExcelPreviewDialog.dart';
+import 'package:caisse_dz/Services/excel_apercu.dart';
+import 'package:caisse_dz/Services/export_spinner.dart';
 import 'package:caisse_dz/Services/BesionListDetail.dart';
 import 'package:caisse_dz/Services/Mouvement.dart';
 import 'package:caisse_dz/Services/excel_generator.dart';
@@ -62,7 +66,6 @@ import 'package:caisse_dz/core/widget/connection_status_bar.dart';
 import 'package:caisse_dz/core/widget/internet_status_widget.dart';
 import 'package:caisse_dz/core/widget/header_module.dart';
 import 'package:caisse_dz/core/widget/search_bar.dart';
-import 'package:caisse_dz/core/widget/side_bar.dart';
 import 'package:caisse_dz/data/models/besion_list_detail.dart';
 import 'package:caisse_dz/data/models/sous_categorie.dart';
 import 'package:caisse_dz/data/models/fournisseur.dart';
@@ -120,6 +123,10 @@ class _EntreeScreenState extends State<EntreeScreen> with TickerProviderStateMix
 
   final titles = ["SmartScan", "AI"];
 
+  // Cards globales (AfficheurStockGlobalWidget) : vrais compteurs, voir
+  // StatistiquesGlobalesServices.
+  CompteursGlobaux compteursGlobaux = const CompteursGlobaux();
+
   Future<void> loadAllData() async {
     final test = await ProduitServices.getAllProduits();
 
@@ -137,7 +144,10 @@ class _EntreeScreenState extends State<EntreeScreen> with TickerProviderStateMix
     // ✅ Quantités calculées depuis le journal des mouvements — remplace Produit.quantite.
     final quantitesTest = (await MouvementsServices.totauxParProduit()).quantites;
 
+    final compteurs = await StatistiquesGlobalesServices.getCompteurs();
+    if (!mounted) return;
     setState(() {
+      compteursGlobaux = compteurs;
       bonsReception         = bonsReceptionList;
       nombre_ai             = bonsReceptionList.length.toString();
       appliquerFiltreAI();
@@ -198,6 +208,7 @@ class _EntreeScreenState extends State<EntreeScreen> with TickerProviderStateMix
       await InformationDialog(
         context: context,
         titre_type_message: l10n.error,
+        kind: DialogKind.refuser,
         titre_concerne: '',
         message: l10n.receptionPhotoMissing,
       );
@@ -212,6 +223,7 @@ class _EntreeScreenState extends State<EntreeScreen> with TickerProviderStateMix
       await InformationDialog(
         context: context,
         titre_type_message: l10n.attention,
+        kind: DialogKind.attention,
         titre_concerne: '',
         message: l10n.internetDisconnected,
       );
@@ -234,7 +246,56 @@ class _EntreeScreenState extends State<EntreeScreen> with TickerProviderStateMix
     await loadAllData();
   }
 
-  // ... (gardez vos méthodes d'export _exportCurrentModuleToExcel et _exportSelectedToExcel en les adaptant avec _tabController.index)
+  Future<void> _exportSmartScanToExcel({bool enPdf = false}) async {
+    final l10n = AppLocalizations.of(context)!;
+    final translator = ListsConstTranslator(l10n);
+    final scans = smartscansSelectionnes.isNotEmpty
+        ? smartscansSelectionnes
+        : (filtresActifs ? smartscansFiltres : smartScansTest);
+
+    if (scans.isEmpty) {
+      await InformationDialog(
+        context: context,
+        titre_type_message: l10n.information,
+        titre_concerne: l10n.smartScan,
+        message: l10n.noDataToExport,
+      );
+      return;
+    }
+
+    try {
+      final fichier = await executerAvecSpinner(
+        context,
+        () => ExcelGenerator.generateSmartScansExcel(
+          smartScans: scans,
+          versements: versementsTest,
+          l10n: l10n,
+          translator: translator,
+        ),
+      );
+      if (!mounted) return;
+      if (enPdf) {
+        await ouvrirApercuPdfDepuisExcel(context, fichier: fichier, titre: l10n.smartScan, nomFeuille: 'SmartScans');
+        return;
+      }
+      await ouvrirApercuExcel(
+        context,
+        fichier: fichier,
+        nomFeuille: 'SmartScans',
+        titre: l10n.smartScan,
+        l10n: l10n,
+      );
+    } catch (e) {
+      print('Excel export error: $e');
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('${l10n.exportError}: $e'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
+  }
 
   // ✅ Traduire les périodes rapides
   Map<String, String> _getPeriodesRapides(AppLocalizations l10n) {
@@ -293,11 +354,6 @@ class _EntreeScreenState extends State<EntreeScreen> with TickerProviderStateMix
   final TextEditingController _dateFinScanCtrlAI = TextEditingController();
   final TextEditingController _searchControllerAI = TextEditingController();
 
-  // ✅ Id du bon tout juste arrivé du mobile : sert à déclencher une courte
-  // animation d'apparition sur sa vignette dans la grille.
-  int? _justArrivedBonId;
-  Timer? _justArrivedTimer;
-
   @override
   void initState() {
     super.initState();
@@ -310,26 +366,10 @@ class _EntreeScreenState extends State<EntreeScreen> with TickerProviderStateMix
       }
     });
     loadAllData();
-
-    // ✅ Rafraîchit la file d'attente dès qu'une photo est reçue du mobile,
-    // sans attendre une navigation ou un polling manuel, et déclenche une
-    // animation d'apparition sur la nouvelle vignette.
-    BonReceptionServer.instance.onBonReceived = (bon) async {
-      if (!mounted) return;
-      await loadAllData();
-      if (!mounted) return;
-      setState(() => _justArrivedBonId = bon.id);
-      _justArrivedTimer?.cancel();
-      _justArrivedTimer = Timer(const Duration(milliseconds: 900), () {
-        if (mounted) setState(() => _justArrivedBonId = null);
-      });
-    };
   }
 
   @override
   void dispose() {
-    BonReceptionServer.instance.onBonReceived = null;
-    _justArrivedTimer?.cancel();
     _dateDebutCtrlAI.dispose();
     _dateFinCtrlAI.dispose();
     _dateDebutScanCtrlAI.dispose();
@@ -721,12 +761,7 @@ class _EntreeScreenState extends State<EntreeScreen> with TickerProviderStateMix
                 child: SizedBox(
                   width: adjustedWidth,
                   height: adjustedHeight,
-                    child: Row(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        SideBarWidget(),
-                        Expanded(
-                          child: SingleChildScrollView(
+                    child: SingleChildScrollView(
                             padding: const EdgeInsets.all(16.0),
                             child: Column(
                               children: [
@@ -881,12 +916,12 @@ class _EntreeScreenState extends State<EntreeScreen> with TickerProviderStateMix
                                         Padding(
                                           padding: const EdgeInsets.only(bottom: 16.0),
                                           child: AfficheurStockGlobalWidget(
-                                            nombreBesoinList: 7,
-                                            nombrePanniers: smartScansTest.length,
-                                            nombreProduitsStock: 26,
-                                            nombreRetours: 15,
-                                            nombreSmartScan: 40,
-                                            nombreSorties: 10,
+                                            nombreBesoinList: compteursGlobaux.besoinLists,
+                                            nombrePanniers: compteursGlobaux.panniers,
+                                            nombreProduitsStock: compteursGlobaux.produitsEnStock,
+                                            nombreRetours: compteursGlobaux.retours,
+                                            nombreSmartScan: compteursGlobaux.smartScans,
+                                            nombreSorties: compteursGlobaux.sorties,
                                           ),
                                         ),
 
@@ -938,7 +973,17 @@ class _EntreeScreenState extends State<EntreeScreen> with TickerProviderStateMix
                                                   iconColor: Colors.green,
                                                   color: Appstyle.Tblanc,
                                                   icon: Icons.download,
+                                                  onPressed: _exportSmartScanToExcel,
+                                                ),
+                                                SizedBox(width: paddingH / 4),
+                                                MainButton(
+                                                  text: l10n.extractPdf,
+                                                  textColor: Colors.red,
+                                                  iconColor: Colors.red,
+                                                  color: Appstyle.Tblanc,
+                                                  icon: Icons.picture_as_pdf,
                                                   onPressed: () async {
+                                                    await _exportSmartScanToExcel(enPdf: true);
                                                   },
                                                 ),
                                                 SizedBox(width: paddingH / 4),
@@ -1115,15 +1160,6 @@ class _EntreeScreenState extends State<EntreeScreen> with TickerProviderStateMix
                                                 onPressed: _attachBonFromDisk,
                                               ),
                                             ),
-                                            const SizedBox(width: 16),
-                                            Expanded(
-                                              child: MainButton(
-                                                text: l10n.receiveBonFromPhone,
-                                                color: Appstyle.violet,
-                                                icon: Icons.qr_code,
-                                                onPressed: () => ReceptionConnectionDialog.open(context),
-                                              ),
-                                            ),
                                           ],
                                         ),
                                         const SizedBox(height: 16),
@@ -1215,7 +1251,6 @@ class _EntreeScreenState extends State<EntreeScreen> with TickerProviderStateMix
                                               return BonReceptionCard(
                                                 key: ValueKey(bon.id),
                                                 bon: bon,
-                                                justArrived: bon.id == _justArrivedBonId,
                                                 traiteParNom: _nomUtilisateur(bon.traiteParCode),
                                                 onTap: () => _openWizardFor(bon),
                                                 // ✅ Une photo déjà scannée est liée à un Smart Scan :
@@ -1230,9 +1265,6 @@ class _EntreeScreenState extends State<EntreeScreen> with TickerProviderStateMix
                               ],
                             ),
                           ),
-                        ),
-                      ],
-                    ),
                   ),
                 ),
             );
@@ -1309,82 +1341,49 @@ class _EntreeScreenState extends State<EntreeScreen> with TickerProviderStateMix
             ],
           ),
           const SizedBox(height: 15),
-          Row(
+          LigneFiltreTiers(
             children: [
-              Expanded(
-                child: ChampAvecLabel(
-                  label: l10n.from,
-                  child: TextDate(
-                    hint: l10n.startDate,
-                    controller: _dateDebutCtrlSC,
-                    onTap: _pickDateDebutSC,
-                  ),
+              ChampAvecLabel(
+                label: l10n.from,
+                child: TextDate(
+                  hint: l10n.startDate,
+                  controller: _dateDebutCtrlSC,
+                  onTap: _pickDateDebutSC,
                 ),
               ),
-              const SizedBox(width: 20),
-              Expanded(
-                child: ChampAvecLabel(
-                  label: l10n.to,
-                  child: TextDate(
-                    hint: l10n.endDate,
-                    enabled: dateDebutSC != null,
-                    controller: _dateFinCtrlSC,
-                    onTap: _pickDateFinSC,
-                  ),
+              ChampAvecLabel(
+                label: l10n.to,
+                child: TextDate(
+                  hint: l10n.endDate,
+                  enabled: dateDebutSC != null,
+                  controller: _dateFinCtrlSC,
+                  onTap: _pickDateFinSC,
                 ),
               ),
-              const SizedBox(width: 20),
-              SizedBox(
-                width: width * 0.7,
-                child: ChampAvecLabel(
-                  label: l10n.quickPeriod,
-                  child: DropdownButtonFormField<String>(
-                    value: periodeRapide,
-                    decoration: InputDecoration(
-                      hintText: l10n.choosePeriod,
-                      isDense: true,
-                      border: const OutlineInputBorder(),
-                    ),
-                    items: periodesRapides.entries.map((e) {
-                      return DropdownMenuItem<String>(
-                        value: e.key,
-                        child: Text(e.value),
-                      );
-                    }).toList(),
-                    onChanged: (v) {
-                      if (v != null) {
-                        setState(() {
-                          periodeRapide = v;
-                          _appliquerPeriodeRapideSC(v, l10n);
-                        });
-                      }
-                    },
-                  ),
-                ),
+              ChampPeriodeRapide(
+                l10n: l10n,
+                value: periodeRapide,
+                onSelected: (v) {
+                  setState(() {
+                    periodeRapide = v;
+                    _appliquerPeriodeRapideSC(v, l10n);
+                  });
+                },
               ),
             ],
           ),
           const SizedBox(height: 15),
-          Row(
+          LigneFiltreTiers(
             children: [
-              SizedBox(
-                width: width * 0.7,
-                child: Row(
-                  children: [
-                    Expanded(
-                      child: ChampAvecLabel(
-                        label: l10n.search,
-                        child: SearchField(
-                          controller: _searchControllerSC,
-                          onChanged: (v) {
-                            setState(() {
-                              appliquerFiltreSmartScan();
-                            });
-                          },
-                        ),
-                      ),
-                    ),
-                  ],
+              ChampAvecLabel(
+                label: l10n.search,
+                child: SearchField(
+                  controller: _searchControllerSC,
+                  onChanged: (v) {
+                    setState(() {
+                      appliquerFiltreSmartScan();
+                    });
+                  },
                 ),
               ),
             ],
@@ -1548,19 +1547,4 @@ class _EntreeScreenState extends State<EntreeScreen> with TickerProviderStateMix
     );
   }
 
-  String _getPeriodeDisplayName(String key, AppLocalizations l10n) {
-    switch (key) {
-      case "today": return l10n.today;
-      case "yesterday": return l10n.yesterday;
-      case "week": return l10n.thisWeek;
-      case "lastWeek": return l10n.lastWeek;
-      case "month": return l10n.thisMonth;
-      case "lastMonth": return l10n.lastMonth;
-      case "last7days": return l10n.last7Days;
-      case "last30days": return l10n.last30Days;
-      case "year": return l10n.thisYear;
-      case "lastYear": return l10n.lastYear;
-      default: return key;
-    }
-  }
 }

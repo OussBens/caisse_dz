@@ -1,5 +1,9 @@
+import 'package:caisse_dz/Services/excel_apercu.dart';
+import 'package:caisse_dz/core/widget/filtre/periode_rapide_filter.dart';
 
+import 'package:caisse_dz/core/widget/filtre/ligne_filtre_tiers.dart';
 import 'dart:io';
+import 'package:caisse_dz/Services/export_spinner.dart';
 
 import 'package:collection/collection.dart';
 import 'package:caisse_dz/DBCreate.dart';
@@ -62,7 +66,7 @@ import 'package:caisse_dz/core/utilis/constant.dart';
 import 'package:caisse_dz/core/widget/account.dart';
 
 import 'package:caisse_dz/core/widget/afficheur/afficheur_produit_stock.dart';
-import 'package:caisse_dz/core/widget/afficheur/afficheur_stock_global.dart';
+import 'package:caisse_dz/core/widget/afficheur/afficheur_besoin_global.dart';
 import 'package:caisse_dz/core/widget/afficheur/afficheur_besoin_list.dart';
 import 'package:caisse_dz/core/widget/afficheur/afficheur_smart_scan.dart';
 import 'package:caisse_dz/core/widget/afficheur/afficheur_mouvement.dart';
@@ -85,7 +89,6 @@ import 'package:caisse_dz/core/widget/time_date_widget.dart';
 import 'package:caisse_dz/core/widget/connection_status_bar.dart';
 import 'package:caisse_dz/core/widget/header_module.dart';
 import 'package:caisse_dz/core/widget/search_bar.dart';
-import 'package:caisse_dz/core/widget/side_bar.dart';
 
 import 'package:caisse_dz/data/models/besion_list_detail.dart';
 import 'package:caisse_dz/data/models/sous_categorie.dart';
@@ -152,6 +155,9 @@ class _BesionScreenState extends State<BesionScreen> with TickerProviderStateMix
   late TabController _tabController;
   double seuilMinimum = 0;
   double seuilMaximum = 0;
+  // Garde anti-double-clic pour l'export Excel (voir client_screen.dart pour
+  // le détail du bug évité).
+  bool _exportEnCours = false;
 
   // ✅ Constantes pour les index des tabs
   static const int TAB_BESOIN_LIST = 0;
@@ -159,18 +165,6 @@ class _BesionScreenState extends State<BesionScreen> with TickerProviderStateMix
   static const int TAB_EXPIRED_PRODUCT = 2;
 
   // Period keys for translation lookup
-  final List<String> periodeKeys = [
-    "today",
-    "yesterday",
-    "week",
-    "lastWeek",
-    "month",
-    "lastMonth",
-    "last7days",
-    "last30days",
-    "year",
-    "lastYear",
-  ];
 
   List<String> sousCategorieFilterOptions = [];
   List<String> FournisseurFilterOptions   = [];
@@ -180,6 +174,12 @@ class _BesionScreenState extends State<BesionScreen> with TickerProviderStateMix
   String nombre_besion          = "15";
   String nombre_produit_rupture = "30";
   String nombre_produit_expire  = "0";
+
+  // Cards globales (AfficheurBesoinGlobalWidget) : éléments actifs uniquement.
+  int nombreProduitsActifs   = 0;
+  int nombreBesoinListActifs = 0;
+  int nombreRuptureActifs    = 0;
+  int nombreExpiresActifs    = 0;
 
   Future<void> loadAllData() async {
     final test = await ProduitServices.getAllProduits();
@@ -225,6 +225,11 @@ class _BesionScreenState extends State<BesionScreen> with TickerProviderStateMix
       nombre_produit_rupture = besoinsTest.length.toString();
       nombre_produit_expire = expiresTest.length.toString();
 
+      nombreProduitsActifs   = test.where((p) => p.etat).length;
+      nombreBesoinListActifs = besoinLists.where((b) => b.etat).length;
+      nombreRuptureActifs    = besoinsTest.where((p) => p.etat).length;
+      nombreExpiresActifs    = expires.where((p) => p.etat).length;
+
       besionsSelectionnes.clear();
       besionListsSelectionnes.clear();
       expiresSelectionnes.clear();
@@ -232,15 +237,11 @@ class _BesionScreenState extends State<BesionScreen> with TickerProviderStateMix
   }
 
   // Excel Export Methods (adaptées avec _tabController.index)
-  Future<void> _exportCurrentModuleToExcel() async {
+  Future<void> _exportCurrentModuleToExcel({bool enPdf = false}) async {
+    if (_exportEnCours) return;
+    setState(() => _exportEnCours = true);
+    final fermerSpinner = ouvrirSpinnerExport(context);
     try {
-      showDialog(
-        context: context,
-        barrierDismissible: false,
-        builder: (context) => const Center(
-          child: CircularProgressIndicator(),
-        ),
-      );
 
       final l10n = AppLocalizations.of(context)!;
       final translator = ListsConstTranslator(l10n);
@@ -256,7 +257,7 @@ class _BesionScreenState extends State<BesionScreen> with TickerProviderStateMix
         final listsToExport = filtresActifs ? besionlistFiltres : BesoinListsTest;
 
         if (listsToExport.isEmpty) {
-          Navigator.pop(context);
+          fermerSpinner();
           await InformationDialog(
             context: context,
             titre_type_message: l10n.information,
@@ -277,7 +278,7 @@ class _BesionScreenState extends State<BesionScreen> with TickerProviderStateMix
         final produitsToExport = filtresActifs ? besionFiltres : besoinsTest;
 
         if (produitsToExport.isEmpty) {
-          Navigator.pop(context);
+          fermerSpinner();
           await InformationDialog(
             context: context,
             titre_type_message: l10n.information,
@@ -303,7 +304,7 @@ class _BesionScreenState extends State<BesionScreen> with TickerProviderStateMix
         final produitsToExport = filtresActifs ? expireFiltres : expiresTest;
 
         if (produitsToExport.isEmpty) {
-          Navigator.pop(context);
+          fermerSpinner();
           await InformationDialog(
             context: context,
             titre_type_message: l10n.information,
@@ -326,13 +327,20 @@ class _BesionScreenState extends State<BesionScreen> with TickerProviderStateMix
         );
       }
 
-      Navigator.pop(context);
+      fermerSpinner();
 
       if (excelFile == null) {
         throw Exception('Failed to generate Excel file');
       }
 
       // Decode the Excel file to show preview
+      // Extract PDF : même fichier que l'export Excel, mis en page en PDF.
+      if (enPdf) {
+        fermerSpinner();
+        await ouvrirApercuPdfDepuisExcel(context, fichier: excelFile, titre: moduleName);
+        return;
+      }
+
       final excel = Excel.decodeBytes(await excelFile.readAsBytes());
 
       final sheetName = currentTab == TAB_BESOIN_LIST ? 'BesoinLists' : 'Produits';
@@ -419,9 +427,7 @@ class _BesionScreenState extends State<BesionScreen> with TickerProviderStateMix
         );
       }
     } catch (e) {
-      if (Navigator.canPop(context)) {
-        Navigator.pop(context);
-      }
+      fermerSpinner();
 
       print('Excel export error: $e');
       ScaffoldMessenger.of(context).showSnackBar(
@@ -430,21 +436,19 @@ class _BesionScreenState extends State<BesionScreen> with TickerProviderStateMix
           backgroundColor: Colors.red,
         ),
       );
+    } finally {
+      if (mounted) setState(() => _exportEnCours = false);
     }
   }
 
   Future<void> _exportSelectedToExcel() async {
+    if (_exportEnCours) return;
+    setState(() => _exportEnCours = true);
     final l10n = AppLocalizations.of(context)!;
     final translator = ListsConstTranslator(l10n);
 
+    final fermerSpinner = ouvrirSpinnerExport(context);
     try {
-      showDialog(
-        context: context,
-        barrierDismissible: false,
-        builder: (context) => const Center(
-          child: CircularProgressIndicator(),
-        ),
-      );
 
       // ✅ Utilisation de _tabController.index
       final currentTab = _tabController.index;
@@ -455,7 +459,7 @@ class _BesionScreenState extends State<BesionScreen> with TickerProviderStateMix
       if (currentTab == TAB_BESOIN_LIST) {
         // Besoin Lists
         if (besionListsSelectionnes.isEmpty) {
-          Navigator.pop(context);
+          fermerSpinner();
           await InformationDialog(
             context: context,
             titre_type_message: l10n.information,
@@ -474,7 +478,7 @@ class _BesionScreenState extends State<BesionScreen> with TickerProviderStateMix
       } else if (currentTab == TAB_OUT_OF_STOCK) {
         // Out of Stock Products
         if (besionsSelectionnes.isEmpty) {
-          Navigator.pop(context);
+          fermerSpinner();
           await InformationDialog(
             context: context,
             titre_type_message: l10n.information,
@@ -498,7 +502,7 @@ class _BesionScreenState extends State<BesionScreen> with TickerProviderStateMix
       } else {
         // Expired Products
         if (expiresSelectionnes.isEmpty) {
-          Navigator.pop(context);
+          fermerSpinner();
           await InformationDialog(
             context: context,
             titre_type_message: l10n.information,
@@ -521,7 +525,7 @@ class _BesionScreenState extends State<BesionScreen> with TickerProviderStateMix
         );
       }
 
-      Navigator.pop(context);
+      fermerSpinner();
 
       if (excelFile == null) {
         throw Exception('Failed to generate Excel file');
@@ -604,9 +608,7 @@ class _BesionScreenState extends State<BesionScreen> with TickerProviderStateMix
         );
       }
     } catch (e) {
-      if (Navigator.canPop(context)) {
-        Navigator.pop(context);
-      }
+      fermerSpinner();
 
       print('Excel export error: $e');
       ScaffoldMessenger.of(context).showSnackBar(
@@ -615,6 +617,8 @@ class _BesionScreenState extends State<BesionScreen> with TickerProviderStateMix
           backgroundColor: Colors.red,
         ),
       );
+    } finally {
+      if (mounted) setState(() => _exportEnCours = false);
     }
   }
 
@@ -681,21 +685,6 @@ class _BesionScreenState extends State<BesionScreen> with TickerProviderStateMix
         "${d.year}";
   }
 
-  String _getPeriodeDisplayName(String key, AppLocalizations l10n) {
-    switch (key) {
-      case "today": return l10n.today;
-      case "yesterday": return l10n.yesterday;
-      case "week": return l10n.thisWeek;
-      case "lastWeek": return l10n.lastWeek;
-      case "month": return l10n.thisMonth;
-      case "lastMonth": return l10n.lastMonth;
-      case "last7days": return l10n.last7Days;
-      case "last30days": return l10n.last30Days;
-      case "year": return l10n.thisYear;
-      case "lastYear": return l10n.lastYear;
-      default: return key;
-    }
-  }
 
   void appliquerFiltreBesion() {
     besionFiltres = besoinsTest.where((p) {
@@ -1036,13 +1025,7 @@ class _BesionScreenState extends State<BesionScreen> with TickerProviderStateMix
                 child: SizedBox(
                   width: adjustedWidth,
                   height: adjustedHeight,
-                    child: Row(
-                      textDirection: textDirection,
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        SideBarWidget(),
-                        Expanded(
-                          child: SingleChildScrollView(
+                    child: SingleChildScrollView(
                             padding: const EdgeInsets.all(16),
                             child: Column(
                               crossAxisAlignment: isRTL ? CrossAxisAlignment.end : CrossAxisAlignment.start,
@@ -1182,13 +1165,11 @@ class _BesionScreenState extends State<BesionScreen> with TickerProviderStateMix
                                       else
                                         Padding(
                                           padding: const EdgeInsets.only(bottom: 16.0),
-                                          child: AfficheurStockGlobalWidget(
-                                            nombreBesoinList    : BesoinListsTest.length,
-                                            nombrePanniers      : 16,
-                                            nombreProduitsStock : 15,
-                                            nombreRetours       : 18,
-                                            nombreSmartScan     : 95,
-                                            nombreSorties       : 3,
+                                          child: AfficheurBesoinGlobalWidget(
+                                            nombreProduits: nombreProduitsActifs,
+                                            nombreBesoinList: nombreBesoinListActifs,
+                                            nombreProduitsRupture: nombreRuptureActifs,
+                                            nombreProduitsExpires: nombreExpiresActifs,
                                           ),
                                         ),
 
@@ -1242,8 +1223,20 @@ class _BesionScreenState extends State<BesionScreen> with TickerProviderStateMix
                                                   iconColor: Colors.green,
                                                   color: Appstyle.Tblanc,
                                                   icon: Icons.download,
+                                                  loading: _exportEnCours,
                                                   onPressed: () async {
                                                     await _exportCurrentModuleToExcel();
+                                                  },
+                                                ),
+                                                SizedBox(width: paddingH / 4),
+                                                MainButton(
+                                                  text: l10n.extractPdf,
+                                                  textColor: Colors.red,
+                                                  iconColor: Colors.red,
+                                                  color: Appstyle.Tblanc,
+                                                  icon: Icons.picture_as_pdf,
+                                                  onPressed: () async {
+                                                    await _exportCurrentModuleToExcel(enPdf: true);
                                                   },
                                                 ),
                                                 SizedBox(width: paddingH / 4),
@@ -1396,13 +1389,11 @@ class _BesionScreenState extends State<BesionScreen> with TickerProviderStateMix
                                       else
                                         Padding(
                                           padding: const EdgeInsets.only(bottom: 16.0),
-                                          child: AfficheurStockGlobalWidget(
-                                            nombreBesoinList    : BesoinListsTest.length,
-                                            nombrePanniers      : 16,
-                                            nombreProduitsStock : 15,
-                                            nombreRetours       : 18,
-                                            nombreSmartScan     : 95,
-                                            nombreSorties       : 3,
+                                          child: AfficheurBesoinGlobalWidget(
+                                            nombreProduits: nombreProduitsActifs,
+                                            nombreBesoinList: nombreBesoinListActifs,
+                                            nombreProduitsRupture: nombreRuptureActifs,
+                                            nombreProduitsExpires: nombreExpiresActifs,
                                           ),
                                         ),
 
@@ -1456,8 +1447,20 @@ class _BesionScreenState extends State<BesionScreen> with TickerProviderStateMix
                                                   iconColor: Colors.green,
                                                   color: Appstyle.Tblanc,
                                                   icon: Icons.download,
+                                                  loading: _exportEnCours,
                                                   onPressed: () async {
                                                     await _exportCurrentModuleToExcel();
+                                                  },
+                                                ),
+                                                SizedBox(width: paddingH / 4),
+                                                MainButton(
+                                                  text: l10n.extractPdf,
+                                                  textColor: Colors.red,
+                                                  iconColor: Colors.red,
+                                                  color: Appstyle.Tblanc,
+                                                  icon: Icons.picture_as_pdf,
+                                                  onPressed: () async {
+                                                    await _exportCurrentModuleToExcel(enPdf: true);
                                                   },
                                                 ),
                                                 SizedBox(width: paddingH / 4),
@@ -1557,13 +1560,11 @@ class _BesionScreenState extends State<BesionScreen> with TickerProviderStateMix
                                       else
                                         Padding(
                                           padding: const EdgeInsets.only(bottom: 16.0),
-                                          child: AfficheurStockGlobalWidget(
-                                            nombreBesoinList    : BesoinListsTest.length,
-                                            nombrePanniers      : 16,
-                                            nombreProduitsStock : 15,
-                                            nombreRetours       : 18,
-                                            nombreSmartScan     : 95,
-                                            nombreSorties       : 3,
+                                          child: AfficheurBesoinGlobalWidget(
+                                            nombreProduits: nombreProduitsActifs,
+                                            nombreBesoinList: nombreBesoinListActifs,
+                                            nombreProduitsRupture: nombreRuptureActifs,
+                                            nombreProduitsExpires: nombreExpiresActifs,
                                           ),
                                         ),
 
@@ -1617,8 +1618,20 @@ class _BesionScreenState extends State<BesionScreen> with TickerProviderStateMix
                                                   iconColor: Colors.green,
                                                   color: Appstyle.Tblanc,
                                                   icon: Icons.download,
+                                                  loading: _exportEnCours,
                                                   onPressed: () async {
                                                     await _exportCurrentModuleToExcel();
+                                                  },
+                                                ),
+                                                SizedBox(width: paddingH / 4),
+                                                MainButton(
+                                                  text: l10n.extractPdf,
+                                                  textColor: Colors.red,
+                                                  iconColor: Colors.red,
+                                                  color: Appstyle.Tblanc,
+                                                  icon: Icons.picture_as_pdf,
+                                                  onPressed: () async {
+                                                    await _exportCurrentModuleToExcel(enPdf: true);
                                                   },
                                                 ),
                                                 SizedBox(width: paddingH / 4),
@@ -1702,9 +1715,6 @@ class _BesionScreenState extends State<BesionScreen> with TickerProviderStateMix
                               ],
                             ),
                           ),
-                        ),
-                      ],
-                    ),
                   ),
                 ),
             );
@@ -1790,50 +1800,35 @@ class _BesionScreenState extends State<BesionScreen> with TickerProviderStateMix
             ),
             const SizedBox(height: 15),
             // Ligne recherche / quantité
-            Row(
+            LigneFiltreTiers(
               textDirection: textDirection,
               children: [
-                SizedBox(
-                  width: width * 0.7,
-                  child: Row(
-                    textDirection: textDirection,
-                    children: [
-                      Expanded(
-                        child: ChampAvecLabel(
-                          label: l10n.search,
-                          child: SearchField(
-                            controller: _searchControllerBesion,
-                            onChanged: (v) {
-                              setState(() {
-                                appliquerFiltreBesion();
-                              });
-                            },
-                          ),
-                        ),
-                      ),
-                    ],
+                ChampAvecLabel(
+                  label: l10n.search,
+                  child: SearchField(
+                    controller: _searchControllerBesion,
+                    onChanged: (v) {
+                      setState(() {
+                        appliquerFiltreBesion();
+                      });
+                    },
                   ),
                 ),
-                const SizedBox(width: 20),
-                Expanded(
-                  child: ChampAvecLabel(
-                    label: l10n.quantity ?? "Quantité",
-                    child: FourchettePrixWidget(
-                      couleur: Appstyle.violet,
-                      minValue: quantiteMinBesion,
-                      maxValue: quantiteMaxBesion,
-                      onChanged: (min, max) {
-                        setState(() {
-                          quantiteMinBesion = min;
-                          quantiteMaxBesion = max;
-                          appliquerFiltreBesion();
-                        });
-                      },
-                    ),
+                ChampAvecLabel(
+                  label: l10n.quantity ?? "Quantité",
+                  child: FourchettePrixWidget(
+                    couleur: Appstyle.violet,
+                    minValue: quantiteMinBesion,
+                    maxValue: quantiteMaxBesion,
+                    onChanged: (min, max) {
+                      setState(() {
+                        quantiteMinBesion = min;
+                        quantiteMaxBesion = max;
+                        appliquerFiltreBesion();
+                      });
+                    },
                   ),
                 ),
-                const SizedBox(width: 20),
-                const SizedBox(width: 0),
               ],
             ),
           ],
@@ -1917,51 +1912,35 @@ class _BesionScreenState extends State<BesionScreen> with TickerProviderStateMix
             ),
             const SizedBox(height: 15),
             // Ligne recherche / quantité
-            Row(
+            LigneFiltreTiers(
               textDirection: textDirection,
               children: [
-                SizedBox(
-                  width: width * 0.7,
-                  child: Row(
-                    textDirection: textDirection,
-                    children: [
-                      Expanded(
-                        child: ChampAvecLabel(
-                          label: l10n.search,
-                          child: SearchField(
-                            controller: _searchControllerExpire,
-                            onChanged: (v) {
-                              setState(() {
-                                appliquerFiltreExpire();
-                              });
-                            },
-                          ),
-                        ),
-                      ),
-                    ],
+                ChampAvecLabel(
+                  label: l10n.search,
+                  child: SearchField(
+                    controller: _searchControllerExpire,
+                    onChanged: (v) {
+                      setState(() {
+                        appliquerFiltreExpire();
+                      });
+                    },
                   ),
                 ),
-                const SizedBox(width: 20),
-                Expanded(
-                  child: ChampAvecLabel(
-                    width: width * 0.7,
-                    label: l10n.quantity ?? "Quantité",
-                    child: FourchettePrixWidget(
-                      couleur: Appstyle.violet,
-                      minValue: quantiteMinExpire,
-                      maxValue: quantiteMaxExpire,
-                      onChanged: (min, max) {
-                        setState(() {
-                          quantiteMinExpire = min;
-                          quantiteMaxExpire = max;
-                          appliquerFiltreExpire();
-                        });
-                      },
-                    ),
+                ChampAvecLabel(
+                  label: l10n.quantity ?? "Quantité",
+                  child: FourchettePrixWidget(
+                    couleur: Appstyle.violet,
+                    minValue: quantiteMinExpire,
+                    maxValue: quantiteMaxExpire,
+                    onChanged: (min, max) {
+                      setState(() {
+                        quantiteMinExpire = min;
+                        quantiteMaxExpire = max;
+                        appliquerFiltreExpire();
+                      });
+                    },
                   ),
                 ),
-                const SizedBox(width: 20),
-                const SizedBox(width: 0),
               ],
             ),
           ],
@@ -1979,117 +1958,77 @@ class _BesionScreenState extends State<BesionScreen> with TickerProviderStateMix
           crossAxisAlignment: isRTL ? CrossAxisAlignment.end : CrossAxisAlignment.start,
           children: [
             // Date row
-            Row(
+            LigneFiltreTiers(
               textDirection: textDirection,
               children: [
-                Expanded(
-                  child: ChampAvecLabel(
-                    label: l10n.from,
-                    child: TextDate(
-                      hint: l10n.startDate,
-                      controller: _dateDebutCtrlBesoinList,
-                      onTap: _pickDateDebutBesoinList,
-                    ),
+                ChampAvecLabel(
+                  label: l10n.from,
+                  child: TextDate(
+                    hint: l10n.startDate,
+                    controller: _dateDebutCtrlBesoinList,
+                    onTap: _pickDateDebutBesoinList,
                   ),
                 ),
-                const SizedBox(width: 20),
-                Expanded(
-                  child: ChampAvecLabel(
-                    label: l10n.to,
-                    child: TextDate(
-                      hint: l10n.endDate,
-                      enabled: dateDebutBesoinList != null,
-                      controller: _dateFinCtrlBesoinList,
-                      onTap: _pickDateFinBesoinList,
-                    ),
+                ChampAvecLabel(
+                  label: l10n.to,
+                  child: TextDate(
+                    hint: l10n.endDate,
+                    enabled: dateDebutBesoinList != null,
+                    controller: _dateFinCtrlBesoinList,
+                    onTap: _pickDateFinBesoinList,
                   ),
                 ),
-                const SizedBox(width: 20),
-                SizedBox(
-                  width: width * 0.7,
-                  child: ChampAvecLabel(
-                    label: l10n.quickPeriod,
-                    child: DropdownButtonFormField<String>(
-                      value: periodeRapide,
-                      decoration: InputDecoration(
-                        hintText: l10n.choosePeriod,
-                        isDense: true,
-                        border: OutlineInputBorder(),
-                      ),
-                      items: periodeKeys.map((key) {
-                        return DropdownMenuItem<String>(
-                          value: key,
-                          child: Text(_getPeriodeDisplayName(key, l10n)),
-                        );
-                      }).toList(),
-                      onChanged: (v) {
-                        if (v != null) {
-                          setState(() {
-                            periodeRapide = v;
-                            _appliquerPeriodeRapideBesoinList(v, l10n);
-                          });
-                        }
-                      },
-                    ),
-                  ),
+                ChampPeriodeRapide(
+                  l10n: l10n,
+                  value: periodeRapide,
+                  onSelected: (v) {
+                    setState(() {
+                      periodeRapide = v;
+                      _appliquerPeriodeRapideBesoinList(v, l10n);
+                    });
+                  },
                 ),
               ],
             ),
             const SizedBox(height: 15),
-            Row(
+            LigneFiltreTiers(
               textDirection: textDirection,
               children: [
-                SizedBox(
-                  width: width * 0.7,
-                  child: Row(
-                    textDirection: textDirection,
-                    children: [
-                      Expanded(
-                        child: ChampAvecLabel(
-                          label: l10n.search,
-                          child: SearchField(
-                            controller: _searchControllerBesionList,
-                            onChanged: (v) {
-                              setState(() {
-                                appliquerFiltreBesoinList();
-                              });
-                            },
-                          ),
-                        ),
-                      ),
-                    ],
+                ChampAvecLabel(
+                  label: l10n.search,
+                  child: SearchField(
+                    controller: _searchControllerBesionList,
+                    onChanged: (v) {
+                      setState(() {
+                        appliquerFiltreBesoinList();
+                      });
+                    },
                   ),
                 ),
-                const SizedBox(width: 20),
-                Expanded(
-                  child: ChampAvecLabel(
-                    label: l10n.fournisseur,
-                    child: TextListe(
-                      value: selectedFournisseurFilterBesoinList,
-                      items: FournisseurFilterOptions,
-                      onChanged: (v) {
-                        setState(() {
-                          selectedFournisseurFilterBesoinList = v;
-                          appliquerFiltreBesoinList();
-                        });
-                      },
-                    ),
+                ChampAvecLabel(
+                  label: l10n.fournisseur,
+                  child: TextListe(
+                    value: selectedFournisseurFilterBesoinList,
+                    items: FournisseurFilterOptions,
+                    onChanged: (v) {
+                      setState(() {
+                        selectedFournisseurFilterBesoinList = v;
+                        appliquerFiltreBesoinList();
+                      });
+                    },
                   ),
                 ),
-                const SizedBox(width: 20),
-                Expanded(
-                  child: ChampAvecLabel(
-                    label: l10n.etat,
-                    child: TextListe(
-                      value: selectedEtatFilterRp != null ? translator.translateEtat(selectedEtatFilterRp!) : null,
-                      items: translator.etatDisplayList,
-                      onChanged: (v) {
-                        setState(() {
-                          selectedEtatFilterRp = translator.etatToFrench(v!);
-                          appliquerFiltreBesoinList();
-                        });
-                      },
-                    ),
+                ChampAvecLabel(
+                  label: l10n.etat,
+                  child: TextListe(
+                    value: selectedEtatFilterRp != null ? translator.translateEtat(selectedEtatFilterRp!) : null,
+                    items: translator.etatDisplayList,
+                    onChanged: (v) {
+                      setState(() {
+                        selectedEtatFilterRp = translator.etatToFrench(v!);
+                        appliquerFiltreBesoinList();
+                      });
+                    },
                   ),
                 ),
               ],

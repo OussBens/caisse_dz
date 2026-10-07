@@ -1,4 +1,9 @@
+import 'package:caisse_dz/Services/excel_apercu.dart';
+import 'package:caisse_dz/Services/StatistiquesGlobales.dart';
+import 'package:caisse_dz/core/widget/filtre/periode_rapide_filter.dart';
+import 'package:caisse_dz/core/widget/filtre/ligne_filtre_tiers.dart';
 import 'package:excel/excel.dart';
+import 'package:caisse_dz/Services/export_spinner.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
@@ -43,7 +48,6 @@ import 'package:caisse_dz/core/widget/time_date_widget.dart';
 import 'package:caisse_dz/core/widget/connection_status_bar.dart';
 import 'package:caisse_dz/core/widget/header_module.dart';
 import 'package:caisse_dz/core/widget/search_bar.dart';
-import 'package:caisse_dz/core/widget/side_bar.dart';
 
 import 'package:caisse_dz/data/models/fournisseur.dart';
 import 'package:caisse_dz/data/models/produit.dart';
@@ -80,30 +84,25 @@ class RetourScreen extends StatefulWidget {
 
 class _RetourScreenState extends State<RetourScreen> with SingleTickerProviderStateMixin {
   late TabController _tabController;
+  // Garde anti-double-clic pour l'export Excel (voir client_screen.dart pour
+  // le détail du bug évité).
+  bool _exportEnCours = false;
 
   // ✅ Constantes pour les index des tabs
   static const int TAB_CLIENT = 0;
   static const int TAB_FOURNISSEUR = 1;
 
   // Period keys for translation lookup
-  final List<String> periodeKeys = [
-    "today",
-    "yesterday",
-    "week",
-    "lastWeek",
-    "month",
-    "lastMonth",
-    "last7days",
-    "last30days",
-    "year",
-    "lastYear",
-  ];
 
   List<String> FournisseurFilterOptions   = [];
   List<String> TypeRetourFilterOptions    = [];
   List<String> ProduitFilterOptions       = [];
   List<String> ClientFilterOptions        = [];
   double seuilMinimum                     = 0;
+
+  // Cards globales (AfficheurStockGlobalWidget) : vrais compteurs, voir
+  // StatistiquesGlobalesServices.
+  CompteursGlobaux compteursGlobaux = const CompteursGlobaux();
 
   Future<void> loadAllData() async {
     final test = await ProduitServices.getAllProduits();
@@ -116,7 +115,10 @@ class _RetourScreenState extends State<RetourScreen> with SingleTickerProviderSt
     // ✅ Quantités calculées depuis le journal des mouvements — remplace Produit.quantite.
     final quantitesTest = (await MouvementsServices.totauxParProduit()).quantites;
 
+    final compteurs = await StatistiquesGlobalesServices.getCompteurs();
+    if (!mounted) return;
     setState(() {
+      compteursGlobaux = compteurs;
       fournisseursTest      = fournisseurs;
       produitsTest          = produits;
       retoursTest           = retours;
@@ -138,23 +140,24 @@ class _RetourScreenState extends State<RetourScreen> with SingleTickerProviderSt
   }
 
   // Excel Export Methods
-  Future<void> _exportCurrentModuleToExcel() async {
+  String get _typeRetourCourant => _tabController.index == TAB_CLIENT ? 'Client' : 'Fournisseur';
+
+  Future<void> _exportCurrentModuleToExcel({bool enPdf = false}) async {
+    if (_exportEnCours) return;
+    setState(() => _exportEnCours = true);
+    final fermerSpinner = ouvrirSpinnerExport(context);
     try {
-      showDialog(
-        context: context,
-        barrierDismissible: false,
-        builder: (context) => const Center(
-          child: CircularProgressIndicator(),
-        ),
-      );
 
       final l10n = AppLocalizations.of(context)!;
       final translator = ListsConstTranslator(l10n);
 
-      final retoursToExport = filtresActifs ? retourFiltres : retoursTest;
+      final typeCourant = _typeRetourCourant;
+      final retoursToExport = (filtresActifs ? retourFiltres : retoursTest)
+          .where((r) => r.type == typeCourant)
+          .toList();
 
       if (retoursToExport.isEmpty) {
-        Navigator.pop(context);
+        fermerSpinner();
         await InformationDialog(
           context: context,
           titre_type_message: l10n.information,
@@ -170,9 +173,16 @@ class _RetourScreenState extends State<RetourScreen> with SingleTickerProviderSt
         translator: translator,
       );
 
-      Navigator.pop(context);
+      fermerSpinner();
 
       // Decode the Excel file to show preview
+      // Extract PDF : même fichier que l'export Excel, mis en page en PDF.
+      if (enPdf) {
+        fermerSpinner();
+        await ouvrirApercuPdfDepuisExcel(context, fichier: excelFile, titre: AppLocalizations.of(context)!.retour);
+        return;
+      }
+
       final excel = Excel.decodeBytes(await excelFile.readAsBytes());
 
       var sheet = excel.tables['Retours'];
@@ -258,9 +268,7 @@ class _RetourScreenState extends State<RetourScreen> with SingleTickerProviderSt
         );
       }
     } catch (e) {
-      if (Navigator.canPop(context)) {
-        Navigator.pop(context);
-      }
+      fermerSpinner();
 
       print('Excel export error: $e');
       ScaffoldMessenger.of(context).showSnackBar(
@@ -269,15 +277,20 @@ class _RetourScreenState extends State<RetourScreen> with SingleTickerProviderSt
           backgroundColor: Colors.red,
         ),
       );
+    } finally {
+      if (mounted) setState(() => _exportEnCours = false);
     }
   }
 
   Future<void> _exportSelectedToExcel() async {
+    if (_exportEnCours) return;
+    setState(() => _exportEnCours = true);
     final l10n = AppLocalizations.of(context)!;
     final translator = ListsConstTranslator(l10n);
 
     try {
-      if (retoursSelectionnes.isEmpty) {
+      final selection = retoursSelectionnes.where((r) => r.type == _typeRetourCourant).toList();
+      if (selection.isEmpty) {
         await InformationDialog(
           context: context,
           titre_type_message: l10n.information,
@@ -287,21 +300,11 @@ class _RetourScreenState extends State<RetourScreen> with SingleTickerProviderSt
         return;
       }
 
-      showDialog(
-        context: context,
-        barrierDismissible: false,
-        builder: (context) => const Center(
-          child: CircularProgressIndicator(),
-        ),
-      );
-
-      final excelFile = await ExcelGenerator.generateRetoursExcel(
-        retours: retoursSelectionnes,
+      final excelFile = await executerAvecSpinner(context, () => ExcelGenerator.generateRetoursExcel(
+        retours: selection,
         l10n: l10n,
         translator: translator,
-      );
-
-      Navigator.pop(context);
+      ));
 
       // Decode the Excel file to show preview
       final excel = Excel.decodeBytes(await excelFile.readAsBytes());
@@ -379,9 +382,6 @@ class _RetourScreenState extends State<RetourScreen> with SingleTickerProviderSt
         );
       }
     } catch (e) {
-      if (Navigator.canPop(context)) {
-        Navigator.pop(context);
-      }
 
       print('Excel export error: $e');
       ScaffoldMessenger.of(context).showSnackBar(
@@ -390,6 +390,8 @@ class _RetourScreenState extends State<RetourScreen> with SingleTickerProviderSt
           backgroundColor: Colors.red,
         ),
       );
+    } finally {
+      if (mounted) setState(() => _exportEnCours = false);
     }
   }
 
@@ -425,21 +427,6 @@ class _RetourScreenState extends State<RetourScreen> with SingleTickerProviderSt
         "${d.year}";
   }
 
-  String _getPeriodeDisplayName(String key, AppLocalizations l10n) {
-    switch (key) {
-      case "today": return l10n.today;
-      case "yesterday": return l10n.yesterday;
-      case "week": return l10n.thisWeek;
-      case "lastWeek": return l10n.lastWeek;
-      case "month": return l10n.thisMonth;
-      case "lastMonth": return l10n.lastMonth;
-      case "last7days": return l10n.last7Days;
-      case "last30days": return l10n.last30Days;
-      case "year": return l10n.thisYear;
-      case "lastYear": return l10n.lastYear;
-      default: return key;
-    }
-  }
 
   @override
   void initState() {
@@ -648,6 +635,25 @@ class _RetourScreenState extends State<RetourScreen> with SingleTickerProviderSt
     }
   }
 
+  // ✅ Retours de l'onglet actif (mêmes retours filtrés, restreints au type
+  // du tab courant — une seule table sous-jacente, deux vues). Mis en cache :
+  // une nouvelle liste à chaque build faisait recharger le tableau (et vider
+  // sa sélection) dès qu'on cochait une case, la case se décochait aussitôt.
+  List<Retour>? _cacheOngletSource;
+  int? _cacheOngletTab;
+  List<Retour> _cacheOngletResultat = [];
+
+  List<Retour> _retoursOngletActif(int tab) {
+    if (!identical(_cacheOngletSource, retourFiltres) || _cacheOngletTab != tab) {
+      _cacheOngletSource = retourFiltres;
+      _cacheOngletTab = tab;
+      _cacheOngletResultat = retourFiltres
+          .where((r) => r.type == (tab == TAB_CLIENT ? 'Client' : 'Fournisseur'))
+          .toList();
+    }
+    return _cacheOngletResultat;
+  }
+
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
     final translator = ListsConstTranslator(l10n);
@@ -674,11 +680,7 @@ class _RetourScreenState extends State<RetourScreen> with SingleTickerProviderSt
       retoursTest.where((r) => r.type == 'Fournisseur').length,
     ];
 
-    // ✅ Retours de l'onglet actif (mêmes retours filtrés, restreints au type
-    // du tab courant — une seule table sous-jacente, deux vues)
-    final retourFiltresOngletActif = retourFiltres
-        .where((r) => r.type == (currentTab == TAB_CLIENT ? 'Client' : 'Fournisseur'))
-        .toList();
+    final retourFiltresOngletActif = _retoursOngletActif(currentTab);
 
     // ✅ Indigo sur le 2e onglet (Fournisseur), violet sur le 1er (Client) —
     // texte du header, indicateur du TabBar et en-tête du tableau.
@@ -710,13 +712,7 @@ class _RetourScreenState extends State<RetourScreen> with SingleTickerProviderSt
                 child: SizedBox(
                   width: adjustedWidth,
                       height: adjustedHeight,
-                      child: Row(
-                        textDirection: textDirection,
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          SideBarWidget(),
-                          Expanded(
-                            child: SingleChildScrollView(
+                      child: SingleChildScrollView(
                               child: Padding(
                                 padding: const EdgeInsets.all(16.0),
                                 child: Column(
@@ -734,7 +730,7 @@ class _RetourScreenState extends State<RetourScreen> with SingleTickerProviderSt
                                               Image.asset(
                                                 "assets/icons/cardwidget/retour_icon.png",
                                                 width: 40,
-                                                color: Appstyle.violet,
+                                                color: couleurOngletActif,
                                               ),
                                               const SizedBox(width: 10),
                                               Row(
@@ -743,7 +739,7 @@ class _RetourScreenState extends State<RetourScreen> with SingleTickerProviderSt
                                                   Text(
                                                     l10n.retour,
                                                     style: Appstyle.textXLB.copyWith(
-                                                      color       : Appstyle.violet,
+                                                      color       : couleurOngletActif,
                                                       fontWeight  : FontWeight.bold,
                                                     ),
                                                   ),
@@ -847,12 +843,12 @@ class _RetourScreenState extends State<RetourScreen> with SingleTickerProviderSt
                                       Padding(
                                         padding: const EdgeInsets.only(bottom: 16.0),
                                         child: AfficheurStockGlobalWidget(
-                                          nombreBesoinList    : 10,
-                                          nombrePanniers      : 15,
-                                          nombreProduitsStock : produitsTest.length,
-                                          nombreRetours       : retoursTest.length,
-                                          nombreSmartScan     : 22,
-                                          nombreSorties       : 01,
+                                          nombreBesoinList: compteursGlobaux.besoinLists,
+                                          nombrePanniers: compteursGlobaux.panniers,
+                                          nombreProduitsStock: compteursGlobaux.produitsEnStock,
+                                          nombreRetours: compteursGlobaux.retours,
+                                          nombreSmartScan: compteursGlobaux.smartScans,
+                                          nombreSorties: compteursGlobaux.sorties,
                                         ),
                                       ),
 
@@ -906,8 +902,20 @@ class _RetourScreenState extends State<RetourScreen> with SingleTickerProviderSt
                                                 iconColor: Colors.green,
                                                 color: Appstyle.Tblanc,
                                                 icon: Icons.download,
+                                                loading: _exportEnCours,
                                                 onPressed: () async {
                                                   await _exportCurrentModuleToExcel();
+                                                },
+                                              ),
+                                              SizedBox(width: paddingH / 4),
+                                              MainButton(
+                                                text: l10n.extractPdf,
+                                                textColor: Colors.red,
+                                                iconColor: Colors.red,
+                                                color: Appstyle.Tblanc,
+                                                icon: Icons.picture_as_pdf,
+                                                onPressed: () async {
+                                                  await _exportCurrentModuleToExcel(enPdf: true);
                                                 },
                                               ),
                                               SizedBox(width: paddingH / 4),
@@ -1071,9 +1079,6 @@ class _RetourScreenState extends State<RetourScreen> with SingleTickerProviderSt
                                 ),
                               ),
                             ),
-                          ),
-                        ],
-                      ),
                     ),
 
                 ),
@@ -1163,78 +1168,51 @@ class _RetourScreenState extends State<RetourScreen> with SingleTickerProviderSt
               ],
             ),
             const SizedBox(height: 15),
-            Row(
+            LigneFiltreTiers(
               textDirection: textDirection,
               children: [
-                Expanded(
-                  child: ChampAvecLabel(
-                    label: l10n.from,
-                    child: TextDate(
-                      hint: l10n.startDate,
-                      controller: _dateDebutCtrlRetour,
-                      onTap: _pickDateDebutRetour,
-                    ),
+                ChampAvecLabel(
+                  label: l10n.from,
+                  child: TextDate(
+                    hint: l10n.startDate,
+                    controller: _dateDebutCtrlRetour,
+                    onTap: _pickDateDebutRetour,
                   ),
                 ),
-                const SizedBox(width: 20),
-                Expanded(
-                  child: ChampAvecLabel(
-                    label: l10n.to,
-                    child: TextDate(
-                      hint: l10n.endDate,
-                      enabled: dateDebutRetour != null,
-                      controller: _dateFinCtrlRetour,
-                      onTap: _pickDateFinRetour,
-                    ),
+                ChampAvecLabel(
+                  label: l10n.to,
+                  child: TextDate(
+                    hint: l10n.endDate,
+                    enabled: dateDebutRetour != null,
+                    controller: _dateFinCtrlRetour,
+                    onTap: _pickDateFinRetour,
                   ),
                 ),
-                const SizedBox(width: 20),
-                SizedBox(
-                  width: width * 0.7,
-                  child: ChampAvecLabel(
-                    label: l10n.quickPeriod,
-                    child: DropdownButtonFormField<String>(
-                      value: periodeRapide,
-                      decoration: InputDecoration(
-                        hintText: l10n.choosePeriod,
-                        isDense: true,
-                        border: OutlineInputBorder(),
-                      ),
-                      items: periodeKeys.map((key) {
-                        return DropdownMenuItem<String>(
-                          value: key,
-                          child: Text(_getPeriodeDisplayName(key, l10n)),
-                        );
-                      }).toList(),
-                      onChanged: (v) {
-                        if (v != null) {
-                          setState(() {
-                            periodeRapide = v;
-                            _appliquerPeriodeRapideRetour(v, l10n);
-                          });
-                        }
-                      },
-                    ),
-                  ),
+                ChampPeriodeRapide(
+                  l10n: l10n,
+                  value: periodeRapide,
+                  onSelected: (v) {
+                    setState(() {
+                      periodeRapide = v;
+                      _appliquerPeriodeRapideRetour(v, l10n);
+                    });
+                  },
                 ),
               ],
             ),
             const SizedBox(height: 15),
-            Row(
+            LigneFiltreTiers(
               textDirection: textDirection,
               children: [
-                SizedBox(
-                  width: width * 0.7,
-                  child: ChampAvecLabel(
-                    label: l10n.search,
-                    child: SearchField(
-                      controller: _searchControllerRetour,
-                      onChanged: (v) {
-                        setState(() {
-                          appliquerFiltreRetour();
-                        });
-                      },
-                    ),
+                ChampAvecLabel(
+                  label: l10n.search,
+                  child: SearchField(
+                    controller: _searchControllerRetour,
+                    onChanged: (v) {
+                      setState(() {
+                        appliquerFiltreRetour();
+                      });
+                    },
                   ),
                 ),
               ],

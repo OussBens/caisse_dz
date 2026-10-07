@@ -28,7 +28,6 @@ import 'package:printing/printing.dart' as printing_pkg;
 import 'package:provider/provider.dart';
 import '../core/theme/app_style.dart';
 import '../core/utilis/constant.dart';
-import '../core/widget/side_bar.dart';
 import '../l10n/app_localizations.dart';
 import '../core/locale/locale_provider.dart';
 
@@ -83,6 +82,9 @@ class _ParametreScreenState extends State<ParametreScreen>
   Paramters? _paramGeneral;
   int _decimalesQuantite = 0;
   String? selectedtypecacul;
+  // Comportement de la caisse quand une vente passe sous le prix d'achat —
+  // voir Paramters.venteSousAchat / ListsConst.typeVenteSousAchat.
+  String? selectedVenteSousAchat;
   final TextEditingController tauxController = TextEditingController();
   final TextEditingController minController = TextEditingController();
   final TextEditingController maxController = TextEditingController();
@@ -292,6 +294,7 @@ class _ParametreScreenState extends State<ParametreScreen>
       maxController.text = param.Maximum.toString();
       _activeBonus = param.activeBonus;
       bonusTauxController.text = param.bonusTaux.toString();
+      selectedVenteSousAchat = translator.translateVenteSousAchat(param.venteSousAchat);
     });
   }
 
@@ -337,6 +340,9 @@ class _ParametreScreenState extends State<ParametreScreen>
       ..decimalesQuantite = _decimalesQuantite
       ..activeBonus = _activeBonus
       ..bonusTaux = bonusTauxInput ?? param.bonusTaux
+      ..venteSousAchat = translator.venteSousAchatToFrench(
+        selectedVenteSousAchat ?? translator.translateVenteSousAchat(param.venteSousAchat),
+      )
       ..modifParCode = userCode
       ..Datemodif = DateTime.now();
 
@@ -877,16 +883,7 @@ class _ParametreScreenState extends State<ParametreScreen>
                 child: SizedBox(
                   width: adjustedWidth,
                     height: adjustedHeight,
-                    child: Row(
-                      textDirection: textDirection,
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        /// Sidebar
-                        SideBarWidget(),
-
-                        /// Content
-                        Expanded(
-                          child: SingleChildScrollView(
+                    child: SingleChildScrollView(
                             padding: const EdgeInsets.all(16),
                             child: Column(
                               crossAxisAlignment: isRTL
@@ -1018,9 +1015,6 @@ class _ParametreScreenState extends State<ParametreScreen>
                               ],
                             ),
                           ),
-                        ),
-                      ],
-                    ),
                   ),
                 ),
             );
@@ -1122,6 +1116,8 @@ class _ParametreScreenState extends State<ParametreScreen>
               _buildMargeSection(l10n, translator, halfScreenWidth),
               SizedBox(height: paddingV),
               _buildSeuilSection(l10n, halfScreenWidth),
+              SizedBox(height: paddingV),
+              _buildVenteSection(l10n, translator, halfScreenWidth),
 
             ],
           ),
@@ -1328,6 +1324,46 @@ class _ParametreScreenState extends State<ParametreScreen>
               distance: 200,
               label: l10n.maximum,
               child: TextChampL(controller: maxController, hint: '', numeric: true),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // ==========================================================
+  // VENTE SOUS PRIX D'ACHAT — UI
+  // ==========================================================
+  Widget _buildVenteSection(
+    AppLocalizations l10n,
+    ListsConstTranslator translator,
+    double halfScreenWidth,
+  ) {
+    return _section(
+      title: l10n.saleBelowCostLabel,
+      icon: "assets/icons/prix_icon.png",
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          SizedBox(
+            width: halfScreenWidth,
+            child: ChampAvecLabel(
+              distance: 200,
+              label: l10n.saleBelowCostLabel,
+              child: TextListe(
+                clearable: false,
+                value: selectedVenteSousAchat,
+                items: translator.venteSousAchatDisplayList,
+                onChanged: (v) => setState(() => selectedVenteSousAchat = v),
+              ),
+            ),
+          ),
+          const SizedBox(height: 10),
+          SizedBox(
+            width: halfScreenWidth,
+            child: Text(
+              l10n.saleBelowCostHint,
+              style: Appstyle.textS.copyWith(color: Appstyle.gris),
             ),
           ),
         ],

@@ -1,4 +1,5 @@
 import 'package:caisse_dz/Services/Pack.dart';
+import 'package:caisse_dz/core/dialog/dialog_kind.dart';
 import 'package:caisse_dz/Services/PackDetailes.dart';
 import 'package:caisse_dz/data/models/pack.dart';
 import 'package:caisse_dz/data/models/produit_pack_detail.dart';
@@ -72,7 +73,6 @@ import 'package:caisse_dz/core/widget/header_module.dart';
 import 'package:caisse_dz/core/widget/connection_status_bar.dart';
 import 'package:caisse_dz/core/widget/calculatrice.dart';
 import 'package:caisse_dz/core/widget/search_bar.dart';
-import 'package:caisse_dz/core/widget/side_bar.dart';
 import 'package:caisse_dz/core/widget/account.dart';
 import 'package:caisse_dz/data/models/caisseParam.dart';
 import 'package:caisse_dz/data/models/categorie.dart';
@@ -222,6 +222,7 @@ class _CaisseScreenState extends State<CaisseScreen> {
       await InformationDialog(
         context: context,
         titre_type_message: l10n.error,
+        kind: DialogKind.refuser,
         titre_concerne: l10n.product,
         message: l10n.stockGlobalInsuffisant(quantiteGlobale.toInt().toString(), quantiteReelle.toInt().toString()),
       );
@@ -251,6 +252,7 @@ class _CaisseScreenState extends State<CaisseScreen> {
         // Stock insuffisant - proposer de prendre ce qui est disponible
         final confirm = await ConfirmationDialog(
           context: context,
+          kind: DialogKind.attention,
           titre: l10n.attention,
           message: l10n.stockInsuffisantMagasin(
               magasinSelectionneNom ?? '',
@@ -266,6 +268,7 @@ class _CaisseScreenState extends State<CaisseScreen> {
     await InformationDialog(
       context: context,
       titre_type_message: l10n.error,
+      kind: DialogKind.refuser,
       titre_concerne: l10n.product,
       message: l10n.produitAucunMagasin,
     );
@@ -286,6 +289,7 @@ class _CaisseScreenState extends State<CaisseScreen> {
         await InformationDialog(
           context: context,
           titre_type_message: l10n.error,
+          kind: DialogKind.refuser,
           titre_concerne: l10n.discount,
           message:l10n.discountAmountExceedsTotal(
               selectedRemise.taux.toString(),
@@ -394,6 +398,7 @@ class _CaisseScreenState extends State<CaisseScreen> {
       await InformationDialog(
         context: context,
         titre_type_message: l10n.error,
+        kind: DialogKind.refuser,
         titre_concerne: l10n.pack,
         message: l10n.packSansProduit,
       );
@@ -414,6 +419,7 @@ class _CaisseScreenState extends State<CaisseScreen> {
         await InformationDialog(
           context: context,
           titre_type_message: l10n.error,
+          kind: DialogKind.refuser,
           titre_concerne: l10n.pack,
           message: l10n.produitInexistantBase(detail.produitCode),
         );
@@ -428,6 +434,7 @@ class _CaisseScreenState extends State<CaisseScreen> {
         await InformationDialog(
           context: context,
           titre_type_message: l10n.error,
+          kind: DialogKind.refuser,
           titre_concerne: l10n.pack,
           message: l10n.stockInsuffisantPourProduit(
               detail.produitCode,
@@ -467,6 +474,7 @@ class _CaisseScreenState extends State<CaisseScreen> {
         await InformationDialog(
           context: context,
           titre_type_message: l10n.error,
+          kind: DialogKind.refuser,
           titre_concerne: l10n.pack,
           message: l10n.produitInexistant(detail.produitCode),
         );
@@ -750,10 +758,6 @@ class _CaisseScreenState extends State<CaisseScreen> {
   // pouvoir la déclencher depuis un nouveau scan (cf. _onBarcodeScanned).
   Future<void> Function()? _confirmerAjoutDialogOuvert;
 
-  // ✅ Permet de déclencher showModuleMenu() sur la sidebar depuis
-  // _runFirstLaunchUi (menu auto-ouvert une fois par lancement, cf. plus bas).
-  final GlobalKey<SideBarWidgetState> _sideBarKey = GlobalKey<SideBarWidgetState>();
-
   @override
   void initState() {
     super.initState();
@@ -762,29 +766,6 @@ class _CaisseScreenState extends State<CaisseScreen> {
     _barcodeScanListener = BarcodeScanListener(onScan: _onBarcodeScanned)..start();
     _keyboardShortcutListener = KeyboardShortcutListener(_buildKeyboardShortcuts())..start();
     _LoadAllData();
-    WidgetsBinding.instance.addPostFrameCallback((_) => _runFirstLaunchUi());
-  }
-
-  // ✅ CaisseScreen est l'écran sur lequel le routeur atterrit toujours après
-  // le login (voir router.dart) : c'est donc l'unique point d'entrée fiable
-  // pour ce démarrage-là, y compris via l'auto-login (session mémorisée,
-  // AuthState.tryAutoLogin) qui ne passe jamais par login.dart.
-  //
-  // Menu "logo" de la sidebar : une seule fois par lancement de l'app (flag
-  // en mémoire AuthState.hasShownStartupMenu). Le dialog de configuration
-  // initiale (une seule fois, à vie) est géré côté SideBarWidget lui-même
-  // (voir side_bar.dart) car il doit s'afficher quel que soit le premier
-  // écran ouvert par l'utilisateur, pas seulement CaisseScreen.
-  Future<void> _runFirstLaunchUi() async {
-    final auth = Provider.of<AuthState>(context, listen: false);
-
-    if (!mounted || auth.hasShownStartupMenu) return;
-    auth.markStartupMenuShown();
-
-    await _sideBarKey.currentState?.roleReady;
-    if (!mounted) return;
-    final l10n = AppLocalizations.of(context)!;
-    _sideBarKey.currentState?.showModuleMenu(context, l10n);
   }
 
   // ✅ Raccourcis clavier reprenant les actions déjà exposées par les boutons de la caisse.
@@ -842,11 +823,13 @@ class _CaisseScreenState extends State<CaisseScreen> {
   // ✅ Scan lecteur code-barres/QR : recherche le produit et l'ajoute au panier,
   // ou propose de le créer s'il n'existe pas.
   // Ignoré si un dialog est ouvert au-dessus de l'écran (route plus "current"),
-  // pour que le scan profite au dialog ouvert et non à l'écran caisse en arrière-plan.
+  // pour que le scan profite au dialog ouvert et non à l'écran caisse en arrière-plan
+  // — sauf la fiche produit ouverte par un scan précédent : un nouveau scan la
+  // valide puis enchaîne sur le produit suivant (voir plus bas).
   Future<void> _onBarcodeScanned(String rawCode) async {
     if (!mounted) return;
     final route = ModalRoute.of(context);
-    if (route != null && !route.isCurrent) return;
+    if (route != null && !route.isCurrent && !_produitDialogOuvert) return;
     final code = rawCode.trim();
     if (code.isEmpty) return;
 
@@ -1009,12 +992,18 @@ class _CaisseScreenState extends State<CaisseScreen> {
       });
     }
   }
-  void _confirmerAction({required String titre, required String message, required VoidCallback onConfirmer}) {
+  void _confirmerAction({
+    required String titre,
+    required String message,
+    required VoidCallback onConfirmer,
+    DialogKind kind = DialogKind.confirmer,
+  }) {
     ConfirmationDialog(
       titre: titre,
       context: context,
       message: message,
       onConfirmer: onConfirmer,
+      kind: kind,
     );
   }
 
@@ -1025,6 +1014,7 @@ class _CaisseScreenState extends State<CaisseScreen> {
       await InformationDialog(
         context: context,
         titre_type_message: l10n.attention,
+        kind: DialogKind.attention,
         titre_concerne: l10n.settings,
         message: l10n.noStoreSelected,
       );
@@ -1221,6 +1211,7 @@ class _CaisseScreenState extends State<CaisseScreen> {
       await InformationDialog(
         context: context,
         titre_type_message: l10n.error,
+        kind: DialogKind.refuser,
         titre_concerne: l10n.caisse,
         message: l10n.cannotDeleteLastCaisse,
       );
@@ -1229,6 +1220,7 @@ class _CaisseScreenState extends State<CaisseScreen> {
 
     await ConfirmationDialog(
       context: context,
+      kind: DialogKind.danger,
       titre: l10n.modification,
       message: l10n.deleteCaisseMessage(caisses[selectedCaisse].nom),
       onConfirmer: () {
@@ -1251,6 +1243,7 @@ class _CaisseScreenState extends State<CaisseScreen> {
       await InformationDialog(
         context: context,
         titre_type_message: l10n.error,
+        kind: DialogKind.refuser,
         titre_concerne: l10n.cart,
         message: l10n.emptyCartError,
       );
@@ -1274,6 +1267,7 @@ class _CaisseScreenState extends State<CaisseScreen> {
       await InformationDialog(
         context: context,
         titre_type_message: l10n.error,
+        kind: DialogKind.refuser,
         titre_concerne: l10n.cart,
         message: l10n.emptyCartError,
       );
@@ -1296,6 +1290,7 @@ class _CaisseScreenState extends State<CaisseScreen> {
       await InformationDialog(
         context: context,
         titre_type_message: l10n.error,
+        kind: DialogKind.refuser,
         titre_concerne: l10n.cart,
         message: l10n.emptyCartError,
       );
@@ -1377,15 +1372,13 @@ class _CaisseScreenState extends State<CaisseScreen> {
         String? colisType,
         double? prixUnitaire,
         String? packNom,   // ✅ Nouveau paramètre
+        // Pièces par boîte/carton, transmis par la fiche produit. Avant, on
+        // le déduisait en cherchant "Boîte"/"Carton" dans le libellé traduit
+        // du colis ("Par boîte (6 pièce(s))", "Per Box"…) : ça ne
+        // correspondait jamais, la ligne valait 1 pièce au lieu de 6 (Qte Pce,
+        // contrôle et réservation de stock, sortie de stock à l'encaissement).
+        int? piecesParEmballage,
       }) async {
-    int? piecesParEmballage;
-    if (colisType != null) {
-      if (colisType.contains("Boîte") && p.emballage1 != null) {
-        piecesParEmballage = p.emballage1?.toInt();
-      } else if (colisType.contains("Carton") && p.emballage2 != null) {
-        piecesParEmballage = p.emballage2?.toInt();
-      }
-    }
 
     final double quantiteReelle = quantite * (piecesParEmballage ?? 1);
 
@@ -1397,6 +1390,7 @@ class _CaisseScreenState extends State<CaisseScreen> {
       await InformationDialog(
         context: context,
         titre_type_message: l10n.error,
+        kind: DialogKind.refuser,
         titre_concerne: l10n.product,
         message: l10n.stockInsuffisantDetail(stockDisponible.toInt().toString(), quantiteReelle.toInt().toString()),
       );
@@ -1457,6 +1451,7 @@ class _CaisseScreenState extends State<CaisseScreen> {
             nombreActif: p.nombreActif,
             piecesParEmballage: piecesParEmballage,
             packNom: packNom,    // ✅ Ajouter l'info du pack
+            uniteMesure: p.uniteMesure,
             prixOriginal: prixOriginalAAjouter,
             remiseNom: remiseProduit?.nom,
           ),
@@ -1487,6 +1482,7 @@ class _CaisseScreenState extends State<CaisseScreen> {
       await InformationDialog(
         context: context,
         titre_type_message: l10n.error,
+        kind: DialogKind.refuser,
         titre_concerne: l10n.product,
         message: l10n.noProduct,
       );
@@ -1557,6 +1553,7 @@ class _CaisseScreenState extends State<CaisseScreen> {
     _confirmerAction(
       titre: l10n.clearCartTitle,
       message: l10n.clearCartMessage,
+      kind: DialogKind.danger,
       onConfirmer: () {
         // ✅ Libérer toutes les réservations
         for (var produit in caisseActive.produits) {
@@ -1611,18 +1608,26 @@ class _CaisseScreenState extends State<CaisseScreen> {
       nom: p.nom,
       prix: p.prixVente,
       photoName: p.photo,
+      sousCategorieId: p.sousCategorieId,
       emballage1: p.emballage1,
       emballageP1: p.emballageP1,
       emballage2: p.emballage2,
       emballageP2: p.emballageP2,
+      uniteMesure: p.uniteMesure,
       defaultColisType: defaultColisType,
       quantiteDisponible: quantiteDisponibleVirtuelle,
       onControllerReady: (confirmerAjout) {
         _confirmerAjoutDialogOuvert = confirmerAjout;
       },
-      onAjouter: (qte, {colisType, prixUnitaire}) async {
+      onAjouter: (qte, {colisType, prixUnitaire, piecesParEmballage}) async {
         if (prixUnitaire != null) {
-          await ajouterProduitAuPanier(p, quantite: qte, colisType: colisType, prixUnitaire: prixUnitaire);
+          await ajouterProduitAuPanier(
+            p,
+            quantite: qte,
+            colisType: colisType,
+            prixUnitaire: prixUnitaire,
+            piecesParEmballage: (piecesParEmballage ?? 1) > 1 ? piecesParEmballage : null,
+          );
         } else {
           await ajouterProduitAuPanier(p, quantite: qte);
         }
@@ -1664,6 +1669,7 @@ class _CaisseScreenState extends State<CaisseScreen> {
       await InformationDialog(
         context: context,
         titre_type_message: l10n.error,
+        kind: DialogKind.refuser,
         titre_concerne: l10n.product,
         message: l10n.stockInsuffisantRestant(disponibleVirtuel.toInt().toString()),
       );
@@ -1810,6 +1816,7 @@ class _CaisseScreenState extends State<CaisseScreen> {
               InformationDialog(
                 context: context,
                 titre_type_message: l10n.error,
+                kind: DialogKind.refuser,
                 titre_concerne: l10n.product,
                 message: l10n.stockInsuffisantSupplement(
                     stockVirtuel.toInt().toString(),
@@ -1909,14 +1916,9 @@ class _CaisseScreenState extends State<CaisseScreen> {
               child: SizedBox(
                 width: adjustedWidth,
                 height: adjustedHeight,
-                    child: Row(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        SideBarWidget(key: _sideBarKey),
-                         Expanded(
-                            child: SingleChildScrollView(
-                              padding: const EdgeInsets.all(16.0),
-                              child: Column(
+                child: SingleChildScrollView(
+                  padding: const EdgeInsets.all(16.0),
+                  child: Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
                                   HeaderModule(
@@ -1994,6 +1996,7 @@ class _CaisseScreenState extends State<CaisseScreen> {
                                             await InformationDialog(
                                               context: context,
                                               titre_type_message: l10n.attention,
+                                              kind: DialogKind.attention,
                                               titre_concerne: l10n.caisse,
                                               message: l10n.maxCaissesReached,
                                             );
@@ -2274,6 +2277,7 @@ class _CaisseScreenState extends State<CaisseScreen> {
                                                       await InformationDialog(
                                                         context: context,
                                                         titre_type_message: l10n.attention,
+                                                        kind: DialogKind.attention,
                                                         titre_concerne: l10n.settings,
                                                         message: l10n.loadingParams,
                                                       );
@@ -2293,8 +2297,8 @@ class _CaisseScreenState extends State<CaisseScreen> {
                                                       : l10n.ouvrirCaisse,
                                                   child: MainIconButton(
                                                     color: sessionOuverteActuelle != null
-                                                        ? Colors.green
-                                                        : Colors.red,
+                                                        ? Colors.red
+                                                        : Colors.green,
                                                     imagePath: "assets/icons/sidebar/caisse_icon.png",
                                                     onPressed: () async {
                                                       final caisseGestion = CaisseTest
@@ -2503,6 +2507,7 @@ class _CaisseScreenState extends State<CaisseScreen> {
                                                                           iconPath: 'assets/icons/sidebar/produit_icon.png',
                                                                           quantite: getQuantiteDisponibleVirtuelle(p), // ✅ Utiliser la quantité virtuelle
                                                                           photo: p.photo,
+                                                                          sousCategorieId: p.sousCategorieId,
                                                                           actif: p.etat,
                                                                           selected: produitsSelectionnes?.id == p.id,
                                                                           onTap: !p.etat ? null : () => setState(() => produitsSelectionnes = p),
@@ -2654,6 +2659,7 @@ class _CaisseScreenState extends State<CaisseScreen> {
                                                             await InformationDialog(
                                                               context: context,
                                                               titre_type_message: l10n.error,
+                                                              kind: DialogKind.refuser,
                                                               titre_concerne: l10n.product,
                                                               message: l10n.stockInsuffisantSupplement(
                                                                   stockVirtuel.toInt().toString(),
@@ -2727,12 +2733,8 @@ class _CaisseScreenState extends State<CaisseScreen> {
                                   ),
                                 ],
                               ),
-                            ),
-
-                        ),
-                      ],
-                    ),
                   ),
+                ),
 
               ),
           );

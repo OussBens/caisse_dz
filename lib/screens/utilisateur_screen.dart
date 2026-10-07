@@ -1,4 +1,7 @@
+import 'package:caisse_dz/Services/excel_apercu.dart';
 import 'dart:io';
+import 'package:caisse_dz/core/dialog/dialog_kind.dart';
+import 'package:caisse_dz/Services/export_spinner.dart';
 
 import 'package:caisse_dz/Services/CaisseGestion.dart';
 import 'package:caisse_dz/Services/Pannier.dart';
@@ -36,7 +39,6 @@ import '../core/widget/afficheur/afficheur_utilisateur_global.dart';
 import '../core/widget/button/Icon_button.dart';
 import '../core/widget/button/main_button.dart';
 import '../core/widget/header_module.dart';
-import '../core/widget/side_bar.dart';
 import '../core/widget/time_date_widget.dart';
 import '../core/widget/connection_status_bar.dart';
 import '../core/widget/account.dart';
@@ -58,6 +60,9 @@ class UtilisateurScreen extends StatefulWidget {
 
 class _UtilisateurScreenState extends State<UtilisateurScreen> with TickerProviderStateMixin {
   late TabController _tabController;
+  // Garde anti-double-clic pour l'export Excel (voir client_screen.dart pour
+  // le détail du bug évité).
+  bool _exportEnCours = false;
 
   // ✅ Constantes pour les index des tabs
   static const int TAB_UTILISATEUR = 0;
@@ -124,6 +129,7 @@ class _UtilisateurScreenState extends State<UtilisateurScreen> with TickerProvid
       await InformationDialog(
         context: context,
         titre_type_message: l10n.error ?? "Erreur",
+        kind: DialogKind.refuser,
         titre_concerne: l10n.utilisateur,
         message: l10n.loadingError ?? "Erreur de chargement les données !",
       );
@@ -140,15 +146,11 @@ class _UtilisateurScreenState extends State<UtilisateurScreen> with TickerProvid
   }
 
   // Excel Export Methods (adaptées avec _tabController.index)
-  Future<void> _exportCurrentModuleToExcel() async {
+  Future<void> _exportCurrentModuleToExcel({bool enPdf = false}) async {
+    if (_exportEnCours) return;
+    setState(() => _exportEnCours = true);
+    final fermerSpinner = ouvrirSpinnerExport(context);
     try {
-      showDialog(
-        context: context,
-        barrierDismissible: false,
-        builder: (context) => const Center(
-          child: CircularProgressIndicator(),
-        ),
-      );
 
       final l10n = AppLocalizations.of(context)!;
 
@@ -161,7 +163,7 @@ class _UtilisateurScreenState extends State<UtilisateurScreen> with TickerProvid
       if (currentTab == TAB_UTILISATEUR) {
         // Utilisateurs
         if (utilisateurs.isEmpty) {
-          Navigator.pop(context);
+          fermerSpinner();
           await InformationDialog(
             context: context,
             titre_type_message: l10n.information,
@@ -179,7 +181,7 @@ class _UtilisateurScreenState extends State<UtilisateurScreen> with TickerProvid
       } else {
         // Roles
         if (rolesTest.isEmpty) {
-          Navigator.pop(context);
+          fermerSpinner();
           await InformationDialog(
             context: context,
             titre_type_message: l10n.information,
@@ -196,13 +198,20 @@ class _UtilisateurScreenState extends State<UtilisateurScreen> with TickerProvid
         );
       }
 
-      Navigator.pop(context);
+      fermerSpinner();
 
       if (excelFile == null) {
         throw Exception('Failed to generate Excel file');
       }
 
       // Decode the Excel file to show preview
+      // Extract PDF : même fichier que l'export Excel, mis en page en PDF.
+      if (enPdf) {
+        fermerSpinner();
+        await ouvrirApercuPdfDepuisExcel(context, fichier: excelFile, titre: moduleName);
+        return;
+      }
+
       final excel = Excel.decodeBytes(await excelFile.readAsBytes());
 
       final sheetName = currentTab == TAB_UTILISATEUR ? 'Utilisateurs' : 'Roles';
@@ -289,9 +298,7 @@ class _UtilisateurScreenState extends State<UtilisateurScreen> with TickerProvid
         );
       }
     } catch (e) {
-      if (Navigator.canPop(context)) {
-        Navigator.pop(context);
-      }
+      fermerSpinner();
 
       print('Excel export error: $e');
       ScaffoldMessenger.of(context).showSnackBar(
@@ -300,20 +307,18 @@ class _UtilisateurScreenState extends State<UtilisateurScreen> with TickerProvid
           backgroundColor: Colors.red,
         ),
       );
+    } finally {
+      if (mounted) setState(() => _exportEnCours = false);
     }
   }
 
   Future<void> _exportSelectedToExcel() async {
+    if (_exportEnCours) return;
+    setState(() => _exportEnCours = true);
     final l10n = AppLocalizations.of(context)!;
 
+    final fermerSpinner = ouvrirSpinnerExport(context);
     try {
-      showDialog(
-        context: context,
-        barrierDismissible: false,
-        builder: (context) => const Center(
-          child: CircularProgressIndicator(),
-        ),
-      );
 
       // ✅ Utilisation de _tabController.index
       final currentTab = _tabController.index;
@@ -324,7 +329,7 @@ class _UtilisateurScreenState extends State<UtilisateurScreen> with TickerProvid
       if (currentTab == TAB_UTILISATEUR) {
         // Utilisateurs
         if (utilisateursSelectionnes.isEmpty) {
-          Navigator.pop(context);
+          fermerSpinner();
           await InformationDialog(
             context: context,
             titre_type_message: l10n.information,
@@ -342,7 +347,7 @@ class _UtilisateurScreenState extends State<UtilisateurScreen> with TickerProvid
       } else {
         // Roles
         if (rolesSelectionnes.isEmpty) {
-          Navigator.pop(context);
+          fermerSpinner();
           await InformationDialog(
             context: context,
             titre_type_message: l10n.information,
@@ -359,7 +364,7 @@ class _UtilisateurScreenState extends State<UtilisateurScreen> with TickerProvid
         );
       }
 
-      Navigator.pop(context);
+      fermerSpinner();
 
       if (excelFile == null) {
         throw Exception('Failed to generate Excel file');
@@ -442,9 +447,7 @@ class _UtilisateurScreenState extends State<UtilisateurScreen> with TickerProvid
         );
       }
     } catch (e) {
-      if (Navigator.canPop(context)) {
-        Navigator.pop(context);
-      }
+      fermerSpinner();
 
       print('Excel export error: $e');
       ScaffoldMessenger.of(context).showSnackBar(
@@ -453,15 +456,18 @@ class _UtilisateurScreenState extends State<UtilisateurScreen> with TickerProvid
           backgroundColor: Colors.red,
         ),
       );
+    } finally {
+      if (mounted) setState(() => _exportEnCours = false);
     }
   }
 
   // --------------------------------- STATISTIQUES
   int getTotalUtilisateurs() => utilisateurs.length;
+  // Utilisateur.etat est un booléen (actif = true).
   int getUtilisateursActifs() =>
-      utilisateurs.where((u) => u.etat == "actif").length;
+      utilisateurs.where((u) => u.etat).length;
   int getUtilisateursInactifs() =>
-      utilisateurs.where((u) => u.etat == "inactif").length;
+      utilisateurs.where((u) => !u.etat).length;
   int getUtilisateursAdmin() =>
       utilisateurs.where((u) => u.role == "Admin").length;
   int getUtilisateursCaissier() =>
@@ -575,16 +581,7 @@ class _UtilisateurScreenState extends State<UtilisateurScreen> with TickerProvid
                   child: SizedBox(
                     width: adjustedWidth,
                     height: adjustedHeight,
-                      child: Row(
-                        textDirection: textDirection,
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          // -------------------------------- Sidebar
-                          SideBarWidget(),
-
-                          // -------------------------------- CONTENT
-                          Expanded(
-                            child: SingleChildScrollView(
+                      child: SingleChildScrollView(
                               padding: const EdgeInsets.all(16),
                               child: Column(
                                 crossAxisAlignment: isRTL ? CrossAxisAlignment.end : CrossAxisAlignment.start,
@@ -753,8 +750,20 @@ class _UtilisateurScreenState extends State<UtilisateurScreen> with TickerProvid
                                                   iconColor: Colors.green,
                                                   color: Appstyle.Tblanc,
                                                   icon: Icons.download,
+                                                  loading: _exportEnCours,
                                                   onPressed: () async {
                                                     await _exportCurrentModuleToExcel();
+                                                  },
+                                                ),
+                                                SizedBox(width: paddingH / 4),
+                                                MainButton(
+                                                  text: l10n.extractPdf,
+                                                  textColor: Colors.red,
+                                                  iconColor: Colors.red,
+                                                  color: Appstyle.Tblanc,
+                                                  icon: Icons.picture_as_pdf,
+                                                  onPressed: () async {
+                                                    await _exportCurrentModuleToExcel(enPdf: true);
                                                   },
                                                 ),
                                                 SizedBox(width: paddingH / 4),
@@ -911,8 +920,20 @@ class _UtilisateurScreenState extends State<UtilisateurScreen> with TickerProvid
                                                   iconColor: Colors.green,
                                                   color: Appstyle.Tblanc,
                                                   icon: Icons.download,
+                                                  loading: _exportEnCours,
                                                   onPressed: () async {
                                                     await _exportCurrentModuleToExcel();
+                                                  },
+                                                ),
+                                                SizedBox(width: paddingH / 4),
+                                                MainButton(
+                                                  text: l10n.extractPdf,
+                                                  textColor: Colors.red,
+                                                  iconColor: Colors.red,
+                                                  color: Appstyle.Tblanc,
+                                                  icon: Icons.picture_as_pdf,
+                                                  onPressed: () async {
+                                                    await _exportCurrentModuleToExcel(enPdf: true);
                                                   },
                                                 ),
                                                 SizedBox(width: paddingH / 4),
@@ -1029,9 +1050,6 @@ class _UtilisateurScreenState extends State<UtilisateurScreen> with TickerProvid
                                 ],
                               ),
                             ),
-                          ),
-                        ],
-                      ),
                     ),
                   ),
               ),

@@ -1,3 +1,4 @@
+import 'package:caisse_dz/core/widget/situation/cout_produit_tab.dart';
 import 'package:caisse_dz/DBCreate.dart';
 import 'package:caisse_dz/Services/Client.dart';
 import 'package:caisse_dz/Services/Fournisseur.dart';
@@ -19,12 +20,14 @@ import 'package:caisse_dz/core/widget/account.dart';
 import 'package:caisse_dz/core/widget/filtre/periode_rapide_filter.dart';
 import 'package:caisse_dz/core/widget/header_module.dart';
 import 'package:caisse_dz/core/widget/situation/mouvement_caisse_tab.dart';
+import 'package:caisse_dz/core/widget/situation/mouvement_produit_tab.dart';
 import 'package:caisse_dz/core/widget/situation/recette_caisse_pannier_tab.dart';
 import 'package:caisse_dz/core/widget/situation/recette_caisse_produit_tab.dart';
 import 'package:caisse_dz/core/widget/situation/marge_pannier_tab.dart';
 import 'package:caisse_dz/core/widget/situation/marge_periode_tab.dart';
 import 'package:caisse_dz/core/widget/situation/inventaire_tab.dart';
-import 'package:caisse_dz/core/widget/side_bar.dart';
+import 'package:caisse_dz/core/widget/situation/client_situation_tab.dart';
+import 'package:caisse_dz/core/widget/situation/fournisseur_situation_tab.dart';
 import 'package:caisse_dz/core/widget/time_date_widget.dart';
 import 'package:caisse_dz/core/widget/connection_status_bar.dart';
 import 'package:caisse_dz/data/constant.dart';
@@ -180,7 +183,7 @@ List<Map<String, String>> getProduitsRupture(
   Map<String, double> quantites,
 ) {
   double qte(Produit p) => quantites[p.code] ?? 0;
-  final filtered = produits.where((p) => qte(p) < seuilMin).toList();
+  final filtered = produits.where((p) => qte(p) <= seuilMin).toList();
   filtered.sort((a, b) => qte(a).compareTo(qte(b)));
   return filtered.take(10).map((p) => {
     "name": p.nom,
@@ -566,9 +569,13 @@ class _DashScreenState extends State<DashScreen> with SingleTickerProviderStateM
     {"id": "pannier", "label": l10n.revenueByCart, "icon": Icons.receipt_long, "color": Appstyle.blueC},
     {"id": "produit", "label": l10n.revenueByProductCard, "icon": Icons.inventory_2, "color": Appstyle.violet},
     {"id": "mouvement", "label": l10n.cashRegisterMovement, "icon": Icons.swap_horiz, "color": Appstyle.indigo},
+    {"id": "mouvementProduit", "label": l10n.productMovementSituation, "icon": Icons.sync_alt, "color": Colors.brown},
     {"id": "margePannier", "label": l10n.dailyProfitByCart, "icon": Icons.trending_up, "color": Appstyle.crevete},
     {"id": "margePeriode", "label": l10n.profitByPeriod, "icon": Icons.stacked_line_chart, "color": Appstyle.blueF},
     {"id": "inventaire", "label": l10n.inventory, "icon": Icons.warehouse, "color": Colors.teal},
+    {"id": "coutProduit", "label": l10n.productCostSituation, "icon": Icons.price_change, "color": Colors.deepPurple},
+    {"id": "situationClient", "label": l10n.clientSituationLabel, "icon": Icons.person, "color": Colors.blue},
+    {"id": "situationFournisseur", "label": l10n.supplierSituationLabel, "icon": Icons.local_shipping, "color": Colors.orange},
   ];
 
   Widget _buildMainTabBar(AppLocalizations l10n) {
@@ -639,6 +646,8 @@ class _DashScreenState extends State<DashScreen> with SingleTickerProviderStateM
           SizedBox(height: paddingV / 2),
           if (item["id"] == "mouvement")
             const MouvementCaisseTab()
+          else if (item["id"] == "mouvementProduit")
+            const MouvementProduitTab()
           else if (item["id"] == "pannier")
             const RecetteCaissePannierTab()
           else if (item["id"] == "produit")
@@ -649,6 +658,12 @@ class _DashScreenState extends State<DashScreen> with SingleTickerProviderStateM
             const MargeParPeriodeTab()
           else if (item["id"] == "inventaire")
             const InventaireTab()
+          else if (item["id"] == "coutProduit")
+            const CoutProduitTab()
+          else if (item["id"] == "situationClient")
+            const ClientSituationTab()
+          else if (item["id"] == "situationFournisseur")
+            const FournisseurSituationTab()
           else
             _buildSituationPlaceholder(item["label"] as String),
         ],
@@ -805,14 +820,7 @@ class _DashScreenState extends State<DashScreen> with SingleTickerProviderStateM
                   child: SizedBox(
                     width: adjustedWidth,
                         height: adjustedHeight,
-                        child: Row(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            /// SIDEBAR - Reordered for RTL
-                            SideBarWidget(),
-                            /// MAIN CONTENT
-                            Expanded(
-                              child: SingleChildScrollView(
+                        child: SingleChildScrollView(
                                 padding: const EdgeInsets.all(16),
                                 child: RepaintBoundary(
                                   key: _dashboardCaptureKey,
@@ -1028,10 +1036,6 @@ class _DashScreenState extends State<DashScreen> with SingleTickerProviderStateM
                                 ),
                                 ),
                               ),
-                            ),
-
-                          ],
-                        ),
                       ),
 
                   ),
@@ -1979,6 +1983,7 @@ class PeriodeDateFilter extends StatelessWidget {
       l10n: l10n,
       value: periodeRapide,
       onSelected: onPeriodeChanged,
+      width: 154,
     );
   }
 

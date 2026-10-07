@@ -1,4 +1,8 @@
+import 'package:caisse_dz/Services/excel_apercu.dart';
+import 'package:caisse_dz/core/widget/filtre/periode_rapide_filter.dart';
+import 'package:caisse_dz/core/widget/filtre/ligne_filtre_tiers.dart';
 import 'dart:io';
+import 'package:caisse_dz/Services/export_spinner.dart';
 import 'package:caisse_dz/Services/excel_generator.dart';
 import 'package:caisse_dz/Services/ExcelPreviewDialog.dart';
 import 'package:caisse_dz/core/Auth/auth_state.dart';
@@ -24,7 +28,6 @@ import '../core/widget/champ/liste_champ.dart';
 import '../core/widget/champ/text_champ_l.dart';
 import '../core/widget/search_bar.dart';
 import '../core/widget/section_decoration_filtre.dart';
-import '../core/widget/side_bar.dart';
 import '../core/widget/header_module.dart';
 import '../core/widget/time_date_widget.dart';
 import '../core/widget/connection_status_bar.dart';
@@ -40,20 +43,11 @@ class HistoriqueScreen extends StatefulWidget {
 }
 
 class _HistoriqueScreenState extends State<HistoriqueScreen> {
+  // Garde anti-double-clic pour l'export Excel (voir client_screen.dart pour
+  // le détail du bug évité).
+  bool _exportEnCours = false;
   String? typeHistoriqueFilter;
   String? operationHistoriquedansFilter;
-  final Map<String, String> periodesRapides = {
-    "today": "today",
-    "yesterday": "yesterday",
-    "week": "thisWeek",
-    "lastWeek": "lastWeek",
-    "month": "thisMonth",
-    "lastMonth": "lastMonth",
-    "last7days": "last7Days",
-    "last30days": "last30Days",
-    "year": "thisYear",
-    "lastYear": "lastYear",
-  };
   DateTime? dateDebut;
   DateTime? dateFin;
   final TextEditingController _dateDebutCtrl = TextEditingController();
@@ -79,22 +73,18 @@ class _HistoriqueScreenState extends State<HistoriqueScreen> {
   }
 
   // Excel Export Methods
-  Future<void> _exportCurrentModuleToExcel() async {
+  Future<void> _exportCurrentModuleToExcel({bool enPdf = false}) async {
+    if (_exportEnCours) return;
+    setState(() => _exportEnCours = true);
+    final fermerSpinner = ouvrirSpinnerExport(context);
     try {
-      showDialog(
-        context: context,
-        barrierDismissible: false,
-        builder: (context) => const Center(
-          child: CircularProgressIndicator(),
-        ),
-      );
 
       final l10n = AppLocalizations.of(context)!;
 
       final historiquesToExport = filtresActifs ? historiquesFiltres : historiqueTest;
 
       if (historiquesToExport.isEmpty) {
-        Navigator.pop(context);
+        fermerSpinner();
         await InformationDialog(
           context: context,
           titre_type_message: l10n.information,
@@ -109,9 +99,16 @@ class _HistoriqueScreenState extends State<HistoriqueScreen> {
         l10n: l10n,
       );
 
-      Navigator.pop(context);
+      fermerSpinner();
 
       // Decode the Excel file to show preview
+      // Extract PDF : même fichier que l'export Excel, mis en page en PDF.
+      if (enPdf) {
+        fermerSpinner();
+        await ouvrirApercuPdfDepuisExcel(context, fichier: excelFile, titre: AppLocalizations.of(context)!.historique);
+        return;
+      }
+
       final excel = Excel.decodeBytes(await excelFile.readAsBytes());
 
       var sheet = excel.tables['Historiques'];
@@ -197,9 +194,7 @@ class _HistoriqueScreenState extends State<HistoriqueScreen> {
         );
       }
     } catch (e) {
-      if (Navigator.canPop(context)) {
-        Navigator.pop(context);
-      }
+      fermerSpinner();
 
       print('Excel export error: $e');
       ScaffoldMessenger.of(context).showSnackBar(
@@ -208,10 +203,14 @@ class _HistoriqueScreenState extends State<HistoriqueScreen> {
           backgroundColor: Colors.red,
         ),
       );
+    } finally {
+      if (mounted) setState(() => _exportEnCours = false);
     }
   }
 
   Future<void> _exportSelectedToExcel() async {
+    if (_exportEnCours) return;
+    setState(() => _exportEnCours = true);
     final l10n = AppLocalizations.of(context)!;
 
     try {
@@ -225,20 +224,10 @@ class _HistoriqueScreenState extends State<HistoriqueScreen> {
         return;
       }
 
-      showDialog(
-        context: context,
-        barrierDismissible: false,
-        builder: (context) => const Center(
-          child: CircularProgressIndicator(),
-        ),
-      );
-
-      final excelFile = await ExcelGenerator.generateHistoriquesExcel(
+      final excelFile = await executerAvecSpinner(context, () => ExcelGenerator.generateHistoriquesExcel(
         historiques: historiquesSelectionnes,
         l10n: l10n,
-      );
-
-      Navigator.pop(context);
+      ));
 
       // Decode the Excel file to show preview
       final excel = Excel.decodeBytes(await excelFile.readAsBytes());
@@ -316,9 +305,6 @@ class _HistoriqueScreenState extends State<HistoriqueScreen> {
         );
       }
     } catch (e) {
-      if (Navigator.canPop(context)) {
-        Navigator.pop(context);
-      }
 
       print('Excel export error: $e');
       ScaffoldMessenger.of(context).showSnackBar(
@@ -327,6 +313,8 @@ class _HistoriqueScreenState extends State<HistoriqueScreen> {
           backgroundColor: Colors.red,
         ),
       );
+    } finally {
+      if (mounted) setState(() => _exportEnCours = false);
     }
   }
 
@@ -342,21 +330,6 @@ class _HistoriqueScreenState extends State<HistoriqueScreen> {
     _loadAllData();
   }
 
-  String _getLocalizedPeriod(String key, AppLocalizations l10n) {
-    switch (key) {
-      case "today"      : return l10n.today;
-      case "yesterday"  : return l10n.yesterday;
-      case "week"       : return l10n.thisWeek;
-      case "lastWeek"   : return l10n.lastWeek;
-      case "month"      : return l10n.thisMonth;
-      case "lastMonth"  : return l10n.lastMonth;
-      case "last7days"  : return l10n.last7Days;
-      case "last30days" : return l10n.last30Days;
-      case "year"       : return l10n.thisYear;
-      case "lastYear"   : return l10n.lastYear;
-      default           : return key;
-    }
-  }
 
   void _appliquerPeriodeRapide(String p) {
     final now = DateTime.now();
@@ -541,12 +514,7 @@ class _HistoriqueScreenState extends State<HistoriqueScreen> {
                 child: SizedBox(
                   width: adjustedWidth,
                       height: adjustedHeight,
-                      child: Row(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          SideBarWidget(),
-                          Expanded(
-                            child: SingleChildScrollView(
+                      child: SingleChildScrollView(
                             padding: const EdgeInsets.all(16),
                               child: Column(
                                 crossAxisAlignment: isRTL ? CrossAxisAlignment.end : CrossAxisAlignment.start,
@@ -614,6 +582,7 @@ class _HistoriqueScreenState extends State<HistoriqueScreen> {
                                   else if (historiquesSelectionnes.isEmpty || historiquesSelectionnes.length != 1)
                                     DashboardHistorique(
                                       historiques: historiqueTest,
+                                      utilisateurs: utilisateursTest,
                                     ),
 
                                   SizedBox(height: paddingV / 2),
@@ -664,8 +633,20 @@ class _HistoriqueScreenState extends State<HistoriqueScreen> {
                                             iconColor: Colors.green,
                                             color: Appstyle.Tblanc,
                                             icon: Icons.download,
+                                            loading: _exportEnCours,
                                             onPressed: () async {
                                               await _exportCurrentModuleToExcel();
+                                            },
+                                          ),
+                                          SizedBox(width: paddingH / 4),
+                                          MainButton(
+                                            text: l10n.extractPdf,
+                                            textColor: Colors.red,
+                                            iconColor: Colors.red,
+                                            color: Appstyle.Tblanc,
+                                            icon: Icons.picture_as_pdf,
+                                            onPressed: () async {
+                                              await _exportCurrentModuleToExcel(enPdf: true);
                                             },
                                           ),
                                           SizedBox(width: paddingH / 4),
@@ -736,9 +717,6 @@ class _HistoriqueScreenState extends State<HistoriqueScreen> {
                                 ],
                               ),
                             ),
-                          ),
-                        ],
-                      ),
                     ),
 
                 ),
@@ -759,114 +737,74 @@ class _HistoriqueScreenState extends State<HistoriqueScreen> {
         crossAxisAlignment: isRTL ? CrossAxisAlignment.end : CrossAxisAlignment.start,
         children: [
           // Date
-          Row(
+          LigneFiltreTiers(
             textDirection: textDirection,
             children: [
-              Expanded(
-                child: ChampAvecLabel(
-                  label: l10n.from,
-                  child: TextDate(
-                    hint: l10n.startDate,
-                    controller: _dateDebutCtrl,
-                    onTap: _pickDateDebut,
-                  ),
+              ChampAvecLabel(
+                label: l10n.from,
+                child: TextDate(
+                  hint: l10n.startDate,
+                  controller: _dateDebutCtrl,
+                  onTap: _pickDateDebut,
                 ),
               ),
-              const SizedBox(width: 20),
-              Expanded(
-                child: ChampAvecLabel(
-                  label: l10n.to,
-                  child: TextDate(
-                    hint: l10n.endDate,
-                    enabled: dateDebut != null,
-                    controller: _dateFinCtrl,
-                    onTap: _pickDateFin,
-                  ),
+              ChampAvecLabel(
+                label: l10n.to,
+                child: TextDate(
+                  hint: l10n.endDate,
+                  enabled: dateDebut != null,
+                  controller: _dateFinCtrl,
+                  onTap: _pickDateFin,
                 ),
               ),
-              const SizedBox(width: 20),
-              SizedBox(
-                width: width * 0.7,
-                child: ChampAvecLabel(
-                  label: l10n.quickPeriod,
-                  child: DropdownButtonFormField<String>(
-                    value: periodeRapide,
-                    decoration: InputDecoration(
-                      hintText: l10n.choosePeriod,
-                      isDense: true,
-                      border: OutlineInputBorder(),
-                    ),
-                    items: periodesRapides.entries.map((e) {
-                      return DropdownMenuItem<String>(
-                        value: e.key,
-                        child: Text(_getLocalizedPeriod(e.key, l10n)),
-                      );
-                    }).toList(),
-                    onChanged: (v) {
-                      if (v != null) {
-                        setState(() {
-                          periodeRapide = v;
-                          _appliquerPeriodeRapide(v);
-                        });
-                      }
-                    },
-                  ),
-                ),
+              ChampPeriodeRapide(
+                l10n: l10n,
+                value: periodeRapide,
+                onSelected: (v) {
+                  setState(() {
+                    periodeRapide = v;
+                    _appliquerPeriodeRapide(v);
+                  });
+                },
               ),
             ],
           ),
           SizedBox(height: 15),
           // Search and filters
-          Row(
+          LigneFiltreTiers(
             textDirection: textDirection,
             children: [
-              SizedBox(
-                width: width * 0.7,
-                child: Row(
-                  textDirection: textDirection,
-                  children: [
-                    Expanded(
-                      child: ChampAvecLabel(
-                        label: l10n.search,
-                        child: SearchField(
-                          controller: _searchController,
-                          onChanged: (v) {
-                            setState(() {
-                              appliquerFiltre();
-                            });
-                          },
-                        ),
-                      ),
-                    ),
-                  ],
+              ChampAvecLabel(
+                label: l10n.search,
+                child: SearchField(
+                  controller: _searchController,
+                  onChanged: (v) {
+                    setState(() {
+                      appliquerFiltre();
+                    });
+                  },
                 ),
               ),
-              SizedBox(width: paddingH / 2),
-              Expanded(
-                child: ChampAvecLabel(
-                  label: l10n.typeOperation,
-                  child: TextListe(
-                    value: typeHistoriqueFilter,
-                    items: ListsConst.typeHisto,
-                    onChanged: (v) {
-                      setState(() => typeHistoriqueFilter = v);
-                      appliquerFiltre();
-                    },
-                  ),
+              ChampAvecLabel(
+                label: l10n.typeOperation,
+                child: TextListe(
+                  value: typeHistoriqueFilter,
+                  items: ListsConst.typeHisto,
+                  onChanged: (v) {
+                    setState(() => typeHistoriqueFilter = v);
+                    appliquerFiltre();
+                  },
                 ),
               ),
-              SizedBox(width: paddingH / 2),
-              Expanded(
-                child: ChampAvecLabel(
-                  label: l10n.operationOn,
-                  child: TextListe(
-                    value: operationHistoriquedansFilter,
-                    items: ListsConst.operationHistoriqueDansList,
-                    onChanged: (v) {
-                      setState(() => operationHistoriquedansFilter = v);
-                      appliquerFiltre();
-                    },
-                  ),
+              ChampAvecLabel(
+                label: l10n.operationOn,
+                child: TextListe(
+                  value: operationHistoriquedansFilter,
+                  items: ListsConst.operationHistoriqueDansList,
+                  onChanged: (v) {
+                    setState(() => operationHistoriquedansFilter = v);
+                    appliquerFiltre();
+                  },
                 ),
               ),
             ],

@@ -1,3 +1,9 @@
+import 'package:caisse_dz/core/dialog/caisse_session/mouvement_manuel.dart';
+import 'package:caisse_dz/Services/export_spinner.dart';
+import 'package:caisse_dz/Services/excel_generator.dart';
+import 'package:caisse_dz/Services/excel_apercu.dart';
+import 'dart:io';
+import 'package:caisse_dz/core/widget/filtre/ligne_filtre_tiers.dart';
 import 'package:caisse_dz/core/dialog/gestion_caisse/gestion_caisse_nouveau.dart';
 import 'package:caisse_dz/core/dialog/gestion_caisse/gestion_caisse_detail.dart';
 import 'package:caisse_dz/core/dialog/gestion_caisse/gestion_caisse_modif.dart';
@@ -51,7 +57,6 @@ import 'package:caisse_dz/core/widget/filtre/periode_rapide_filter.dart';
 import 'package:caisse_dz/core/widget/time_date_widget.dart';
 import 'package:caisse_dz/core/widget/connection_status_bar.dart';
 import 'package:caisse_dz/core/widget/header_module.dart';
-import 'package:caisse_dz/core/widget/side_bar.dart';
 import 'package:caisse_dz/core/widget/account.dart';
 
 import 'package:caisse_dz/data/models/gestion_caisse.dart';
@@ -126,6 +131,25 @@ class _GestionCaisseScreenState extends State<GestionCaisseScreen> with TickerPr
   List<Fournisseur> fournisseursTest = [];
   String? selectedSessionFiltreCode;
 
+  // Onglet Mouvements : lignes affichées (voir appliquerFiltreMouvement) et
+  // filtres propres à cet onglet.
+  List<LigneMouvementCaisse> lignesMouvement = [];
+  List<LigneMouvementCaisse> lignesMouvementSelectionnees = [];
+  bool filtresActifsMouvement = false;
+  String? typeMouvementFilter; // valeur brute (ListsConst.typeMouvementCaisse)
+  String? clientMouvementFilter;
+  String? fournisseurMouvementFilter;
+  DateTime? dateDebutMouvement;
+  DateTime? dateFinMouvement;
+  String? periodeRapideMouvement;
+  double? montantMinMouvement;
+  double? montantMaxMouvement;
+  final TextEditingController _dateDebutCtrlMouvement = TextEditingController();
+  final TextEditingController _dateFinCtrlMouvement = TextEditingController();
+  final TextEditingController _searchControllerMouvement = TextEditingController();
+
+  bool _exportEnCours = false;
+
   final TextEditingController _searchControllerCaisse = TextEditingController();
   final TextEditingController _searchControllertransfert = TextEditingController();
 
@@ -139,6 +163,9 @@ class _GestionCaisseScreenState extends State<GestionCaisseScreen> with TickerPr
     final loadedClients = await ClientServices.getAllClients();
     final loadedFournisseurs = await FournisseurServices.getAllFournisseurs();
 
+    // L'écran peut avoir été reconstruit entre-temps (changement de
+    // caisse / magasin, voir AppShell) : ne plus toucher à l'ancien état.
+    if (!mounted) return;
     setState(() {
       caisses = loadedCaisses;
       transferts = loadedTransferts;
@@ -151,6 +178,7 @@ class _GestionCaisseScreenState extends State<GestionCaisseScreen> with TickerPr
       nombretransfert = loadedTransferts.length;
       Caissesfiltre = loadedCaisses;
       transfertsfiltre = loadedTransferts;
+      appliquerFiltreMouvement();
       caissesSelectionnees.clear();
       transfertsSelectionnees.clear();
       cloturesSelectionnees.clear();
@@ -184,23 +212,22 @@ class _GestionCaisseScreenState extends State<GestionCaisseScreen> with TickerPr
 
     setState(() {
       transfertsfiltre = transferts.where((p) {
-        final caissesource = selectedCaisseSourceFilter == null ||
+        final caissesource =
+            selectedCaisseSourceFilter == null ||
             selectedCaisseSourceFilter!.isEmpty ||
             caisses.any((c) => c.code == p.caisseExpCode && c.nomCaisse == selectedCaisseSourceFilter);
 
-        final caissedestina = selectedCaisseDestinaFilter == null ||
+        final caissedestina =
+            selectedCaisseDestinaFilter == null ||
             selectedCaisseDestinaFilter!.isEmpty ||
             caisses.any((c) => c.code == p.caisseDestCode && c.nomCaisse == selectedCaisseDestinaFilter);
 
         final searchOk = searchText.isEmpty || p.searchableText.contains(searchText);
 
-        final montantOk = (montantMin == null || p.montant >= montantMin!) &&
-            (montantMax == null || p.montant <= montantMax!);
+        final montantOk = (montantMin == null || p.montant >= montantMin!) && (montantMax == null || p.montant <= montantMax!);
 
-        final etatOk = selectedEtatFilter == null ||
-            selectedEtatFilter == "" ||
-            (selectedEtatFilter == "Actif" && p.etat) ||
-            (selectedEtatFilter == "Inactif" && !p.etat);
+        final etatOk =
+            selectedEtatFilter == null || selectedEtatFilter == "" || (selectedEtatFilter == "Actif" && p.etat) || (selectedEtatFilter == "Inactif" && !p.etat);
 
         final dateOk = () {
           if (dateDebut == null && dateFin == null) return true;
@@ -208,13 +235,9 @@ class _GestionCaisseScreenState extends State<GestionCaisseScreen> with TickerPr
 
           final d = p.dateTransfert;
 
-          final debut = dateDebut != null
-              ? DateTime(dateDebut!.year, dateDebut!.month, dateDebut!.day)
-              : null;
+          final debut = dateDebut != null ? DateTime(dateDebut!.year, dateDebut!.month, dateDebut!.day) : null;
 
-          final fin = dateFin != null
-              ? DateTime(dateFin!.year, dateFin!.month, dateFin!.day, 23, 59, 59)
-              : null;
+          final fin = dateFin != null ? DateTime(dateFin!.year, dateFin!.month, dateFin!.day, 23, 59, 59) : null;
 
           if (debut != null && d.isBefore(debut)) return false;
           if (fin != null && d.isAfter(fin)) return false;
@@ -262,12 +285,7 @@ class _GestionCaisseScreenState extends State<GestionCaisseScreen> with TickerPr
   }
 
   Future<void> _pickDateDebut() async {
-    final picked = await showDatePicker(
-      context: context,
-      initialDate: dateDebut ?? DateTime.now(),
-      firstDate: DateTime(2000),
-      lastDate: DateTime(2100),
-    );
+    final picked = await showDatePicker(context: context, initialDate: dateDebut ?? DateTime.now(), firstDate: DateTime(2000), lastDate: DateTime(2100));
 
     if (picked != null) {
       setState(() {
@@ -333,6 +351,9 @@ class _GestionCaisseScreenState extends State<GestionCaisseScreen> with TickerPr
   @override
   void dispose() {
     _tabController.dispose();
+    _dateDebutCtrlMouvement.dispose();
+    _dateFinCtrlMouvement.dispose();
+    _searchControllerMouvement.dispose();
     super.dispose();
   }
 
@@ -347,10 +368,10 @@ class _GestionCaisseScreenState extends State<GestionCaisseScreen> with TickerPr
   int getCaissesActives() => caisses.where((c) => c.etat).length;
   int getCaissesInactives() => caisses.where((c) => !c.etat).length;
 
-  int getTotalTransferts() => transferts.length;
+  // Transferts actifs uniquement, comme le montant total ci-dessous.
+  int getTotalTransferts() => transferts.where((t) => t.etat).length;
 
-  double getTotalMontantTransferts() =>
-      transferts.where((t) => t.etat).fold(0.0, (s, t) => s + t.montant);
+  double getTotalMontantTransferts() => transferts.where((t) => t.etat).fold(0.0, (s, t) => s + t.montant);
 
   TransfertCaisse? _grandTransfert() {
     final actifs = transferts.where((t) => t.etat).toList();
@@ -361,36 +382,239 @@ class _GestionCaisseScreenState extends State<GestionCaisseScreen> with TickerPr
   double getMontantGrandTransfert() => _grandTransfert()?.montant ?? 0;
   String? getCodeGrandTransfert() => _grandTransfert()?.code;
 
+  // Cards globales, affichées en tête de chaque onglet de Gestion Caisse.
+  Widget _afficheurGlobal() => AfficheurGestionCaisseGlobalWidget(
+    nombreCaisses: getTotalCaisses(),
+    nombreTransferts: getTotalTransferts(),
+    totalTransferts: getTotalMontantTransferts(),
+    montantGrandTransfert: getMontantGrandTransfert(),
+    codeGrandTransfert: getCodeGrandTransfert(),
+  );
+
   // Lignes affichables pour l'onglet "Mouvements" : mouvements actifs,
   // filtrés par session si une est choisie (via le filtre ou le drill-down
-  // depuis l'onglet Sessions), triés par date.
-  List<LigneMouvementCaisse> _lignesMouvementCaisse() {
-    final filtres = mouvementsCaisse.where((m) {
+  // depuis l'onglet Sessions) puis par le panneau de filtres, triés par
+  // date. Recalculées uniquement quand les données ou un filtre changent
+  // (pas à chaque build) : une nouvelle liste à chaque rebuild réinitialise
+  // la sélection du tableau, dont le callback relance lui-même un rebuild.
+  void appliquerFiltreMouvement() {
+    final search = _searchControllerMouvement.text.toLowerCase();
+    final debut = dateDebutMouvement != null ? DateTime(dateDebutMouvement!.year, dateDebutMouvement!.month, dateDebutMouvement!.day) : null;
+    final fin = dateFinMouvement != null ? DateTime(dateFinMouvement!.year, dateFinMouvement!.month, dateFinMouvement!.day, 23, 59, 59) : null;
+
+    final lignes = <LigneMouvementCaisse>[];
+    final tries = mouvementsCaisse.where((m) {
       if (!m.etat) return false;
       if (selectedSessionFiltreCode != null && m.sessionCode != selectedSessionFiltreCode) return false;
+      if (typeMouvementFilter != null && m.type != typeMouvementFilter) return false;
+      if (debut != null && m.date.isBefore(debut)) return false;
+      if (fin != null && m.date.isAfter(fin)) return false;
+      if (montantMinMouvement != null && m.montant < montantMinMouvement!) return false;
+      if (montantMaxMouvement != null && m.montant > montantMaxMouvement!) return false;
       return true;
-    }).toList()
-      ..sort((a, b) => a.date.compareTo(b.date));
+    }).toList()..sort((a, b) => a.date.compareTo(b.date));
 
-    return List.generate(filtres.length, (i) {
-      final m = filtres[i];
+    for (final m in tries) {
       final entrant = m.sens.toLowerCase() == 'entrée';
-      return LigneMouvementCaisse(
-        numero: i + 1,
+      final ligne = LigneMouvementCaisse(
+        numero: lignes.length + 1,
         date: m.date,
         codeVersement: m.code,
         type: ListsConst.labelTypeMouvementCaisse(m.type),
         codeOperation: m.codeOperation ?? '-',
-        nomClient: m.clientCode != null
-            ? (clientsTest.firstWhereOrNull((c) => c.code == m.clientCode)?.nom ?? m.clientCode!)
-            : '-',
-        nomFournisseur: m.fournisseurCode != null
-            ? (fournisseursTest.firstWhereOrNull((f) => f.code == m.fournisseurCode)?.nom ?? m.fournisseurCode!)
-            : '-',
+        nomClient: m.clientCode != null ? (clientsTest.firstWhereOrNull((c) => c.code == m.clientCode)?.nom ?? m.clientCode!) : '-',
+        nomFournisseur: m.fournisseurCode != null ? (fournisseursTest.firstWhereOrNull((f) => f.code == m.fournisseurCode)?.nom ?? m.fournisseurCode!) : '-',
         montantEntree: entrant ? m.montant : 0,
         montantSortie: entrant ? 0 : m.montant,
       );
-    });
+      if (clientMouvementFilter != null && ligne.nomClient != clientMouvementFilter) continue;
+      if (fournisseurMouvementFilter != null && ligne.nomFournisseur != fournisseurMouvementFilter) continue;
+      if (search.isNotEmpty &&
+          ![ligne.codeVersement, ligne.type, ligne.codeOperation, ligne.nomClient, ligne.nomFournisseur].any((v) => v.toLowerCase().contains(search))) {
+        continue;
+      }
+      lignes.add(ligne);
+    }
+
+    lignesMouvement = lignes;
+    lignesMouvementSelectionnees = [];
+  }
+
+  bool get _filtresMouvementActifs =>
+      selectedSessionFiltreCode != null ||
+      typeMouvementFilter != null ||
+      clientMouvementFilter != null ||
+      fournisseurMouvementFilter != null ||
+      dateDebutMouvement != null ||
+      dateFinMouvement != null ||
+      periodeRapideMouvement != null ||
+      montantMinMouvement != null ||
+      montantMaxMouvement != null ||
+      _searchControllerMouvement.text.isNotEmpty;
+
+  void supprimerFilterMouvement() {
+    selectedSessionFiltreCode = null;
+    typeMouvementFilter = null;
+    clientMouvementFilter = null;
+    fournisseurMouvementFilter = null;
+    dateDebutMouvement = null;
+    dateFinMouvement = null;
+    periodeRapideMouvement = null;
+    montantMinMouvement = null;
+    montantMaxMouvement = null;
+    _dateDebutCtrlMouvement.clear();
+    _dateFinCtrlMouvement.clear();
+    _searchControllerMouvement.clear();
+  }
+
+  Future<void> _pickDateDebutMouvement() async {
+    final picked = await showDatePicker(
+      context: context,
+      initialDate: dateDebutMouvement ?? DateTime.now(),
+      firstDate: DateTime(2000),
+      lastDate: DateTime(2100),
+    );
+    if (picked != null) {
+      setState(() {
+        dateDebutMouvement = picked;
+        _dateDebutCtrlMouvement.text = _formatDate(picked);
+        periodeRapideMouvement = null;
+        appliquerFiltreMouvement();
+      });
+    }
+  }
+
+  Future<void> _pickDateFinMouvement() async {
+    final picked = await showDatePicker(
+      context: context,
+      initialDate: dateFinMouvement ?? dateDebutMouvement ?? DateTime.now(),
+      firstDate: DateTime(2000),
+      lastDate: DateTime(2100),
+    );
+    if (picked != null) {
+      setState(() {
+        dateFinMouvement = (dateDebutMouvement != null && picked.isBefore(dateDebutMouvement!)) ? dateDebutMouvement : picked;
+        _dateFinCtrlMouvement.text = _formatDate(dateFinMouvement!);
+        periodeRapideMouvement = null;
+        appliquerFiltreMouvement();
+      });
+    }
+  }
+
+  void _appliquerPeriodeRapideMouvement(String key) {
+    final periode = calculerPeriodeRapide(key);
+    periodeRapideMouvement = key;
+    dateDebutMouvement = periode.debut;
+    dateFinMouvement = periode.fin;
+    _dateDebutCtrlMouvement.text = _formatDate(periode.debut);
+    _dateFinCtrlMouvement.text = _formatDate(periode.fin);
+    appliquerFiltreMouvement();
+  }
+
+  /// Nouveau mouvement manuel (entrée/sortie de caisse) depuis l'onglet
+  /// Mouvements : session choisie dans le champ Session si elle est ouverte,
+  /// sinon l'unique session ouverte.
+  Future<void> _nouveauMouvementManuel() async {
+    final l10n = AppLocalizations.of(context)!;
+    final ouvertes = sessions.where((s) => s.etat && s.estOuverte).toList();
+    CaisseSession? session = selectedSessionFiltreCode == null ? null : ouvertes.firstWhereOrNull((s) => s.code == selectedSessionFiltreCode);
+    session ??= ouvertes.length == 1 ? ouvertes.first : null;
+
+    if (session == null) {
+      await InformationDialog(
+        context: context,
+        titre_type_message: l10n.information,
+        titre_concerne: l10n.cashMovementsTab,
+        message: ouvertes.isEmpty ? l10n.noOpenSessionForManualMovement : l10n.selectOpenSessionForManualMovement,
+      );
+      return;
+    }
+
+    await MouvementManuelDialog(context: context, session: session, onSuccess: () => _loadAllData());
+  }
+
+  /// Ouvre l'aperçu Excel d'un fichier généré, avec garde anti double-clic
+  /// et message d'erreur — partagé par les exports Transfert et Mouvements.
+  Future<void> _lancerExport(Future<File> Function() generer, String nomFeuille, String titre, {bool enPdf = false}) async {
+    if (_exportEnCours) return;
+    final l10n = AppLocalizations.of(context)!;
+    setState(() => _exportEnCours = true);
+    try {
+      final fichier = await executerAvecSpinner(context, generer);
+      if (!mounted) return;
+      if (enPdf) {
+        await ouvrirApercuPdfDepuisExcel(context, fichier: fichier, titre: titre, nomFeuille: nomFeuille);
+      } else {
+        await ouvrirApercuExcel(context, fichier: fichier, nomFeuille: nomFeuille, titre: titre, l10n: l10n);
+      }
+    } catch (e) {
+      debugPrint('Excel export error: $e');
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('${l10n.exportError}: $e'), backgroundColor: Colors.red));
+    } finally {
+      if (mounted) setState(() => _exportEnCours = false);
+    }
+  }
+
+  /// Extract : la liste affichée (filtrée si les filtres sont ouverts).
+  /// Extract filtre : uniquement les lignes sélectionnées.
+  Future<void> _exportTransfertsToExcel({required bool selectionSeulement, bool enPdf = false}) async {
+    final l10n = AppLocalizations.of(context)!;
+    final liste = selectionSeulement ? transfertsSelectionnees : (filtresActifs ? transfertsfiltre : transferts);
+    if (liste.isEmpty) {
+      await InformationDialog(
+        context: context,
+        titre_type_message: l10n.information,
+        titre_concerne: l10n.cashTransferTab,
+        message: selectionSeulement ? l10n.noTransferSelected : l10n.noDataToExport,
+      );
+      return;
+    }
+    await _lancerExport(
+      () => ExcelGenerator.generateTransfertsCaisseExcel(transferts: List.of(liste), caisses: caisses, utilisateurs: utilisateursTest, l10n: l10n),
+      'TransfertsCaisse',
+      selectionSeulement ? "${l10n.cashTransferTab} (${l10n.selected})" : l10n.cashTransferTab,
+      enPdf: enPdf,
+    );
+  }
+
+  Future<void> _exportMouvementsToExcel({required bool selectionSeulement, bool enPdf = false}) async {
+    final l10n = AppLocalizations.of(context)!;
+    final liste = selectionSeulement ? lignesMouvementSelectionnees : lignesMouvement;
+    if (liste.isEmpty) {
+      await InformationDialog(context: context, titre_type_message: l10n.information, titre_concerne: l10n.cashMovementsTab, message: l10n.noDataToExport);
+      return;
+    }
+    await _lancerExport(
+      () => ExcelGenerator.generateMouvementsCaisseExcel(lignes: List.of(liste), l10n: l10n),
+      'MouvementsCaisse',
+      selectionSeulement ? "${l10n.cashMovementsTab} (${l10n.selected})" : l10n.cashMovementsTab,
+      enPdf: enPdf,
+    );
+  }
+
+  // Permission spéciale manquante (gererTransfertsCaisse) : contenu du tab
+  // Transfert remplacé par ce placeholder plutôt que masqué entièrement
+  // (l'accès au reste de Gestion Caisse, lui, reste géré par le module
+  // "gestionCaisse" de la phase 2).
+  Widget _buildAccesRefuseTransfert(AppLocalizations l10n) {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(40),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(Icons.lock_outline, size: 48, color: Appstyle.gris),
+            const SizedBox(height: 16),
+            Text(
+              l10n.noPermissionAction,
+              textAlign: TextAlign.center,
+              style: Appstyle.textSB.copyWith(color: Appstyle.gris),
+            ),
+          ],
+        ),
+      ),
+    );
   }
 
   @override
@@ -400,6 +624,9 @@ class _GestionCaisseScreenState extends State<GestionCaisseScreen> with TickerPr
     final auth = Provider.of<AuthState>(context, listen: false);
     final userName = auth.username ?? '';
     final userCode = auth.userCode ?? '';
+    // ✅ Permission spéciale (voir RoleDetail) : le tab Transfert (entre
+    // caisses) reste distinct du reste de la gestion de caisse.
+    final canGererTransfertsCaisse = auth.canGererTransfertsCaisse;
 
     // Check if RTL (Arabic)
     final local = context.watch<LocaleProvider>();
@@ -410,31 +637,20 @@ class _GestionCaisseScreenState extends State<GestionCaisseScreen> with TickerPr
     final currentTab = _tabController.index;
 
     // ✅ Couleurs des tabs
-    final tabColors = [
-      Appstyle.violet,
-      Appstyle.indigo,
-      Appstyle.crevete,
-      Appstyle.blueC,
-      Appstyle.green,
-    ];
+    final tabColors = [Appstyle.violet, Appstyle.indigo, Appstyle.crevete, Appstyle.blueC, Appstyle.green];
     final Color headerColor = tabColors[currentTab];
 
     // ✅ Noms des tabs
-    final tabNames = [
-      l10n.gestionCaisse,
-      l10n.transfert,
-      l10n.cashRegisterClosures,
-      l10n.cashMovementsTab,
-      l10n.cashSessionsTab,
-    ];
+    final tabNames = [l10n.gestionCaisse, l10n.cashTransferTab, l10n.cashRegisterClosures, l10n.cashMovementsTab, l10n.cashSessionsTab];
 
     // ✅ Icônes des tabs
+    // Une icône distincte par onglet.
     final tabIcons = [
-      'assets/icons/sidebar/caisse_icon.png',
-      'assets/icons/cardwidget/transfert_icon.png',
-      'assets/icons/sidebar/caisse_icon.png',
-      'assets/icons/sidebar/caisse_icon.png',
-      'assets/icons/sidebar/caisse_icon.png',
+      'assets/icons/sidebar/caisse_icon.png', // Gestion caisse
+      'assets/icons/cardwidget/transfert_icon.png', // Transfert caisse
+      'assets/icons/sidebar/reporting_icon.png', // Clôtures
+      'assets/icons/cardwidget/mouvement_icon.png', // Mouvements
+      'assets/icons/sidebar/historique_icon.png', // Sessions
     ];
 
     // ✅ Compteurs pour les tabs
@@ -452,10 +668,10 @@ class _GestionCaisseScreenState extends State<GestionCaisseScreen> with TickerPr
         textDirection: textDirection,
         child: LayoutBuilder(
           builder: (context, constraints) {
-            final screenHeight  = constraints.maxHeight  ;
-            final screenWidth   = constraints.maxWidth   ;
-            const minHeight     = Constant.minHeight;
-            const minWidth      = Constant.minWidth ;
+            final screenHeight = constraints.maxHeight;
+            final screenWidth = constraints.maxWidth;
+            const minHeight = Constant.minHeight;
+            const minWidth = Constant.minWidth;
 
             final adjustedWidth = screenWidth < minWidth ? minWidth : screenWidth;
             final adjustedHeight = screenHeight < minHeight ? minHeight : screenHeight;
@@ -466,730 +682,717 @@ class _GestionCaisseScreenState extends State<GestionCaisseScreen> with TickerPr
             return SingleChildScrollView(
               scrollDirection: Axis.horizontal,
               child: ConstrainedBox(
-                constraints: const BoxConstraints(
-                  minWidth: minWidth,
-                  minHeight: minHeight,
-                ),
+                constraints: const BoxConstraints(minWidth: minWidth, minHeight: minHeight),
                 child: SizedBox(
                   width: adjustedWidth,
                   height: adjustedHeight,
-                    child: Row(
-                      textDirection: textDirection,
-                      crossAxisAlignment: CrossAxisAlignment.start,
+                  child: SingleChildScrollView(
+                    padding: const EdgeInsets.all(16),
+                    child: Column(
+                      crossAxisAlignment: isRTL ? CrossAxisAlignment.end : CrossAxisAlignment.start,
                       children: [
-                        // ------------------- SIDEBAR -------------------
-                        SideBarWidget(),
-                        Expanded(
-                          child: SingleChildScrollView(
-                            padding: const EdgeInsets.all(16),
-                            child: Column(
-                              crossAxisAlignment: isRTL ? CrossAxisAlignment.end : CrossAxisAlignment.start,
-                              children: [
-                                /// HEADER
-                                HeaderModule(
-                                  gradientColors: [Appstyle.Tblanc, Appstyle.Tblanc],
-                                  child: Row(
+                        /// HEADER
+                        HeaderModule(
+                          gradientColors: [Appstyle.Tblanc, Appstyle.Tblanc],
+                          child: Row(
+                            textDirection: textDirection,
+                            children: [
+                              /// -------- LEFT (Icon + Title)
+                              Row(
+                                textDirection: textDirection,
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Image.asset("assets/icons/sidebar/caisse_icon.png", width: 40, color: headerColor),
+                                  const SizedBox(width: 10),
+                                  Row(
                                     textDirection: textDirection,
                                     children: [
-                                      /// -------- LEFT (Icon + Title)
-                                      Row(
-                                        textDirection: textDirection,
-                                        mainAxisSize: MainAxisSize.min,
-                                        children: [
-                                          Image.asset(
-                                            "assets/icons/sidebar/caisse_icon.png",
-                                            width: 40,
-                                            color: headerColor,
-                                          ),
-                                          const SizedBox(width: 10),
-                                          Row(
-                                            textDirection: textDirection,
-                                            children: [
-                                              Text(
-                                                l10n.gestionCaisse,
-                                                style: Appstyle.textXLB.copyWith(
-                                                  color: headerColor,
-                                                  fontWeight: FontWeight.bold,
-                                                ),
-                                              ),
-                                              SizedBox(width: 15),
-                                              Text(
-                                                "(${tabNames[currentTab]})",
-                                                style: Appstyle.textXLB.copyWith(
-                                                  color: headerColor,
-                                                  fontWeight: FontWeight.bold,
-                                                ),
-                                              ),
-                                            ],
-                                          ),
-                                        ],
+                                      Text(
+                                        l10n.gestionCaisse,
+                                        style: Appstyle.textXLB.copyWith(color: headerColor, fontWeight: FontWeight.bold),
                                       ),
-                                      const Spacer(),
-                                      /// -------- RIGHT (Time + Account)
-                                      Row(
-                                        textDirection: textDirection,
-                                        children: [
-                                          const ConnectionStatusBar(),
-                                          const SizedBox(width: 20),
-                                          TimeDateWidget(
-                                            iconHeure: "assets/icons/hour_icon.png",
-                                            iconDate: "assets/icons/agenda_icon.png",
-                                          ),
-                                          const SizedBox(width: 20),
-                                          AccountWidget(
-                                            name: userName,
-                                            imageUrl: "assets/images/support.png",
-                                          ),
-                                        ],
+                                      SizedBox(width: 15),
+                                      Text(
+                                        "(${tabNames[currentTab]})",
+                                        style: Appstyle.textXLB.copyWith(color: headerColor, fontWeight: FontWeight.bold),
                                       ),
                                     ],
                                   ),
+                                ],
+                              ),
+                              const Spacer(),
+
+                              /// -------- RIGHT (Time + Account)
+                              Row(
+                                textDirection: textDirection,
+                                children: [
+                                  const ConnectionStatusBar(),
+                                  const SizedBox(width: 20),
+                                  TimeDateWidget(iconHeure: "assets/icons/hour_icon.png", iconDate: "assets/icons/agenda_icon.png"),
+                                  const SizedBox(width: 20),
+                                  AccountWidget(name: userName, imageUrl: "assets/images/support.png"),
+                                ],
+                              ),
+                            ],
+                          ),
+                        ),
+
+                        SizedBox(height: paddingV / 2),
+
+                        /// ✅ TAB BAR (remplace les CardWidget)
+                        Container(
+                          margin: const EdgeInsets.symmetric(horizontal: 0, vertical: 6),
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            borderRadius: BorderRadius.circular(16),
+                            boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 10, offset: const Offset(0, 2))],
+                          ),
+                          child: TabBar(
+                            controller: _tabController,
+                            isScrollable: false,
+                            indicator: BoxDecoration(color: headerColor, borderRadius: BorderRadius.circular(12)),
+                            labelColor: Colors.white,
+                            unselectedLabelColor: Appstyle.gris,
+                            dividerColor: Colors.transparent,
+                            indicatorSize: TabBarIndicatorSize.tab,
+                            padding: const EdgeInsets.all(6),
+                            labelStyle: Appstyle.textXS.copyWith(fontWeight: FontWeight.w600),
+                            unselectedLabelStyle: Appstyle.textXS.copyWith(fontWeight: FontWeight.w500),
+                            tabs: List.generate(5, (index) {
+                              final isSelected = currentTab == index;
+                              return Tab(
+                                icon: Container(
+                                  width: 24,
+                                  height: 24,
+                                  child: Image.asset(tabIcons[index], width: 20, height: 20, color: isSelected ? Colors.white : Appstyle.gris),
                                 ),
+                                text: "${tabNames[index]} (${tabCounts[index]})",
+                              );
+                            }),
+                          ),
+                        ),
 
-                                SizedBox(height: paddingV / 2),
+                        SizedBox(height: paddingV / 2),
 
-                                /// ✅ TAB BAR (remplace les CardWidget)
-                                Container(
-                                  margin: const EdgeInsets.symmetric(horizontal: 0, vertical: 6),
-                                  decoration: BoxDecoration(
-                                    color: Colors.white,
-                                    borderRadius: BorderRadius.circular(16),
-                                    boxShadow: [
-                                      BoxShadow(
-                                        color: Colors.black.withOpacity(0.05),
-                                        blurRadius: 10,
-                                        offset: const Offset(0, 2),
-                                      ),
-                                    ],
-                                  ),
-                                  child: TabBar(
-                                    controller: _tabController,
-                                    isScrollable: false,
-                                    indicator: BoxDecoration(
-                                      color: headerColor,
-                                      borderRadius: BorderRadius.circular(12),
-                                    ),
-                                    labelColor: Colors.white,
-                                    unselectedLabelColor: Appstyle.gris,
-                                    dividerColor: Colors.transparent,
-                                    indicatorSize: TabBarIndicatorSize.tab,
-                                    padding: const EdgeInsets.all(6),
-                                    labelStyle: Appstyle.textXS.copyWith(
-                                      fontWeight: FontWeight.w600,
-                                    ),
-                                    unselectedLabelStyle: Appstyle.textXS.copyWith(
-                                      fontWeight: FontWeight.w500,
-                                    ),
-                                    tabs: List.generate(5, (index) {
-                                      final isSelected = currentTab == index;
-                                      return Tab(
-                                        icon: Container(
-                                          width: 24,
-                                          height: 24,
-                                          child: Image.asset(
-                                            tabIcons[index],
-                                            width: 20,
-                                            height: 20,
-                                            color: isSelected ? Colors.white : Appstyle.gris,
-                                          ),
-                                        ),
-                                        text: "${tabNames[index]} (${tabCounts[index]})",
-                                      );
-                                    }),
-                                  ),
-                                ),
+                        // ═══════════════════════════════════════════════════════════════════════════════
+                        // SECTION PRINCIPALE - GESTION PAR TYPE DE TAB
+                        // ═══════════════════════════════════════════════════════════════════════════════
 
-                                SizedBox(height: paddingV / 2),
+                        // ──────────────────────────────────────────────────────────────
+                        // 1. CAS CAISSE (currentTab == TAB_CAISSE)
+                        // ──────────────────────────────────────────────────────────────
+                        if (currentTab == TAB_CAISSE)
+                          Column(
+                            crossAxisAlignment: isRTL ? CrossAxisAlignment.end : CrossAxisAlignment.start,
+                            children: [
+                              // Afficheur
+                              if (caissesSelectionnees.length == 1)
+                                AfficheurCaisseGestion(
+                                  caisse: caissesSelectionnees.first,
+                                  onDetails: () {
+                                    CaisseGestionDetail(context, caissesSelectionnees.first);
+                                  },
+                                )
+                              else
+                                _afficheurGlobal(),
 
-                                // ═══════════════════════════════════════════════════════════════════════════════
-                                // SECTION PRINCIPALE - GESTION PAR TYPE DE TAB
-                                // ═══════════════════════════════════════════════════════════════════════════════
+                              SizedBox(height: paddingV / 2),
 
-                                // ──────────────────────────────────────────────────────────────
-                                // 1. CAS CAISSE (currentTab == TAB_CAISSE)
-                                // ──────────────────────────────────────────────────────────────
-                                if (currentTab == TAB_CAISSE)
-                                  Column(
-                                    crossAxisAlignment: isRTL ? CrossAxisAlignment.end : CrossAxisAlignment.start,
+                              // Actions - Style FournisseurScreen
+                              Row(
+                                textDirection: textDirection,
+                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                children: [
+                                  filtreCaisse(setState, l10n, isRTL),
+                                  Row(
+                                    textDirection: textDirection,
                                     children: [
-                                      // Afficheur
-                                      if (caissesSelectionnees.length == 1)
-                                        AfficheurCaisseGestion(
-                                          caisse: caissesSelectionnees.first,
-                                          onDetails: () {
+                                      MainIconButton(
+                                        imagePath: "assets/icons/action/detail_icon.png",
+                                        color: Appstyle.violet,
+                                        onPressed: () async {
+                                          if (caissesSelectionnees.length == 1) {
                                             CaisseGestionDetail(context, caissesSelectionnees.first);
-                                          },
-                                        )
-                                      else
-                                        AfficheurGestionCaisseGlobalWidget(
-                                          nombreCaisses: getTotalCaisses(),
-                                          nombreTransferts: getTotalTransferts(),
-                                          totalTransferts: getTotalMontantTransferts(),
-                                          montantGrandTransfert: getMontantGrandTransfert(),
-                                          codeGrandTransfert: getCodeGrandTransfert(),
-                                        ),
-
-                                      SizedBox(height: paddingV / 2),
-
-                                      // Actions - Style FournisseurScreen
-                                      Row(
-                                        textDirection: textDirection,
-                                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                        children: [
-                                          filtreCaisse(setState, l10n, isRTL),
-                                          Row(
-                                            textDirection: textDirection,
-                                            children: [
-                                              MainIconButton(
-                                                imagePath: "assets/icons/action/detail_icon.png",
-                                                color: Appstyle.violet,
-                                                onPressed: () async {
-                                                  if (caissesSelectionnees.length == 1) {
-                                                    CaisseGestionDetail(context, caissesSelectionnees.first);
-                                                  } else if (caissesSelectionnees.isEmpty) {
-                                                    await InformationDialog(
-                                                      context: context,
-                                                      titre_type_message: l10n.information,
-                                                      titre_concerne: l10n.caisse,
-                                                      message: l10n.noCashRegisterSelected ?? "Aucune caisse sélectionnée !",
-                                                    );
-                                                  } else {
-                                                    await InformationDialog(
-                                                      context: context,
-                                                      titre_type_message: l10n.information,
-                                                      titre_concerne: l10n.caisse,
-                                                      message: l10n.selectSingleCashRegisterForDetail ?? "Veuillez sélectionner une seule caisse pour afficher le détail !",
-                                                    );
-                                                  }
-                                                },
-                                              ),
-                                              SizedBox(width: paddingH / 4),
-                                              MainIconButton(
-                                                imagePath: "assets/icons/action/supprimer_icon.png",
-                                                color: Appstyle.gris,
-                                                onPressed: () async {
-                                                  if (caissesSelectionnees.isNotEmpty) {
-                                                    bool contientNonSupprimable = caissesSelectionnees.any(
-                                                          (caisse) => ListsConst.nonSupprimablePacks.any(
-                                                            (p) => p.nom == "Caisse" && p.code == caisse.code,
-                                                      ),
-                                                    );
-
-                                                    if (contientNonSupprimable) {
-                                                      await InformationDialog(
-                                                        context: context,
-                                                        titre_type_message: l10n.information,
-                                                        titre_concerne: l10n.caisse,
-                                                        message: l10n.cannotDeleteSystemCashRegister ?? "Impossible de supprimer cette caisse (système) !",
-                                                      );
-                                                    } else {
-                                                      await AnnulerCaisseGestion(context, caissesSelectionnees);
-                                                      await _loadAllData();
-                                                    }
-                                                  } else {
-                                                    await InformationDialog(
-                                                      context: context,
-                                                      titre_type_message: l10n.information,
-                                                      titre_concerne: l10n.caisse,
-                                                      message: l10n.noCashRegisterSelected ?? "Aucune caisse sélectionnée !",
-                                                    );
-                                                  }
-                                                },
-                                              ),
-                                              SizedBox(width: paddingH / 4),
-                                              MainIconButton(
-                                                imagePath: "assets/icons/action/edit_icon.png",
-                                                color: Appstyle.blueC,
-                                                onPressed: () async {
-                                                  if (caissesSelectionnees.length == 1) {
-                                                    bool contientNonSupprimable = caissesSelectionnees.any(
-                                                          (caisse) => ListsConst.nonSupprimablePacks.any(
-                                                            (p) => p.nom == "Caisse" && p.code == caisse.code,
-                                                      ),
-                                                    );
-
-                                                    if (contientNonSupprimable) {
-                                                      await InformationDialog(
-                                                        context: context,
-                                                        titre_type_message: l10n.information,
-                                                        titre_concerne: l10n.caisse,
-                                                        message: l10n.cannotModifySystemCashRegister ?? "Impossible de modifier cette caisse (système) !",
-                                                      );
-                                                    } else {
-                                                      await CaisseGestionModif(context, caissesSelectionnees.first);
-                                                      await _loadAllData();
-                                                    }
-                                                  } else if (caissesSelectionnees.isEmpty) {
-                                                    await InformationDialog(
-                                                      context: context,
-                                                      titre_type_message: l10n.information,
-                                                      titre_concerne: l10n.caisse,
-                                                      message: l10n.noCashRegisterSelected ?? "Aucune caisse sélectionnée !",
-                                                    );
-                                                  } else {
-                                                    await InformationDialog(
-                                                      context: context,
-                                                      titre_type_message: l10n.information,
-                                                      titre_concerne: l10n.caisse,
-                                                      message: l10n.selectSingleCashRegisterToModify ?? "Veuillez sélectionner une seule caisse pour modifier !",
-                                                    );
-                                                  }
-                                                },
-                                              ),
-                                              SizedBox(width: paddingH / 4),
-                                              MainButton(
-                                                text: l10n.newCashRegister ?? "Nouvelle Caisse",
-                                                color: Appstyle.crevete,
-                                                onPressed: () async {
-                                                  await CaisseGestionNouveau(context);
-                                                  await _loadAllData();
-                                                },
-                                              ),
-                                            ],
-                                          ),
-                                        ],
+                                          } else if (caissesSelectionnees.isEmpty) {
+                                            await InformationDialog(
+                                              context: context,
+                                              titre_type_message: l10n.information,
+                                              titre_concerne: l10n.caisse,
+                                              message: l10n.noCashRegisterSelected ?? "Aucune caisse sélectionnée !",
+                                            );
+                                          } else {
+                                            await InformationDialog(
+                                              context: context,
+                                              titre_type_message: l10n.information,
+                                              titre_concerne: l10n.caisse,
+                                              message:
+                                                  l10n.selectSingleCashRegisterForDetail ?? "Veuillez sélectionner une seule caisse pour afficher le détail !",
+                                            );
+                                          }
+                                        },
                                       ),
+                                      SizedBox(width: paddingH / 4),
+                                      MainIconButton(
+                                        imagePath: "assets/icons/action/supprimer_icon.png",
+                                        color: Appstyle.gris,
+                                        onPressed: () async {
+                                          if (caissesSelectionnees.isNotEmpty) {
+                                            bool contientNonSupprimable = caissesSelectionnees.any(
+                                              (caisse) => ListsConst.nonSupprimablePacks.any((p) => p.nom == "Caisse" && p.code == caisse.code),
+                                            );
 
-                                      SizedBox(height: paddingV / 4),
+                                            if (contientNonSupprimable) {
+                                              await InformationDialog(
+                                                context: context,
+                                                titre_type_message: l10n.information,
+                                                titre_concerne: l10n.caisse,
+                                                message: l10n.cannotDeleteSystemCashRegister ?? "Impossible de supprimer cette caisse (système) !",
+                                              );
+                                            } else {
+                                              await AnnulerCaisseGestion(context, caissesSelectionnees);
+                                              await _loadAllData();
+                                            }
+                                          } else {
+                                            await InformationDialog(
+                                              context: context,
+                                              titre_type_message: l10n.information,
+                                              titre_concerne: l10n.caisse,
+                                              message: l10n.noCashRegisterSelected ?? "Aucune caisse sélectionnée !",
+                                            );
+                                          }
+                                        },
+                                      ),
+                                      SizedBox(width: paddingH / 4),
+                                      MainIconButton(
+                                        imagePath: "assets/icons/action/edit_icon.png",
+                                        color: Appstyle.blueC,
+                                        onPressed: () async {
+                                          if (caissesSelectionnees.length == 1) {
+                                            bool contientNonSupprimable = caissesSelectionnees.any(
+                                              (caisse) => ListsConst.nonSupprimablePacks.any((p) => p.nom == "Caisse" && p.code == caisse.code),
+                                            );
 
-                                      // Tableau
-                                      SizedBox(
-                                        height: adjustedHeight * 0.7,
-                                        child: TableauCaisseGestionAdvanced(
-                                          caisses: Caissesfiltre,
-                                          key: ValueKey(Caissesfiltre),
-                                          utilisateurs: utilisateursTest,
-                                          onSelectionChanged: (selection) {
-                                            setState(() {
-                                              caissesSelectionnees = selection;
-                                            });
-                                          },
-                                        ),
+                                            if (contientNonSupprimable) {
+                                              await InformationDialog(
+                                                context: context,
+                                                titre_type_message: l10n.information,
+                                                titre_concerne: l10n.caisse,
+                                                message: l10n.cannotModifySystemCashRegister ?? "Impossible de modifier cette caisse (système) !",
+                                              );
+                                            } else {
+                                              await CaisseGestionModif(context, caissesSelectionnees.first);
+                                              await _loadAllData();
+                                            }
+                                          } else if (caissesSelectionnees.isEmpty) {
+                                            await InformationDialog(
+                                              context: context,
+                                              titre_type_message: l10n.information,
+                                              titre_concerne: l10n.caisse,
+                                              message: l10n.noCashRegisterSelected ?? "Aucune caisse sélectionnée !",
+                                            );
+                                          } else {
+                                            await InformationDialog(
+                                              context: context,
+                                              titre_type_message: l10n.information,
+                                              titre_concerne: l10n.caisse,
+                                              message: l10n.selectSingleCashRegisterToModify ?? "Veuillez sélectionner une seule caisse pour modifier !",
+                                            );
+                                          }
+                                        },
+                                      ),
+                                      SizedBox(width: paddingH / 4),
+                                      MainButton(
+                                        text: l10n.newCashRegister ?? "Nouvelle Caisse",
+                                        color: Appstyle.crevete,
+                                        onPressed: () async {
+                                          await CaisseGestionNouveau(context);
+                                          await _loadAllData();
+                                        },
                                       ),
                                     ],
-                                  )
+                                  ),
+                                ],
+                              ),
 
-                                // ──────────────────────────────────────────────────────────────
-                                // 2. CAS TRANSFERT (currentTab == TAB_TRANSFERT)
-                                // ──────────────────────────────────────────────────────────────
-                                else if (currentTab == TAB_TRANSFERT)
-                                  Column(
-                                    crossAxisAlignment: isRTL ? CrossAxisAlignment.end : CrossAxisAlignment.start,
-                                    children: [
-                                      // Afficheur
-                                      if (transfertsSelectionnees.length == 1)
-                                        AfficheurTransfert(
-                                          transfert: transfertsSelectionnees.first,
-                                          onDetails: () {
-                                            TransfertCaisseDetail(context, transfertsSelectionnees.first);
-                                          },
-                                        )
-                                      else
-                                        AfficheurGestionCaisseGlobalWidget(
-                                          nombreCaisses: getTotalCaisses(),
-                                          nombreTransferts: getTotalTransferts(),
-                                          totalTransferts: getTotalMontantTransferts(),
-                                          montantGrandTransfert: getMontantGrandTransfert(),
-                                          codeGrandTransfert: getCodeGrandTransfert(),
-                                        ),
+                              SizedBox(height: paddingV / 4),
 
-                                      SizedBox(height: paddingV / 2),
+                              // Tableau
+                              SizedBox(
+                                height: adjustedHeight * 0.7,
+                                child: TableauCaisseGestionAdvanced(
+                                  caisses: Caissesfiltre,
+                                  key: ValueKey(Caissesfiltre),
+                                  utilisateurs: utilisateursTest,
+                                  onSelectionChanged: (selection) {
+                                    setState(() {
+                                      caissesSelectionnees = selection;
+                                    });
+                                  },
+                                ),
+                              ),
+                            ],
+                          )
+                        // ──────────────────────────────────────────────────────────────
+                        // 2. CAS TRANSFERT (currentTab == TAB_TRANSFERT)
+                        // ──────────────────────────────────────────────────────────────
+                        else if (currentTab == TAB_TRANSFERT)
+                          !canGererTransfertsCaisse
+                              ? _buildAccesRefuseTransfert(l10n)
+                              : Column(
+                                  crossAxisAlignment: isRTL ? CrossAxisAlignment.end : CrossAxisAlignment.start,
+                                  children: [
+                                    // Afficheur
+                                    if (transfertsSelectionnees.length == 1)
+                                      AfficheurTransfert(
+                                        transfert: transfertsSelectionnees.first,
+                                        onDetails: () {
+                                          TransfertCaisseDetail(context, transfertsSelectionnees.first);
+                                        },
+                                      )
+                                    else
+                                      _afficheurGlobal(),
 
-                                      // Filtres & Actions - Style FournisseurScreen
-                                      Row(
-                                        textDirection: textDirection,
-                                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                        children: [
-                                          // Button afficher et masquer les filtres
-                                          Row(
-                                            textDirection: textDirection,
-                                            children: [
-                                              MainButton(
-                                                text: l10n.filter,
-                                                textColor: Appstyle.violet,
-                                                color: Appstyle.Tblanc,
-                                                icon: filtresActifs ? Icons.visibility_off : Icons.visibility,
-                                                iconColor: Appstyle.violet,
-                                                showBadge: _filtresTransfertActifs,
+                                    SizedBox(height: paddingV / 2),
+
+                                    // Filtres & Actions - Style FournisseurScreen
+                                    Row(
+                                      textDirection: textDirection,
+                                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                      children: [
+                                        // Button afficher et masquer les filtres
+                                        Row(
+                                          textDirection: textDirection,
+                                          children: [
+                                            MainButton(
+                                              text: l10n.filter,
+                                              textColor: Appstyle.violet,
+                                              color: Appstyle.Tblanc,
+                                              icon: filtresActifs ? Icons.visibility_off : Icons.visibility,
+                                              iconColor: Appstyle.violet,
+                                              showBadge: _filtresTransfertActifs,
+                                              onPressed: () {
+                                                setState(() {
+                                                  filtresActifs = !filtresActifs;
+                                                  if (!filtresActifs) {
+                                                    supprimerFilter();
+                                                    appliquerFiltre();
+                                                  }
+                                                });
+                                              },
+                                            ),
+                                            SizedBox(width: paddingH / 4),
+                                            if (filtresActifs)
+                                              MainIconButton(
+                                                color: Colors.grey.shade400,
+                                                imagePath: 'assets/icons/action/supprimer_icon.png',
                                                 onPressed: () {
                                                   setState(() {
-                                                    filtresActifs = !filtresActifs;
-                                                    if (!filtresActifs) {
-                                                      supprimerFilter();
-                                                      appliquerFiltre();
-                                                    }
+                                                    supprimerFilter();
+                                                    appliquerFiltre();
                                                   });
                                                 },
                                               ),
-                                              SizedBox(width: paddingH / 4),
-                                              if (filtresActifs)
-                                                MainIconButton(
-                                                  color: Colors.grey.shade400,
-                                                  imagePath: 'assets/icons/action/supprimer_icon.png',
-                                                  onPressed: () {
-                                                    setState(() {
-                                                      supprimerFilter();
-                                                      appliquerFiltre();
-                                                    });
-                                                  },
-                                                ),
-                                              if (filtresActifs)
-                                                SizedBox(width: paddingH / 4),
-                                              MainButton(
-                                                text: l10n.extract,
-                                                textColor: Colors.green,
-                                                iconColor: Colors.green,
-                                                color: Appstyle.Tblanc,
-                                                icon: Icons.download,
-                                                onPressed: () async {
-                                                  // await _exportCurrentModuleToExcel();
-                                                },
-                                              ),
-                                              SizedBox(width: paddingH / 4),
-                                              MainIconButton(
-                                                imagePath: "assets/icons/action/extacter_filtre_icon.png",
-                                                color: Colors.orange,
-                                                onPressed: () async {
-                                                  // await _exportSelectedToExcel();
-                                                },
-                                              ),
-                                            ],
-                                          ),
-                                          Row(
-                                            textDirection: textDirection,
-                                            children: [
-                                              MainIconButton(
-                                                imagePath: "assets/icons/action/detail_icon.png",
-                                                color: Appstyle.violet,
-                                                onPressed: () async {
-                                                  if (transfertsSelectionnees.length == 1) {
-                                                    TransfertCaisseDetail(context, transfertsSelectionnees.first);
-                                                  } else if (transfertsSelectionnees.isEmpty) {
-                                                    await InformationDialog(
-                                                      context: context,
-                                                      titre_type_message: l10n.information,
-                                                      titre_concerne: l10n.transfert,
-                                                      message: l10n.noTransferSelected ?? "Aucun transfert sélectionné !",
-                                                    );
-                                                  } else {
-                                                    await InformationDialog(
-                                                      context: context,
-                                                      titre_type_message: l10n.information,
-                                                      titre_concerne: l10n.transfert,
-                                                      message: l10n.selectSingleTransferForDetail ?? "Veuillez sélectionner un seul transfert pour afficher le détail !",
-                                                    );
-                                                  }
-                                                },
-                                              ),
-                                              SizedBox(width: paddingH / 4),
-                                              MainIconButton(
-                                                imagePath: "assets/icons/action/supprimer_icon.png",
-                                                color: Appstyle.gris,
-                                                onPressed: () async {
-                                                  if (transfertsSelectionnees.isNotEmpty) {
-                                                    await AnnulerTransfertCaisse(context, transfertsSelectionnees);
-                                                    await _loadAllData();
-                                                  } else {
-                                                    await InformationDialog(
-                                                      context: context,
-                                                      titre_type_message: l10n.information,
-                                                      titre_concerne: l10n.transfert,
-                                                      message: l10n.noTransferSelected ?? "Aucun transfert sélectionné !",
-                                                    );
-                                                  }
-                                                },
-                                              ),
-                                              SizedBox(width: paddingH / 4),
-                                              MainIconButton(
-                                                imagePath: "assets/icons/action/edit_icon.png",
-                                                color: Appstyle.blueC,
-                                                onPressed: () async {
-                                                  if (transfertsSelectionnees.length == 1) {
-                                                    await TransfertCaisseModif(context, transfertsSelectionnees.first);
-                                                    await _loadAllData();
-                                                  } else if (transfertsSelectionnees.isEmpty) {
-                                                    await InformationDialog(
-                                                      context: context,
-                                                      titre_type_message: l10n.information,
-                                                      titre_concerne: l10n.transfert,
-                                                      message: l10n.noTransferSelected ?? "Aucun transfert sélectionné !",
-                                                    );
-                                                  } else {
-                                                    await InformationDialog(
-                                                      context: context,
-                                                      titre_type_message: l10n.information,
-                                                      titre_concerne: l10n.transfert,
-                                                      message: l10n.selectSingleTransferToModify ?? "Veuillez sélectionner un seul transfert pour modifier !",
-                                                    );
-                                                  }
-                                                },
-                                              ),
-                                              SizedBox(width: paddingH / 4),
-                                              MainButton(
-                                                text: l10n.newTransfer ?? "Nouveau Transfert",
-                                                color: Appstyle.crevete,
-                                                onPressed: () async {
-                                                  await TransfertCaisseNouveau(context);
-                                                  await _loadAllData();
-                                                },
-                                              ),
-                                            ],
-                                          ),
-                                        ],
-                                      ),
-
-                                      // Filtres
-                                      if (filtresActifs)
-                                        Padding(
-                                          padding: EdgeInsets.symmetric(vertical: paddingV / 2),
-                                          child: filtreTransfert(setState, adjustedWidth, l10n, translator, isRTL),
+                                            if (filtresActifs) SizedBox(width: paddingH / 4),
+                                            MainButton(
+                                              text: l10n.extract,
+                                              textColor: Colors.green,
+                                              iconColor: Colors.green,
+                                              color: Appstyle.Tblanc,
+                                              icon: Icons.download,
+                                              loading: _exportEnCours,
+                                              onPressed: () async {
+                                                await _exportTransfertsToExcel(selectionSeulement: false);
+                                              },
+                                            ),
+                                            SizedBox(width: paddingH / 4),
+                                            MainButton(
+                                              text: l10n.extractPdf,
+                                              textColor: Colors.red,
+                                              iconColor: Colors.red,
+                                              color: Appstyle.Tblanc,
+                                              icon: Icons.picture_as_pdf,
+                                              onPressed: () async {
+                                                await _exportTransfertsToExcel(selectionSeulement: false, enPdf: true);
+                                              },
+                                            ),
+                                            SizedBox(width: paddingH / 4),
+                                            MainIconButton(
+                                              imagePath: "assets/icons/action/extacter_filtre_icon.png",
+                                              color: Colors.orange,
+                                              onPressed: () async {
+                                                await _exportTransfertsToExcel(selectionSeulement: true);
+                                              },
+                                            ),
+                                          ],
                                         ),
-
-                                      SizedBox(height: paddingV),
-
-                                      // Tableau
-                                      SizedBox(
-                                        height: adjustedHeight * 0.7,
-                                        child: TableauTransfertCaisseAdvanced(
-                                          transferts: transfertsfiltre,
-                                          caisses: caisses,
-                                          key: ValueKey(transfertsfiltre),
-                                          utilisateurs: utilisateursTest,
-                                          onSelectionChanged: (selection) {
-                                            setState(() {
-                                              transfertsSelectionnees = selection;
-                                            });
-                                          },
-                                        ),
-                                      ),
-                                    ],
-                                  )
-
-                                // ──────────────────────────────────────────────────────────────
-                                // 3. CAS CLOTURE (currentTab == TAB_CLOTURE)
-                                // ──────────────────────────────────────────────────────────────
-                                else if (currentTab == TAB_CLOTURE)
-                                  Column(
-                                    crossAxisAlignment: isRTL ? CrossAxisAlignment.end : CrossAxisAlignment.start,
-                                    children: [
-                                      Align(
-                                        alignment: isRTL ? Alignment.topRight : Alignment.topLeft,
-                                        child: Row(
+                                        Row(
                                           textDirection: textDirection,
-                                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
                                           children: [
                                             MainIconButton(
                                               imagePath: "assets/icons/action/detail_icon.png",
                                               color: Appstyle.violet,
                                               onPressed: () async {
-                                                if (cloturesSelectionnees.length == 1) {
-                                                  ClotureCaisseDetail(
-                                                    context,
-                                                    cloturesSelectionnees.first,
-                                                    caisses: caisses,
-                                                    utilisateurs: utilisateursTest,
+                                                if (transfertsSelectionnees.length == 1) {
+                                                  TransfertCaisseDetail(context, transfertsSelectionnees.first);
+                                                } else if (transfertsSelectionnees.isEmpty) {
+                                                  await InformationDialog(
+                                                    context: context,
+                                                    titre_type_message: l10n.information,
+                                                    titre_concerne: l10n.transfert,
+                                                    message: l10n.noTransferSelected ?? "Aucun transfert sélectionné !",
                                                   );
                                                 } else {
                                                   await InformationDialog(
                                                     context: context,
                                                     titre_type_message: l10n.information,
-                                                    titre_concerne: l10n.cashRegisterClosures,
-                                                    message: l10n.selectSingleCartForDetail,
+                                                    titre_concerne: l10n.transfert,
+                                                    message:
+                                                        l10n.selectSingleTransferForDetail ??
+                                                        "Veuillez sélectionner un seul transfert pour afficher le détail !",
                                                   );
                                                 }
                                               },
                                             ),
-                                            Row(
-                                              textDirection: textDirection,
-                                              children: [
-                                                MainButton(
-                                                  text: l10n.fiscalControlExport,
-                                                  icon: Icons.verified_outlined,
-                                                  color: Appstyle.indigo,
-                                                  onPressed: () => ExportFiscalDialog(context),
-                                                ),
-                                                const SizedBox(width: 10),
-                                                MainButton(
-                                                  text: l10n.newClosure,
-                                                  icon: Icons.lock_outline,
-                                                  color: Appstyle.crevete,
-                                                  onPressed: () async {
-                                                    await ClotureCaisseNouveau(context);
-                                                    await _loadAllData();
-                                                  },
-                                                ),
-                                              ],
+                                            SizedBox(width: paddingH / 4),
+                                            MainIconButton(
+                                              imagePath: "assets/icons/action/supprimer_icon.png",
+                                              color: Appstyle.gris,
+                                              onPressed: () async {
+                                                if (transfertsSelectionnees.isNotEmpty) {
+                                                  await AnnulerTransfertCaisse(context, transfertsSelectionnees);
+                                                  await _loadAllData();
+                                                } else {
+                                                  await InformationDialog(
+                                                    context: context,
+                                                    titre_type_message: l10n.information,
+                                                    titre_concerne: l10n.transfert,
+                                                    message: l10n.noTransferSelected ?? "Aucun transfert sélectionné !",
+                                                  );
+                                                }
+                                              },
+                                            ),
+                                            SizedBox(width: paddingH / 4),
+                                            MainIconButton(
+                                              imagePath: "assets/icons/action/edit_icon.png",
+                                              color: Appstyle.blueC,
+                                              onPressed: () async {
+                                                if (transfertsSelectionnees.length == 1) {
+                                                  await TransfertCaisseModif(context, transfertsSelectionnees.first);
+                                                  await _loadAllData();
+                                                } else if (transfertsSelectionnees.isEmpty) {
+                                                  await InformationDialog(
+                                                    context: context,
+                                                    titre_type_message: l10n.information,
+                                                    titre_concerne: l10n.transfert,
+                                                    message: l10n.noTransferSelected ?? "Aucun transfert sélectionné !",
+                                                  );
+                                                } else {
+                                                  await InformationDialog(
+                                                    context: context,
+                                                    titre_type_message: l10n.information,
+                                                    titre_concerne: l10n.transfert,
+                                                    message: l10n.selectSingleTransferToModify ?? "Veuillez sélectionner un seul transfert pour modifier !",
+                                                  );
+                                                }
+                                              },
+                                            ),
+                                            SizedBox(width: paddingH / 4),
+                                            MainButton(
+                                              text: l10n.newTransfer ?? "Nouveau Transfert",
+                                              color: Appstyle.crevete,
+                                              onPressed: () async {
+                                                await TransfertCaisseNouveau(context);
+                                                await _loadAllData();
+                                              },
                                             ),
                                           ],
                                         ),
-                                      ),
-                                      SizedBox(height: paddingV / 2),
-                                      clotures.isEmpty
-                                          ? Container(
-                                              width: double.infinity,
-                                              padding: const EdgeInsets.all(32),
-                                              decoration: BoxDecoration(
-                                                color: Colors.white,
-                                                borderRadius: BorderRadius.circular(16),
-                                              ),
-                                              child: Center(
-                                                child: Text(l10n.noClosuresYet, style: Appstyle.textSB),
-                                              ),
-                                            )
-                                          : SizedBox(
-                                              height: adjustedHeight * 0.7,
-                                              child: TableauClotureCaisseAdvanced(
-                                                key: ValueKey(clotures),
-                                                clotures: clotures,
-                                                caisses: caisses,
-                                                utilisateurs: utilisateursTest,
-                                                onSelectionChanged: (selection) {
-                                                  setState(() {
-                                                    cloturesSelectionnees = selection;
-                                                  });
-                                                },
-                                              ),
-                                            ),
-                                    ],
-                                  )
+                                      ],
+                                    ),
 
-                                // ──────────────────────────────────────────────────────────────
-                                // 4. CAS MOUVEMENTS (currentTab == TAB_MOUVEMENT)
-                                // ──────────────────────────────────────────────────────────────
-                                else if (currentTab == TAB_MOUVEMENT)
-                                  Column(
-                                    crossAxisAlignment: isRTL ? CrossAxisAlignment.end : CrossAxisAlignment.start,
-                                    children: [
-                                      Row(
-                                        textDirection: textDirection,
-                                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                        children: [
-                                          SizedBox(
-                                            width: 450,
-                                            child: ChampAvecLabel(
-                                              label: l10n.cashSessionsTab,
-                                              buttonAjout: true,
-                                              onAjoutPressed: () async {
-                                                await showDialog(
-                                                  context: context,
-                                                  barrierColor: Appstyle.gris.withOpacity(0.25),
-                                                  builder: (_) {
-                                                    return InsertionSessionDialog(
-                                                      sessions: sessions,
-                                                      caisses: caisses,
-                                                      onSessionSelected: (session) {
-                                                        setState(() {
-                                                          selectedSessionFiltreCode = session.code;
-                                                        });
-                                                      },
-                                                    );
-                                                  },
-                                                );
-                                              },
-                                              child: TextListe(
-                                                value: selectedSessionFiltreCode,
-                                                items: sessions.map((s) => s.code).toList(),
-                                                clearable: true,
-                                                hint: l10n.all,
-                                                onChanged: (v) => setState(() {
-                                                  selectedSessionFiltreCode = (v == null || v.isEmpty) ? null : v;
-                                                }),
-                                              ),
-                                            ),
-                                          ),
-                                        ],
+                                    // Filtres
+                                    if (filtresActifs)
+                                      Padding(
+                                        padding: EdgeInsets.symmetric(vertical: paddingV / 2),
+                                        child: filtreTransfert(setState, adjustedWidth, l10n, translator, isRTL),
                                       ),
-                                      SizedBox(height: paddingV / 2),
-                                      SizedBox(
-                                        height: adjustedHeight * 0.7,
-                                        child: TableauMouvementCaisse(
-                                          key: ValueKey('$selectedSessionFiltreCode-${mouvementsCaisse.length}'),
-                                          lignes: _lignesMouvementCaisse(),
-                                        ),
-                                      ),
-                                    ],
-                                  )
 
-                                // ──────────────────────────────────────────────────────────────
-                                // 5. CAS SESSIONS (currentTab == TAB_SESSION)
-                                // ──────────────────────────────────────────────────────────────
-                                else if (currentTab == TAB_SESSION)
-                                  Column(
-                                    crossAxisAlignment: isRTL ? CrossAxisAlignment.end : CrossAxisAlignment.start,
-                                    children: [
-                                      Align(
-                                        alignment: isRTL ? Alignment.topRight : Alignment.topLeft,
-                                        child: MainButton(
-                                          text: l10n.viewMovements,
-                                          icon: Icons.receipt_long,
+                                    SizedBox(height: paddingV),
+
+                                    // Tableau
+                                    SizedBox(
+                                      height: adjustedHeight * 0.7,
+                                      child: TableauTransfertCaisseAdvanced(
+                                        transferts: transfertsfiltre,
+                                        caisses: caisses,
+                                        key: ValueKey(transfertsfiltre),
+                                        utilisateurs: utilisateursTest,
+                                        onSelectionChanged: (selection) {
+                                          setState(() {
+                                            transfertsSelectionnees = selection;
+                                          });
+                                        },
+                                      ),
+                                    ),
+                                  ],
+                                )
+                        // ──────────────────────────────────────────────────────────────
+                        // 3. CAS CLOTURE (currentTab == TAB_CLOTURE)
+                        // ──────────────────────────────────────────────────────────────
+                        else if (currentTab == TAB_CLOTURE)
+                          Column(
+                            crossAxisAlignment: isRTL ? CrossAxisAlignment.end : CrossAxisAlignment.start,
+                            children: [
+                              _afficheurGlobal(),
+                              SizedBox(height: paddingV / 2),
+                              Align(
+                                alignment: isRTL ? Alignment.topRight : Alignment.topLeft,
+                                child: Row(
+                                  textDirection: textDirection,
+                                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                  children: [
+                                    MainIconButton(
+                                      imagePath: "assets/icons/action/detail_icon.png",
+                                      color: Appstyle.violet,
+                                      onPressed: () async {
+                                        if (cloturesSelectionnees.length == 1) {
+                                          ClotureCaisseDetail(context, cloturesSelectionnees.first, caisses: caisses, utilisateurs: utilisateursTest);
+                                        } else {
+                                          await InformationDialog(
+                                            context: context,
+                                            titre_type_message: l10n.information,
+                                            titre_concerne: l10n.cashRegisterClosures,
+                                            message: l10n.selectSingleCartForDetail,
+                                          );
+                                        }
+                                      },
+                                    ),
+                                    Row(
+                                      textDirection: textDirection,
+                                      children: [
+                                        MainButton(
+                                          text: l10n.fiscalControlExport,
+                                          icon: Icons.verified_outlined,
                                           color: Appstyle.indigo,
+                                          onPressed: () => ExportFiscalDialog(context),
+                                        ),
+                                        const SizedBox(width: 10),
+                                        MainButton(
+                                          text: l10n.newClosure,
+                                          icon: Icons.lock_outline,
+                                          color: Appstyle.crevete,
                                           onPressed: () async {
-                                            if (sessionsSelectionnees.length == 1) {
-                                              setState(() {
-                                                selectedSessionFiltreCode = sessionsSelectionnees.first.code;
-                                                _tabController.index = TAB_MOUVEMENT;
-                                              });
-                                            } else if (sessionsSelectionnees.isEmpty) {
-                                              await InformationDialog(
-                                                context: context,
-                                                titre_type_message: l10n.information,
-                                                titre_concerne: l10n.cashSessionsTab,
-                                                message: l10n.noSessionSelected,
-                                              );
-                                            } else {
-                                              await InformationDialog(
-                                                context: context,
-                                                titre_type_message: l10n.information,
-                                                titre_concerne: l10n.cashSessionsTab,
-                                                message: l10n.selectSingleSessionForMovements,
-                                              );
-                                            }
+                                            await ClotureCaisseNouveau(context);
+                                            await _loadAllData();
                                           },
                                         ),
+                                      ],
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              SizedBox(height: paddingV / 2),
+                              clotures.isEmpty
+                                  ? Container(
+                                      width: double.infinity,
+                                      padding: const EdgeInsets.all(32),
+                                      decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(16)),
+                                      child: Center(child: Text(l10n.noClosuresYet, style: Appstyle.textSB)),
+                                    )
+                                  : SizedBox(
+                                      height: adjustedHeight * 0.7,
+                                      child: TableauClotureCaisseAdvanced(
+                                        key: ValueKey(clotures),
+                                        clotures: clotures,
+                                        caisses: caisses,
+                                        utilisateurs: utilisateursTest,
+                                        onSelectionChanged: (selection) {
+                                          setState(() {
+                                            cloturesSelectionnees = selection;
+                                          });
+                                        },
                                       ),
-                                      SizedBox(height: paddingV / 2),
-                                      sessions.isEmpty
-                                          ? Container(
-                                              width: double.infinity,
-                                              padding: const EdgeInsets.all(32),
-                                              decoration: BoxDecoration(
-                                                color: Colors.white,
-                                                borderRadius: BorderRadius.circular(16),
-                                              ),
-                                              child: Center(
-                                                child: Text(l10n.noSessionsYet, style: Appstyle.textSB),
-                                              ),
-                                            )
-                                          : SizedBox(
-                                              height: adjustedHeight * 0.7,
-                                              child: TableauCaisseSessionAdvanced(
-                                                key: ValueKey(sessions),
-                                                sessions: sessions,
-                                                caisses: caisses,
-                                                utilisateurs: utilisateursTest,
-                                                onSelectionChanged: (selection) {
-                                                  setState(() {
-                                                    sessionsSelectionnees = selection;
-                                                  });
-                                                },
-                                                onVoirMouvements: (session) {
-                                                  setState(() {
-                                                    selectedSessionFiltreCode = session.code;
-                                                    _tabController.index = TAB_MOUVEMENT;
-                                                  });
-                                                },
-                                              ),
-                                            ),
+                                    ),
+                            ],
+                          )
+                        // ──────────────────────────────────────────────────────────────
+                        // 4. CAS MOUVEMENTS (currentTab == TAB_MOUVEMENT)
+                        // ──────────────────────────────────────────────────────────────
+                        else if (currentTab == TAB_MOUVEMENT)
+                          Column(
+                            crossAxisAlignment: isRTL ? CrossAxisAlignment.end : CrossAxisAlignment.start,
+                            children: [
+                              _afficheurGlobal(),
+                              SizedBox(height: paddingV / 2),
+                              Row(
+                                textDirection: textDirection,
+                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                children: [
+                                  Row(
+                                    textDirection: textDirection,
+                                    children: [
+                                      MainButton(
+                                        text: l10n.filter,
+                                        textColor: Appstyle.violet,
+                                        color: Appstyle.Tblanc,
+                                        icon: filtresActifsMouvement ? Icons.visibility_off : Icons.visibility,
+                                        iconColor: Appstyle.violet,
+                                        showBadge: _filtresMouvementActifs,
+                                        onPressed: () {
+                                          setState(() {
+                                            filtresActifsMouvement = !filtresActifsMouvement;
+                                            if (!filtresActifsMouvement) {
+                                              supprimerFilterMouvement();
+                                              appliquerFiltreMouvement();
+                                            }
+                                          });
+                                        },
+                                      ),
+                                      SizedBox(width: paddingH / 4),
+                                      if (filtresActifsMouvement)
+                                        MainIconButton(
+                                          color: Colors.grey.shade400,
+                                          imagePath: 'assets/icons/action/supprimer_icon.png',
+                                          onPressed: () {
+                                            setState(() {
+                                              supprimerFilterMouvement();
+                                              appliquerFiltreMouvement();
+                                            });
+                                          },
+                                        ),
+                                      if (filtresActifsMouvement) SizedBox(width: paddingH / 4),
+                                      MainButton(
+                                        text: l10n.extract,
+                                        textColor: Colors.green,
+                                        iconColor: Colors.green,
+                                        color: Appstyle.Tblanc,
+                                        icon: Icons.download,
+                                        loading: _exportEnCours,
+                                        onPressed: () async {
+                                          await _exportMouvementsToExcel(selectionSeulement: false);
+                                        },
+                                      ),
+                                      SizedBox(width: paddingH / 4),
+                                      MainButton(
+                                        text: l10n.extractPdf,
+                                        textColor: Colors.red,
+                                        iconColor: Colors.red,
+                                        color: Appstyle.Tblanc,
+                                        icon: Icons.picture_as_pdf,
+                                        onPressed: () async {
+                                          await _exportMouvementsToExcel(selectionSeulement: false, enPdf: true);
+                                        },
+                                      ),
+                                      SizedBox(width: paddingH / 4),
+                                      MainIconButton(
+                                        imagePath: "assets/icons/action/extacter_filtre_icon.png",
+                                        color: Colors.orange,
+                                        onPressed: () async {
+                                          await _exportMouvementsToExcel(selectionSeulement: true);
+                                        },
+                                      ),
                                     ],
                                   ),
-                              ],
-                            ),
+                                  // Même dialog que le bouton « Mouvement manuel » de l'écran Caisse.
+                                  MainButton(text: l10n.newWord, color: Appstyle.crevete, onPressed: _nouveauMouvementManuel),
+                                ],
+                              ),
+                              if (filtresActifsMouvement)
+                                Padding(
+                                  padding: EdgeInsets.symmetric(vertical: paddingV / 2),
+                                  child: filtreMouvement(setState, l10n, isRTL),
+                                ),
+                              SizedBox(height: paddingV / 2),
+                              SizedBox(
+                                height: adjustedHeight * 0.7,
+                                child: TableauMouvementCaisse(
+                                  key: const ValueKey('mouvement-caisse-table'),
+                                  lignes: lignesMouvement,
+                                  onSelectionChanged: (selection) {
+                                    lignesMouvementSelectionnees = selection;
+                                  },
+                                ),
+                              ),
+                            ],
+                          )
+                        // ──────────────────────────────────────────────────────────────
+                        // 5. CAS SESSIONS (currentTab == TAB_SESSION)
+                        // ──────────────────────────────────────────────────────────────
+                        else if (currentTab == TAB_SESSION)
+                          Column(
+                            crossAxisAlignment: isRTL ? CrossAxisAlignment.end : CrossAxisAlignment.start,
+                            children: [
+                              _afficheurGlobal(),
+                              SizedBox(height: paddingV / 2),
+                              Align(
+                                alignment: isRTL ? Alignment.topRight : Alignment.topLeft,
+                                child: MainButton(
+                                  text: l10n.viewMovements,
+                                  icon: Icons.receipt_long,
+                                  color: Appstyle.indigo,
+                                  onPressed: () async {
+                                    if (sessionsSelectionnees.length == 1) {
+                                      setState(() {
+                                        selectedSessionFiltreCode = sessionsSelectionnees.first.code;
+                                        appliquerFiltreMouvement();
+                                        filtresActifsMouvement = true;
+                                        _tabController.index = TAB_MOUVEMENT;
+                                      });
+                                    } else if (sessionsSelectionnees.isEmpty) {
+                                      await InformationDialog(
+                                        context: context,
+                                        titre_type_message: l10n.information,
+                                        titre_concerne: l10n.cashSessionsTab,
+                                        message: l10n.noSessionSelected,
+                                      );
+                                    } else {
+                                      await InformationDialog(
+                                        context: context,
+                                        titre_type_message: l10n.information,
+                                        titre_concerne: l10n.cashSessionsTab,
+                                        message: l10n.selectSingleSessionForMovements,
+                                      );
+                                    }
+                                  },
+                                ),
+                              ),
+                              SizedBox(height: paddingV / 2),
+                              sessions.isEmpty
+                                  ? Container(
+                                      width: double.infinity,
+                                      padding: const EdgeInsets.all(32),
+                                      decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(16)),
+                                      child: Center(child: Text(l10n.noSessionsYet, style: Appstyle.textSB)),
+                                    )
+                                  : SizedBox(
+                                      height: adjustedHeight * 0.7,
+                                      child: TableauCaisseSessionAdvanced(
+                                        key: ValueKey(sessions),
+                                        sessions: sessions,
+                                        caisses: caisses,
+                                        utilisateurs: utilisateursTest,
+                                        onSelectionChanged: (selection) {
+                                          setState(() {
+                                            sessionsSelectionnees = selection;
+                                          });
+                                        },
+                                        onVoirMouvements: (session) {
+                                          setState(() {
+                                            selectedSessionFiltreCode = session.code;
+                                            appliquerFiltreMouvement();
+                                            filtresActifsMouvement = true;
+                                            _tabController.index = TAB_MOUVEMENT;
+                                          });
+                                        },
+                                      ),
+                                    ),
+                            ],
                           ),
-                        ),
                       ],
                     ),
                   ),
                 ),
+              ),
             );
           },
         ),
@@ -1264,106 +1467,208 @@ class _GestionCaisseScreenState extends State<GestionCaisseScreen> with TickerPr
           const SizedBox(height: 15),
 
           // Date row
-          Row(
+          LigneFiltreTiers(
             textDirection: textDirection,
             children: [
-              Expanded(
-                child: ChampAvecLabel(
-                  label: l10n.from,
-                  child: TextDate(
-                    hint: l10n.startDate,
-                    controller: _dateDebutCtrl,
-                    onTap: _pickDateDebut,
-                  ),
-                ),
+              ChampAvecLabel(
+                label: l10n.from,
+                child: TextDate(hint: l10n.startDate, controller: _dateDebutCtrl, onTap: _pickDateDebut),
               ),
-              const SizedBox(width: 20),
-              Expanded(
-                child: ChampAvecLabel(
-                  label: l10n.to,
-                  child: TextDate(
-                    hint: l10n.endDate,
-                    enabled: dateDebut != null,
-                    controller: _dateFinCtrl,
-                    onTap: _pickDateFin,
-                  ),
-                ),
+              ChampAvecLabel(
+                label: l10n.to,
+                child: TextDate(hint: l10n.endDate, enabled: dateDebut != null, controller: _dateFinCtrl, onTap: _pickDateFin),
               ),
-              const SizedBox(width: 20),
-              SizedBox(
-                width: width * 0.7,
-                child: ChampAvecLabel(
-                  label: l10n.quickPeriod,
-                  child: DropdownButtonFormField<String>(
-                    value: periodeRapide,
-                    decoration: InputDecoration(
-                      hintText: l10n.choosePeriod,
-                      isDense: true,
-                      border: OutlineInputBorder(),
-                    ),
-                    items: periodesRapidesLabels(l10n).entries.map((e) {
-                      return DropdownMenuItem<String>(
-                        value: e.key,
-                        child: Text(e.value),
-                      );
-                    }).toList(),
-                    onChanged: (v) {
-                      if (v != null) {
-                        setState(() {
-                          periodeRapide = v;
-                          _appliquerPeriodeRapide(v, l10n);
-                        });
-                      }
-                    },
-                  ),
-                ),
+              // Même largeur que la période rapide du filtre Retour.
+              ChampPeriodeRapide(
+                l10n: l10n,
+                value: periodeRapide,
+                onSelected: (v) {
+                  setState(() {
+                    periodeRapide = v;
+                    _appliquerPeriodeRapide(v, l10n);
+                  });
+                },
               ),
             ],
           ),
           const SizedBox(height: 15),
 
-          Row(
+          LigneFiltreTiers(
             textDirection: textDirection,
             children: [
-              SizedBox(
-                width: width * 0.7,
-                child: Row(
-                  textDirection: textDirection,
-                  children: [
-                    Expanded(
-                      child: ChampAvecLabel(
-                        label: l10n.search,
-                        child: SearchField(
-                          controller: _searchControllertransfert,
-                          onChanged: (v) {
-                            setState(() {
-                              appliquerFiltre();
-                            });
-                          },
-                        ),
-                      ),
-                    ),
-                  ],
+              ChampAvecLabel(
+                label: l10n.search,
+                child: SearchField(
+                  controller: _searchControllertransfert,
+                  onChanged: (v) {
+                    setState(() {
+                      appliquerFiltre();
+                    });
+                  },
                 ),
               ),
-              const SizedBox(width: 20),
-              Expanded(
-                child: ChampAvecLabel(
-                  label: l10n.etat,
-                  child: TextListe(
-                    value: selectedEtatFilter != null ? translator.translateEtat(selectedEtatFilter!) : null,
-                    items: translator.etatDisplayList,
-                    onChanged: (v) {
-                      setState(() {
-                        selectedEtatFilter = translator.etatToFrench(v!);
-                        appliquerFiltre();
-                      });
+              ChampAvecLabel(
+                label: l10n.etat,
+                child: TextListe(
+                  value: selectedEtatFilter != null ? translator.translateEtat(selectedEtatFilter!) : null,
+                  items: translator.etatDisplayList,
+                  onChanged: (v) {
+                    setState(() {
+                      selectedEtatFilter = translator.etatToFrench(v!);
+                      appliquerFiltre();
+                    });
+                  },
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget filtreMouvement(void Function(VoidCallback fn) setState, AppLocalizations l10n, bool isRTL) {
+    final textDirection = isRTL ? TextDirection.rtl : TextDirection.ltr;
+    final typeLabels = {for (final t in ListsConst.typeMouvementCaisse) ListsConst.labelTypeMouvementCaisse(t): t};
+
+    return SectionDecorationFiltre(
+      padding: const EdgeInsets.all(10),
+      color: Appstyle.Tblanc,
+      child: Column(
+        crossAxisAlignment: isRTL ? CrossAxisAlignment.end : CrossAxisAlignment.start,
+        children: [
+          // Type / client / fournisseur
+          LigneFiltreTiers(
+            textDirection: textDirection,
+            children: [
+              ChampAvecLabel(
+                label: l10n.type,
+                child: TextListe(
+                  value: typeMouvementFilter == null ? null : ListsConst.labelTypeMouvementCaisse(typeMouvementFilter!),
+                  items: typeLabels.keys.toList(),
+                  clearable: true,
+                  onChanged: (v) {
+                    setState(() {
+                      typeMouvementFilter = (v == null || v.isEmpty) ? null : typeLabels[v];
+                      appliquerFiltreMouvement();
+                    });
+                  },
+                ),
+              ),
+              ChampAvecLabel(
+                label: l10n.client,
+                child: TextListe(
+                  value: clientMouvementFilter,
+                  items: clientsTest.map((c) => c.nom).toSet().toList(),
+                  clearable: true,
+                  onChanged: (v) {
+                    setState(() {
+                      clientMouvementFilter = (v == null || v.isEmpty) ? null : v;
+                      appliquerFiltreMouvement();
+                    });
+                  },
+                ),
+              ),
+              ChampAvecLabel(
+                label: l10n.fournisseur,
+                child: TextListe(
+                  value: fournisseurMouvementFilter,
+                  items: fournisseursTest.map((f) => f.nom).toSet().toList(),
+                  clearable: true,
+                  onChanged: (v) {
+                    setState(() {
+                      fournisseurMouvementFilter = (v == null || v.isEmpty) ? null : v;
+                      appliquerFiltreMouvement();
+                    });
+                  },
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 15),
+          // Du / au / période rapide
+          LigneFiltreTiers(
+            textDirection: textDirection,
+            children: [
+              ChampAvecLabel(
+                label: l10n.from,
+                child: TextDate(hint: l10n.startDate, controller: _dateDebutCtrlMouvement, onTap: _pickDateDebutMouvement),
+              ),
+              ChampAvecLabel(
+                label: l10n.to,
+                child: TextDate(hint: l10n.endDate, enabled: dateDebutMouvement != null, controller: _dateFinCtrlMouvement, onTap: _pickDateFinMouvement),
+              ),
+              ChampPeriodeRapide(
+                l10n: l10n,
+                value: periodeRapideMouvement,
+                onSelected: (v) {
+                  setState(() => _appliquerPeriodeRapideMouvement(v));
+                },
+              ),
+            ],
+          ),
+          const SizedBox(height: 15),
+          // Rechercher / montant
+          LigneFiltreTiers(
+            textDirection: textDirection,
+            children: [
+              ChampAvecLabel(
+                label: l10n.search,
+                child: SearchField(
+                  controller: _searchControllerMouvement,
+                  onChanged: (_) {
+                    setState(() => appliquerFiltreMouvement());
+                  },
+                ),
+              ),
+              ChampAvecLabel(
+                label: l10n.amount,
+                child: FourchettePrixWidget(
+                  couleur: Appstyle.violet,
+                  minValue: montantMinMouvement,
+                  maxValue: montantMaxMouvement,
+                  onChanged: (min, max) {
+                    setState(() {
+                      montantMinMouvement = min;
+                      montantMaxMouvement = max;
+                      appliquerFiltreMouvement();
+                    });
+                  },
+                ),
+              ),
+              // Session (liste ou bouton de sélection détaillée).
+              ChampAvecLabel(
+                label: l10n.cashSessionsTab,
+                buttonAjout: true,
+                onAjoutPressed: () async {
+                  await showDialog(
+                    context: context,
+                    barrierColor: Appstyle.gris.withOpacity(0.25),
+                    builder: (_) {
+                      return InsertionSessionDialog(
+                        sessions: sessions,
+                        caisses: caisses,
+                        onSessionSelected: (session) {
+                          setState(() {
+                            selectedSessionFiltreCode = session.code;
+                            appliquerFiltreMouvement();
+                          });
+                        },
+                      );
                     },
-                  ),
+                  );
+                },
+                child: TextListe(
+                  value: selectedSessionFiltreCode,
+                  items: sessions.map((s) => s.code).toList(),
+                  clearable: true,
+                  hint: l10n.all,
+                  onChanged: (v) => setState(() {
+                    selectedSessionFiltreCode = (v == null || v.isEmpty) ? null : v;
+                    appliquerFiltreMouvement();
+                  }),
                 ),
               ),
-              const SizedBox(width: 20),
-              SizedBox(width: width * 0.28),
             ],
           ),
         ],

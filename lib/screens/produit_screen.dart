@@ -1,7 +1,11 @@
+import 'package:caisse_dz/Services/excel_apercu.dart';
 import 'dart:io';
 import 'package:collection/collection.dart';
+import 'package:caisse_dz/DBCreate.dart';
+import 'package:caisse_dz/Services/CaisseParam.dart';
 import 'package:caisse_dz/Services/Categorie.dart';
 import 'package:caisse_dz/Services/ExcelPreviewDialog.dart';
+import 'package:caisse_dz/Services/export_spinner.dart';
 import 'package:caisse_dz/Services/Fournisseur.dart';
 import 'package:caisse_dz/Services/Pack.dart';
 import 'package:caisse_dz/Services/Paramters.dart';
@@ -26,7 +30,9 @@ import 'package:caisse_dz/core/widget/afficheur/afficheur_produit.dart';
 import 'package:caisse_dz/core/widget/afficheur/afficheur_remise.dart';
 import 'package:caisse_dz/core/widget/afficheur/afficheure_souscateg.dart';
 import 'package:caisse_dz/core/widget/header_module.dart';
+import 'package:caisse_dz/core/widget/filtre/ligne_filtre_tiers.dart';
 import 'package:caisse_dz/core/widget/section_decoration_filtre.dart';
+import 'package:caisse_dz/core/widget/card/card_product.dart';
 import 'package:caisse_dz/core/widget/time_date_widget.dart';
 import 'package:caisse_dz/core/widget/connection_status_bar.dart';
 import 'package:caisse_dz/data/models/categorie.dart';
@@ -45,6 +51,7 @@ import 'package:caisse_dz/core/dialog/information_dialog.dart';
 import 'package:caisse_dz/core/dialog/pack/pack_actif.dart';
 import 'package:caisse_dz/core/dialog/pack/pack_modif.dart';
 import 'package:caisse_dz/core/dialog/produit/produit_actif.dart';
+import 'package:caisse_dz/core/dialog/entree/entree_nouveau.dart';
 import 'package:caisse_dz/core/dialog/produit/produit_categorie_sous_categorie.dart';
 import 'package:caisse_dz/core/dialog/produit/produit_detail.dart';
 import 'package:caisse_dz/core/dialog/produit/produit_modif.dart';
@@ -73,7 +80,6 @@ import 'package:caisse_dz/core/widget/champ/champ_avec_label.dart';
 import 'package:caisse_dz/core/widget/champ/liste_champ.dart';
 import 'package:caisse_dz/core/widget/fourchette._widget.dart';
 import 'package:caisse_dz/core/widget/search_bar.dart';
-import 'package:caisse_dz/core/widget/side_bar.dart';
 import 'package:caisse_dz/data/constant.dart';
 import 'package:caisse_dz/data/models/produit.dart';
 import 'package:caisse_dz/data/models/produit_code_detail.dart';
@@ -140,6 +146,13 @@ class _ProduitScreenState extends State<ProduitScreen> with TickerProviderStateM
   String nombre_pack = "8";
 
   List<Produit> produitsSelectionnes = [];
+
+  // Onglet Produit : affichage en cards (CardProduct, comme la recherche
+  // produit de la caisse) au lieu du tableau. Mêmes données
+  // (produitsFiltres) et même sélection (produitsSelectionnes) : filtres,
+  // exports et boutons d'action fonctionnent à l'identique.
+  bool affichageCardProduit = false;
+  final ScrollController _scrollCardsProduit = ScrollController();
   List<Categorie> categoriesSelectionnes = [];
   List<SousCategorie> souscategoriesSelectionnes = [];
   List<Remise> remisesSelectionnes = [];
@@ -164,6 +177,7 @@ class _ProduitScreenState extends State<ProduitScreen> with TickerProviderStateM
   // l'affichage, filtrable par magasin. null = tous magasins confondus.
   Map<String, double> quantitesParMagasin = {};
   String? magasinFiltreCode;
+  bool _magasinFiltreInitialise = false;
   List<Magasin> magasinsDisponiblesProduit = [];
 
   Future<void> _chargerQuantitesParMagasin() async {
@@ -195,6 +209,12 @@ class _ProduitScreenState extends State<ProduitScreen> with TickerProviderStateM
       creeParCode: "IMAD2"
   );
   bool isLoading = true;
+  // Garde anti-double-clic pour l'export Excel : sans elle, un double-clic
+  // sur "Extract" pendant la génération (synchrone, potentiellement lente)
+  // lance deux exports en parallèle, chacun avec son propre showDialog(
+  // barrierDismissible:false)/Navigator.pop — les pops peuvent alors fermer
+  // le mauvais dialog et laisser un spinner bloquant à l'écran pour de bon.
+  bool _exportEnCours = false;
 
   @override
   void initState() {
@@ -211,10 +231,119 @@ class _ProduitScreenState extends State<ProduitScreen> with TickerProviderStateM
     loadAllData();
   }
 
+  /// Bascule tableau ⇄ cards de l'onglet Produit. La sélection est vidée :
+  /// le tableau, recréé au retour, repart sans sélection — les deux vues
+  /// restent ainsi cohérentes avec les boutons d'action.
+  Widget _boutonAffichageProduit(AppLocalizations l10n) {
+    return Tooltip(
+      message: affichageCardProduit ? l10n.tableView : l10n.cardView,
+      child: InkWell(
+        borderRadius: BorderRadius.circular(10),
+        onTap: () => setState(() {
+          affichageCardProduit = !affichageCardProduit;
+          produitsSelectionnes = [];
+        }),
+        child: Container(
+          width: 40,
+          height: 40,
+          decoration: BoxDecoration(
+            color: Appstyle.indigo,
+            borderRadius: BorderRadius.circular(10),
+          ),
+          child: Icon(
+            affichageCardProduit ? Icons.view_list : Icons.grid_view,
+            color: Colors.white,
+            size: 22,
+          ),
+        ),
+      ),
+    );
+  }
+
+  /// Cards des produits filtrés. Clic = sélectionner / désélectionner
+  /// (sélection multiple, comme les cases du tableau) ; double-clic =
+  /// détail, comme le double-clic sur une ligne du tableau.
+  Widget _grilleCardsProduits(AppLocalizations l10n) {
+    if (produitsFiltres.isEmpty) {
+      return Center(child: Text(l10n.noData, style: Appstyle.textSB.copyWith(color: Appstyle.gris)));
+    }
+    final codesSelectionnes = produitsSelectionnes.map((p) => p.code).toSet();
+    final toutSelectionne = codesSelectionnes.length == produitsFiltres.length;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            Checkbox(
+              value: toutSelectionne
+                  ? true
+                  : codesSelectionnes.isEmpty
+                      ? false
+                      : null,
+              tristate: true,
+              activeColor: Appstyle.violet,
+              onChanged: (_) => setState(() {
+                produitsSelectionnes = toutSelectionne ? [] : List.of(produitsFiltres);
+              }),
+            ),
+            Text(
+              "${l10n.selectAll} (${codesSelectionnes.length}/${produitsFiltres.length})",
+              style: Appstyle.textSB,
+            ),
+          ],
+        ),
+        const SizedBox(height: 6),
+        Expanded(
+          child: Scrollbar(
+            controller: _scrollCardsProduit,
+            thumbVisibility: true,
+            child: SingleChildScrollView(
+              controller: _scrollCardsProduit,
+              child: SectionDecorationFiltre(
+                padding: const EdgeInsets.all(12),
+                child: SizedBox(
+                  width: double.infinity,
+                  child: Wrap(
+                    spacing: 12,
+                    runSpacing: 12,
+                    children: [
+                      for (final p in produitsFiltres)
+                        CardProduct(
+                          couleur: Appstyle.Tblanc,
+                          iconPath: 'assets/icons/sidebar/produit_icon.png',
+                          hasRemise: p.remiseId != null && p.remiseId != 0,
+                          text1: p.nom,
+                          text2: "${p.prixVente} ${l10n.currency}",
+                          photo: p.photo,
+                          sousCategorieId: p.sousCategorieId,
+                          quantite: quantitesParMagasin[p.code] ?? 0,
+                          actif: p.etat,
+                          selected: codesSelectionnes.contains(p.code),
+                          seuil: ParamtersDB.Minimum,
+                          onTap: () => setState(() {
+                            produitsSelectionnes = codesSelectionnes.contains(p.code)
+                                ? produitsSelectionnes.where((s) => s.code != p.code).toList()
+                                : [...produitsSelectionnes, p];
+                          }),
+                          onDoubleTap: () => ProduitDetail(context, p),
+                        ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
   @override
   void dispose() {
     _barcodeScanListener.stop();
     _tabController.dispose();
+    _scrollCardsProduit.dispose();
     super.dispose();
   }
 
@@ -240,7 +369,9 @@ class _ProduitScreenState extends State<ProduitScreen> with TickerProviderStateM
     });
   }
 
-  Future<void> _exportCurrentModuleToExcel() async {
+  Future<void> _exportCurrentModuleToExcel({bool enPdf = false}) async {
+    if (_exportEnCours) return;
+    setState(() => _exportEnCours = true);
     try {
       final l10n = AppLocalizations.of(context);
       final translator = ListsConstTranslator(l10n);
@@ -332,24 +463,20 @@ class _ProduitScreenState extends State<ProduitScreen> with TickerProviderStateM
         throw Exception('Failed to generate Excel file');
       }
 
-      showDialog(
-        context: context,
-        barrierDismissible: false,
-        builder: (context) => const Center(
-          child: CircularProgressIndicator(),
-        ),
-      );
+      final fichier = excelFile;
+      // Extract PDF : même fichier que l'export Excel, mis en page en PDF.
+      if (enPdf) {
+        await ouvrirApercuPdfDepuisExcel(context, fichier: fichier, titre: moduleName);
+        return;
+      }
 
-      // Decode the Excel file to show preview
-      final excel = Excel.decodeBytes(await excelFile.readAsBytes());
+      final excel = await executerAvecSpinner(context, () async => Excel.decodeBytes(await fichier.readAsBytes()));
 
       var sheet = excel.tables[sheetName];
 
       if (sheet == null && excel.tables.isNotEmpty) {
         sheet = excel.tables.values.first;
       }
-
-      Navigator.pop(context); // Close loading dialog
 
       if (sheet != null) {
         List<List<dynamic>> data = [];
@@ -428,10 +555,6 @@ class _ProduitScreenState extends State<ProduitScreen> with TickerProviderStateM
         );
       }
     } catch (e) {
-      if (Navigator.canPop(context)) {
-        Navigator.pop(context);
-      }
-
       print('Excel export error: $e');
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
@@ -439,10 +562,14 @@ class _ProduitScreenState extends State<ProduitScreen> with TickerProviderStateM
           backgroundColor: Colors.red,
         ),
       );
+    } finally {
+      if (mounted) setState(() => _exportEnCours = false);
     }
   }
 
   Future<void> _exportSelectedToExcel() async {
+    if (_exportEnCours) return;
+    setState(() => _exportEnCours = true);
     final l10n = AppLocalizations.of(context)!;
     final translator = ListsConstTranslator(l10n);
 
@@ -464,6 +591,7 @@ class _ProduitScreenState extends State<ProduitScreen> with TickerProviderStateM
             titre_concerne: l10n.produit,
             message: l10n.noProductSelected,
           );
+          setState(() => _exportEnCours = false);
           return;
         }
         selectedData = produitsSelectionnes;
@@ -488,6 +616,7 @@ class _ProduitScreenState extends State<ProduitScreen> with TickerProviderStateM
             titre_concerne: l10n.categorie,
             message: l10n.noCategorySelected,
           );
+          setState(() => _exportEnCours = false);
           return;
         }
         selectedData = categoriesSelectionnes;
@@ -506,6 +635,7 @@ class _ProduitScreenState extends State<ProduitScreen> with TickerProviderStateM
             titre_concerne: l10n.sousCategorie,
             message: l10n.noSubCategorySelected,
           );
+          setState(() => _exportEnCours = false);
           return;
         }
         selectedData = souscategoriesSelectionnes;
@@ -524,6 +654,7 @@ class _ProduitScreenState extends State<ProduitScreen> with TickerProviderStateM
             titre_concerne: l10n.remise,
             message: l10n.noDiscountSelected,
           );
+          setState(() => _exportEnCours = false);
           return;
         }
         selectedData = remisesSelectionnes;
@@ -542,6 +673,7 @@ class _ProduitScreenState extends State<ProduitScreen> with TickerProviderStateM
             titre_concerne: l10n.pack,
             message: l10n.noPackSelected,
           );
+          setState(() => _exportEnCours = false);
           return;
         }
         selectedData = packsSelectionnes;
@@ -555,28 +687,18 @@ class _ProduitScreenState extends State<ProduitScreen> with TickerProviderStateM
     }
 
     try {
-      showDialog(
-        context: context,
-        barrierDismissible: false,
-        builder: (context) => const Center(
-          child: CircularProgressIndicator(),
-        ),
-      );
-
-      if (excelFile == null) {
+      final fichier = excelFile;
+      if (fichier == null) {
         throw Exception('Failed to generate Excel file');
       }
 
-      // Decode the Excel file to show preview
-      final excel = Excel.decodeBytes(await excelFile.readAsBytes());
+      final excel = await executerAvecSpinner(context, () async => Excel.decodeBytes(await fichier.readAsBytes()));
 
       var sheet = excel.tables[sheetName];
 
       if (sheet == null && excel.tables.isNotEmpty) {
         sheet = excel.tables.values.first;
       }
-
-      Navigator.pop(context); // Close loading dialog
 
       if (sheet != null) {
         List<List<dynamic>> data = [];
@@ -645,10 +767,6 @@ class _ProduitScreenState extends State<ProduitScreen> with TickerProviderStateM
         );
       }
     } catch (e) {
-      if (Navigator.canPop(context)) {
-        Navigator.pop(context);
-      }
-
       print('Excel export error: $e');
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
@@ -656,6 +774,8 @@ class _ProduitScreenState extends State<ProduitScreen> with TickerProviderStateM
           backgroundColor: Colors.red,
         ),
       );
+    } finally {
+      if (mounted) setState(() => _exportEnCours = false);
     }
   }
 
@@ -1161,6 +1281,22 @@ class _ProduitScreenState extends State<ProduitScreen> with TickerProviderStateM
       final codeDetails = await ProduitServices.getAllCodeDetails();
       final utilisateurs = await UtilisateurServices.getAllUtilisateurs();
       final magasins = (await MagasinServices.getAllMagasins()).where((m) => m.etat).toList();
+
+      final auth = Provider.of<AuthState>(context, listen: false);
+      // Quantités par magasin :
+      // - sans la permission "voir le stock de tous les magasins" (cas des
+      //   non-admin) : toujours le magasin de la caisse de l'utilisateur ;
+      // - non-admin autorisé : ce magasin par défaut, puis libre ;
+      // - admin : "Tous les magasins" par défaut.
+      if (!auth.canVoirStockTousMagasins) {
+        magasinFiltreCode = await MagasinServices.getMagasinCodeUtilisateur(auth.userCode!);
+      } else if (!_magasinFiltreInitialise) {
+        _magasinFiltreInitialise = true;
+        if (auth.role != 'Admin') {
+          magasinFiltreCode = await MagasinServices.getMagasinCodeUtilisateur(auth.userCode!);
+        }
+      }
+
       final totaux = await MouvementsServices.totauxParProduit(magasinCode: magasinFiltreCode);
 
       if (!mounted) return;
@@ -1443,14 +1579,9 @@ class _ProduitScreenState extends State<ProduitScreen> with TickerProviderStateM
               child: SizedBox(
                 width: adjustedWidth,
                 height: adjustedHeight,
-                child: Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      SideBarWidget(),
-                      Expanded(
-                        child: SingleChildScrollView(
-                          padding: const EdgeInsets.all(16),
-                          child: Column(
+                child: SingleChildScrollView(
+                  padding: const EdgeInsets.all(16),
+                  child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               /// HEADER
@@ -1631,8 +1762,20 @@ class _ProduitScreenState extends State<ProduitScreen> with TickerProviderStateM
                                               iconColor: Colors.green,
                                               color: Appstyle.Tblanc,
                                               icon: Icons.download,
+                                              loading: _exportEnCours,
                                               onPressed: () async {
                                                 await _exportCurrentModuleToExcel();
+                                              },
+                                            ),
+                                            SizedBox(width: paddingH / 4),
+                                            MainButton(
+                                              text: l10n.extractPdf,
+                                              textColor: Colors.red,
+                                              iconColor: Colors.red,
+                                              color: Appstyle.Tblanc,
+                                              icon: Icons.picture_as_pdf,
+                                              onPressed: () async {
+                                                await _exportCurrentModuleToExcel(enPdf: true);
                                               },
                                             ),
                                             SizedBox(width: paddingH / 4),
@@ -1643,6 +1786,8 @@ class _ProduitScreenState extends State<ProduitScreen> with TickerProviderStateM
                                                 await _exportSelectedToExcel();
                                               },
                                             ),
+                                            SizedBox(width: paddingH / 4),
+                                            _boutonAffichageProduit(l10n),
                                           ],
                                         ),
                                         Row(
@@ -1663,7 +1808,23 @@ class _ProduitScreenState extends State<ProduitScreen> with TickerProviderStateM
                                               text: l10n.newWord,
                                               color: Appstyle.crevete,
                                               onPressed: () async {
-                                                await ProduitNouveau(context);
+                                                await ProduitNouveau(
+                                                  context,
+                                                  // Même enchaînement que caisse_screen.dart : un produit tout
+                                                  // juste créé n'a encore aucun stock, on ouvre directement
+                                                  // l'Entrée rapide dessus (fournisseur général présélectionné
+                                                  // par EntreeNouveau lui-même) pour le stocker immédiatement.
+                                                  onCreated: (produit) async {
+                                                    await loadAllData();
+                                                    await EntreeNouveau(
+                                                      context,
+                                                      initialProduitCode: produit.code,
+                                                      onSuccess: () async {
+                                                        await loadAllData();
+                                                      },
+                                                    );
+                                                  },
+                                                );
                                                 await loadAllData();
                                               },
                                             ),
@@ -1682,7 +1843,13 @@ class _ProduitScreenState extends State<ProduitScreen> with TickerProviderStateM
                                     if (!filtresActifs)
                                       SizedBox(height: paddingV / 2),
 
-                                    // Tableau
+                                    // Tableau ou cards
+                                    if (affichageCardProduit)
+                                      SizedBox(
+                                        height: adjustedHeight * 0.72,
+                                        child: _grilleCardsProduits(l10n),
+                                      )
+                                    else
                                     SizedBox(
                                       height: adjustedHeight * 0.72,
                                       child: TableauProduitAdvanced(
@@ -1757,8 +1924,20 @@ class _ProduitScreenState extends State<ProduitScreen> with TickerProviderStateM
                                           iconColor: Colors.green,
                                           color: Appstyle.Tblanc,
                                           icon: Icons.download,
+                                          loading: _exportEnCours,
                                           onPressed: () async {
                                             await _exportCurrentModuleToExcel();
+                                          },
+                                        ),
+                                        SizedBox(width: paddingH / 4),
+                                        MainButton(
+                                          text: l10n.extractPdf,
+                                          textColor: Colors.red,
+                                          iconColor: Colors.red,
+                                          color: Appstyle.Tblanc,
+                                          icon: Icons.picture_as_pdf,
+                                          onPressed: () async {
+                                            await _exportCurrentModuleToExcel(enPdf: true);
                                           },
                                         ),
                                         SizedBox(width: paddingH / 4),
@@ -1860,8 +2039,20 @@ class _ProduitScreenState extends State<ProduitScreen> with TickerProviderStateM
                                             iconColor: Colors.green,
                                             color: Appstyle.Tblanc,
                                             icon: Icons.download,
+                                            loading: _exportEnCours,
                                             onPressed: () async {
                                               await _exportCurrentModuleToExcel();
+                                            },
+                                          ),
+                                          SizedBox(width: paddingH / 4),
+                                          MainButton(
+                                            text: l10n.extractPdf,
+                                            textColor: Colors.red,
+                                            iconColor: Colors.red,
+                                            color: Appstyle.Tblanc,
+                                            icon: Icons.picture_as_pdf,
+                                            onPressed: () async {
+                                              await _exportCurrentModuleToExcel(enPdf: true);
                                             },
                                           ),
                                           SizedBox(width: paddingH / 4),
@@ -1967,8 +2158,20 @@ class _ProduitScreenState extends State<ProduitScreen> with TickerProviderStateM
                                               iconColor: Colors.green,
                                               color: Appstyle.Tblanc,
                                               icon: Icons.download,
+                                              loading: _exportEnCours,
                                               onPressed: () async {
                                                 await _exportCurrentModuleToExcel();
+                                              },
+                                            ),
+                                            SizedBox(width: paddingH / 4),
+                                            MainButton(
+                                              text: l10n.extractPdf,
+                                              textColor: Colors.red,
+                                              iconColor: Colors.red,
+                                              color: Appstyle.Tblanc,
+                                              icon: Icons.picture_as_pdf,
+                                              onPressed: () async {
+                                                await _exportCurrentModuleToExcel(enPdf: true);
                                               },
                                             ),
                                             SizedBox(width: paddingH / 4),
@@ -2069,8 +2272,20 @@ class _ProduitScreenState extends State<ProduitScreen> with TickerProviderStateM
                                                 iconColor: Colors.green,
                                                 color: Appstyle.Tblanc,
                                                 icon: Icons.download,
+                                                loading: _exportEnCours,
                                                 onPressed: () async {
                                                   await _exportCurrentModuleToExcel();
+                                                },
+                                              ),
+                                              SizedBox(width: paddingH / 4),
+                                              MainButton(
+                                                text: l10n.extractPdf,
+                                                textColor: Colors.red,
+                                                iconColor: Colors.red,
+                                                color: Appstyle.Tblanc,
+                                                icon: Icons.picture_as_pdf,
+                                                onPressed: () async {
+                                                  await _exportCurrentModuleToExcel(enPdf: true);
                                                 },
                                               ),
                                               SizedBox(width: paddingH / 4),
@@ -2128,11 +2343,8 @@ class _ProduitScreenState extends State<ProduitScreen> with TickerProviderStateM
                             ],
                           ),
                         ),
-                      ),
-                    ],
-                  ),
-                ),
               ),
+            ),
           );
         },
       ),
@@ -2140,6 +2352,8 @@ class _ProduitScreenState extends State<ProduitScreen> with TickerProviderStateM
   }
   Widget filtreproduit(void Function(VoidCallback fn) setState, double width, AppLocalizations l10n, ListsConstTranslator translator) {
     List<String> marqueFilterOptions = produitsTest.map((p) => p.marque).toSet().toList();
+    // ✅ Permission spéciale (voir RoleDetail) : filtre "Tous les magasins".
+    final canVoirStockTousMagasins = Provider.of<AuthState>(context, listen: false).canVoirStockTousMagasins;
 
     return SectionDecorationFiltre(
       padding: EdgeInsets.all(10),
@@ -2204,28 +2418,27 @@ class _ProduitScreenState extends State<ProduitScreen> with TickerProviderStateM
             ],
           ),
           const SizedBox(height: 15),
-          Row(
+          LigneFiltreTiers(
             children: [
               // Quantité affichée = calculée depuis le journal des
               // mouvements pour ce magasin (ou tous magasins si "Tous").
-              Expanded(
-                child: ChampAvecLabel(
-                  label: l10n.magasin,
-                  child: TextListe(
-                    value: magasinFiltreCode == null
+              ChampAvecLabel(
+                label: l10n.magasin,
+                child: TextListe(
+                  enabled: canVoirStockTousMagasins,
+                  value: magasinFiltreCode == null
+                      ? null
+                      : magasinsDisponiblesProduit
+                          .firstWhereOrNull((m) => m.code == magasinFiltreCode)
+                          ?.nom,
+                  hint: "Tous les magasins",
+                  items: magasinsDisponiblesProduit.map((m) => m.nom).toList(),
+                  onChanged: (v) {
+                    magasinFiltreCode = (v == null || v.isEmpty)
                         ? null
-                        : magasinsDisponiblesProduit
-                            .firstWhereOrNull((m) => m.code == magasinFiltreCode)
-                            ?.nom,
-                    hint: "Tous les magasins",
-                    items: magasinsDisponiblesProduit.map((m) => m.nom).toList(),
-                    onChanged: (v) {
-                      magasinFiltreCode = (v == null || v.isEmpty)
-                          ? null
-                          : magasinsDisponiblesProduit.firstWhereOrNull((m) => m.nom == v)?.code;
-                      _chargerQuantitesParMagasin();
-                    },
-                  ),
+                        : magasinsDisponiblesProduit.firstWhereOrNull((m) => m.nom == v)?.code;
+                    _chargerQuantitesParMagasin();
+                  },
                 ),
               ),
             ],
@@ -2287,25 +2500,20 @@ class _ProduitScreenState extends State<ProduitScreen> with TickerProviderStateM
             ],
           ),
           const SizedBox(height: 15),
-          SizedBox(
-            width: width * 0.305,
-            child: Row(
-              children: [
-                Expanded(
-                  child: ChampAvecLabel(
-                    label: l10n.search,
-                    child: SearchField(
-                      controller: _searchController,
-                      onChanged: (v) {
-                        setState(() {
-                          appliquerFiltre();
-                        });
-                      },
-                    ),
-                  ),
+          LigneFiltreTiers(
+            children: [
+              ChampAvecLabel(
+                label: l10n.search,
+                child: SearchField(
+                  controller: _searchController,
+                  onChanged: (v) {
+                    setState(() {
+                      appliquerFiltre();
+                    });
+                  },
                 ),
-              ],
-            ),
+              ),
+            ],
           ),
         ],
       ),

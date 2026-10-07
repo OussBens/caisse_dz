@@ -1,4 +1,11 @@
+import 'package:caisse_dz/Services/excel_apercu.dart';
+import 'package:caisse_dz/data/constant.dart';
+import 'package:caisse_dz/data/models/paramZakat.dart';
+import 'package:caisse_dz/Services/ParamZakat.dart';
+import 'package:caisse_dz/core/widget/filtre/periode_rapide_filter.dart';
+import 'package:caisse_dz/core/widget/filtre/ligne_filtre_tiers.dart';
 import 'package:caisse_dz/Services/Zakat.dart';
+import 'package:caisse_dz/Services/export_spinner.dart';
 import 'package:caisse_dz/Services/excel_generator.dart';
 import 'package:caisse_dz/Services/ExcelPreviewDialog.dart';
 import 'package:caisse_dz/Services/Utilisateur.dart';
@@ -24,7 +31,6 @@ import 'package:caisse_dz/core/widget/fourchette._widget.dart';
 import 'package:caisse_dz/core/widget/header_module.dart';
 import 'package:caisse_dz/core/widget/search_bar.dart';
 import 'package:caisse_dz/core/widget/section_decoration_filtre.dart';
-import 'package:caisse_dz/core/widget/side_bar.dart';
 import 'package:caisse_dz/core/widget/time_date_widget.dart';
 import 'package:caisse_dz/core/widget/connection_status_bar.dart';
 import 'package:caisse_dz/data/models/zakat.dart';
@@ -44,18 +50,9 @@ class ZakatScreen extends StatefulWidget {
 }
 
 class _ZakatScreenState extends State<ZakatScreen> {
-  final Map<String, String> periodesRapides = {
-    "today": "today",
-    "yesterday": "yesterday",
-    "week": "thisWeek",
-    "lastWeek": "lastWeek",
-    "month": "thisMonth",
-    "lastMonth": "lastMonth",
-    "last7days": "last7Days",
-    "last30days": "last30Days",
-    "year": "thisYear",
-    "lastYear": "lastYear",
-  };
+  // Garde anti-double-clic pour l'export Excel (voir client_screen.dart pour
+  // le détail du bug évité).
+  bool _exportEnCours = false;
 
   List<Zakat> zakatTest = [];
   List<Utilisateur> utilisateursTest = [];
@@ -65,8 +62,17 @@ class _ZakatScreenState extends State<ZakatScreen> {
   Future<void> _loadAllData() async {
     final zakats = await ZakatServices.getAllZakat();
     final utilisateurs = await UtilisateurServices.getAllUtilisateurs();
+    ParamZakat? param;
+    try {
+      param = await ParamZAKATServices.getParamZakat();
+    } catch (e) {
+      debugPrint('ZakatScreen: paramètres zakat indisponibles: $e');
+    }
+    if (!mounted) return;
 
     setState(() {
+      nissabParam = param?.Nissab;
+      tauxParam = param?.Taux;
       zakatTest = zakats;
       zakatsFiltres = zakats;
       utilisateursTest = utilisateurs;
@@ -75,22 +81,18 @@ class _ZakatScreenState extends State<ZakatScreen> {
     });
   }
 
-  Future<void> _exportCurrentModuleToExcel() async {
+  Future<void> _exportCurrentModuleToExcel({bool enPdf = false}) async {
+    if (_exportEnCours) return;
+    setState(() => _exportEnCours = true);
+    final fermerSpinner = ouvrirSpinnerExport(context);
     try {
-      showDialog(
-        context: context,
-        barrierDismissible: false,
-        builder: (context) => const Center(
-          child: CircularProgressIndicator(),
-        ),
-      );
 
       final l10n = AppLocalizations.of(context)!;
 
       final zakatsToExport = filtresActifs ? zakatsFiltres : zakatTest;
 
       if (zakatsToExport.isEmpty) {
-        Navigator.pop(context);
+        fermerSpinner();
         await InformationDialog(
           context: context,
           titre_type_message: l10n.information,
@@ -105,9 +107,16 @@ class _ZakatScreenState extends State<ZakatScreen> {
         l10n: l10n,
       );
 
-      Navigator.pop(context);
+      fermerSpinner();
 
       // Decode the Excel file to show preview
+      // Extract PDF : même fichier que l'export Excel, mis en page en PDF.
+      if (enPdf) {
+        fermerSpinner();
+        await ouvrirApercuPdfDepuisExcel(context, fichier: excelFile, titre: AppLocalizations.of(context)!.zakat);
+        return;
+      }
+
       final excel = Excel.decodeBytes(await excelFile.readAsBytes());
 
       var sheet = excel.tables['Zakat'];
@@ -193,9 +202,7 @@ class _ZakatScreenState extends State<ZakatScreen> {
         );
       }
     } catch (e) {
-      if (Navigator.canPop(context)) {
-        Navigator.pop(context);
-      }
+      fermerSpinner();
 
       print('Excel export error: $e');
       ScaffoldMessenger.of(context).showSnackBar(
@@ -204,10 +211,14 @@ class _ZakatScreenState extends State<ZakatScreen> {
           backgroundColor: Colors.red,
         ),
       );
+    } finally {
+      if (mounted) setState(() => _exportEnCours = false);
     }
   }
 
   Future<void> _exportSelectedToExcel() async {
+    if (_exportEnCours) return;
+    setState(() => _exportEnCours = true);
     final l10n = AppLocalizations.of(context)!;
 
     try {
@@ -221,20 +232,10 @@ class _ZakatScreenState extends State<ZakatScreen> {
         return;
       }
 
-      showDialog(
-        context: context,
-        barrierDismissible: false,
-        builder: (context) => const Center(
-          child: CircularProgressIndicator(),
-        ),
-      );
-
-      final excelFile = await ExcelGenerator.generateZakatExcel(
+      final excelFile = await executerAvecSpinner(context, () => ExcelGenerator.generateZakatExcel(
         zakats: zakatsSelectionnes,
         l10n: l10n,
-      );
-
-      Navigator.pop(context);
+      ));
 
       // Decode the Excel file to show preview
       final excel = Excel.decodeBytes(await excelFile.readAsBytes());
@@ -312,9 +313,6 @@ class _ZakatScreenState extends State<ZakatScreen> {
         );
       }
     } catch (e) {
-      if (Navigator.canPop(context)) {
-        Navigator.pop(context);
-      }
 
       print('Excel export error: $e');
       ScaffoldMessenger.of(context).showSnackBar(
@@ -323,6 +321,8 @@ class _ZakatScreenState extends State<ZakatScreen> {
           backgroundColor: Colors.red,
         ),
       );
+    } finally {
+      if (mounted) setState(() => _exportEnCours = false);
     }
   }
 
@@ -332,8 +332,11 @@ class _ZakatScreenState extends State<ZakatScreen> {
   final TextEditingController _dateFinCtrl = TextEditingController();
   String? periodeRapide;
   bool filtresActifs = false;
-  static const double NISSAB_ZAKAT = 560000.00;
-  static const double TAUX_ZAKAT = 2.5;
+  // Nissab et taux affichés dans les cards : lus depuis Paramètres > Zakat
+  // (table zakatParam), comme le dialog Nouvelle Zakat. Null tant que non
+  // chargés ou si la lecture échoue (la card affiche alors 0).
+  double? nissabParam;
+  double? tauxParam;
 
   List<Zakat> zakatsFiltres = [];
   List<Zakat> zakatsSelectionnes = [];
@@ -343,16 +346,18 @@ class _ZakatScreenState extends State<ZakatScreen> {
   String? selectedEtatFilter;
   final TextEditingController _searchController = TextEditingController();
 
+  // Seules les zakats actives (non annulées) comptent. Le statut stocké est
+  // la valeur française de ListsConst.statutZakatList ("Non payé" / "Payée").
   double calculTotalZakat(List<Zakat> list) {
-    return list.fold(0.0, (sum, z) => sum + z.montantZakat);
+    return list.where((z) => z.etat).fold(0.0, (sum, z) => sum + z.montantZakat);
   }
 
   int calculZakatPayee(List<Zakat> list) {
-    return list.where((z) => z.statut == "PAYEE").length;
+    return list.where((z) => z.etat && z.statut == ListsConst.statutZakatList[1]).length;
   }
 
   int calculZakatNonPayee(List<Zakat> list) {
-    return list.where((z) => z.statut != "PAYEE").length;
+    return list.where((z) => z.etat && z.statut != ListsConst.statutZakatList[1]).length;
   }
 
   String _formatDate(DateTime d) {
@@ -367,21 +372,6 @@ class _ZakatScreenState extends State<ZakatScreen> {
     _loadAllData();
   }
 
-  String _getLocalizedPeriod(String key, AppLocalizations l10n) {
-    switch (key) {
-      case "today": return l10n.today;
-      case "yesterday": return l10n.yesterday;
-      case "week": return l10n.thisWeek;
-      case "lastWeek": return l10n.lastWeek;
-      case "month": return l10n.thisMonth;
-      case "lastMonth": return l10n.lastMonth;
-      case "last7days": return l10n.last7Days;
-      case "last30days": return l10n.last30Days;
-      case "year": return l10n.thisYear;
-      case "lastYear": return l10n.lastYear;
-      default: return key;
-    }
-  }
 
   void _appliquerPeriodeRapide(String p) {
     final now = DateTime.now();
@@ -568,12 +558,7 @@ class _ZakatScreenState extends State<ZakatScreen> {
                 child: SizedBox(
                   width: adjustedWidth,
                   height: adjustedHeight,
-                    child: Row(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        SideBarWidget(),
-                        Expanded(
-                          child: SingleChildScrollView(
+                    child: SingleChildScrollView(
                             padding: const EdgeInsets.all(16),
                             child: Column(
                               crossAxisAlignment: isRTL ? CrossAxisAlignment.end : CrossAxisAlignment.start,
@@ -640,8 +625,8 @@ class _ZakatScreenState extends State<ZakatScreen> {
                                       else
                                         DashboardZakat(
                                           totalZakat: calculTotalZakat(zakatsFiltres),
-                                          nissab: NISSAB_ZAKAT,
-                                          tauxZakat: TAUX_ZAKAT,
+                                          nissab: nissabParam ?? 0,
+                                          tauxZakat: tauxParam ?? 0,
                                           zakatPayee: calculZakatPayee(zakatsFiltres),
                                           zakatNonPayee: calculZakatNonPayee(zakatsFiltres),
                                         ),
@@ -695,8 +680,20 @@ class _ZakatScreenState extends State<ZakatScreen> {
                                                 iconColor: Colors.green,
                                                 color: Appstyle.Tblanc,
                                                 icon: Icons.download,
+                                                loading: _exportEnCours,
                                                 onPressed: () async {
                                                   await _exportCurrentModuleToExcel();
+                                                },
+                                              ),
+                                              SizedBox(width: paddingH / 4),
+                                              MainButton(
+                                                text: l10n.extractPdf,
+                                                textColor: Colors.red,
+                                                iconColor: Colors.red,
+                                                color: Appstyle.Tblanc,
+                                                icon: Icons.picture_as_pdf,
+                                                onPressed: () async {
+                                                  await _exportCurrentModuleToExcel(enPdf: true);
                                                 },
                                               ),
                                               SizedBox(width: paddingH / 4),
@@ -820,9 +817,6 @@ class _ZakatScreenState extends State<ZakatScreen> {
                               ],
                             ),
                           ),
-                        ),
-                      ],
-                    ),
                   ),
                 ),
             ),
@@ -841,120 +835,80 @@ class _ZakatScreenState extends State<ZakatScreen> {
       child: Column(
         crossAxisAlignment: isRTL ? CrossAxisAlignment.end : CrossAxisAlignment.start,
         children: [
-          Row(
+          LigneFiltreTiers(
             textDirection: textDirection,
             children: [
-              SizedBox(
-                width: width * 0.7,
-                child: Row(
-                  textDirection: textDirection,
-                  children: [
-                    Expanded(
-                      child: ChampAvecLabel(
-                        label: l10n.search,
-                        child: SearchField(
-                          controller: _searchController,
-                          onChanged: (v) {
-                            setState(() {
-                              appliquerFiltre();
-                            });
-                          },
-                        ),
-                      ),
-                    ),
-                  ],
+              ChampAvecLabel(
+                label: l10n.search,
+                child: SearchField(
+                  controller: _searchController,
+                  onChanged: (v) {
+                    setState(() {
+                      appliquerFiltre();
+                    });
+                  },
                 ),
               ),
-              const SizedBox(width: 20),
-              Expanded(
-                child: ChampAvecLabel(
-                  label: l10n.amount,
-                  child: FourchettePrixWidget(
-                    couleur: Appstyle.violet,
-                    minValue: montantMin,
-                    maxValue: montantMax,
-                    onChanged: (min, max) {
-                      setState(() {
-                        montantMin = min;
-                        montantMax = max;
-                        appliquerFiltre();
-                      });
-                    },
-                  ),
+              ChampAvecLabel(
+                label: l10n.amount,
+                child: FourchettePrixWidget(
+                  couleur: Appstyle.violet,
+                  minValue: montantMin,
+                  maxValue: montantMax,
+                  onChanged: (min, max) {
+                    setState(() {
+                      montantMin = min;
+                      montantMax = max;
+                      appliquerFiltre();
+                    });
+                  },
                 ),
               ),
-              const SizedBox(width: 20),
-              Expanded(
-                child: ChampAvecLabel(
-                  label: l10n.state,
-                  child: TextListe(
-                    value: selectedEtatFilter,
-                    items: [l10n.active, l10n.inactive],
-                    onChanged: (v) {
-                      setState(() {
-                        selectedEtatFilter = v;
-                        appliquerFiltre();
-                      });
-                    },
-                  ),
+              ChampAvecLabel(
+                label: l10n.state,
+                child: TextListe(
+                  value: selectedEtatFilter,
+                  items: [l10n.active, l10n.inactive],
+                  onChanged: (v) {
+                    setState(() {
+                      selectedEtatFilter = v;
+                      appliquerFiltre();
+                    });
+                  },
                 ),
               ),
             ],
           ),
           SizedBox(height: 15),
-          Row(
+          LigneFiltreTiers(
             textDirection: textDirection,
             children: [
-              Expanded(
-                child: ChampAvecLabel(
-                  label: l10n.from,
-                  child: TextDate(
-                    hint: l10n.startDate,
-                    controller: _dateDebutCtrl,
-                    onTap: _pickDateDebut,
-                  ),
+              ChampAvecLabel(
+                label: l10n.from,
+                child: TextDate(
+                  hint: l10n.startDate,
+                  controller: _dateDebutCtrl,
+                  onTap: _pickDateDebut,
                 ),
               ),
-              const SizedBox(width: 20),
-              Expanded(
-                child: ChampAvecLabel(
-                  label: l10n.to,
-                  child: TextDate(
-                    hint: l10n.endDate,
-                    enabled: dateDebut != null,
-                    controller: _dateFinCtrl,
-                    onTap: _pickDateFin,
-                  ),
+              ChampAvecLabel(
+                label: l10n.to,
+                child: TextDate(
+                  hint: l10n.endDate,
+                  enabled: dateDebut != null,
+                  controller: _dateFinCtrl,
+                  onTap: _pickDateFin,
                 ),
               ),
-              const SizedBox(width: 20),
-              SizedBox(
-                width: width * 0.7,
-                child: ChampAvecLabel(
-                  label: l10n.quickPeriod,
-                  child: DropdownButtonFormField<String>(
-                    value: periodeRapide,
-                    decoration: InputDecoration(
-                      hintText: l10n.choosePeriod,
-                      isDense: true,
-                      border: OutlineInputBorder(),
-                    ),
-                    items: periodesRapides.entries.map((e) {
-                      return DropdownMenuItem<String>(
-                        value: e.key,
-                        child: Text(_getLocalizedPeriod(e.key, l10n)),
-                      );
-                    }).toList(),
-                    onChanged: (v) {
-                      if (v != null) {
-                        setState(() {
-                          periodeRapide = v;
-                          _appliquerPeriodeRapide(v);
-                        });
-                      }
-                    },
-                  ),
-                ),
+              ChampPeriodeRapide(
+                l10n: l10n,
+                value: periodeRapide,
+                onSelected: (v) {
+                  setState(() {
+                    periodeRapide = v;
+                    _appliquerPeriodeRapide(v);
+                  });
+                },
               ),
             ],
           ),
