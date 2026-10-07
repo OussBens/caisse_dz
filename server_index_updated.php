@@ -18,7 +18,8 @@ DB_HOST="localhost"
 DB_NAME="bensds64_caissedz_catalogue"
 DB_USER="bensds64_oussama"
 DB_PASSWORD="VOTRE_MOT_DE_PASSE"
-API_URL="https://bensds.com/catalog-api"
+API_URL="https://catalog-api.bensds.com"
+API_KEY=""
 ENV;
         file_put_contents($envFile, $defaultEnv);
         echo "⚠️ Fichier .env créé par défaut. Modifiez-le avec vos identifiants.<br>";
@@ -81,7 +82,28 @@ $method = $_SERVER['REQUEST_METHOD'];
 
 header('Content-Type: application/json');
 
+// ===== AUTHENTIFICATION DES ÉCRITURES =====
+// Les lectures (GET/HEAD/OPTIONS) restent publiques : la recherche par
+// code-barres est utilisée par toutes les installations CaisseDZ. Toute
+// requête qui modifie des données (POST/PUT/DELETE, upload, import) exige le
+// header X-API-Key égal à API_KEY du .env. Si API_KEY n'est pas configurée,
+// les écritures sont refusées (fail-closed) plutôt qu'ouvertes à tous.
+function requireApiKey() {
+    $expected = $_ENV['API_KEY'] ?? '';
+    $provided = $_SERVER['HTTP_X_API_KEY'] ?? '';
+    if ($expected === '') {
+        throw new Exception('API_KEY non configurée sur le serveur', 503);
+    }
+    if ($provided === '' || !hash_equals($expected, $provided)) {
+        throw new Exception('Clé API invalide ou manquante', 401);
+    }
+}
+
 try {
+    if (!in_array($method, ['GET', 'HEAD', 'OPTIONS'], true)) {
+        requireApiKey();
+    }
+
     $db = getDbConnection();
     if (!$db) {
         throw new Exception('Erreur de connexion à la base de données. Vérifiez vos identifiants dans .env');
@@ -158,7 +180,7 @@ try {
             throw new Exception('Erreur lors de l\'enregistrement de la photo', 500);
         }
 
-        $apiUrl = rtrim($_ENV['API_URL'] ?? 'https://bensds.com/catalog-api', '/');
+        $apiUrl = rtrim($_ENV['API_URL'] ?? 'https://catalog-api.bensds.com', '/');
         $photoUrl = $apiUrl . '/uploads/photos/' . date('Y') . '/' . date('m') . '/' . $filename;
 
         echo json_encode([
@@ -316,7 +338,7 @@ try {
                 throw new Exception('Échec de l\'enregistrement de la photo sur le serveur', 500);
             }
 
-            $apiUrl = rtrim($_ENV['API_URL'] ?? 'https://bensds.com/catalog-api', '/');
+            $apiUrl = rtrim($_ENV['API_URL'] ?? 'https://catalog-api.bensds.com', '/');
             $photoUrl = $apiUrl . '/uploads/photos/' . $fileName;
 
             $stmt = $db->prepare("UPDATE catalog_product SET photo = ?, updated_at = NOW() WHERE id = ?");

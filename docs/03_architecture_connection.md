@@ -1,3 +1,9 @@
+> **Obsolète — module retiré le 2026-10-06.** L'intégration mobile (serveur
+> `BonReceptionServer`, `MobilePairingButton`, `ReceptionConnectionDialog`) a
+> été supprimée du desktop. Ce document ne décrit plus le code actuel ; il est
+> conservé pour référence. Les colonnes de base liées (`utilisateur.api_token`,
+> `device_id_mobile`) sont gardées pour la compatibilité des bases existantes.
+
 # Architecture — Connexion Desktop ↔ Mobile
 
 # Vue d'ensemble

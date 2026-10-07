@@ -1,0 +1,413 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<title>CaisseDZ — Charte Graphique</title>
+<style>
+  @font-face { font-family: 'Poppins'; src: url('../../assets/fonts/Poppins-Regular.ttf'); font-weight: 400; }
+  @font-face { font-family: 'Poppins'; src: url('../../assets/fonts/Poppins-Bold.ttf'); font-weight: 700; }
+  @font-face { font-family: 'Cairo'; src: url('../../assets/fonts/Cairo-Regular.ttf'); font-weight: 400; }
+  @font-face { font-family: 'Cairo'; src: url('../../assets/fonts/Cairo-Bold.ttf'); font-weight: 700; }
+  @font-face { font-family: 'NunitoSans'; src: url('../../assets/fonts/NunitoSans.ttf'); font-weight: 400; }
+  @font-face { font-family: 'NunitoSans'; src: url('../../assets/fonts/NunitoSans-Bold.ttf'); font-weight: 700; }
+
+  :root {
+    --violet: #755DB3;
+    --violetC: #F6F4FD;
+    --crevete: #FF8989;
+    --lavande: #866F88;
+    --indigo: #57315A;
+    --jaune: #ECBB5F;
+    --gris: #858585;
+    --grisC: #CFCFCF;
+    --grisSC: #F8F8F8;
+    --grisnew: #F6F6F6;
+    --blueF: #442C80;
+    --blueC: #558CD2;
+    --maron: #C08252;
+    --maron2: #7E5973;
+    --green: #52B8A5;
+    --green2: #4E7984;
+    --red: #D24728;
+    --Tnoir: #0A1629;
+    --TnoirC: #4E4E4E;
+    --TgrisF: #404040;
+    --TgrisC: #91929E;
+  }
+
+  * { box-sizing: border-box; }
+  body { margin: 0; font-family: 'Poppins', sans-serif; color: var(--Tnoir); }
+
+  .page {
+    width: 210mm;
+    height: 296mm;
+    padding: 16mm 18mm;
+    page-break-after: always;
+    position: relative;
+    overflow: hidden;
+  }
+  .page:last-child { page-break-after: auto; }
+
+  .eyebrow {
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--violet);
+    margin-bottom: 6px;
+  }
+  h1.page-title {
+    font-size: 30px;
+    font-weight: 700;
+    color: var(--Tnoir);
+    margin: 0 0 4px 0;
+  }
+  .page-sub {
+    font-size: 13px;
+    color: var(--TgrisC);
+    margin: 0 0 22px 0;
+  }
+  .footer-bar {
+    position: absolute;
+    bottom: 12mm;
+    left: 18mm;
+    right: 18mm;
+    display: flex;
+    justify-content: space-between;
+    font-size: 9px;
+    color: var(--grisC);
+    border-top: 1px solid var(--grisC);
+    padding-top: 6px;
+  }
+
+  /* ---------- COVER ---------- */
+  .cover {
+    background: linear-gradient(135deg, #6C5DD3, #9B80ED);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    color: white;
+  }
+  .cover img.logo { width: 260px; margin-bottom: 36px; filter: drop-shadow(0 10px 30px rgba(0,0,0,0.25)); }
+  .cover h1 {
+    font-size: 46px;
+    font-weight: 700;
+    letter-spacing: 1px;
+    margin: 0 0 10px 0;
+  }
+  .cover p.tag {
+    font-size: 15px;
+    opacity: 0.9;
+    margin: 0 0 4px 0;
+    letter-spacing: 3px;
+    text-transform: uppercase;
+  }
+  .cover .baseline {
+    margin-top: 70px;
+    font-size: 13px;
+    opacity: 0.85;
+  }
+  .cover .meta {
+    position: absolute;
+    bottom: 16mm;
+    font-size: 11px;
+    opacity: 0.75;
+  }
+
+  /* ---------- COLOR SWATCHES ---------- */
+  .swatch-row { display: flex; gap: 14px; margin-bottom: 22px; flex-wrap: wrap; }
+  .swatch {
+    width: 118px;
+  }
+  .swatch .chip {
+    width: 118px;
+    height: 86px;
+    border-radius: 14px;
+    box-shadow: 0 3px 10px rgba(0,0,0,0.08);
+    border: 1px solid rgba(0,0,0,0.04);
+  }
+  .swatch .name { font-size: 12px; font-weight: 700; margin-top: 8px; color: var(--Tnoir); }
+  .swatch .hex { font-size: 10.5px; color: var(--TgrisC); font-family: 'Courier New', monospace; }
+  .swatch .use { font-size: 9.5px; color: var(--gris); margin-top: 2px; line-height: 1.3; }
+
+  .section-label {
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--indigo);
+    margin: 22px 0 12px 0;
+    padding-bottom: 6px;
+    border-bottom: 2px solid var(--violetC);
+  }
+  .section-label:first-of-type { margin-top: 0; }
+
+  .hero-swatch {
+    display: flex;
+    align-items: center;
+    gap: 20px;
+    background: var(--violetC);
+    border-radius: 18px;
+    padding: 18px 22px;
+    margin-bottom: 18px;
+  }
+  .hero-swatch .chip-lg {
+    width: 90px; height: 90px; border-radius: 16px; flex-shrink: 0;
+    box-shadow: 0 4px 14px rgba(0,0,0,0.12);
+  }
+  .hero-swatch .info .name { font-size: 17px; font-weight: 700; }
+  .hero-swatch .info .hex { font-size: 12px; color: var(--TgrisC); font-family: 'Courier New', monospace; margin: 2px 0 6px 0;}
+  .hero-swatch .info .desc { font-size: 11.5px; color: var(--TnoirC); line-height: 1.5; max-width: 420px; }
+
+  /* ---------- TYPOGRAPHY ---------- */
+  .type-block { margin-bottom: 26px; }
+  .type-block .label-row { display: flex; justify-content: space-between; align-items: baseline; border-bottom: 1px solid var(--grisC); padding-bottom: 8px; margin-bottom: 14px;}
+  .type-block .label-row .fam { font-size: 14px; font-weight: 700; color: var(--violet); }
+  .type-block .label-row .ctx { font-size: 11px; color: var(--TgrisC); }
+  .type-sample-lg { font-size: 52px; font-weight: 700; line-height: 1; margin-bottom: 8px; }
+  .type-sample-row { display: flex; gap: 26px; align-items: baseline; flex-wrap: wrap; }
+  .type-sample-row div span.sz { font-size: 9px; color: var(--gris); display:block; margin-bottom: 3px; font-family: 'Courier New', monospace;}
+
+  .scale-table { width: 100%; border-collapse: collapse; margin-top: 6px; }
+  .scale-table td { padding: 7px 4px; border-bottom: 1px solid var(--grisSC); font-size: 11px; color: var(--TgrisC); vertical-align: middle; }
+  .scale-table td.sample { font-family: 'NunitoSans'; color: var(--Tnoir); font-weight: 700; }
+
+  /* ---------- SPACING / RADIUS ---------- */
+  .spacing-row { display: flex; align-items: center; gap: 14px; margin-bottom: 10px; }
+  .spacing-row .bar { height: 22px; background: var(--violet); border-radius: 4px; }
+  .spacing-row .lbl { width: 130px; font-size: 11px; color: var(--TnoirC); font-family: 'Courier New', monospace; }
+
+  .radius-row { display: flex; gap: 22px; margin-top: 10px; }
+  .radius-item { text-align: center; }
+  .radius-item .box { width: 78px; height: 78px; background: var(--violetC); border: 2px solid var(--violet); }
+  .radius-item .lbl { font-size: 10.5px; margin-top: 8px; color: var(--TnoirC); font-family: 'Courier New', monospace; }
+
+  .shadow-row { display: flex; gap: 30px; margin-top: 14px; }
+  .shadow-card { width: 150px; height: 100px; background: white; border-radius: 16px; display:flex; align-items:center; justify-content:center; font-size: 11px; color: var(--TgrisC); font-weight: 700;}
+  .shadow-card.rest { box-shadow: 0 3px 10px rgba(0,0,0,0.08); }
+  .shadow-card.hover { box-shadow: 0 6px 16px rgba(117,93,179,0.3); color: var(--violet); }
+
+  .icon-grid { display: flex; gap: 16px; margin-top: 12px; flex-wrap: wrap; }
+  .icon-tile { width: 64px; height: 64px; border-radius: 14px; background: var(--violetC); display: flex; align-items: center; justify-content: center; }
+  .icon-tile img { width: 26px; height: 26px; }
+
+  /* ---------- COMPONENTS ---------- */
+  .btn-row { display: flex; gap: 14px; margin-bottom: 10px; flex-wrap: wrap; }
+  .btn { padding: 13px 26px; border-radius: 12px; font-size: 13px; font-weight: 700; color: white; display: inline-flex; align-items: center; gap: 8px; box-shadow: 0 3px 8px rgba(0,0,0,0.12); }
+  .btn.primary { background: var(--violet); }
+  .btn.accent { background: var(--crevete); }
+  .btn.secondary { background: var(--gris); }
+  .btn.danger { background: var(--red); }
+  .btn .dot { width: 8px; height:8px; border-radius: 50%; background: white; opacity: .8; }
+
+  .dialog-mock { width: 100%; background: white; border-radius: 14px; box-shadow: 0 8px 30px rgba(0,0,0,0.12); padding: 18px 22px; margin-top: 10px;}
+  .dialog-mock .head { display: flex; align-items: center; gap: 10px; }
+  .dialog-mock .head .ic { width: 22px; height:22px; border-radius:6px; background: var(--gris); }
+  .dialog-mock .head .t { font-size: 15px; font-weight: 700; color: var(--gris); flex: 1; }
+  .dialog-mock .head .x { color: var(--gris); font-size: 14px; }
+  .dialog-mock .rule { height: 2px; background: var(--gris); margin: 10px 0 14px 0; opacity: .5;}
+  .dialog-mock .field { height: 30px; background: var(--violetC); border-radius: 8px; margin-bottom: 8px; }
+  .dialog-mock .field.w60 { width: 60%; }
+
+  .sidebar-mock { width: 190px; background: white; border-radius: 14px; box-shadow: 0 4px 16px rgba(0,0,0,0.08); padding: 14px 10px; }
+  .sidebar-mock .logo-sm { width: 90px; margin: 0 auto 14px auto; display:block; }
+  .sidebar-mock .cat { font-size: 9px; font-weight: 700; color: var(--violet); background: var(--violetC); border-radius: 8px; padding: 6px 10px; margin: 8px 0 4px 0; letter-spacing: 1px; }
+  .sidebar-mock .item { font-size: 11px; padding: 8px 10px; border-radius: 10px; margin-bottom: 3px; color: var(--gris); }
+  .sidebar-mock .item.active { background: var(--violet); color: white; font-weight: 700; }
+
+  .two-col { display: flex; gap: 30px; margin-top: 10px; }
+</style>
+</head>
+<body>
+
+<!-- PAGE 1 — COVER -->
+<div class="page cover">
+  <img class="logo" src="../../assets/icons/caisse_dz_logo.png" alt="CaisseDZ">
+  <p class="tag">Guide de marque</p>
+  <h1>Charte Graphique</h1>
+  <p class="baseline">Logiciel de caisse POS — Simple, Rapide et Sécurisé</p>
+  <div class="meta">CaisseDZ · Document de référence design &amp; marketing · 2026</div>
+</div>
+
+<!-- PAGE 2 — COLORS -->
+<div class="page">
+  <div class="eyebrow">Identité visuelle</div>
+  <h1 class="page-title">Palette de couleurs</h1>
+  <p class="page-sub">Le violet est l'unique couleur de marque. Le corail (crevete) est le seul accent à statut égal. Toute autre couleur est fonctionnelle ou sémantique.</p>
+
+  <div class="section-label">Couleur principale</div>
+  <div class="hero-swatch">
+    <div class="chip-lg" style="background:var(--violet)"></div>
+    <div class="info">
+      <div class="name">Violet — Primaire</div>
+      <div class="hex">#755DB3</div>
+      <div class="desc">Actions principales, éléments actifs, titres de section, focus. Couleur de marque unique — à utiliser pour tout ce qui représente CaisseDZ.</div>
+    </div>
+  </div>
+
+  <div class="section-label">Couleur d'accent</div>
+  <div class="hero-swatch" style="background:#FFF1F1">
+    <div class="chip-lg" style="background:var(--crevete)"></div>
+    <div class="info">
+      <div class="name">Corail — Accent</div>
+      <div class="hex">#FF8989</div>
+      <div class="desc">Boutons "Nouveau", badges, accents chaleureux. Toujours en complément du violet, jamais utilisé comme couleur de marque principale.</div>
+    </div>
+  </div>
+
+  <div class="section-label">Neutres</div>
+  <div class="swatch-row">
+    <div class="swatch"><div class="chip" style="background:var(--gris)"></div><div class="name">Gris texte</div><div class="hex">#858585</div></div>
+    <div class="swatch"><div class="chip" style="background:var(--grisC); border:1px solid #ddd;"></div><div class="name">Gris bordure</div><div class="hex">#CFCFCF</div></div>
+    <div class="swatch"><div class="chip" style="background:var(--grisnew); border:1px solid #ddd;"></div><div class="name">Fond écran</div><div class="hex">#F6F6F6</div></div>
+    <div class="swatch"><div class="chip" style="background:var(--Tnoir)"></div><div class="name">Texte principal</div><div class="hex">#0A1629</div></div>
+    <div class="swatch"><div class="chip" style="background:var(--TgrisC)"></div><div class="name">Texte secondaire</div><div class="hex">#91929E</div></div>
+  </div>
+
+  <div class="section-label">Couleurs sémantiques</div>
+  <div class="swatch-row">
+    <div class="swatch"><div class="chip" style="background:var(--green)"></div><div class="name">Succès</div><div class="hex">#52B8A5</div></div>
+    <div class="swatch"><div class="chip" style="background:var(--jaune)"></div><div class="name">Attention</div><div class="hex">#ECBB5F</div></div>
+    <div class="swatch"><div class="chip" style="background:var(--red)"></div><div class="name">Danger</div><div class="hex">#D24728</div></div>
+    <div class="swatch"><div class="chip" style="background:var(--blueC)"></div><div class="name">Info</div><div class="hex">#558CD2</div></div>
+  </div>
+
+  <div class="section-label">Couleurs secondaires (modules / graphiques)</div>
+  <div class="swatch-row">
+    <div class="swatch"><div class="chip" style="background:var(--indigo)"></div><div class="name">Indigo</div><div class="hex">#57315A</div></div>
+    <div class="swatch"><div class="chip" style="background:var(--blueF)"></div><div class="name">Bleu foncé</div><div class="hex">#442C80</div></div>
+    <div class="swatch"><div class="chip" style="background:var(--maron)"></div><div class="name">Marron</div><div class="hex">#C08252</div></div>
+    <div class="swatch"><div class="chip" style="background:var(--maron2)"></div><div class="name">Marron 2</div><div class="hex">#7E5973</div></div>
+    <div class="swatch"><div class="chip" style="background:var(--lavande)"></div><div class="name">Lavande</div><div class="hex">#866F88</div></div>
+    <div class="swatch"><div class="chip" style="background:var(--green2)"></div><div class="name">Vert 2</div><div class="hex">#4E7984</div></div>
+  </div>
+
+  <div class="footer-bar"><span>CaisseDZ — Charte Graphique</span><span>02 / 05 — Couleurs</span></div>
+</div>
+
+<!-- PAGE 3 — TYPOGRAPHY -->
+<div class="page">
+  <div class="eyebrow">Identité visuelle</div>
+  <h1 class="page-title">Typographie</h1>
+  <p class="page-sub">Trois familles selon le contexte : Poppins par défaut, Cairo en arabe (RTL), NunitoSans pour l'échelle de texte interne de l'application.</p>
+
+  <div class="type-block">
+    <div class="label-row"><span class="fam">Poppins</span><span class="ctx">Interface — Français / Anglais</span></div>
+    <div class="type-sample-lg" style="font-family:'Poppins'">Aa Bb Cc</div>
+    <div class="type-sample-row" style="font-family:'Poppins'">
+      <div><span class="sz">400</span>Connexion à votre compte</div>
+      <div><span class="sz">700</span><b>Connexion à votre compte</b></div>
+    </div>
+  </div>
+
+  <div class="type-block">
+    <div class="label-row"><span class="fam">Cairo</span><span class="ctx">Interface — Arabe (RTL)</span></div>
+    <div class="type-sample-lg" style="font-family:'Cairo'" dir="rtl">أب ت ث</div>
+    <div class="type-sample-row" style="font-family:'Cairo'" dir="rtl">
+      <div><span class="sz">400</span>تسجيل الدخول إلى حسابك</div>
+      <div><span class="sz">700</span><b>تسجيل الدخول إلى حسابك</b></div>
+    </div>
+  </div>
+
+  <div class="type-block">
+    <div class="label-row"><span class="fam">NunitoSans</span><span class="ctx">Échelle de texte interne (composants)</span></div>
+    <table class="scale-table" style="font-family:'NunitoSans'">
+      <tr><td style="width:90px; font-family:'Courier New',monospace;">textXS</td><td class="sample" style="font-size:13px">13px — Libellés secondaires</td></tr>
+      <tr><td style="font-family:'Courier New',monospace;">textS</td><td class="sample" style="font-size:14px">14px — Corps de texte</td></tr>
+      <tr><td style="font-family:'Courier New',monospace;">textM</td><td class="sample" style="font-size:18px">18px — Sous-titres</td></tr>
+      <tr><td style="font-family:'Courier New',monospace;">textL</td><td class="sample" style="font-size:22px">22px — Titres de carte</td></tr>
+      <tr><td style="font-family:'Courier New',monospace;">textXL</td><td class="sample" style="font-size:26px">26px — Titres d'écran</td></tr>
+      <tr><td style="font-family:'Courier New',monospace;">textXXL</td><td class="sample" style="font-size:34px">34px — Grands titres</td></tr>
+    </table>
+  </div>
+
+  <div class="footer-bar"><span>CaisseDZ — Charte Graphique</span><span>03 / 05 — Typographie</span></div>
+</div>
+
+<!-- PAGE 4 — SPACING / RADIUS / SHADOWS / ICONS -->
+<div class="page">
+  <div class="eyebrow">Système design</div>
+  <h1 class="page-title">Espacements, rayons &amp; icônes</h1>
+  <p class="page-sub">Rythme visuel basé sur une échelle de multiples de 4, coins arrondis systématiques, ombres douces pour la profondeur.</p>
+
+  <div class="section-label">Échelle d'espacement</div>
+  <div class="spacing-row"><div class="lbl">spaceXS — 4px</div><div class="bar" style="width:4px"></div></div>
+  <div class="spacing-row"><div class="lbl">spaceS — 8px</div><div class="bar" style="width:8px"></div></div>
+  <div class="spacing-row"><div class="lbl">spaceM — 12px</div><div class="bar" style="width:12px"></div></div>
+  <div class="spacing-row"><div class="lbl">spaceL — 16px</div><div class="bar" style="width:16px"></div></div>
+  <div class="spacing-row"><div class="lbl">spaceXL — 24px</div><div class="bar" style="width:24px"></div></div>
+  <div class="spacing-row"><div class="lbl">spaceXXL — 32px</div><div class="bar" style="width:32px"></div></div>
+
+  <div class="section-label">Échelle de rayons</div>
+  <div class="radius-row">
+    <div class="radius-item"><div class="box" style="border-radius:8px"></div><div class="lbl">radiusSM — 8</div></div>
+    <div class="radius-item"><div class="box" style="border-radius:12px"></div><div class="lbl">radiusMD — 12</div></div>
+    <div class="radius-item"><div class="box" style="border-radius:16px"></div><div class="lbl">radiusLG — 16</div></div>
+    <div class="radius-item"><div class="box" style="border-radius:24px"></div><div class="lbl">radiusXL — 24</div></div>
+  </div>
+
+  <div class="section-label">Ombres</div>
+  <div class="shadow-row">
+    <div class="shadow-card rest">Carte au repos</div>
+    <div class="shadow-card hover">Carte survolée</div>
+  </div>
+
+  <div class="section-label">Style d'icônes</div>
+  <p style="font-size:11px; color:var(--TgrisC); margin-top:-4px;">Icônes en aplat, toujours teintées selon l'état (gris inactif, violet au survol, blanc sur fond actif) — jamais utilisées avec leur couleur source.</p>
+  <div class="icon-grid">
+    <div class="icon-tile"><img src="../../assets/icons/sidebar/caisse_icon.png"></div>
+    <div class="icon-tile"><img src="../../assets/icons/sidebar/produit_icon.png"></div>
+    <div class="icon-tile"><img src="../../assets/icons/sidebar/client_icon.png"></div>
+    <div class="icon-tile"><img src="../../assets/icons/sidebar/stock_icon.png"></div>
+    <div class="icon-tile"><img src="../../assets/icons/sidebar/parametre_icon.png"></div>
+    <div class="icon-tile"><img src="../../assets/icons/sidebar/magasin_icon.png"></div>
+  </div>
+
+  <div class="footer-bar"><span>CaisseDZ — Charte Graphique</span><span>04 / 05 — Système design</span></div>
+</div>
+
+<!-- PAGE 5 — COMPONENTS -->
+<div class="page">
+  <div class="eyebrow">Application</div>
+  <h1 class="page-title">Composants en contexte</h1>
+  <p class="page-sub">Aperçu des composants principaux tels qu'ils apparaissent dans l'application.</p>
+
+  <div class="section-label">Boutons</div>
+  <div class="btn-row">
+    <div class="btn primary">⬤ Action principale</div>
+    <div class="btn accent">＋ Nouveau</div>
+    <div class="btn secondary">✕ Annuler</div>
+    <div class="btn danger">🗑 Supprimer</div>
+  </div>
+
+  <div class="two-col">
+    <div style="flex:1">
+      <div class="section-label">Fenêtre de dialogue</div>
+      <div class="dialog-mock">
+        <div class="head"><div class="ic"></div><div class="t">Nouveau Produit</div><div class="x">✕</div></div>
+        <div class="rule"></div>
+        <div class="field"></div>
+        <div class="field w60"></div>
+        <div class="field"></div>
+      </div>
+    </div>
+    <div>
+      <div class="section-label">Barre latérale</div>
+      <div class="sidebar-mock">
+        <img class="logo-sm" src="../../assets/icons/caisse_dz_logo.png">
+        <div class="cat">VENTES</div>
+        <div class="item active">Caisse</div>
+        <div class="item">Panier</div>
+        <div class="item">Retour</div>
+        <div class="cat">STOCK</div>
+        <div class="item">Produit</div>
+        <div class="item">Stock</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="footer-bar"><span>CaisseDZ — Charte Graphique</span><span>05 / 05 — Composants</span></div>
+</div>
+
+</body>
+</html>
