@@ -1,4 +1,5 @@
 import 'dart:ui';
+import 'package:caisse_dz/core/dialog/dialog_kind.dart';
 import 'package:caisse_dz/DBCreate.dart';
 import 'package:caisse_dz/Services/Fournisseur.dart';
 import 'package:caisse_dz/core/Auth/auth_state.dart';
@@ -117,6 +118,7 @@ Future<void> FournisseurNouveau(BuildContext context) async {
     await InformationDialog(
       context: context,
       titre_type_message: AppLocalizations.of(context)!.authentication,
+      kind: DialogKind.refuser,
       titre_concerne: AppLocalizations.of(context)!.user,
       message: AppLocalizations.of(context)!.loginRequired,
     );
@@ -304,6 +306,7 @@ Future<void> FournisseurNouveau(BuildContext context) async {
                           await InformationDialog(
                             context: context,
                             titre_type_message: l10n.error,
+                            kind: DialogKind.refuser,
                             titre_concerne: l10n.newSupplier,
                             message: l10n.fillRequiredFields,
                           );
@@ -316,6 +319,7 @@ Future<void> FournisseurNouveau(BuildContext context) async {
                           await InformationDialog(
                             context: context,
                             titre_type_message: l10n.error,
+                            kind: DialogKind.refuser,
                             titre_concerne: l10n.newSupplier,
                             message: l10n.supplierNameAlreadyExists,
                           );
@@ -349,6 +353,7 @@ Future<void> FournisseurNouveau(BuildContext context) async {
                           await InformationDialog(
                             context: context,
                             titre_type_message: l10n.error,
+                            kind: DialogKind.refuser,
                             titre_concerne: l10n.newSupplier,
                             message: response.message ?? "Une erreur est survenue lors de l'enregistrement.",
                           );

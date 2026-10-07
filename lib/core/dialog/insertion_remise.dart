@@ -84,19 +84,14 @@ class _InsertionRemiseDialogState extends State<InsertionRemiseDialog> {
       couleur: Appstyle.Tblanc,
       width: 1000,
       height: 800,
-      header: Row(
-        children: [
-          TitreAvecLigne(
-            colligne: Appstyle.Tnoir,
-            imagePath: 'assets/icons/cardwidget/remise_icon.png',
-            text: l10n.insertionDiscount,
-          ),
-          const Spacer(),
-          GestureDetector(
-            onTap: () => Navigator.pop(context),
-            child: Icon(Icons.close, color: Appstyle.gris),
-          ),
-        ],
+      header: TitreAvecLigne(
+        colligne: Appstyle.Tnoir,
+        imagePath: 'assets/icons/cardwidget/remise_icon.png',
+        text: l10n.insertionDiscount,
+        trailing: GestureDetector(
+          onTap: () => Navigator.pop(context),
+          child: Icon(Icons.close, color: Appstyle.gris),
+        ),
       ),
       content: Column(
         children: [

@@ -69,19 +69,14 @@ class _InsertionFournisseurDialogState
       couleur: Appstyle.Tblanc,
       width: 1000,
       height: 800,
-      header: Row(
-        children: [
-          TitreAvecLigne(
-            colligne: Appstyle.Tnoir,
-            imagePath: 'assets/icons/sidebar/fournisseur_icon.png',
-            text: l10n.insertionSupplier,
-          ),
-          const Spacer(),
-          GestureDetector(
-            onTap: () => Navigator.pop(context),
-            child: Icon(Icons.close, color: Appstyle.gris),
-          ),
-        ],
+      header: TitreAvecLigne(
+        colligne: Appstyle.Tnoir,
+        imagePath: 'assets/icons/sidebar/fournisseur_icon.png',
+        text: l10n.insertionSupplier,
+        trailing: GestureDetector(
+          onTap: () => Navigator.pop(context),
+          child: Icon(Icons.close, color: Appstyle.gris),
+        ),
       ),
       content: Column(
         children: [

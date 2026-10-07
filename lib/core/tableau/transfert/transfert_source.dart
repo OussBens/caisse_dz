@@ -33,6 +33,27 @@ class TransfertCaisseDataSource extends BaseTableDataSource<TransfertCaisse> {
         "${date.minute.toString().padLeft(2, '0')}";
   }
 
+  // Tri sur la valeur brute (DateTime / nombre) et non sur le texte affiché :
+  // "jj/mm/aaaa" trié comme du texte classait d'abord par jour, et "1200 DA"
+  // par ordre alphabétique.
+  @override
+  dynamic sortValue(TransfertCaisse t, String field) {
+    switch (field) {
+      case 'dateTransfert':
+        return t.dateTransfert;
+      case 'montant':
+        return t.montant;
+      case 'dateCree':
+        return t.dateCree;
+      case 'dateModif':
+        return t.dateModif;
+      case 'dateAnnul':
+        return t.dateAnnul;
+      default:
+        return cellValue(t, field);
+    }
+  }
+
   @override
   dynamic cellValue(TransfertCaisse t, String field) {
     switch (field) {
@@ -61,7 +82,7 @@ class TransfertCaisseDataSource extends BaseTableDataSource<TransfertCaisse> {
       case 'modifParCode':
         return nomUtilisateur(t.modifParCode);
       case 'dateAnnul':
-        return formatDate(t.dateTransfert);
+        return formatDate(t.dateAnnul);
       case 'annulParCode':
         return nomUtilisateur(t.annulParCode);
       case 'motifAnnul':

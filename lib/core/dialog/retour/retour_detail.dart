@@ -28,7 +28,7 @@ Future<void> RetourDetail(BuildContext context, Retour retour) async {
       final translator = ListsConstTranslator(l10n);
 
       return BaseDialog(
-        width: 900,
+        width: 1100,
         height: 600,
 
         header: Column(

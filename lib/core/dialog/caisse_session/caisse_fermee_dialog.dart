@@ -25,6 +25,13 @@ Future<void> CaisseFermeeDialog({
   VoidCallback? onSessionOuverte,
 }) async {
   final l10n = AppLocalizations.of(context)!;
+  // Conservé à part : le `context` capturé par les builders imbriqués
+  // ci-dessous (StatefulBuilder) est celui de CE dialog, invalidé dès qu'on
+  // le ferme via Navigator.pop. L'utiliser ensuite pour ouvrir
+  // OuvertureCaisseDialog provoquait "Looking up a deactivated widget's
+  // ancestor is unsafe" dès que l'ouverture de session prenait un peu de
+  // temps (I/O DB) après la fermeture de ce dialog.
+  final BuildContext callerContext = context;
   CaisseGestion caisseSelectionnee = caisseInitiale;
 
   return showDialog(
@@ -83,8 +90,9 @@ Future<void> CaisseFermeeDialog({
                       color: Appstyle.violet,
                       onPressed: () async {
                         Navigator.pop(context);
+                        if (!callerContext.mounted) return;
                         await OuvertureCaisseDialog(
-                          context: context,
+                          context: callerContext,
                           caisse: caisseSelectionnee,
                           onSuccess: onSessionOuverte,
                         );

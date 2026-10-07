@@ -1,4 +1,5 @@
 import 'dart:ui';
+import 'package:caisse_dz/core/dialog/dialog_kind.dart';
 import 'package:caisse_dz/DBCreate.dart';
 import 'package:caisse_dz/Services/Client.dart';
 import 'package:caisse_dz/l10n/app_localizations.dart';
@@ -114,6 +115,7 @@ Future<void> AnnulerClient(
                       onPressed: () async {
                         await ConfirmationDialog(
                           context: context,
+                          kind: DialogKind.danger,
                           titre: l10n.deleteClients,
                           message: l10n.confirmDeleteClients,
                           onConfirmer: () async {

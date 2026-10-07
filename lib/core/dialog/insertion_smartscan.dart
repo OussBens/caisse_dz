@@ -51,19 +51,14 @@ class _InsertionSmartScanDialogState extends State<InsertionSmartScanDialog> {
       couleur: Appstyle.Tblanc,
       width: 1000,
       height: 800,
-      header: Row(
-        children: [
-          TitreAvecLigne(
-            colligne: Appstyle.Tnoir,
-            imagePath: 'assets/icons/cardwidget/scan_icon.png',
-            text: l10n.smartScan,
-          ),
-          const Spacer(),
-          GestureDetector(
-            onTap: () => Navigator.pop(context),
-            child: Icon(Icons.close, color: Appstyle.gris),
-          ),
-        ],
+      header: TitreAvecLigne(
+        colligne: Appstyle.Tnoir,
+        imagePath: 'assets/icons/cardwidget/scan_icon.png',
+        text: l10n.smartScan,
+        trailing: GestureDetector(
+          onTap: () => Navigator.pop(context),
+          child: Icon(Icons.close, color: Appstyle.gris),
+        ),
       ),
       content: Column(
         children: [

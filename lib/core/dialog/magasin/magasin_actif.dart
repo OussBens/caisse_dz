@@ -1,4 +1,5 @@
 import 'dart:ui';
+import 'package:caisse_dz/core/dialog/dialog_kind.dart';
 import 'package:caisse_dz/DBCreate.dart';
 import 'package:caisse_dz/Services/Magasin.dart';
 import 'package:caisse_dz/l10n/app_localizations.dart';
@@ -107,6 +108,7 @@ Future<void> AnnulerMagasin(BuildContext context, List<Magasin> magasinsSelectio
                       onPressed: () async {
                         await ConfirmationDialog(
                           context: context,
+                          kind: DialogKind.danger,
                           titre: l10n.deleteStores,
                           message: l10n.confirmDeleteStores,
                           onConfirmer: () async {

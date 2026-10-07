@@ -90,6 +90,9 @@ class ClientDataSource extends BaseTableDataSource<Client> {
     if (columnName == 'etat') {
       return Center(child: EtatBadge(isActive: item.etat));
     }
+    if (columnName == 'nom') {
+      return boldCellWithIcon(item.nom, color: Colors.blue);
+    }
 
     return null;
   }

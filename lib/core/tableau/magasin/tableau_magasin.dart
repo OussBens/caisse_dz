@@ -150,77 +150,91 @@ class _TableauMagasinAdvancedState extends State<TableauMagasinAdvanced> {
       padding: const EdgeInsets.all(8),
       child: ClipRRect(
         borderRadius: BorderRadius.circular(16),
-        child: SfDataGridTheme(
-          data: SfDataGridThemeData(
-            headerColor: Appstyle.violet.withOpacity(0.7),
-            sortIconColor: Appstyle.Tblanc,
-            filterIcon: Builder(builder: (context) => buildFilterIcon(context, dataSource)),
-            gridLineColor: Colors.grey.shade300,
-            gridLineStrokeWidth: 0.4,
-          ),
-          child: SfDataGrid(
-            source: dataSource,
-            rowsPerPage: _rowsPerPage,
-            headerRowHeight: 36,
-            rowHeight: 38,
-            selectionMode: SelectionMode.single,
-            allowSorting: true,
-            allowFiltering: true,
+        child: LayoutBuilder(
+          builder: (context, constraints) {
+            // Largeur de départ = largeur disponible / nombre de colonnes
+            // visibles (au lieu de valeurs fixes) — remplie l'écran par
+            // défaut, ajustable ensuite via allowColumnsResizing.
+            final visibleCount = columnVisibility.values.where((v) => v['visible'] == true).length;
+            const fixedColumnsWidth = 60 + 55; // 'settings' + 'select'
+            final remaining = constraints.maxWidth - fixedColumnsWidth;
+            final defaultColumnWidth = visibleCount > 0
+                ? (remaining / visibleCount).clamp(120.0, 400.0)
+                : 170.0;
 
-            columnWidthMode: ColumnWidthMode.none,
-            allowColumnsResizing: true,
-            columnResizeMode: ColumnResizeMode.onResize,
+            return SfDataGridTheme(
+              data: SfDataGridThemeData(
+                headerColor: Appstyle.violet.withOpacity(0.7),
+                sortIconColor: Appstyle.Tblanc,
+                filterIcon: Builder(builder: (context) => buildFilterIcon(context, dataSource)),
+                gridLineColor: Colors.grey.shade300,
+                gridLineStrokeWidth: 0.4,
+              ),
+              child: SfDataGrid(
+                source: dataSource,
+                rowsPerPage: _rowsPerPage,
+                headerRowHeight: 36,
+                rowHeight: 38,
+                selectionMode: SelectionMode.single,
+                allowSorting: true,
+                allowFiltering: true,
 
-            onColumnResizeUpdate: (details) {
-              double w = details.width;
-              if (w < 150) w = 150;
-              if (w > 1000) w = 1000;
-              setState(() => columnWidths[details.column.columnName] = w);
-              return true;
-            },
+                columnWidthMode: ColumnWidthMode.none,
+                allowColumnsResizing: true,
+                columnResizeMode: ColumnResizeMode.onResize,
 
-            columns: [
-              GridColumn(
-                columnName: 'settings',
-                width: 60,
-                allowSorting: false,
-                allowFiltering: false,
-                label: Center(
-                  child: IconButton(
-                    icon: const Icon(Icons.view_column, color: Colors.white),
-                    tooltip: l10n.showHideColumns,
-                    onPressed: () => _showColumnSettingsPopup(context, l10n),
+                onColumnResizeUpdate: (details) {
+                  double w = details.width;
+                  if (w < 150) w = 150;
+                  if (w > 1000) w = 1000;
+                  setState(() => columnWidths[details.column.columnName] = w);
+                  return true;
+                },
+
+                columns: [
+                  GridColumn(
+                    columnName: 'settings',
+                    width: 60,
+                    allowSorting: false,
+                    allowFiltering: false,
+                    label: Center(
+                      child: IconButton(
+                        icon: const Icon(Icons.view_column, color: Colors.white),
+                        tooltip: l10n.showHideColumns,
+                        onPressed: () => _showColumnSettingsPopup(context, l10n),
+                      ),
+                    ),
                   ),
-                ),
-              ),
-              GridColumn(
-                columnName: 'select',
-                width: 55,
-                allowSorting: false,
-                allowFiltering: false,
-                label: Center(
-                  child: Checkbox(
-                    value: selectAll,
-                    onChanged: (v) {
-                      setState(() {
-                        selectAll = v ?? false;
-                        dataSource.selectAll(selectAll);
-                      });
-                    },
+                  GridColumn(
+                    columnName: 'select',
+                    width: 55,
+                    allowSorting: false,
+                    allowFiltering: false,
+                    label: Center(
+                      child: Checkbox(
+                        value: selectAll,
+                        onChanged: (v) {
+                          setState(() {
+                            selectAll = v ?? false;
+                            dataSource.selectAll(selectAll);
+                          });
+                        },
+                      ),
+                    ),
                   ),
-                ),
+                  ...columnVisibility.entries
+                      .where((e) => e.value['visible'])
+                      .map(
+                        (e) => GridColumn(
+                      columnName: e.key,
+                      width: columnWidths[e.key] ?? defaultColumnWidth,
+                      label: _header(_getTranslatedLabel(e.value['label'], l10n)),
+                    ),
+                  ),
+                ],
               ),
-              ...columnVisibility.entries
-                  .where((e) => e.value['visible'])
-                  .map(
-                    (e) => GridColumn(
-                  columnName: e.key,
-                  width: columnWidths[e.key] ?? 180,
-                  label: _header(_getTranslatedLabel(e.value['label'], l10n)),
-                ),
-              ),
-            ],
-          ),
+            );
+          },
         ),
       ),
     );

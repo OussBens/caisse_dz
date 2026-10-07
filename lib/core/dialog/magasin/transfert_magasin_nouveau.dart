@@ -1,4 +1,6 @@
+import 'package:caisse_dz/core/utilis/quantite_format.dart';
 import 'dart:ui';
+import 'package:caisse_dz/core/dialog/dialog_kind.dart';
 import 'package:collection/collection.dart';
 import 'package:caisse_dz/DBCreate.dart';
 import 'package:caisse_dz/Services/CaisseParam.dart';
@@ -134,29 +136,7 @@ Future<ApiResponse<int>> _SaveTransfertMagasin({
     creeParCode: userCode,
   ));
 
-  // Second stock parallèle "nombre" — décrémenté côté source, incrémenté
-  // côté destination (créée si le produit n'y était pas encore référencé).
-  if (transfert.nombre != null) {
-    final detailSource = await pmdService.getSingleByProduitAndMagasin(produit.code, transfert.magasinSourceCode);
-    if (detailSource != null && detailSource.nombre > 0) {
-      final nombreADeduire = transfert.nombre! <= detailSource.nombre ? transfert.nombre! : detailSource.nombre;
-      await pmdService.decrementNombre(detailSource.id, nombreADeduire);
-    }
-
-    final detailDest = await pmdService.getSingleByProduitAndMagasin(produit.code, transfert.magasinDestCode);
-    if (detailDest != null) {
-      await pmdService.incrementNombre(detailDest.id, transfert.nombre!);
-    } else {
-      await pmdService.addProduitMagasinDetail(ProduitMagasinDetail(
-        id: await _GetNextMagasinDetailId(),
-        magasinCode: transfert.magasinDestCode,
-        produitCode: produit.code,
-        dateCree: DateTime.now(),
-        creeParCode: userCode,
-        nombre: transfert.nombre!,
-      ));
-    }
-  }
+  await _ajusterNombreTransfert(pmdService, transfert, userCode);
 
   final idh = await _GetNextHistoriqueId();
   await serviceh.addHistorique(Historique(
@@ -165,6 +145,92 @@ Future<ApiResponse<int>> _SaveTransfertMagasin({
     type: "transfert_magasin",
     desc: "L'utilisateur $userName a transféré ${transfert.quantite.toInt()} ${produit.nom} du magasin ${transfert.magasinSourceCode} vers ${transfert.magasinDestCode}",
     oper: ListsConst.typeHisto[0],
+    dateCree: DateTime.now(),
+    creeParCode: userCode,
+  ));
+
+  return response;
+}
+
+/// Second stock parallèle "nombre" : un transfert le décrémente côté
+/// source et l'incrémente côté destination (ligne créée si le produit n'y
+/// était pas encore référencé). [inverse] défait cet effet (modification).
+Future<void> _ajusterNombreTransfert(
+  ProduitMagasinDetailServices pmdService,
+  TransfertMagasin t,
+  String userCode, {
+  bool inverse = false,
+}) async {
+  if (t.nombre == null) return;
+  final magasinRetrait = inverse ? t.magasinDestCode : t.magasinSourceCode;
+  final magasinAjout = inverse ? t.magasinSourceCode : t.magasinDestCode;
+
+  final detailRetrait = await pmdService.getSingleByProduitAndMagasin(t.produitCode, magasinRetrait);
+  if (detailRetrait != null && detailRetrait.nombre > 0) {
+    final aDeduire = t.nombre! <= detailRetrait.nombre ? t.nombre! : detailRetrait.nombre;
+    await pmdService.decrementNombre(detailRetrait.id, aDeduire);
+  }
+
+  final detailAjout = await pmdService.getSingleByProduitAndMagasin(t.produitCode, magasinAjout);
+  if (detailAjout != null) {
+    await pmdService.incrementNombre(detailAjout.id, t.nombre!);
+  } else {
+    await pmdService.addProduitMagasinDetail(ProduitMagasinDetail(
+      id: await _GetNextMagasinDetailId(),
+      magasinCode: magasinAjout,
+      produitCode: t.produitCode,
+      dateCree: DateTime.now(),
+      creeParCode: userCode,
+      nombre: t.nombre!,
+    ));
+  }
+}
+
+/// Modifie un transfert actif : la ligne `transfert_magasin`, ses 2
+/// mouvements liés (même codeOperation, mis à jour sur place : produit,
+/// quantité, magasins, date) et le stock "nombre" (ancien effet défait, nouvel
+/// effet appliqué).
+Future<ApiResponse<int>> _ModifierTransfertMagasin({
+  required TransfertMagasin ancien,
+  required TransfertMagasin nouveau,
+  required Produit produit,
+  required String userName,
+  required String userCode,
+}) async {
+  final db = await DbCreator.openDb();
+  final services = TransfertMagasinServices(db);
+  final serviceh = HistoriqueServices(db);
+  final serviceM = MouvementsServices(db);
+  final pmdService = ProduitMagasinDetailServices(db);
+
+  final response = await services.updateTransfert(nouveau);
+  if (!response.success) return response;
+
+  final mouvements = await MouvementsServices.getAllMouvementsByCodeOper(ancien.code);
+  for (final m in mouvements.where((m) => m.etat)) {
+    m.codeProduit = produit.code;
+    m.quantite = nouveau.quantite;
+    m.nombre = nouveau.nombre;
+    m.prixAchat = produit.prixAchat;
+    m.prixVente = produit.prixVente;
+    m.date = nouveau.date;
+    m.magasinCode = m.sousType == 'Entrée' ? nouveau.magasinDestCode : nouveau.magasinSourceCode;
+    m.dateModif = DateTime.now();
+    m.modifParCode = userCode;
+    await serviceM.updateMouvement(m);
+  }
+
+  await _ajusterNombreTransfert(pmdService, ancien, userCode, inverse: true);
+  await _ajusterNombreTransfert(pmdService, nouveau, userCode);
+
+  final idh = await _GetNextHistoriqueId();
+  await serviceh.addHistorique(Historique(
+    id: idh,
+    code: CodeGenerator.generateCodeWithTimestamp(prefix: CodePrefix.historique, id: idh),
+    type: "transfert_magasin",
+    desc: "L'utilisateur $userName a modifié le transfert ${nouveau.code} : "
+        "${nouveau.quantite.toInt()} ${produit.nom} du magasin ${nouveau.magasinSourceCode} vers ${nouveau.magasinDestCode}",
+    oper: ListsConst.typeHisto[1],
     dateCree: DateTime.now(),
     creeParCode: userCode,
   ));
@@ -202,7 +268,14 @@ void resetTransfertMagasinForm() {
   selectedMagasinDestCodeTM = null;
 }
 
-Future<void> TransfertMagasinNouveau(BuildContext context) async {
+Future<void> TransfertMagasinNouveau(BuildContext context) =>
+    _TransfertMagasinDialog(context);
+
+/// Même dialog que [TransfertMagasinNouveau], pré-rempli avec [transfert].
+Future<void> TransfertMagasinModif(BuildContext context, TransfertMagasin transfert) =>
+    _TransfertMagasinDialog(context, existant: transfert);
+
+Future<void> _TransfertMagasinDialog(BuildContext context, {TransfertMagasin? existant}) async {
   await _LoadDataTM();
 
   final auth = Provider.of<AuthState>(context, listen: false);
@@ -212,6 +285,7 @@ Future<void> TransfertMagasinNouveau(BuildContext context) async {
     await InformationDialog(
       context: context,
       titre_type_message: l10n.authentication,
+      kind: DialogKind.refuser,
       titre_concerne: l10n.user,
       message: l10n.loginRequired,
     );
@@ -222,20 +296,44 @@ Future<void> TransfertMagasinNouveau(BuildContext context) async {
   final userCode = auth.userCode!;
   final bool peutChoisirMagasin = auth.role == "Admin";
 
-  int id = await _GetNextTransfertId();
-  String code = CodeGenerator.generateCode(prefix: CodePrefix.transfertMagasin, id: id, digitCount: 6);
+  // Un transfert annulé ne se modifie plus.
+  if (existant != null && !existant.etat) {
+    await InformationDialog(
+      context: context,
+      titre_type_message: l10n.error,
+      kind: DialogKind.refuser,
+      titre_concerne: l10n.transfer,
+      message: l10n.transfersAlreadyCancelled(existant.code),
+    );
+    return;
+  }
+
+  final int id = existant?.id ?? await _GetNextTransfertId();
+  final String code = existant?.code ??
+      CodeGenerator.generateCode(prefix: CodePrefix.transfertMagasin, id: id, digitCount: 6);
   codeControllerTM.text = code;
-  dateControllerTM.text = _formatDateOnlyT(DateTime.now());
+  dateControllerTM.text = _formatDateOnlyT(existant?.date ?? DateTime.now());
 
   Produit? prod;
 
-  // ✅ Magasin source : toujours celui de la caisse actuellement sélectionnée
-  // pour un non-admin (jamais un choix libre) ; libre pour l'Admin.
-  final db = await DbCreator.openDb();
-  final param = await CaisseParamServices(db).getCaisseParamByUserCode(userCode);
-  selectedMagasinSourceCodeTM = param?.magasinCode
-      ?? (magasinsDisponiblesTM.isNotEmpty ? magasinsDisponiblesTM.first.code : null);
-  selectedMagasinDestCodeTM = null;
+  if (existant != null) {
+    // Modification : formulaire rempli avec le transfert existant.
+    prod = produitsTestTM.firstWhereOrNull((p) => p.code == existant.produitCode);
+    selectedProduitTM = prod?.nom;
+    selectedMagasinSourceCodeTM = existant.magasinSourceCode;
+    selectedMagasinDestCodeTM = existant.magasinDestCode;
+    quantiteControllerTM.text = existant.quantite.toString();
+    nombreControllerTM.text = existant.nombre?.toString() ?? '';
+    observationControllerTM.text = existant.observation ?? '';
+  } else {
+    // ✅ Magasin source : toujours celui de la caisse actuellement sélectionnée
+    // pour un non-admin (jamais un choix libre) ; libre pour l'Admin.
+    final db = await DbCreator.openDb();
+    final param = await CaisseParamServices(db).getCaisseParamByUserCode(userCode);
+    selectedMagasinSourceCodeTM = param?.magasinCode
+        ?? (magasinsDisponiblesTM.isNotEmpty ? magasinsDisponiblesTM.first.code : null);
+    selectedMagasinDestCodeTM = null;
+  }
 
   return showDialog(
     context: context,
@@ -262,7 +360,7 @@ Future<void> TransfertMagasinNouveau(BuildContext context) async {
 
                 header: TitreAvecLigne(
                   imagePath: 'assets/icons/cardwidget/transfert_icon.png',
-                  text: l10n.newTransfer,
+                  text: existant != null ? l10n.modifyTransfer : l10n.newTransfer,
                 ),
 
                 content: Form(
@@ -396,6 +494,7 @@ Future<void> TransfertMagasinNouveau(BuildContext context) async {
                                   controller: quantiteControllerTM,
                                   numeric: true,
                                   isQuantite: true,
+                                  uniteMesure: prod?.uniteMesure,
                                   hint: "0",
                                 ),
                               ),
@@ -409,6 +508,7 @@ Future<void> TransfertMagasinNouveau(BuildContext context) async {
                                     obligatoire: true,
                                     numeric: true,
                                     isQuantite: true,
+                                    uniteMesure: QuantiteFormat.unitePiece,
                                     hint: "0",
                                   ),
                                 ),
@@ -452,6 +552,7 @@ Future<void> TransfertMagasinNouveau(BuildContext context) async {
                           await InformationDialog(
                             context: context,
                             titre_type_message: l10n.error,
+                            kind: DialogKind.refuser,
                             titre_concerne: l10n.transfer,
                             message: l10n.fillRequiredFields,
                           );
@@ -462,6 +563,7 @@ Future<void> TransfertMagasinNouveau(BuildContext context) async {
                           await InformationDialog(
                             context: context,
                             titre_type_message: l10n.error,
+                            kind: DialogKind.refuser,
                             titre_concerne: l10n.transfer,
                             message: l10n.fillRequiredFields,
                           );
@@ -472,6 +574,7 @@ Future<void> TransfertMagasinNouveau(BuildContext context) async {
                           await InformationDialog(
                             context: context,
                             titre_type_message: l10n.error,
+                            kind: DialogKind.refuser,
                             titre_concerne: l10n.transfer,
                             message: l10n.sourceAndDestinationStoreMustBeDifferent,
                           );
@@ -483,6 +586,7 @@ Future<void> TransfertMagasinNouveau(BuildContext context) async {
                           await InformationDialog(
                             context: context,
                             titre_type_message: l10n.error,
+                            kind: DialogKind.refuser,
                             titre_concerne: l10n.transfer,
                             message: l10n.quantityMustBeGreaterThanZero,
                           );
@@ -494,21 +598,30 @@ Future<void> TransfertMagasinNouveau(BuildContext context) async {
                           await InformationDialog(
                             context: context,
                             titre_type_message: l10n.error,
+                            kind: DialogKind.refuser,
                             titre_concerne: l10n.transfer,
                             message: l10n.numberMustBeGreaterThanZero,
                           );
                           return;
                         }
 
-                        // Stock disponible dans le magasin source uniquement.
+                        // Stock disponible dans le magasin source uniquement. En
+                        // modification, la quantité déjà sortie de ce magasin par
+                        // l'ancien transfert (même produit) y revient d'abord.
+                        final restitutionSource = existant != null &&
+                                existant.produitCode == prod!.code &&
+                                existant.magasinSourceCode == selectedMagasinSourceCodeTM
+                            ? existant.quantite
+                            : 0.0;
                         final quantiteDisponibleTM = await MouvementsServices.quantiteProduit(
                           prod!.code,
                           magasinCode: selectedMagasinSourceCodeTM,
-                        );
+                        ) + restitutionSource;
                         if (!StockGuard.suffisant(quantiteDisponibleTM, quantite, service: prod!.service)) {
                           await InformationDialog(
                             context: context,
                             titre_type_message: l10n.error,
+                            kind: DialogKind.refuser,
                             titre_concerne: l10n.transfer,
                             message: l10n.stockInsuffisantMagasin(
                               nomMagasin(selectedMagasinSourceCodeTM),
@@ -517,6 +630,35 @@ Future<void> TransfertMagasinNouveau(BuildContext context) async {
                             ),
                           );
                           return;
+                        }
+
+                        // Modification : l'ancien magasin destination perd la
+                        // quantité reçue — son stock ne doit pas devenir négatif.
+                        if (existant != null) {
+                          final produitAncien = produitsTestTM.firstWhereOrNull((p) => p.code == existant.produitCode);
+                          final stockDestAncien = await MouvementsServices.quantiteProduit(
+                            existant.produitCode,
+                            magasinCode: existant.magasinDestCode,
+                          );
+                          final memeProduit = existant.produitCode == prod!.code;
+                          final apres = stockDestAncien -
+                              existant.quantite +
+                              (memeProduit && selectedMagasinDestCodeTM == existant.magasinDestCode ? quantite : 0) -
+                              (memeProduit && selectedMagasinSourceCodeTM == existant.magasinDestCode ? quantite : 0);
+                          if (apres < 0 && !(produitAncien?.service ?? false)) {
+                            await InformationDialog(
+                              context: context,
+                              titre_type_message: l10n.error,
+                              kind: DialogKind.refuser,
+                              titre_concerne: l10n.transfer,
+                              message: l10n.stockInsuffisantMagasin(
+                                nomMagasin(existant.magasinDestCode),
+                                stockDestAncien.toInt().toString(),
+                                existant.quantite.toInt().toString(),
+                              ),
+                            );
+                            return;
+                          }
                         }
 
                         final nombreTM = nombreControllerTM.text.trim().isEmpty
@@ -534,21 +676,32 @@ Future<void> TransfertMagasinNouveau(BuildContext context) async {
                           magasinDestCode: selectedMagasinDestCodeTM!,
                           etat: true,
                           observation: observationControllerTM.text,
-                          dateCree: DateTime.now(),
-                          creeParCode: userCode,
+                          dateCree: existant?.dateCree ?? DateTime.now(),
+                          creeParCode: existant?.creeParCode ?? userCode,
+                          dateModif: existant != null ? DateTime.now() : null,
+                          modifParCode: existant != null ? userCode : null,
                         );
 
-                        final response = await _SaveTransfertMagasin(
-                          transfert: transfert,
-                          produit: prod!,
-                          userName: userName,
-                          userCode: userCode,
-                        );
+                        final response = existant != null
+                            ? await _ModifierTransfertMagasin(
+                                ancien: existant,
+                                nouveau: transfert,
+                                produit: prod!,
+                                userName: userName,
+                                userCode: userCode,
+                              )
+                            : await _SaveTransfertMagasin(
+                                transfert: transfert,
+                                produit: prod!,
+                                userName: userName,
+                                userCode: userCode,
+                              );
 
                         if (!response.success) {
                           await InformationDialog(
                             context: context,
                             titre_type_message: l10n.error,
+                            kind: DialogKind.refuser,
                             titre_concerne: l10n.transfer,
                             message: response.message ?? l10n.errorOccurred,
                           );

@@ -1,4 +1,5 @@
 import 'dart:ui';
+import 'package:caisse_dz/core/dialog/dialog_kind.dart';
 import 'package:collection/collection.dart';
 import 'package:caisse_dz/DBCreate.dart';
 import 'package:caisse_dz/Services/CaisseGestion.dart';
@@ -99,6 +100,7 @@ Future<void> UtilisateurModif(BuildContext context, Utilisateur user) async {
     await InformationDialog(
       context: context,
       titre_type_message: l10n.authentication,
+      kind: DialogKind.refuser,
       titre_concerne: l10n.user,
       message: l10n.loginRequiredModify,
     );
@@ -110,6 +112,7 @@ Future<void> UtilisateurModif(BuildContext context, Utilisateur user) async {
     await InformationDialog(
       context: context,
       titre_type_message: l10n.modificationImpossible,
+      kind: DialogKind.refuser,
       titre_concerne: l10n.user,
       message: l10n.cannotModifyAdminUser,
     );
@@ -287,6 +290,7 @@ Future<void> UtilisateurModif(BuildContext context, Utilisateur user) async {
                           await InformationDialog(
                             context: context,
                             titre_type_message: l10n.error,
+                            kind: DialogKind.refuser,
                             titre_concerne: l10n.user,
                             message: l10n.fillRequiredFields,
                           );
@@ -298,6 +302,7 @@ Future<void> UtilisateurModif(BuildContext context, Utilisateur user) async {
                           await InformationDialog(
                             context: context,
                             titre_type_message: l10n.error,
+                            kind: DialogKind.refuser,
                             titre_concerne: l10n.user,
                             message: l10n.selectRole,
                           );
@@ -313,6 +318,7 @@ Future<void> UtilisateurModif(BuildContext context, Utilisateur user) async {
                           await InformationDialog(
                             context: context,
                             titre_type_message: l10n.error,
+                            kind: DialogKind.refuser,
                             titre_concerne: l10n.user,
                             message: l10n.usernameAlreadyExists,
                           );
@@ -357,6 +363,7 @@ Future<void> UtilisateurModif(BuildContext context, Utilisateur user) async {
                               await InformationDialog(
                                 context: context,
                                 titre_type_message: l10n.error,
+                                kind: DialogKind.refuser,
                                 titre_concerne: l10n.user,
                                 message: response.message ?? l10n.errorOccurred,
                               );

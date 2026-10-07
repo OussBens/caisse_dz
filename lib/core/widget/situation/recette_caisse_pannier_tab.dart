@@ -1,4 +1,5 @@
 import 'package:caisse_dz/Services/CaisseGestion.dart';
+import 'package:caisse_dz/Services/export_spinner.dart';
 import 'package:caisse_dz/Services/Client.dart';
 import 'package:caisse_dz/Services/ExcelPreviewDialog.dart';
 import 'package:caisse_dz/Services/PDFPreviewDialog.dart';
@@ -191,24 +192,27 @@ class _RecetteCaissePannierTabState extends State<RecetteCaissePannierTab> {
   double get _totalVendu => _panniersFiltres.fold(0.0, (s, p) => s + p.montant);
   int get _nbrPannier => _panniersFiltres.length;
 
-  Future<void> _exportExcel(AppLocalizations l10n) async {
-    final panniersAExporter = _panniersFiltres;
+  // Lignes cochées dans le tableau (Extract filtre). Pas de setState : seul
+  // l'export les lit, et un rebuild recréerait la liste du tableau.
+  List<LigneRecetteCaisse> _lignesSelectionnees = [];
+
+  Future<void> _exportExcel(AppLocalizations l10n, {bool selectionSeulement = false}) async {
+    final codesSelection = _lignesSelectionnees.map((l) => l.codePannier).toSet();
+    final panniersAExporter = selectionSeulement
+        ? _panniersFiltres.where((p) => codesSelection.contains(p.code)).toList()
+        : _panniersFiltres;
     if (panniersAExporter.isEmpty) {
       await InformationDialog(
         context: context,
         titre_type_message: l10n.information,
         titre_concerne: l10n.panier,
-        message: l10n.noDataToExport,
+        message: selectionSeulement ? l10n.noRowSelected : l10n.noDataToExport,
       );
       return;
     }
 
+    final fermerSpinner = ouvrirSpinnerExport(context);
     try {
-      showDialog(
-        context: context,
-        barrierDismissible: false,
-        builder: (context) => const Center(child: CircularProgressIndicator()),
-      );
 
       final translator = ListsConstTranslator(l10n);
       final excelFile = await ExcelGenerator.generatePanniersExcel(
@@ -219,7 +223,7 @@ class _RecetteCaissePannierTabState extends State<RecetteCaissePannierTab> {
       );
 
       if (!mounted) return;
-      Navigator.pop(context);
+      fermerSpinner();
 
       final excel = Excel.decodeBytes(await excelFile.readAsBytes());
       var sheet = excel.tables['Panniers'];
@@ -270,7 +274,7 @@ class _RecetteCaissePannierTabState extends State<RecetteCaissePannierTab> {
         ),
       );
     } catch (e) {
-      if (Navigator.canPop(context)) Navigator.pop(context);
+      fermerSpinner();
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('${l10n.exportError}: $e'), backgroundColor: Colors.red),
       );
@@ -419,6 +423,13 @@ class _RecetteCaissePannierTabState extends State<RecetteCaissePannierTab> {
                     onPressed: () async => await _exportExcel(l10n),
                   ),
                   const SizedBox(width: 10),
+                  // Extract filtre : Excel des seules lignes cochées.
+                  MainIconButton(
+                    imagePath: "assets/icons/action/extacter_filtre_icon.png",
+                    color: Colors.orange,
+                    onPressed: () async => await _exportExcel(l10n, selectionSeulement: true),
+                  ),
+                  const SizedBox(width: 10),
                   MainButton(
                     text: l10n.extractPdf,
                     textColor: Colors.red,
@@ -554,7 +565,7 @@ class _RecetteCaissePannierTabState extends State<RecetteCaissePannierTab> {
               ),
               const SizedBox(width: 20),
               Expanded(
-                child: PeriodeRapideDropdown(
+                child: ChampPeriodeRapide(
                   l10n: l10n,
                   value: periodeRapide,
                   onSelected: _appliquerPeriodeRapide,
@@ -588,6 +599,9 @@ class _RecetteCaissePannierTabState extends State<RecetteCaissePannierTab> {
     // tableau (et donc le tri par en-tête actif) à chaque rafraîchissement.
     // didUpdateWidget() de TableauRecetteCaisse gère déjà la mise à jour des
     // données en conservant le tri.
-    return TableauRecetteCaisse(lignes: lignes);
+    return TableauRecetteCaisse(
+      lignes: lignes,
+      onSelectionChanged: (selection) => _lignesSelectionnees = selection,
+    );
   }
 }

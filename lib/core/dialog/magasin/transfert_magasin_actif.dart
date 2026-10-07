@@ -1,13 +1,17 @@
 import 'dart:ui';
+import 'package:caisse_dz/core/dialog/dialog_kind.dart';
 import 'package:collection/collection.dart';
 import 'package:caisse_dz/DBCreate.dart';
 import 'package:caisse_dz/Services/Historique.dart';
+import 'package:caisse_dz/Services/Magasin.dart';
 import 'package:caisse_dz/Services/MagasinDetail.dart';
 import 'package:caisse_dz/Services/Mouvement.dart';
 import 'package:caisse_dz/Services/TransfertMagasin.dart';
 import 'package:caisse_dz/core/Auth/auth_state.dart';
 import 'package:caisse_dz/core/dialog/base_dialog.dart';
+import 'package:caisse_dz/core/dialog/information_dialog.dart';
 import 'package:caisse_dz/core/theme/app_style.dart';
+import 'package:caisse_dz/core/utilis/stock_guard.dart';
 import 'package:caisse_dz/core/widget/button/main_button.dart';
 import 'package:caisse_dz/core/widget/champ/champ_avec_label.dart';
 import 'package:caisse_dz/core/widget/champ/text_champ_l.dart';
@@ -94,6 +98,35 @@ Future<void> _AnnulerTransferts({
   }
 }
 
+/// Annuler un transfert retire son stock du côté destination (inverse exact
+/// de la création) — vérifier, avant d'annuler, que le stock du magasin
+/// destination ne passerait pas négatif pour aucun produit (le côté source,
+/// qui ne fait que recevoir en retour, n'est jamais à risque). Même principe
+/// que retour_actif.dart/smart_screen_actif.dart. Retourne le premier
+/// (produit, magasin) en échec, ou null si tout est ok.
+Future<(Produit, String magasinCode)?> _premierProduitInsuffisantPourAnnulationTransfert(
+    List<TransfertMagasin> transferts, List<Produit> produits) async {
+  final deltasParCle = <String, double>{};
+  for (final t in transferts) {
+    final cle = '${t.magasinDestCode}|${t.produitCode}';
+    deltasParCle[cle] = (deltasParCle[cle] ?? 0) - t.quantite;
+  }
+
+  for (final entry in deltasParCle.entries) {
+    if (entry.value >= 0) continue;
+    final cleParts = entry.key.split('|');
+    final magasinCode = cleParts[0];
+    final produitCode = cleParts[1];
+    final prod = produits.firstWhereOrNull((p) => p.code == produitCode);
+    if (prod == null || prod.service) continue;
+    final quantiteDisponible = await MouvementsServices.quantiteProduit(produitCode, magasinCode: magasinCode);
+    if (!StockGuard.suffisant(quantiteDisponible, -entry.value, service: prod.service)) {
+      return (prod, magasinCode);
+    }
+  }
+  return null;
+}
+
 Future<void> AnnulerTransfertMagasin(
     BuildContext context,
     List<TransfertMagasin> transfertsSelectionnes, {
@@ -103,6 +136,9 @@ Future<void> AnnulerTransfertMagasin(
   final userName = auth.username!;
   final userCode = auth.userCode!;
   final l10n = AppLocalizations.of(context)!;
+  final magasins = await MagasinServices.getAllMagasins();
+  String nomMagasin(String code) =>
+      magasins.firstWhereOrNull((m) => m.code == code)?.nom ?? code;
 
   if (!auth.isAuthenticated || auth.username == null || auth.userCode == null) {
     ScaffoldMessenger.of(context).showSnackBar(
@@ -113,6 +149,33 @@ Future<void> AnnulerTransfertMagasin(
       ),
     );
     return;
+  }
+
+  // ✅ Permission spéciale (voir RoleDetail) : annuler une opération.
+  if (!auth.canAnnulerOperations) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(l10n.noPermissionAction),
+        backgroundColor: Colors.red,
+        duration: const Duration(seconds: 3),
+      ),
+    );
+    return;
+  }
+
+  // ✅ Transfert(s) déjà annulé(s) : on le signale. Si tous le sont, rien à
+  // faire ; sinon on n'annule que les transferts encore actifs.
+  final dejaAnnules = transfertsSelectionnes.where((t) => !t.etat).toList();
+  if (dejaAnnules.isNotEmpty) {
+    await InformationDialog(
+      context: context,
+      titre_type_message: l10n.error,
+      kind: DialogKind.refuser,
+      titre_concerne: l10n.transfer,
+      message: l10n.transfersAlreadyCancelled(dejaAnnules.map((t) => t.code).join(', ')),
+    );
+    transfertsSelectionnes = transfertsSelectionnes.where((t) => t.etat).toList();
+    if (transfertsSelectionnes.isEmpty || !context.mounted) return;
   }
 
   final motifController = TextEditingController();
@@ -220,6 +283,34 @@ Future<void> AnnulerTransfertMagasin(
                               content: Text(l10n.cancellationReason),
                               backgroundColor: Colors.red,
                               duration: const Duration(seconds: 3),
+                            ),
+                          );
+                          return;
+                        }
+
+                        final echec = await _premierProduitInsuffisantPourAnnulationTransfert(
+                          transfertsSelectionnes,
+                          produits,
+                        );
+                        if (echec != null) {
+                          final (produitInsuffisant, magasinCode) = echec;
+                          final quantiteDisponible = await MouvementsServices.quantiteProduit(
+                            produitInsuffisant.code,
+                            magasinCode: magasinCode,
+                          );
+                          await InformationDialog(
+                            context: context,
+                            titre_type_message: l10n.error,
+                            kind: DialogKind.refuser,
+                            titre_concerne: l10n.transfer,
+                            message: l10n.stockInsuffisantMagasin(
+                              nomMagasin(magasinCode),
+                              quantiteDisponible.toInt().toString(),
+                              transfertsSelectionnes
+                                  .where((t) => t.produitCode == produitInsuffisant.code && t.magasinDestCode == magasinCode)
+                                  .fold<double>(0, (s, t) => s + t.quantite)
+                                  .toInt()
+                                  .toString(),
                             ),
                           );
                           return;

@@ -8,8 +8,10 @@ import '../filter_icon_builder.dart';
 
 class TableauMargePannier extends StatefulWidget {
   final List<LigneMargePannier> lignes;
+  // Lignes cochées (Extract filtre de l'onglet Situation).
+  final void Function(List<LigneMargePannier>)? onSelectionChanged;
 
-  const TableauMargePannier({super.key, required this.lignes});
+  const TableauMargePannier({super.key, required this.lignes, this.onSelectionChanged});
 
   @override
   State<TableauMargePannier> createState() => _TableauMargePannierState();
@@ -62,7 +64,9 @@ class _TableauMargePannierState extends State<TableauMargePannier> {
 
     dataSource.addListener(() {
       WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (mounted) setState(() {});
+        if (!mounted) return;
+        setState(() {});
+        widget.onSelectionChanged?.call(dataSource.getSelectedRows());
       });
     });
   }

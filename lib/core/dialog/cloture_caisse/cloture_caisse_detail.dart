@@ -33,30 +33,56 @@ Future<void> ClotureCaisseDetail(
       final l10n = AppLocalizations.of(context)!;
 
       return BaseDialog(
-        width: 1000,
+        width: 1100,
         height: 700,
         header: Column(
           children: [
             Row(
               children: [
-                Icon(Icons.point_of_sale, size: 34, color: Appstyle.violet),
+                Image.asset(
+                  "assets/icons/sidebar/reporting_icon.png",
+                  width: 34,
+                  height: 34,
+                  color: Appstyle.violet,
+                  colorBlendMode: BlendMode.srcIn,
+                ),
                 const SizedBox(width: 10),
                 Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(cloture.code, style: Appstyle.textLB.copyWith(fontSize: 20)),
-                    Text(nomCaisse, style: Appstyle.textSB),
+                    Text("${l10n.cashRegister} : $nomCaisse", style: Appstyle.textSB),
                   ],
+                ),
+                const Spacer(),
+                // Période couverte par la clôture (une clôture n'a pas d'état :
+                // elle n'est jamais modifiée ni annulée).
+                Chip(
+                  label: Text(
+                    "${cloture.dateDebut.toString().split(" ").first} → ${cloture.dateFin.toString().split(" ").first}",
+                    style: Appstyle.textSB.copyWith(color: Appstyle.Tblanc),
+                  ),
+                  backgroundColor: Appstyle.violet.withOpacity(0.8),
+                  labelPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                  elevation: 2,
                 ),
               ],
             ),
             const SizedBox(height: 16),
             StatsCard(
-              backgroundColor: Appstyle.violet.withOpacity(0.7),
               items: [
-                StatsItem(label: l10n.totalAmount, value: "${NumberFormatUtil.formatMontant(cloture.totalVentes, decimales: 2)} ${l10n.currency}"),
-                StatsItem(label: l10n.numberOfSales, value: cloture.nombreTickets.toString()),
-                StatsItem(label: l10n.cancelledTicketsCount, value: cloture.nombreTicketsAnnules.toString()),
+                StatsItem(
+                  label: l10n.totalAmount,
+                  value: "${NumberFormatUtil.formatMontant(cloture.totalVentes, decimales: 2)} ${l10n.currency}",
+                  icon: Icons.payments_outlined,
+                ),
+                StatsItem(label: l10n.numberOfSales, value: cloture.nombreTickets.toString(), icon: Icons.receipt_long),
+                StatsItem(
+                  label: l10n.totalCancelledAmount,
+                  value: "${NumberFormatUtil.formatMontant(cloture.totalAnnule, decimales: 2)} ${l10n.currency}",
+                  icon: Icons.money_off_outlined,
+                ),
+                StatsItem(label: l10n.cancelledTicketsCount, value: cloture.nombreTicketsAnnules.toString(), icon: Icons.cancel_outlined),
               ],
             ),
           ],

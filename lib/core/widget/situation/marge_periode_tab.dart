@@ -1,4 +1,5 @@
 import 'package:caisse_dz/Services/CaisseGestion.dart';
+import 'package:caisse_dz/Services/export_spinner.dart';
 import 'package:caisse_dz/Services/ExcelPreviewDialog.dart';
 import 'package:caisse_dz/Services/PDFPreviewDialog.dart';
 import 'package:caisse_dz/Services/Pannier.dart';
@@ -188,24 +189,24 @@ class _MargeParPeriodeTabState extends State<MargeParPeriodeTab> {
   int get _nbrJours => _lignes.length;
   int get _nbrPannier => _panniersFiltres.length;
 
-  Future<void> _exportExcel(AppLocalizations l10n) async {
-    final lignes = _lignes;
+  // Lignes cochées dans le tableau (Extract filtre). Pas de setState : seul
+  // l'export les lit, et un rebuild recréerait la liste du tableau.
+  List<LigneMargePeriode> _lignesSelectionnees = [];
+
+  Future<void> _exportExcel(AppLocalizations l10n, {bool selectionSeulement = false}) async {
+    final lignes = selectionSeulement ? _lignesSelectionnees : _lignes;
     if (lignes.isEmpty) {
       await InformationDialog(
         context: context,
         titre_type_message: l10n.information,
         titre_concerne: l10n.cashRegister,
-        message: l10n.noDataToExport,
+        message: selectionSeulement ? l10n.noRowSelected : l10n.noDataToExport,
       );
       return;
     }
 
+    final fermerSpinner = ouvrirSpinnerExport(context);
     try {
-      showDialog(
-        context: context,
-        barrierDismissible: false,
-        builder: (context) => const Center(child: CircularProgressIndicator()),
-      );
 
       final excelFile = await ExcelGenerator.generateMargeParPeriodeExcel(
         lignes: lignes,
@@ -213,7 +214,7 @@ class _MargeParPeriodeTabState extends State<MargeParPeriodeTab> {
       );
 
       if (!mounted) return;
-      Navigator.pop(context);
+      fermerSpinner();
 
       final excel = Excel.decodeBytes(await excelFile.readAsBytes());
       var sheet = excel.tables['MargeParPeriode'];
@@ -264,7 +265,7 @@ class _MargeParPeriodeTabState extends State<MargeParPeriodeTab> {
         ),
       );
     } catch (e) {
-      if (Navigator.canPop(context)) Navigator.pop(context);
+      fermerSpinner();
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('${l10n.exportError}: $e'), backgroundColor: Colors.red),
       );
@@ -401,6 +402,13 @@ class _MargeParPeriodeTabState extends State<MargeParPeriodeTab> {
                     onPressed: () async => await _exportExcel(l10n),
                   ),
                   const SizedBox(width: 10),
+                  // Extract filtre : Excel des seules lignes cochées.
+                  MainIconButton(
+                    imagePath: "assets/icons/action/extacter_filtre_icon.png",
+                    color: Colors.orange,
+                    onPressed: () async => await _exportExcel(l10n, selectionSeulement: true),
+                  ),
+                  const SizedBox(width: 10),
                   MainButton(
                     text: l10n.extractPdf,
                     textColor: Colors.red,
@@ -485,18 +493,6 @@ class _MargeParPeriodeTabState extends State<MargeParPeriodeTab> {
             children: [
               Expanded(
                 child: ChampAvecLabel(
-                  label: l10n.cashRegister,
-                  child: TextListe(
-                    value: selectedCaisse,
-                    items: caisses.map((c) => c.nomCaisse).toList(),
-                    clearable: true,
-                    onChanged: (v) => setState(() => selectedCaisse = v),
-                  ),
-                ),
-              ),
-              const SizedBox(width: 20),
-              Expanded(
-                child: ChampAvecLabel(
                   label: l10n.from,
                   child: TextDate(hint: l10n.startDate, controller: _dateDebutCtrl, onTap: _pickDateDebut),
                 ),
@@ -508,11 +504,31 @@ class _MargeParPeriodeTabState extends State<MargeParPeriodeTab> {
                   child: TextDate(hint: l10n.endDate, controller: _dateFinCtrl, onTap: _pickDateFin),
                 ),
               ),
+              const SizedBox(width: 20),
+              Expanded(
+                child: ChampPeriodeRapide(
+                  l10n: l10n,
+                  value: periodeRapide,
+                  onSelected: _appliquerPeriodeRapide,
+                ),
+              ),
             ],
           ),
           const SizedBox(height: 20),
           Row(
             children: [
+              Expanded(
+                child: ChampAvecLabel(
+                  label: l10n.cashRegister,
+                  child: TextListe(
+                    value: selectedCaisse,
+                    items: caisses.map((c) => c.nomCaisse).toList(),
+                    clearable: true,
+                    onChanged: (v) => setState(() => selectedCaisse = v),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 20),
               Expanded(
                 child: ChampAvecLabel(
                   label: l10n.amount,
@@ -542,14 +558,6 @@ class _MargeParPeriodeTabState extends State<MargeParPeriodeTab> {
                   ),
                 ),
               ),
-              const SizedBox(width: 20),
-              Expanded(
-                child: PeriodeRapideDropdown(
-                  l10n: l10n,
-                  value: periodeRapide,
-                  onSelected: _appliquerPeriodeRapide,
-                ),
-              ),
             ],
           ),
         ],
@@ -573,6 +581,9 @@ class _MargeParPeriodeTabState extends State<MargeParPeriodeTab> {
       );
     }
 
-    return TableauMargePeriode(lignes: lignes);
+    return TableauMargePeriode(
+      lignes: lignes,
+      onSelectionChanged: (selection) => _lignesSelectionnees = selection,
+    );
   }
 }

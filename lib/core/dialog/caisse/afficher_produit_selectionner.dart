@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'package:caisse_dz/core/dialog/dialog_kind.dart';
 import 'dart:io';
 import 'dart:ui';
 import 'package:flutter/material.dart';
@@ -21,7 +22,11 @@ Future<void> afficherProduitSelectionneDialog({
   required String nom,
   required double prix,
   required String? photoName,
-  required Function(double qte, {String? colisType, double? prixUnitaire}) onAjouter,
+  // Repli visuel (couleur automatique, voir Appstyle.couleurSousCategorie)
+  // quand [photoName] est absente.
+  int? sousCategorieId,
+  // piecesParEmballage : pièces par boîte/carton choisi (null = à l'unité).
+  required Function(double qte, {String? colisType, double? prixUnitaire, int? piecesParEmballage}) onAjouter,
   // ✅ Expose la validation courante (équivalent du bouton "Ajouter") à
   // l'appelant, pour qu'un nouveau scan pendant que ce dialog est ouvert
   // puisse valider le produit affiché avant d'enchaîner sur le suivant.
@@ -31,6 +36,8 @@ Future<void> afficherProduitSelectionneDialog({
   double? emballage2,
   double? emballageP2,
   String? defaultColisType,
+  // Unité du produit : 'Pièce' => quantité entière.
+  String? uniteMesure,
   required double quantiteDisponible,
 }) async {
   final qteController = TextEditingController(text: "1");
@@ -38,7 +45,28 @@ Future<void> afficherProduitSelectionneDialog({
   // directement "1" au lieu de le compléter — manipulation rapide de la qtt.
   qteController.selection = TextSelection(baseOffset: 0, extentOffset: qteController.text.length);
   Timer? autoAddTimer;
-  bool isEditing = false;
+
+  // Contexte du dialog lui-même (fourni par le builder de showDialog). Le
+  // fermer avec le `context` de l'écran ne marche pas : la Caisse vit dans
+  // le ShellRoute, son Navigator est celui du shell alors que le dialog est
+  // poussé sur le Navigator racine — Navigator.canPop(context) y vaut false
+  // et le dialog restait ouvert après l'ajout.
+  BuildContext? dialogContext;
+  bool ajoutEnCours = false;
+
+  // Détection d'une rafale de lecteur code-barres dans le champ quantité :
+  // le lecteur (mode clavier) tape le code puis Entrée dans le champ qui a
+  // le focus. On mémorise la quantité d'avant la rafale pour ne pas prendre
+  // le code-barres pour une quantité ; le scan lui-même est traité par
+  // l'écran Caisse (BarcodeScanListener), qui valide ce dialog via
+  // [onControllerReady]. Mêmes seuils que BarcodeScanListener.
+  const int intervalleRafaleMs = 60;
+  const int longueurMinRafale = 3;
+  String texteAvantRafale = qteController.text;
+  String dernierTexte = qteController.text;
+  DateTime? derniereFrappe;
+  int longueurRafale = 0;
+  bool estRafaleScan() => longueurRafale >= longueurMinRafale;
 
   final bool hasBoite = (emballage1 != null && emballage1 > 0 && emballageP1 != null && emballageP1 > 0);
   final bool hasCarton = (emballage2 != null && emballage2 > 0 && emballageP2 != null && emballageP2 > 0);
@@ -91,6 +119,7 @@ Future<void> afficherProduitSelectionneDialog({
       await InformationDialog(
         context: context,
         titre_type_message: l10n.error,
+        kind: DialogKind.refuser,
         titre_concerne: l10n.product,
         message: l10n.insufficientStockDetail(
           quantiteReelle.toInt(),
@@ -107,25 +136,52 @@ Future<void> afficherProduitSelectionneDialog({
   // minuteur d'ajout auto et par le bouton, et exposée via
   // [onControllerReady] pour être déclenchée depuis l'extérieur (nouveau
   // scan pendant que ce dialog est ouvert).
-  Future<void> confirmerAjout() async {
-    final qte = double.tryParse(qteController.text.replaceAll(',', '.')) ?? 1;
+  void fermerDialog() {
     autoAddTimer?.cancel();
-    updateEmballageInfo();
+    final ctx = dialogContext;
+    dialogContext = null;
+    if (ctx != null && ctx.mounted) Navigator.of(ctx).pop();
+  }
 
-    if (await verifierQuantiteAvecDialogue(qte)) {
-      if (selectedEmballage != TypeEmballage.unit) {
-        onAjouter(qte, colisType: currentColisType, prixUnitaire: currentPrixUnitaire);
-      } else {
-        onAjouter(qte);
+  Future<void> confirmerAjout() async {
+    // Garde anti double-validation (minuteur + bouton + scan simultanés).
+    if (ajoutEnCours || dialogContext == null) return;
+    ajoutEnCours = true;
+    autoAddTimer?.cancel();
+    try {
+      // Pendant une rafale de scan, le champ contient le code-barres : on
+      // revient à la quantité saisie avant la rafale.
+      if (estRafaleScan()) {
+        qteController.text = texteAvantRafale;
+        longueurRafale = 0;
       }
-      if (Navigator.canPop(context)) Navigator.pop(context);
+      final qte = double.tryParse(qteController.text.replaceAll(',', '.')) ?? 1;
+      updateEmballageInfo();
+
+      if (await verifierQuantiteAvecDialogue(qte)) {
+        if (selectedEmballage != TypeEmballage.unit) {
+          onAjouter(
+          qte,
+          colisType: currentColisType,
+          prixUnitaire: currentPrixUnitaire,
+          piecesParEmballage: piecesParUnite,
+        );
+        } else {
+          onAjouter(qte);
+        }
+        fermerDialog();
+      }
+    } finally {
+      ajoutEnCours = false;
     }
   }
 
+  // Ajout + fermeture automatiques 3 s après l'ouverture, ou 3 s après la
+  // dernière modification de la quantité (pas tant que le champ est vide).
   void startAutoAddTimer() {
     autoAddTimer?.cancel();
-    autoAddTimer = Timer(const Duration(seconds: 2), () async {
-      if (!isEditing || (qteController.text.isEmpty)) {
+    autoAddTimer = Timer(const Duration(seconds: 3), () async {
+      if (qteController.text.trim().isNotEmpty) {
         await confirmerAjout();
       }
     });
@@ -135,22 +191,33 @@ Future<void> afficherProduitSelectionneDialog({
 
   qteController.addListener(() {
     final text = qteController.text;
-    if (text.isNotEmpty) {
-      if (!isEditing) {
-        isEditing = true;
-        autoAddTimer?.cancel();
-      }
+    // Le listener est aussi appelé sur un simple changement de sélection :
+    // on ne réagit qu'aux vraies modifications du texte.
+    if (text == dernierTexte) return;
+    final now = DateTime.now();
+    final rapide = derniereFrappe != null &&
+        now.difference(derniereFrappe!).inMilliseconds <= intervalleRafaleMs;
+    if (!rapide) {
+      texteAvantRafale = dernierTexte;
+      longueurRafale = 0;
     }
+    longueurRafale++;
+    derniereFrappe = now;
+    dernierTexte = text;
+    if (!estRafaleScan()) startAutoAddTimer();
   });
 
   return showDialog(
     context: context,
     barrierColor: Appstyle.gris.withOpacity(0.2),
     barrierDismissible: false,
-    builder: (_) {
+    builder: (ctx) {
       final l10n = AppLocalizations.of(context);
 
-      startAutoAddTimer();
+      if (dialogContext == null) {
+        dialogContext = ctx;
+        startAutoAddTimer();
+      }
 
       return StatefulBuilder(
         builder: (context, setState) {
@@ -215,7 +282,7 @@ Future<void> afficherProduitSelectionneDialog({
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      _buildProductImage(photoName, context: context, height: imageHeight),
+                      _buildProductImage(photoName, context: context, height: imageHeight, sousCategorieId: sousCategorieId),
                       SizedBox(height: spacing),
                       Text(
                         nom,
@@ -383,7 +450,10 @@ Future<void> afficherProduitSelectionneDialog({
                               autofocus: true,
                               textAlign: TextAlign.center,
                               keyboardType: TextInputType.number,
-                              inputFormatters: QuantiteFormat.inputFormatters,
+                              // Colis (boîte/carton) ou produit à la pièce : entier.
+                              inputFormatters: QuantiteFormat.inputFormattersPour(
+                                selectedEmballage != TypeEmballage.unit ? QuantiteFormat.unitePiece : uniteMesure,
+                              ),
                               textInputAction: TextInputAction.done,
                               style: TextStyle(fontSize: isSmallScreen ? 16 : 20),
                               decoration: InputDecoration(
@@ -400,8 +470,12 @@ Future<void> afficherProduitSelectionneDialog({
                               onChanged: (value) {
                                 setState(() {});
                               },
-                              // ✅ Touche Entrée du clavier = même action que le bouton "Ajouter"
-                              onSubmitted: (_) => confirmerAjout(),
+                              // ✅ Touche Entrée du clavier = même action que le bouton "Ajouter".
+                              // Entrée de fin de scan ignorée ici : c'est l'écran Caisse qui
+                              // valide ce produit puis ouvre le produit scanné.
+                              onSubmitted: (_) {
+                                if (!estRafaleScan()) confirmerAjout();
+                              },
                             ),
                           ),
                           if (selectedEmballage != TypeEmballage.unit) ...[
@@ -461,10 +535,7 @@ Future<void> afficherProduitSelectionneDialog({
                       icon: Icons.cancel,
                       width: isSmallScreen ? 110 : 140,
                       height: isSmallScreen ? 38 : 45,
-                      onPressed: () {
-                        autoAddTimer?.cancel();
-                        Navigator.pop(context);
-                      },
+                      onPressed: fermerDialog,
                     ),
                     MainButton(
                       text: l10n.add,
@@ -486,11 +557,12 @@ Future<void> afficherProduitSelectionneDialog({
     // Garantit l'arrêt du timer d'ajout auto même si le dialog est fermé
     // par un moyen externe (ex: un nouveau scan qui referme celui-ci).
     autoAddTimer?.cancel();
+    dialogContext = null;
   });
 }
 
 /// Widget pour afficher la photo du produit avec hauteur adaptable
-Widget _buildProductImage(String? photoName, {required BuildContext context, double height = 280}) {
+Widget _buildProductImage(String? photoName, {required BuildContext context, double height = 280, int? sousCategorieId}) {
   return Container(
     height: height,
     width: height*3/2,
@@ -504,16 +576,17 @@ Widget _buildProductImage(String? photoName, {required BuildContext context, dou
     ),
     child: ClipRRect(
       borderRadius: BorderRadius.circular(12),
-      child: _buildImageContent(photoName, context),
+      child: _buildImageContent(photoName, context, sousCategorieId: sousCategorieId),
     ),
   );
 }
 
-Widget _buildImageContent(String? photoName, BuildContext context) {
+Widget _buildImageContent(String? photoName, BuildContext context, {int? sousCategorieId}) {
   // Si pas de photo ou photo vide : même placeholder que CardProduct
-  // (boîte violette + icône produit) pour une présentation cohérente.
+  // (couleur automatique par sous-catégorie + icône produit) pour une
+  // présentation cohérente.
   if (photoName == null || photoName.isEmpty) {
-    return _buildNoPhotoPlaceholder();
+    return _buildNoPhotoPlaceholder(sousCategorieId);
   }
 
   // Charger la photo depuis le service
@@ -548,15 +621,17 @@ Widget _buildImageContent(String? photoName, BuildContext context) {
 }
 
 /// Placeholder pour un produit sans photo : reprend le style utilisé dans
-/// CardProduct (fond violet translucide + icône de produit).
-Widget _buildNoPhotoPlaceholder() {
+/// CardProduct (couleur automatique par sous-catégorie + icône de produit).
+Widget _buildNoPhotoPlaceholder(int? sousCategorieId) {
+  final Color couleur =
+      sousCategorieId != null ? Appstyle.couleurSousCategorie(sousCategorieId) : Appstyle.violet;
   return Container(
-    color: Appstyle.violet.withOpacity(0.1),
+    color: couleur.withOpacity(0.1),
     child: Center(
       child: Icon(
         Icons.inventory_2,
         size: 64,
-        color: Appstyle.violet.withOpacity(0.6),
+        color: couleur.withOpacity(0.6),
       ),
     ),
   );

@@ -1,4 +1,5 @@
 import 'dart:ui';
+import 'package:caisse_dz/core/dialog/dialog_kind.dart';
 import 'package:caisse_dz/DBCreate.dart';
 import 'package:caisse_dz/Services/Historique.dart';
 import 'package:caisse_dz/Services/Pack.dart';
@@ -141,6 +142,7 @@ Future<void> _saveProccess({
     await InformationDialog(
       context: context,
       titre_type_message: l10n.error,
+      kind: DialogKind.refuser,
       titre_concerne: l10n.pack,
       message: "${l10n.errorOccurred}: $e",
     );
@@ -157,6 +159,7 @@ Future<bool?> PackProduit(BuildContext context, List<Produit> produitsSelectionn
     await InformationDialog(
       context: context,
       titre_type_message: l10n.authentication,
+      kind: DialogKind.refuser,
       titre_concerne: l10n.user,
       message: l10n.loginRequired,
     );
@@ -293,6 +296,7 @@ Future<bool?> PackProduit(BuildContext context, List<Produit> produitsSelectionn
                           await InformationDialog(
                             context: context,
                             titre_type_message: l10n.error,
+                            kind: DialogKind.refuser,
                             titre_concerne: l10n.pack,
                             message: l10n.pleaseSelectPack,
                           );

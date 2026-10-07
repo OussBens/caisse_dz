@@ -1,4 +1,5 @@
 import 'dart:ui';
+import 'package:caisse_dz/core/dialog/dialog_kind.dart';
 import 'package:caisse_dz/DBCreate.dart';
 import 'package:caisse_dz/Services/Magasin.dart';
 import 'package:caisse_dz/Services/Historique.dart';
@@ -76,6 +77,7 @@ Future<void> MagasinModif(BuildContext context, Magasin magasin) async {
     await InformationDialog(
       context: context,
       titre_type_message: AppLocalizations.of(context)!.authentication,
+      kind: DialogKind.refuser,
       titre_concerne: AppLocalizations.of(context)!.user,
       message: AppLocalizations.of(context)!.loginRequired,
     );
@@ -181,6 +183,7 @@ Future<void> MagasinModif(BuildContext context, Magasin magasin) async {
                           await InformationDialog(
                             context: context,
                             titre_type_message: l10n.error,
+                            kind: DialogKind.refuser,
                             titre_concerne: l10n.modifyStore,
                             message: l10n.fillRequiredFields,
                           );
@@ -210,6 +213,7 @@ Future<void> MagasinModif(BuildContext context, Magasin magasin) async {
                           await InformationDialog(
                             context: context,
                             titre_type_message: l10n.error,
+                            kind: DialogKind.refuser,
                             titre_concerne: l10n.modifyStore,
                             message: response.message ?? "Une erreur est survenue lors de la modification.",
                           );

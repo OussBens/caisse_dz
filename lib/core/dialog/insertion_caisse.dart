@@ -66,19 +66,14 @@ class _InsertionCaisseDialogState extends State<InsertionCaisseDialog> {
       couleur: Appstyle.Tblanc,
       width: 1000,
       height: 800,
-      header: Row(
-        children: [
-          TitreAvecLigne(
-            colligne: Appstyle.Tnoir,
-            imagePath: 'assets/icons/sidebar/caisse_icon.png',
-            text: l10n.insertionCashRegister,
-          ),
-          const Spacer(),
-          GestureDetector(
-            onTap: () => Navigator.pop(context),
-            child: Icon(Icons.close, color: Appstyle.gris),
-          ),
-        ],
+      header: TitreAvecLigne(
+        colligne: Appstyle.Tnoir,
+        imagePath: 'assets/icons/sidebar/caisse_icon.png',
+        text: l10n.insertionCashRegister,
+        trailing: GestureDetector(
+          onTap: () => Navigator.pop(context),
+          child: Icon(Icons.close, color: Appstyle.gris),
+        ),
       ),
       content: Column(
         children: [

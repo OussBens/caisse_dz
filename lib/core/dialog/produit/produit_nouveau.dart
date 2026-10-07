@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'package:caisse_dz/core/dialog/dialog_kind.dart';
 import 'dart:io';
 import 'dart:ui';
 import 'package:collection/collection.dart';
@@ -675,6 +676,7 @@ Future<void> ProduitNouveau(
     await InformationDialog(
       context: context,
       titre_type_message: l10n.authentication,
+      kind: DialogKind.refuser,
       titre_concerne: l10n.user,
       message: l10n.loginRequiredCreate,
     );
@@ -827,6 +829,7 @@ Future<void> ProduitNouveau(
                           await InformationDialog(
                             context: context,
                             titre_type_message: l10n.error,
+                            kind: DialogKind.refuser,
                             titre_concerne: l10n.product,
                             message: l10n.fillRequiredFields,
                           );
@@ -839,6 +842,7 @@ Future<void> ProduitNouveau(
                           await InformationDialog(
                             context: context,
                             titre_type_message: l10n.error,
+                            kind: DialogKind.refuser,
                             titre_concerne: l10n.product,
                             message: l10n.productNameAlreadyExists,
                           );
@@ -858,6 +862,7 @@ Future<void> ProduitNouveau(
                             await InformationDialog(
                               context: context,
                               titre_type_message: l10n.error,
+                              kind: DialogKind.refuser,
                               titre_concerne: l10n.product,
                               message: l10n.barcodeAlreadyUsed(conflit.nom),
                             );
@@ -893,7 +898,7 @@ Future<void> ProduitNouveau(
                           fournisseurCode: kSystemFournisseurCode,
                           categorieId: selectedCategorieid!,
                           sousCategorieId: selectedSousCategorieid!,
-                          remiseId: remiseId ?? 0,
+                          remiseId: remiseId, // null = pas de remise
                           multicodebar: multicodebar,
                           margeBool: merge,
                           margeTaux: toDouble(margeController),
@@ -928,6 +933,7 @@ Future<void> ProduitNouveau(
                           await InformationDialog(
                             context: context,
                             titre_type_message: l10n.error,
+                            kind: DialogKind.refuser,
                             titre_concerne: l10n.product,
                             message: response.message ?? l10n.errorOccurred,
                           );
@@ -1095,6 +1101,7 @@ Widget _buildFormIA(
                 await InformationDialog(
                   context: context,
                   titre_type_message: l10n.attention,
+                  kind: DialogKind.attention,
                   titre_concerne: '',
                   message: l10n.internetDisconnected,
                 );
@@ -1888,8 +1895,13 @@ Widget _buildFormDetaille(
                     colorEnabled: colorchampenabled,
                     onChanged: (_) {
                       setState(() {
-                        produitFormKey.currentState!.validate();
+                        // ✅ Recalculer le prix de vente AVANT de valider : sinon
+                        // validate() s'exécute sur l'ancien prixController2.text
+                        // (pas encore recalculé) et affiche "prix de vente
+                        // inférieur au prix d'achat" même quand le prix
+                        // recalculé qui s'affiche juste après est correct.
                         calculPrixVenteAuto();
+                        produitFormKey.currentState!.validate();
                       });
                     },
                     controller: prixController,
@@ -2011,8 +2023,8 @@ Widget _buildFormDetaille(
                     numeric: true,
                     onChanged: (_) {
                       setState(() {
-                        produitFormKey.currentState!.validate();
                         calculPrixVenteAuto();
+                        produitFormKey.currentState!.validate();
                       });
                     },
                     validator: (value) {
@@ -2069,6 +2081,9 @@ Widget _buildFormDetaille(
                             child: TextChampL(
                               width: 120,
                               controller: jeu1Controller,
+                              // Pièces par emballage : entier si le produit se vend à la pièce.
+                              isQuantite: true,
+                              uniteMesure: selectedUnitemesure,
                               color: colorchamp,
                               colorEnabled: colorchampenabled,
                               hint: l10n.packaging1Hint,
@@ -2157,6 +2172,9 @@ Widget _buildFormDetaille(
                             child: TextChampL(
                               width: 120,
                               controller: jeu2Controller,
+                              // Pièces par emballage : entier si le produit se vend à la pièce.
+                              isQuantite: true,
+                              uniteMesure: selectedUnitemesure,
                               color: colorchamp,
                               colorEnabled: colorchampenabled,
                               hint: l10n.packaging2Hint,

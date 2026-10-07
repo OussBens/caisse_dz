@@ -44,19 +44,14 @@ class _InsertionCategorieDialogState extends State<InsertionCategorieDialog> {
       couleur: Appstyle.Tblanc,
       width: 1000,
       height: 800,
-      header: Row(
-        children: [
-          TitreAvecLigne(
-            colligne: Appstyle.Tnoir,
-            imagePath: 'assets/icons/cardwidget/categorie_icon.png',
-            text: l10n.insertionCategory,
-          ),
-          const Spacer(),
-          GestureDetector(
-            onTap: () => Navigator.pop(context),
-            child: Icon(Icons.close, color: Appstyle.gris),
-          ),
-        ],
+      header: TitreAvecLigne(
+        colligne: Appstyle.Tnoir,
+        imagePath: 'assets/icons/cardwidget/categorie_icon.png',
+        text: l10n.insertionCategory,
+        trailing: GestureDetector(
+          onTap: () => Navigator.pop(context),
+          child: Icon(Icons.close, color: Appstyle.gris),
+        ),
       ),
       content: Column(
         children: [

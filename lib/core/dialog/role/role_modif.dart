@@ -1,4 +1,5 @@
 import 'dart:ui';
+import 'package:caisse_dz/core/dialog/dialog_kind.dart';
 import 'package:caisse_dz/DBCreate.dart';
 import 'package:caisse_dz/Services/Role.dart';
 import 'package:caisse_dz/Services/RoleDetail.dart';
@@ -49,6 +50,7 @@ Future<void> RoleModif(BuildContext context, Role role) async {
     await InformationDialog(
       context: context,
       titre_type_message: l10n.authentication,
+      kind: DialogKind.refuser,
       titre_concerne: l10n.user,
       message: l10n.loginRequiredModify,
     );
@@ -60,6 +62,7 @@ Future<void> RoleModif(BuildContext context, Role role) async {
     await InformationDialog(
       context: context,
       titre_type_message: l10n.modificationImpossible,
+      kind: DialogKind.refuser,
       titre_concerne: l10n.role,
       message: l10n.cannotModifyAdminRole,
     );
@@ -140,6 +143,18 @@ class _RoleModificationDialogState extends State<RoleModificationDialog> {
     PermissionItem(key: 'historique', label: 'Historique', icon: Icons.history),
   ];
 
+  // Phase 3 : permissions spéciales — actions sensibles transversales, pas
+  // liées à un module de la sidebar (voir data/models/RoleDetail.dart).
+  final List<PermissionItem> _specialPermissionsList = [
+    PermissionItem(key: 'voirPrixAchat', label: 'Voir le prix d\'achat', icon: Icons.attach_money),
+    PermissionItem(key: 'voirMarge', label: 'Voir la marge / taux de marge', icon: Icons.trending_up),
+    PermissionItem(key: 'modifierPrixVente', label: 'Modifier le prix de vente', icon: Icons.sell),
+    PermissionItem(key: 'annulerOperations', label: 'Annuler des opérations', icon: Icons.undo),
+    PermissionItem(key: 'changerCaisseMagasin', label: 'Changer sa caisse/magasin assigné', icon: Icons.swap_horiz),
+    PermissionItem(key: 'gererTransfertsCaisse', label: 'Voir/gérer les transferts entre caisses', icon: Icons.compare_arrows),
+    PermissionItem(key: 'voirStockTousMagasins', label: 'Voir le stock de tous les magasins', icon: Icons.warehouse),
+  ];
+
   @override
   void initState() {
     super.initState();
@@ -174,6 +189,13 @@ class _RoleModificationDialogState extends State<RoleModificationDialog> {
         zakat: false,
         parametre: false,
         historique: false,
+        voirPrixAchat: false,
+        voirMarge: false,
+        modifierPrixVente: false,
+        annulerOperations: false,
+        changerCaisseMagasin: false,
+        gererTransfertsCaisse: false,
+        voirStockTousMagasins: false,
       );
     }
 
@@ -250,6 +272,27 @@ class _RoleModificationDialogState extends State<RoleModificationDialog> {
         case 'historique':
           _roleDetail.historique = value;
           break;
+        case 'voirPrixAchat':
+          _roleDetail.voirPrixAchat = value;
+          break;
+        case 'voirMarge':
+          _roleDetail.voirMarge = value;
+          break;
+        case 'modifierPrixVente':
+          _roleDetail.modifierPrixVente = value;
+          break;
+        case 'annulerOperations':
+          _roleDetail.annulerOperations = value;
+          break;
+        case 'changerCaisseMagasin':
+          _roleDetail.changerCaisseMagasin = value;
+          break;
+        case 'gererTransfertsCaisse':
+          _roleDetail.gererTransfertsCaisse = value;
+          break;
+        case 'voirStockTousMagasins':
+          _roleDetail.voirStockTousMagasins = value;
+          break;
       }
     });
   }
@@ -289,8 +332,65 @@ class _RoleModificationDialogState extends State<RoleModificationDialog> {
         return _roleDetail.parametre;
       case 'historique':
         return _roleDetail.historique;
+      case 'voirPrixAchat':
+        return _roleDetail.voirPrixAchat;
+      case 'voirMarge':
+        return _roleDetail.voirMarge;
+      case 'modifierPrixVente':
+        return _roleDetail.modifierPrixVente;
+      case 'annulerOperations':
+        return _roleDetail.annulerOperations;
+      case 'changerCaisseMagasin':
+        return _roleDetail.changerCaisseMagasin;
+      case 'gererTransfertsCaisse':
+        return _roleDetail.gererTransfertsCaisse;
+      case 'voirStockTousMagasins':
+        return _roleDetail.voirStockTousMagasins;
       default:
         return false;
+    }
+  }
+
+  // Sélection/désélection groupée, scopée aux permissions spéciales
+  // (indépendante de _toggleAllPermissions qui ne couvre que les modules).
+  void _toggleAllSpecialPermissions() {
+    setState(() {
+      final newValue = !_areAllSpecialPermissionsSelected();
+      for (final permission in _specialPermissionsList) {
+        _updatePermissionValueOnly(permission.key, newValue);
+      }
+    });
+  }
+
+  bool _areAllSpecialPermissionsSelected() {
+    return _specialPermissionsList.every((p) => _getPermissionValue(p.key));
+  }
+
+  // Variante de _updatePermission sans setState (déjà fait par l'appelant),
+  // pour éviter un setState par item dans une boucle.
+  void _updatePermissionValueOnly(String key, bool value) {
+    switch (key) {
+      case 'voirPrixAchat':
+        _roleDetail.voirPrixAchat = value;
+        break;
+      case 'voirMarge':
+        _roleDetail.voirMarge = value;
+        break;
+      case 'modifierPrixVente':
+        _roleDetail.modifierPrixVente = value;
+        break;
+      case 'annulerOperations':
+        _roleDetail.annulerOperations = value;
+        break;
+      case 'changerCaisseMagasin':
+        _roleDetail.changerCaisseMagasin = value;
+        break;
+      case 'gererTransfertsCaisse':
+        _roleDetail.gererTransfertsCaisse = value;
+        break;
+      case 'voirStockTousMagasins':
+        _roleDetail.voirStockTousMagasins = value;
+        break;
     }
   }
 
@@ -366,6 +466,7 @@ class _RoleModificationDialogState extends State<RoleModificationDialog> {
       await InformationDialog(
         context: context,
         titre_type_message: l10n.error,
+        kind: DialogKind.refuser,
         titre_concerne: l10n.role,
         message: l10n.roleNameAlreadyExists,
       );
@@ -391,6 +492,7 @@ class _RoleModificationDialogState extends State<RoleModificationDialog> {
       await InformationDialog(
         context: context,
         titre_type_message: l10n.error,
+        kind: DialogKind.refuser,
         titre_concerne: l10n.role,
         message: response.message ?? l10n.errorOccurred,
       );
@@ -404,6 +506,7 @@ class _RoleModificationDialogState extends State<RoleModificationDialog> {
       await InformationDialog(
         context: context,
         titre_type_message: l10n.error,
+        kind: DialogKind.refuser,
         titre_concerne: l10n.permissions,
         message: permissionsResponse.message ?? l10n.errorOccurred,
       );
@@ -432,7 +535,7 @@ class _RoleModificationDialogState extends State<RoleModificationDialog> {
         filter: ImageFilter.blur(sigmaX: 2, sigmaY: 2),
         child: BaseDialog(
           width: 900,
-          height: 600,
+          height: 1020,
           header: TitreAvecLigne(
             imagePath: 'assets/icons/role_icon.png',
             text: l10n.modifyRole,
@@ -447,13 +550,19 @@ class _RoleModificationDialogState extends State<RoleModificationDialog> {
                     _buildStepIndicator(0, l10n.roleInfo, Icons.info),
                     Expanded(child: Container(height: 2, color: Appstyle.violet.withOpacity(0.3))),
                     _buildStepIndicator(1, l10n.permissions, Icons.lock),
+                    Expanded(child: Container(height: 2, color: Appstyle.violet.withOpacity(0.3))),
+                    _buildStepIndicator(2, l10n.specialPermissions, Icons.security),
                   ],
                 ),
               ),
 
               // Step content
               Expanded(
-                child: _currentStep == 0 ? _buildStep1(l10n, translator) : _buildStep2(l10n),
+                child: switch (_currentStep) {
+                  0 => _buildStep1(l10n, translator),
+                  1 => _buildStep2(l10n),
+                  _ => _buildStep3(l10n),
+                },
               ),
             ],
           ),
@@ -481,10 +590,40 @@ class _RoleModificationDialogState extends State<RoleModificationDialog> {
                       await InformationDialog(
                         context: context,
                         titre_type_message: l10n.error,
+                        kind: DialogKind.refuser,
                         titre_concerne: l10n.role,
                         message: l10n.fillRequiredFields,
                       );
                     }
+                  },
+                ),
+              ] else if (_currentStep == 1) ...[
+                MainButton(
+                  text: l10n.previous,
+                  icon: Icons.arrow_back,
+                  color: Appstyle.gris,
+                  onPressed: () {
+                    setState(() {
+                      _currentStep = 0;
+                    });
+                  },
+                ),
+                const SizedBox(width: 10),
+                MainButton(
+                  text: l10n.cancel,
+                  icon: Icons.cancel,
+                  color: Appstyle.gris,
+                  onPressed: () => Navigator.pop(context),
+                ),
+                const SizedBox(width: 10),
+                MainButton(
+                  text: l10n.next,
+                  icon: Icons.arrow_forward,
+                  color: Appstyle.violet,
+                  onPressed: () {
+                    setState(() {
+                      _currentStep = 2;
+                    });
                   },
                 ),
               ] else ...[
@@ -494,7 +633,7 @@ class _RoleModificationDialogState extends State<RoleModificationDialog> {
                   color: Appstyle.gris,
                   onPressed: () {
                     setState(() {
-                      _currentStep = 0;
+                      _currentStep = 1;
                     });
                   },
                 ),
@@ -748,6 +887,124 @@ class _RoleModificationDialogState extends State<RoleModificationDialog> {
                 onPressed: _toggleAllPermissions,
                 icon: Icon(Icons.select_all, size: 18),
                 label: Text(_areAllPermissionsSelected()
+                    ? l10n.deselectAll
+                    : l10n.selectAll),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  // Phase 3 : permissions spéciales — même présentation que _buildStep2.
+  Widget _buildStep3(AppLocalizations l10n) {
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: Appstyle.violet.withOpacity(0.1),
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Row(
+              children: [
+                Icon(Icons.info_outline, color: Appstyle.violet, size: 24),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Text(
+                    l10n.specialPermissionsDescription,
+                    style: TextStyle(
+                      fontSize: 14,
+                      color: Appstyle.violet,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 20),
+          Text(
+            l10n.selectSpecialPermissions,
+            style: const TextStyle(
+              fontSize: 16,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+          const SizedBox(height: 16),
+          GridView.builder(
+            shrinkWrap: true,
+            physics: const NeverScrollableScrollPhysics(),
+            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+              crossAxisCount: 2,
+              childAspectRatio: 3.5,
+              crossAxisSpacing: 12,
+              mainAxisSpacing: 8,
+            ),
+            itemCount: _specialPermissionsList.length,
+            itemBuilder: (context, index) {
+              final permission = _specialPermissionsList[index];
+              final isSelected = _getPermissionValue(permission.key);
+
+              return Card(
+                elevation: 2,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8),
+                  side: BorderSide(
+                    color: isSelected
+                        ? Appstyle.violet
+                        : Colors.grey.withOpacity(0.3),
+                  ),
+                ),
+                child: InkWell(
+                  onTap: () => _updatePermission(permission.key, !isSelected),
+                  borderRadius: BorderRadius.circular(8),
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                    child: Row(
+                      children: [
+                        Icon(
+                          permission.icon,
+                          color: isSelected ? Appstyle.violet : Colors.grey,
+                          size: 20,
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Text(
+                            permission.label,
+                            style: TextStyle(
+                              fontSize: 13,
+                              fontWeight: isSelected ? FontWeight.w500 : FontWeight.normal,
+                              color: isSelected ? Appstyle.violet : Colors.grey[700],
+                            ),
+                          ),
+                        ),
+                        Checkbox(
+                          value: isSelected,
+                          onChanged: (bool? value) {
+                            _updatePermission(permission.key, value ?? false);
+                          },
+                          activeColor: Appstyle.violet,
+                          materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              );
+            },
+          ),
+          const SizedBox(height: 16),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.end,
+            children: [
+              TextButton.icon(
+                onPressed: _toggleAllSpecialPermissions,
+                icon: Icon(Icons.select_all, size: 18),
+                label: Text(_areAllSpecialPermissionsSelected()
                     ? l10n.deselectAll
                     : l10n.selectAll),
               ),

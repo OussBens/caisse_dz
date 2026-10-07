@@ -6,6 +6,8 @@ import '../../../../data/models/fournisseur.dart';
 import '../../../../data/models/smart_scan.dart';
 import '../../../data/constant.dart';
 import '../../../l10n/app_localizations.dart';
+import 'package:caisse_dz/core/theme/app_style.dart';
+import '../../dialog/produits_liste_dialog.dart';
 import '../../widget/status_badge.dart';
 import '../base_table_data_source.dart';
 
@@ -90,6 +92,10 @@ class SmartScanDataSource extends BaseTableDataSource<SmartScan> {
   Widget? buildCustomCell(String columnName, DataGridCell cell, SmartScan item) {
     if (columnName == 'etat') {
       return Center(child: EtatBadge(isActive: item.etat));
+    }
+
+    if (columnName == 'code') {
+      return Center(child: pilluleCellule(item.code, Appstyle.violet));
     }
 
     if (columnName == 'reste') {

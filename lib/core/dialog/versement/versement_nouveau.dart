@@ -1,4 +1,5 @@
 import 'dart:ui';
+import 'package:caisse_dz/core/dialog/dialog_kind.dart';
 import 'package:collection/collection.dart';
 import 'package:caisse_dz/DBCreate.dart';
 import 'package:caisse_dz/Services/CaisseGestion.dart' hide ApiResponse;
@@ -290,6 +291,7 @@ Future<void> VersementNouveau(
     await InformationDialog(
       context: context,
       titre_type_message: l10n.authentication,
+      kind: DialogKind.refuser,
       titre_concerne: l10n.user,
       message: l10n.loginRequired,
     );
@@ -594,6 +596,7 @@ Future<void> VersementNouveau(
                           await InformationDialog(
                             context: context,
                             titre_type_message: l10n.error,
+                            kind: DialogKind.refuser,
                             titre_concerne: l10n.payment,
                             message: l10n.fillRequiredFields,
                           );
@@ -610,6 +613,7 @@ Future<void> VersementNouveau(
                           await InformationDialog(
                             context: context,
                             titre_type_message: l10n.error,
+                            kind: DialogKind.refuser,
                             titre_concerne: l10n.payment,
                             message: l10n.fillRequiredFields,
                           );
@@ -641,6 +645,7 @@ Future<void> VersementNouveau(
                           await InformationDialog(
                             context: context,
                             titre_type_message: l10n.error,
+                            kind: DialogKind.refuser,
                             titre_concerne: l10n.payment,
                             message: l10n.cashRegisterRequired,
                           );
@@ -659,6 +664,7 @@ Future<void> VersementNouveau(
                           await InformationDialog(
                             context: context,
                             titre_type_message: l10n.error,
+                            kind: DialogKind.refuser,
                             titre_concerne: l10n.payment,
                             message: response.message ?? l10n.errorOccurred,
                           );

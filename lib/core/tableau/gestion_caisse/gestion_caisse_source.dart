@@ -3,6 +3,8 @@ import 'package:syncfusion_flutter_datagrid/datagrid.dart';
 
 import '../../../../data/models/gestion_caisse.dart';
 import '../../../l10n/app_localizations.dart';
+import 'package:caisse_dz/core/theme/app_style.dart';
+import '../../dialog/produits_liste_dialog.dart';
 import '../../widget/status_badge.dart';
 import '../base_table_data_source.dart';
 
@@ -24,6 +26,23 @@ class CaisseGestionDataSource extends BaseTableDataSource<CaisseGestion> {
         "${date.year} "
         "${date.hour.toString().padLeft(2, '0')}:"
         "${date.minute.toString().padLeft(2, '0')}";
+  }
+
+  // Tri sur la valeur brute (DateTime / nombre) et non sur le texte affiché :
+  // "jj/mm/aaaa" trié comme du texte classait d'abord par jour, et "1200 DA"
+  // par ordre alphabétique.
+  @override
+  dynamic sortValue(CaisseGestion caisse, String field) {
+    switch (field) {
+      case 'dateCree':
+        return caisse.dateCree;
+      case 'dateModif':
+        return caisse.dateModif;
+      case 'dateAnnul':
+        return caisse.dateAnnul;
+      default:
+        return cellValue(caisse, field);
+    }
   }
 
   @override
@@ -69,6 +88,14 @@ class CaisseGestionDataSource extends BaseTableDataSource<CaisseGestion> {
   Widget? buildCustomCell(String columnName, DataGridCell cell, CaisseGestion item) {
     if (columnName == 'etat') {
       return Center(child: EtatBadge(isActive: item.etat));
+    }
+    if (columnName == 'nomCaisse') {
+      return boldCell(item.nomCaisse, align: TextAlign.left);
+    }
+    if (columnName == 'soldeInitial') {
+      return Center(
+        child: pilluleCellule("${item.soldeInitial} ${l10n.currency}", Appstyle.violet),
+      );
     }
     return null;
   }

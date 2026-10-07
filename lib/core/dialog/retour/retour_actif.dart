@@ -1,4 +1,5 @@
 import 'dart:ui';
+import 'package:caisse_dz/core/dialog/dialog_kind.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:caisse_dz/DBCreate.dart';
@@ -201,6 +202,18 @@ Future<void> AnnulerRetour(BuildContext context, List<Retour> retoursSelectionne
   final userName = auth.username!;
   final userCode = auth.userCode!;
 
+  // ✅ Permission spéciale (voir RoleDetail) : annuler une opération.
+  if (!auth.canAnnulerOperations) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(AppLocalizations.of(context)!.noPermissionAction),
+        backgroundColor: Colors.red,
+        duration: const Duration(seconds: 3),
+      ),
+    );
+    return;
+  }
+
   final produitsCatalogue = await ProduitServices.getAllProduits();
   final clientsCatalogue = await ClientServices.getAllClients();
   final fournisseursCatalogue = await FournisseurServices.getAllFournisseurs();
@@ -349,6 +362,7 @@ Future<void> AnnulerRetour(BuildContext context, List<Retour> retoursSelectionne
                           await InformationDialog(
                             context: context,
                             titre_type_message: l10n.error,
+                            kind: DialogKind.refuser,
                             titre_concerne: l10n.return_,
                             message: l10n.stockInsuffisantPourProduit(
                               produitInsuffisant.code,

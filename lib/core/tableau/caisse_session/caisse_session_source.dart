@@ -1,9 +1,12 @@
 import 'package:collection/collection.dart';
+import 'package:flutter/material.dart';
+import 'package:syncfusion_flutter_datagrid/datagrid.dart';
 
-import '../../../data/constant.dart';
 import '../../../data/models/caisse_session.dart';
 import '../../../data/models/gestion_caisse.dart';
 import '../../../l10n/app_localizations.dart';
+import 'package:caisse_dz/core/theme/app_style.dart';
+import '../../dialog/produits_liste_dialog.dart';
 import '../../utilis/number_format.dart';
 import '../base_table_data_source.dart';
 
@@ -35,6 +38,29 @@ class CaisseSessionDataSource extends BaseTableDataSource<CaisseSession> {
       ? '-'
       : "${NumberFormatUtil.formatMontant(montant, decimales: 2)} ${l10n.currency}";
 
+  // Tri sur la valeur brute (DateTime / nombre) et non sur le texte affiché :
+  // "jj/mm/aaaa" trié comme du texte classait d'abord par jour, et "1200 DA"
+  // par ordre alphabétique.
+  @override
+  dynamic sortValue(CaisseSession s, String field) {
+    switch (field) {
+      case 'soldeOuverture':
+        return s.soldeOuverture;
+      case 'dateOuverture':
+        return s.dateOuverture;
+      case 'soldeTheorique':
+        return s.soldeTheorique;
+      case 'soldeReel':
+        return s.soldeReel;
+      case 'ecart':
+        return s.ecart;
+      case 'dateCloture':
+        return s.dateCloture;
+      default:
+        return cellValue(s, field);
+    }
+  }
+
   @override
   dynamic cellValue(CaisseSession s, String field) {
     switch (field) {
@@ -61,6 +87,19 @@ class CaisseSessionDataSource extends BaseTableDataSource<CaisseSession> {
       default:
         return '';
     }
+  }
+
+  @override
+  Widget? buildCustomCell(String columnName, DataGridCell cell, CaisseSession item) {
+    if (columnName == 'caisseCode') {
+      return boldCell(_nomCaisse(item.caisseCode), align: TextAlign.left);
+    }
+    if (columnName == 'soldeOuverture') {
+      return Center(
+        child: pilluleCellule(_formatMontant(item.soldeOuverture), Appstyle.violet),
+      );
+    }
+    return null;
   }
 
   void update(List<CaisseSession> newList) => updateItems(newList);

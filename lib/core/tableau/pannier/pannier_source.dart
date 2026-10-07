@@ -1,3 +1,4 @@
+import 'dart:collection';
 // lib/core/widget/tableau/pannier/pannier_data_source.dart
 
 import 'package:collection/collection.dart';
@@ -233,6 +234,27 @@ class PannierDataSource extends DataGridSource {
     _rows
       ..clear()
       ..addAll(newRows);
+    _indexParLigne
+      ..clear()
+      ..addAll({for (int i = 0; i < newRows.length; i++) newRows[i]: i});
+  }
+
+  // Ligne de grille -> index dans [items] (identité), pour [compare].
+  final Map<DataGridRow, int> _indexParLigne = HashMap<DataGridRow, int>.identity();
+
+  /// Syncfusion re-trie lui-même les lignes sur la valeur AFFICHÉE des
+  /// cellules (dates "jj/mm/aaaa" triées comme du texte) : on compare sur
+  /// [sortValue] (même correctif que BaseTableDataSource.compare).
+  @override
+  int compare(DataGridRow? a, DataGridRow? b, SortColumnDetails sortColumn) {
+    final field = columnConfig[sortColumn.name]?['field'] as String?;
+    final ia = a == null ? null : _indexParLigne[a];
+    final ib = b == null ? null : _indexParLigne[b];
+    if (field == null || ia == null || ib == null || ia >= items.length || ib >= items.length) {
+      return super.compare(a, b, sortColumn);
+    }
+    final cmp = _compareCellValues(sortValue(items[ia], field), sortValue(items[ib], field));
+    return sortColumn.sortDirection == DataGridSortDirection.ascending ? cmp : -cmp;
   }
 
   @override
@@ -306,10 +328,23 @@ class PannierDataSource extends DataGridSource {
     );
   }
 
-  /// Valeur utilisée pour TRIER [field] — par défaut identique à
-  /// [cellValue]. Pour Pannier, montant/verse/reste/montantAchat/marge sont
-  /// déjà des double bruts dans cellValue, donc pas besoin de diverger ici.
-  dynamic sortValue(Pannier item, String field) => cellValue(item, field);
+  /// Valeur utilisée pour TRIER [field] : les dates sur le DateTime (le texte
+  /// affiché "jj/mm/aaaa" se triait par jour), le reste comme [cellValue]
+  /// (montant/verse/reste/montantAchat/marge y sont déjà des double bruts).
+  dynamic sortValue(Pannier item, String field) {
+    switch (field) {
+      case 'date':
+        return item.date;
+      case 'dateCree':
+        return item.dateCree;
+      case 'dateModif':
+        return item.dateModif;
+      case 'dateAnnul':
+        return item.dateAnnul;
+      default:
+        return cellValue(item, field);
+    }
+  }
 
   /// Trie l'intégralité de [items] (même principe que
   /// BaseTableDataSource._applySort) selon la colonne d'en-tête cliquée.

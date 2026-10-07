@@ -1,6 +1,8 @@
+import 'package:caisse_dz/core/Auth/auth_state.dart';
 import 'package:caisse_dz/core/dialog/produit/produit_detail.dart';
 import 'package:caisse_dz/core/tableau/Produit/produit_date_source.dart';
 import 'package:caisse_dz/core/theme/app_style.dart';
+import 'package:provider/provider.dart';
 import 'package:caisse_dz/data/models/categorie.dart';
 import 'package:caisse_dz/data/models/sous_categorie.dart';
 import 'package:caisse_dz/data/models/remise.dart';
@@ -109,6 +111,19 @@ class _TableauProduitAdvancedState extends State<TableauProduitAdvanced> {
       'modifParCode': {'visible': false, 'label': 'modifiedBy', 'field': 'modifParCode'},
     };
 
+    // ✅ Permissions spéciales (voir RoleDetail) : prix d'achat et marge
+    // retirés entièrement (pas juste masqués) pour un rôle qui n'a pas la
+    // permission — sinon le bouton "Tout" du sélecteur de colonnes les
+    // réafficherait quand même.
+    final auth = Provider.of<AuthState>(context, listen: false);
+    if (!auth.canVoirPrixAchat) {
+      columnVisibility.remove('prixAchat');
+    }
+    if (!auth.canVoirMarge) {
+      columnVisibility.remove('margeTaux');
+      columnVisibility.remove('margeTauxPrct');
+    }
+
     colonnesParDefaut = {
       for (var e in columnVisibility.entries)
         e.key: e.value['visible'] as bool,
@@ -195,16 +210,16 @@ class _TableauProduitAdvancedState extends State<TableauProduitAdvanced> {
                   // scroller inutilement) avec la largeur fixe précédente.
                   const reservedColumnsWidth = 60.0 /* settings */ + 60.0 /* select */;
                   final idealColumnWidth = visibleColumns.isEmpty
-                      ? 180.0
+                      ? 200.0
                       : ((constraints.maxWidth - reservedColumnsWidth) /
                               visibleColumns.length)
-                          .clamp(120.0, 400.0);
+                          .clamp(150.0, 420.0);
 
                   return SingleChildScrollView(
                     scrollDirection: Axis.horizontal,
                     child: ConstrainedBox(
                       constraints: BoxConstraints(
-                        minWidth: 650,
+                        minWidth: 900,
                         maxWidth: constraints.maxWidth,
                       ),
                       child: SfDataGridTheme(

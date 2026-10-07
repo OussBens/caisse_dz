@@ -1,4 +1,5 @@
 import 'dart:ui';
+import 'package:caisse_dz/core/dialog/dialog_kind.dart';
 import 'package:caisse_dz/DBCreate.dart';
 import 'package:caisse_dz/Services/TransfertCaisse.dart';
 import 'package:caisse_dz/core/Auth/auth_state.dart';
@@ -38,8 +39,21 @@ Future<void> AnnulerTransfertCaisse(
     await InformationDialog(
       context: context,
       titre_type_message: l10n.authentication,
+      kind: DialogKind.refuser,
       titre_concerne: l10n.user,
       message: l10n.loginRequiredDelete,
+    );
+    return;
+  }
+
+  // ✅ Permission spéciale (voir RoleDetail) : gérer les transferts entre caisses.
+  if (!auth.canGererTransfertsCaisse) {
+    await InformationDialog(
+      context: context,
+      titre_type_message: l10n.error,
+      kind: DialogKind.refuser,
+      titre_concerne: l10n.transfer,
+      message: l10n.noPermissionAction,
     );
     return;
   }
@@ -136,6 +150,7 @@ Future<void> AnnulerTransfertCaisse(
                       onPressed: () async {
                         await ConfirmationDialog(
                           context: context,
+                          kind: DialogKind.danger,
                           titre: l10n.transfers,
                           message: l10n.confirmCancelTransfers,
                           onConfirmer: () async {

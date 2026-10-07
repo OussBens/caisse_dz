@@ -1,4 +1,5 @@
 import 'dart:ui';
+import 'package:caisse_dz/core/dialog/dialog_kind.dart';
 import 'package:caisse_dz/DBCreate.dart';
 import 'package:caisse_dz/Services/Historique.dart' hide ApiResponse;
 import 'package:caisse_dz/Services/Mouvement.dart' hide ApiResponse;
@@ -118,6 +119,7 @@ Future<void> SortieModif(BuildContext context, Sortie sortie) async {
     await InformationDialog(
       context: context,
       titre_type_message: l10n.authentication,
+      kind: DialogKind.refuser,
       titre_concerne: l10n.user,
       message: l10n.loginRequired,
     );
@@ -249,6 +251,7 @@ Future<void> SortieModif(BuildContext context, Sortie sortie) async {
                                   enabled: false,
                                   numeric: true,
                                   isQuantite: true,
+                                  uniteMesure: prods?.uniteMesure,
                                   hint: '',
                                 ),
                               ),
@@ -261,6 +264,7 @@ Future<void> SortieModif(BuildContext context, Sortie sortie) async {
                                     enabled: false,
                                     numeric: true,
                                     isQuantite: true,
+                                    uniteMesure: QuantiteFormat.unitePiece,
                                     hint: '',
                                   ),
                                 ),
@@ -323,6 +327,7 @@ Future<void> SortieModif(BuildContext context, Sortie sortie) async {
                           await InformationDialog(
                             context: context,
                             titre_type_message: l10n.error,
+                            kind: DialogKind.refuser,
                             titre_concerne: l10n.exit,
                             message: l10n.fillRequiredFields,
                           );
@@ -348,6 +353,7 @@ Future<void> SortieModif(BuildContext context, Sortie sortie) async {
                               await InformationDialog(
                                 context: context,
                                 titre_type_message: l10n.error,
+                                kind: DialogKind.refuser,
                                 titre_concerne: l10n.exit,
                                 message: response.message ?? l10n.errorOccurred,
                               );

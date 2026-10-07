@@ -1,4 +1,5 @@
 import 'package:caisse_dz/Services/Fournisseur.dart' hide ApiResponse;
+import 'package:caisse_dz/core/dialog/dialog_kind.dart';
 import 'package:collection/collection.dart';
 import 'package:caisse_dz/data/constant.dart';
 import 'package:caisse_dz/data/models/histore.dart';
@@ -289,6 +290,7 @@ Future<void> BesoinListModifier(BuildContext context, BesoinList header,) async 
                         await InformationDialog(
                           context: context,
                           titre_type_message: l10n.error,
+                          kind: DialogKind.refuser,
                           titre_concerne: l10n.besoinList,
                           message: l10n.fillRequiredFields,
                         );
@@ -325,6 +327,7 @@ Future<void> BesoinListModifier(BuildContext context, BesoinList header,) async 
                               await InformationDialog(
                                 context: context,
                                 titre_type_message: l10n.error,
+                                kind: DialogKind.refuser,
                                 titre_concerne: l10n.besoinList,
                                 message: response.message ?? l10n.modificationError,
                               );
@@ -505,8 +508,10 @@ Widget tableProduits(void Function(void Function()) setState, AppLocalizations l
       itemCount: produitsBesoin.length,
       itemBuilder: (_, i) {
         final p         = produitsBesoin[i];
+        // Unité du produit : 'Pièce' => quantité entière.
+        final uniteLigne = produitsTest.firstWhereOrNull((x) => x.code == p.ProduitCode)?.uniteMesure;
         final qCtrl     = quantiteControllersProduitB.putIfAbsent(
-            p.ProduitCode, () => TextEditingController(text: QuantiteFormat.format(p.quantite)));
+            p.ProduitCode, () => TextEditingController(text: QuantiteFormat.formatPour(p.quantite, uniteLigne)));
         final prixCtrl  = prixControllersProduitB.putIfAbsent(
             p.ProduitCode, () => TextEditingController(text: p.prix.toString()));
 
@@ -535,7 +540,7 @@ Widget tableProduits(void Function(void Function()) setState, AppLocalizations l
                 flex: 2,
                 child: TextField(
                   keyboardType  : TextInputType.number,
-                  inputFormatters: QuantiteFormat.inputFormatters,
+                  inputFormatters: QuantiteFormat.inputFormattersPour(uniteLigne),
                   decoration    : const InputDecoration(isDense: true),
                   controller    : qCtrl,
                   onChanged     : (_) => update(),

@@ -1,4 +1,5 @@
 import 'dart:ui';
+import 'package:caisse_dz/core/dialog/dialog_kind.dart';
 import 'package:collection/collection.dart';
 import 'package:caisse_dz/Services/Mouvement.dart' hide ApiResponse;
 import 'package:caisse_dz/Services/Produits.dart' hide ApiResponse;
@@ -469,6 +470,7 @@ Future<void> SmartScanModif(
                             await InformationDialog(
                               context: context,
                               titre_type_message: l10n.error,
+                              kind: DialogKind.refuser,
                               titre_concerne: l10n.smartScan,
                               message: l10n.fillRequiredFields,
                             );
@@ -479,6 +481,7 @@ Future<void> SmartScanModif(
                             await InformationDialog(
                               context: context,
                               titre_type_message: l10n.error,
+                              kind: DialogKind.refuser,
                               titre_concerne: l10n.smartScan,
                               message: l10n.cashRegisterRequired,
                             );
@@ -491,6 +494,7 @@ Future<void> SmartScanModif(
                             await InformationDialog(
                               context: context,
                               titre_type_message: l10n.error,
+                              kind: DialogKind.refuser,
                               titre_concerne: l10n.smartScan,
                               message: l10n.fillRequiredFields,
                             );
@@ -506,6 +510,7 @@ Future<void> SmartScanModif(
                               await InformationDialog(
                                 context: context,
                                 titre_type_message: l10n.attention,
+                                kind: DialogKind.attention,
                                 titre_concerne: l10n.smartScan,
                                 message: l10n.aucuneSessionOuverte(caisseChoisieSS.nomCaisse),
                               );
@@ -529,6 +534,7 @@ Future<void> SmartScanModif(
                             await InformationDialog(
                               context: context,
                               titre_type_message: l10n.error,
+                              kind: DialogKind.refuser,
                               titre_concerne: l10n.smartScan,
                               message: response.message,
                             );

@@ -1,3 +1,4 @@
+import 'dart:collection';
 import 'package:collection/collection.dart';
 import 'package:flutter/material.dart';
 import 'package:syncfusion_flutter_datagrid/datagrid.dart';
@@ -104,6 +105,34 @@ abstract class BaseTableDataSource<T> extends DataGridSource {
     );
   }
 
+  /// Variante de [boldCell] avec une icône "profil" devant le texte —
+  /// réutilisée pour les colonnes nom d'utilisateur / client / fournisseur
+  /// (voir client_source.dart, fournisseur_source.dart, utilisateur_source.dart).
+  Widget boldCellWithIcon(dynamic value, {IconData icon = Icons.account_circle, Color? color}) {
+    return Container(
+      alignment: Alignment.centerLeft,
+      padding: const EdgeInsets.all(8),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 16, color: color ?? Colors.grey),
+          const SizedBox(width: 6),
+          Flexible(
+            child: Text(
+              value?.toString() ?? '',
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(
+                fontSize: AppConst.FontSizeTable,
+                fontWeight: FontWeight.bold,
+                color: color,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   // ⚠️ Mute `_rows` EN PLACE (clear + addAll) plutôt que de le réassigner à
   // une nouvelle List — Syncfusion capture la référence de `rows` dans son
   // propre cache interne (`_effectiveRows`) une fois au montage de la grille
@@ -135,6 +164,29 @@ abstract class BaseTableDataSource<T> extends DataGridSource {
     _rows
       ..clear()
       ..addAll(newRows);
+    _indexParLigne
+      ..clear()
+      ..addAll({for (int i = 0; i < newRows.length; i++) newRows[i]: i});
+  }
+
+  // Ligne de grille -> index dans [items] (identité), pour [compare].
+  final Map<DataGridRow, int> _indexParLigne = HashMap<DataGridRow, int>.identity();
+
+  /// Syncfusion re-trie lui-même les lignes (performSorting -> compare) après
+  /// chaque mise à jour de la source, sur la valeur AFFICHÉE des cellules :
+  /// une date formatée "jj/mm/aaaa" était donc triée comme du texte (par
+  /// jour d'abord), annulant le tri fait dans [sort]. On compare ici aussi
+  /// sur [sortValue] (DateTime, nombre...) de l'élément d'origine.
+  @override
+  int compare(DataGridRow? a, DataGridRow? b, SortColumnDetails sortColumn) {
+    final field = columnConfig[sortColumn.name]?['field'] as String?;
+    final ia = a == null ? null : _indexParLigne[a];
+    final ib = b == null ? null : _indexParLigne[b];
+    if (field == null || ia == null || ib == null || ia >= items.length || ib >= items.length) {
+      return super.compare(a, b, sortColumn);
+    }
+    final cmp = _compareCellValues(sortValue(items[ia], field), sortValue(items[ib], field));
+    return sortColumn.sortDirection == DataGridSortDirection.ascending ? cmp : -cmp;
   }
 
   @override
@@ -244,7 +296,27 @@ abstract class BaseTableDataSource<T> extends DataGridSource {
     if (a is num && b is num) return a.compareTo(b);
     if (a is DateTime && b is DateTime) return a.compareTo(b);
     if (a is bool && b is bool) return (a == b) ? 0 : (a ? 1 : -1);
+    // Dates déjà formatées "jj/mm/aaaa [hh:mm]" par cellValue (sources sans
+    // sortValue dédié) : comparées comme des dates, pas comme du texte.
+    final da = _dateDepuisTexte(a);
+    final db = _dateDepuisTexte(b);
+    if (da != null && db != null) return da.compareTo(db);
     return a.toString().toLowerCase().compareTo(b.toString().toLowerCase());
+  }
+
+  static final RegExp _formatDate = RegExp(r'^(\d{2})/(\d{2})/(\d{4})(?: (\d{2}):(\d{2}))?$');
+
+  static DateTime? _dateDepuisTexte(dynamic v) {
+    if (v is! String) return null;
+    final m = _formatDate.firstMatch(v.trim());
+    if (m == null) return null;
+    return DateTime(
+      int.parse(m.group(3)!),
+      int.parse(m.group(2)!),
+      int.parse(m.group(1)!),
+      int.tryParse(m.group(4) ?? '') ?? 0,
+      int.tryParse(m.group(5) ?? '') ?? 0,
+    );
   }
 
   void selectAll(bool select) {

@@ -1,4 +1,6 @@
 import 'dart:ui';
+import 'package:caisse_dz/core/dialog/dialog_kind.dart';
+import 'package:caisse_dz/Services/Paramters.dart';
 import 'package:caisse_dz/core/Auth/auth_state.dart';
 import 'package:caisse_dz/core/dialog/base_dialog.dart';
 import 'package:caisse_dz/core/tableau/caisse/tableau_caisse.dart';
@@ -9,6 +11,7 @@ import 'package:caisse_dz/l10n/app_localizations.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
+import '../confirmation_dialog.dart';
 import '../information_dialog.dart';
 import 'package:caisse_dz/core/utilis/number_format.dart';
 
@@ -36,11 +39,19 @@ Future<void> ModifierPrixProduitDialog({
     await InformationDialog(
       context: context,
       titre_type_message: l10n.authentication,
+      kind: DialogKind.refuser,
       titre_concerne: l10n.user,
       message: l10n.loginRequiredCreate,
     );
     return;
   }
+
+  // ✅ Comportement configuré dans Paramètres > Système quand le prix de
+  // vente saisi passe sous le prix d'achat du produit — voir
+  // Paramters.venteSousAchat. Chargé une fois à l'ouverture du dialog.
+  final venteSousAchat = (await ParamServices.getParam()).venteSousAchat;
+
+  if (!context.mounted) return;
 
   final TextEditingController prixVenteController = TextEditingController(text: produit.prix.toStringAsFixed(2));
   final TextEditingController passwordController = TextEditingController();
@@ -83,7 +94,7 @@ Future<void> ModifierPrixProduitDialog({
                     /// ───── PRIX ACHAT ─────
                     Text("${l10n.purchasePrice} (${l10n.currency})", style: Appstyle.textSB),
                     const SizedBox(height: 6),
-                    _readOnlyField(NumberFormatUtil.formatMontant(produit.prix, decimales: 2)),
+                    _readOnlyField(NumberFormatUtil.formatMontant(produit.prixachat, decimales: 2)),
 
                     const SizedBox(height: 14),
 
@@ -181,6 +192,31 @@ Future<void> ModifierPrixProduitDialog({
                             erreur = l10n.passwordRequired;
                           });
                           return;
+                        }
+
+                        // ✅ Comportement configurable (Paramètres > Système)
+                        // quand le prix saisi passe sous le prix d'achat réel
+                        // du produit (produit.prixachat — pas produit.prix,
+                        // qui est le prix de VENTE dans ProduitPanier).
+                        if (venteSousAchat != 'Autoriser' && prix < produit.prixachat) {
+                          final prixVenteTxt = NumberFormatUtil.formatMontant(prix, decimales: 2);
+                          final prixAchatTxt = NumberFormatUtil.formatMontant(produit.prixachat, decimales: 2);
+
+                          if (venteSousAchat == 'Interdire') {
+                            setState(() {
+                              erreur = l10n.saleBelowCostBlockedMessage(prixVenteTxt, prixAchatTxt, l10n.currency);
+                            });
+                            return;
+                          }
+
+                          // 'Avertir' : laisse passer seulement si confirmé.
+                          final confirme = await ConfirmationDialog(
+                            context: context,
+                            kind: DialogKind.attention,
+                            titre: l10n.saleBelowCostLabel,
+                            message: l10n.saleBelowCostWarningMessage(prixVenteTxt, prixAchatTxt, l10n.currency),
+                          );
+                          if (confirme != true) return;
                         }
 
                         // Toujours répercuter le nouveau prix sur la ligne du bon.

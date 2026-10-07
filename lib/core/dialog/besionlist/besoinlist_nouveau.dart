@@ -1,4 +1,6 @@
+import 'package:collection/collection.dart';
 import 'dart:ui';
+import 'package:caisse_dz/core/dialog/dialog_kind.dart';
 import 'package:caisse_dz/DBCreate.dart';
 import 'package:caisse_dz/Services/BesionList.dart';
 import 'package:caisse_dz/Services/BesionListDetail.dart' hide ApiResponse;
@@ -386,6 +388,7 @@ Future<void> BesoinListNouveau(BuildContext context, List<Fournisseur> fournisse
                       await InformationDialog(
                         context: context,
                         titre_type_message: l10n.error,
+                        kind: DialogKind.refuser,
                         titre_concerne: l10n.besoinList,
                         message: l10n.fillRequiredFields,
                       );
@@ -425,6 +428,7 @@ Future<void> BesoinListNouveau(BuildContext context, List<Fournisseur> fournisse
                       await InformationDialog(
                         context: context,
                         titre_type_message: l10n.error,
+                        kind: DialogKind.refuser,
                         titre_concerne: l10n.besoinList,
                         message: response.message ,
                       );
@@ -489,8 +493,10 @@ Widget tableProduits(
       itemCount   : produitsBesoin.length,
       itemBuilder : (_, i) {
         final p         = produitsBesoin[i];
+        // Unité du produit : 'Pièce' => quantité entière.
+        final uniteLigne = produitsTest.firstWhereOrNull((x) => x.code == p.ProduitCode)?.uniteMesure;
         final qCtrl     = quantiteControllersProduitB.putIfAbsent(
-            p.ProduitCode, () => TextEditingController(text: QuantiteFormat.format(p.quantite)));
+            p.ProduitCode, () => TextEditingController(text: QuantiteFormat.formatPour(p.quantite, uniteLigne)));
         final prixCtrl  = prixControllersProduitB.putIfAbsent(
             p.ProduitCode, () => TextEditingController(text: p.prix.toString()));
 
@@ -513,7 +519,7 @@ Widget tableProduits(
                 child : TextField(
                   controller    : qCtrl,
                   keyboardType  : TextInputType.number,
-                  inputFormatters: QuantiteFormat.inputFormatters,
+                  inputFormatters: QuantiteFormat.inputFormattersPour(uniteLigne),
                   decoration    : const InputDecoration(isDense: true),
                   onChanged     : (_) => update(),
                 ),

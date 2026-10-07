@@ -38,7 +38,7 @@ Future<void> EntreeDetail(
       final l10n = AppLocalizations.of(context)!;
 
       return BaseDialog(
-        width: 900,
+        width: 1100,
         height: 600,
 
         header: Column(

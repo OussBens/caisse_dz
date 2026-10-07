@@ -7,6 +7,8 @@ import '../../../../data/models/produit.dart';
 import '../../../../data/models/client.dart';
 import '../../../../data/models/fournisseur.dart';
 import '../../../l10n/app_localizations.dart';
+import 'package:caisse_dz/core/theme/app_style.dart';
+import '../../dialog/produits_liste_dialog.dart';
 import '../../widget/status_badge.dart';
 import '../base_table_data_source.dart';
 
@@ -115,6 +117,18 @@ class MouvementDataSource extends BaseTableDataSource<Mouvement> {
   Widget? buildCustomCell(String columnName, DataGridCell cell, Mouvement item) {
     if (columnName == 'etat') {
       return Center(child: EtatBadge(isActive: item.etat));
+    }
+
+    if (columnName == 'code') {
+      return Center(child: pilluleCellule(item.code, Appstyle.violet));
+    }
+
+    if (columnName == 'nomProduit') {
+      return Center(child: pilluleCellule(_nomProduit(item.codeProduit), Appstyle.indigo));
+    }
+
+    if (columnName == 'quantite') {
+      return Center(child: pilluleCellule("${item.quantite}", Appstyle.violet));
     }
 
     if (columnName == 'type') {

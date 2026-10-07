@@ -8,8 +8,10 @@ import '../filter_icon_builder.dart';
 
 class TableauInventaire extends StatefulWidget {
   final List<LigneInventaire> lignes;
+  // Lignes cochées (Extract filtre de l'onglet Situation).
+  final void Function(List<LigneInventaire>)? onSelectionChanged;
 
-  const TableauInventaire({super.key, required this.lignes});
+  const TableauInventaire({super.key, required this.lignes, this.onSelectionChanged});
 
   @override
   State<TableauInventaire> createState() => _TableauInventaireState();
@@ -67,7 +69,9 @@ class _TableauInventaireState extends State<TableauInventaire> {
 
     dataSource.addListener(() {
       WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (mounted) setState(() {});
+        if (!mounted) return;
+        setState(() {});
+        widget.onSelectionChanged?.call(dataSource.getSelectedRows());
       });
     });
   }

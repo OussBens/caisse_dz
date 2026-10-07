@@ -4,6 +4,8 @@ import 'package:syncfusion_flutter_datagrid/datagrid.dart';
 import '../../../../data/models/gestion_caisse.dart';
 import '../../../../data/models/utilisateur.dart';
 import '../../../l10n/app_localizations.dart';
+import 'package:caisse_dz/core/theme/app_style.dart';
+import '../../dialog/produits_liste_dialog.dart';
 import '../../widget/status_badge.dart';
 import '../base_table_data_source.dart';
 
@@ -93,7 +95,17 @@ class UtilisateurDataSource extends BaseTableDataSource<Utilisateur> {
       return Center(child: EtatBadge(isActive: item.etat));
     }
     if (columnName == 'username') {
-      return boldCell(item.username);
+      return boldCellWithIcon(item.username, color: Appstyle.violet);
+    }
+    if (columnName == 'credit') {
+      return Center(
+        child: pilluleCellule("${item.credit} ${l10n.currency}", Appstyle.crevete),
+      );
+    }
+    if (columnName == 'role') {
+      return Center(
+        child: pilluleCellule(item.role, Appstyle.violet),
+      );
     }
     return null;
   }

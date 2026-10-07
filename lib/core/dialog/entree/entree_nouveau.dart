@@ -1,4 +1,6 @@
+import 'package:caisse_dz/core/utilis/quantite_format.dart';
 import 'dart:ui';
+import 'package:caisse_dz/core/dialog/dialog_kind.dart';
 import 'package:collection/collection.dart';
 import 'package:caisse_dz/DBCreate.dart';
 import 'package:caisse_dz/Services/SmartScan.dart';
@@ -77,6 +79,11 @@ class RepartitionMagasinE {
   String? magasinCode;
   final TextEditingController quantiteController = TextEditingController();
 }
+
+// Comparaison avec tolérance : une égalité stricte de double sur des sommes
+// d'entrées utilisateur (quantités décimales) peut être cassée par de simples
+// dérives d'arrondi IEEE754 alors que les nombres affichés sont identiques.
+bool _quantitesEquivalentes(double a, double b) => (a - b).abs() < 0.001;
 
 // Entrée rapide n'a pas besoin de l'heure précise, seulement du jour —
 // format date-only cohérent affiché par défaut et après sélection au
@@ -380,6 +387,7 @@ Future<void> EntreeNouveau(
     await InformationDialog(
       context: context,
       titre_type_message: l10n.authentication,
+      kind: DialogKind.refuser,
       titre_concerne: l10n.user,
       message: l10n.loginRequired,
     );
@@ -576,6 +584,7 @@ Future<void> EntreeNouveau(
                                 controller: quantiteControllerE,
                                 numeric: true,
                                 isQuantite: true,
+                                uniteMesure: prod?.uniteMesure,
                                 hint: "0",
                                 onChanged: (v) => setState(() => calculerMontantE()),
                               ),
@@ -590,6 +599,7 @@ Future<void> EntreeNouveau(
                                   obligatoire: true,
                                   numeric: true,
                                   isQuantite: true,
+                                  uniteMesure: QuantiteFormat.unitePiece,
                                   hint: "0",
                                 ),
                               ),
@@ -704,6 +714,7 @@ Future<void> EntreeNouveau(
                                       controller: rep.quantiteController,
                                       numeric: true,
                                       isQuantite: true,
+                                      uniteMesure: prod?.uniteMesure,
                                       hint: "0",
                                       onChanged: (_) => setState(() {}),
                                     ),
@@ -732,7 +743,7 @@ Future<void> EntreeNouveau(
                                   (s, r) => s + (double.tryParse(r.quantiteController.text) ?? 0),
                                 );
                                 final quantiteTotale = double.tryParse(quantiteControllerE.text) ?? 0;
-                                final ok = totalReparti == quantiteTotale;
+                                final ok = _quantitesEquivalentes(totalReparti, quantiteTotale);
                                 return Text(
                                   "${l10n.total}: ${totalReparti.toStringAsFixed(0)} / ${quantiteTotale.toStringAsFixed(0)}",
                                   style: Appstyle.textSB.copyWith(color: ok ? Appstyle.green : Colors.red),
@@ -768,6 +779,7 @@ Future<void> EntreeNouveau(
                         await InformationDialog(
                           context: context,
                           titre_type_message: l10n.error,
+                          kind: DialogKind.refuser,
                           titre_concerne: l10n.entry,
                           message: l10n.fillRequiredFields,
                         );
@@ -778,6 +790,7 @@ Future<void> EntreeNouveau(
                         await InformationDialog(
                           context: context,
                           titre_type_message: l10n.error,
+                          kind: DialogKind.refuser,
                           titre_concerne: l10n.entry,
                           message: l10n.supplierRequired,
                         );
@@ -788,6 +801,7 @@ Future<void> EntreeNouveau(
                         await InformationDialog(
                           context: context,
                           titre_type_message: l10n.error,
+                          kind: DialogKind.refuser,
                           titre_concerne: l10n.entry,
                           message: l10n.cashRegisterRequired,
                         );
@@ -799,6 +813,7 @@ Future<void> EntreeNouveau(
                         await InformationDialog(
                           context: context,
                           titre_type_message: l10n.error,
+                          kind: DialogKind.refuser,
                           titre_concerne: l10n.entry,
                           message: l10n.quantityMustBeGreaterThanZero,
                         );
@@ -812,6 +827,7 @@ Future<void> EntreeNouveau(
                         await InformationDialog(
                           context: context,
                           titre_type_message: l10n.error,
+                          kind: DialogKind.refuser,
                           titre_concerne: l10n.entry,
                           message: l10n.numberMustBeGreaterThanZero,
                         );
@@ -823,6 +839,7 @@ Future<void> EntreeNouveau(
                         await InformationDialog(
                           context: context,
                           titre_type_message: l10n.error,
+                          kind: DialogKind.refuser,
                           titre_concerne: l10n.entry,
                           message: l10n.priceMustBeGreaterThanZero,
                         );
@@ -834,6 +851,7 @@ Future<void> EntreeNouveau(
                         await InformationDialog(
                           context: context,
                           titre_type_message: l10n.error,
+                          kind: DialogKind.refuser,
                           titre_concerne: l10n.entry,
                           message: l10n.sellPriceMustBePositive,
                         );
@@ -844,6 +862,7 @@ Future<void> EntreeNouveau(
                         await InformationDialog(
                           context: context,
                           titre_type_message: l10n.error,
+                          kind: DialogKind.refuser,
                           titre_concerne: l10n.entry,
                           message: l10n.sellPriceMustExceedBuyPrice,
                         );
@@ -861,6 +880,7 @@ Future<void> EntreeNouveau(
                           await InformationDialog(
                             context: context,
                             titre_type_message: l10n.error,
+                            kind: DialogKind.refuser,
                             titre_concerne: l10n.entry,
                             message: l10n.incompleteStoreSplit,
                           );
@@ -872,6 +892,7 @@ Future<void> EntreeNouveau(
                           await InformationDialog(
                             context: context,
                             titre_type_message: l10n.error,
+                            kind: DialogKind.refuser,
                             titre_concerne: l10n.entry,
                             message: l10n.duplicateStoreInSplit,
                           );
@@ -882,10 +903,11 @@ Future<void> EntreeNouveau(
                           0.0,
                           (s, r) => s + (double.tryParse(r.quantiteController.text) ?? 0),
                         );
-                        if (totalReparti != quantite) {
+                        if (!_quantitesEquivalentes(totalReparti, quantite)) {
                           await InformationDialog(
                             context: context,
                             titre_type_message: l10n.error,
+                            kind: DialogKind.refuser,
                             titre_concerne: l10n.entry,
                             message: l10n.splitTotalMustMatchQuantity,
                           );
@@ -1013,6 +1035,7 @@ Future<void> EntreeNouveau(
                         await InformationDialog(
                           context: context,
                           titre_type_message: l10n.error,
+                          kind: DialogKind.refuser,
                           titre_concerne: l10n.entry,
                           message: response.message ?? l10n.errorOccurred,
                         );

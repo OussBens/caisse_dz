@@ -1,4 +1,5 @@
 import 'package:caisse_dz/Services/Categorie.dart';
+import 'package:caisse_dz/Services/export_spinner.dart';
 import 'package:caisse_dz/Services/ExcelPreviewDialog.dart';
 import 'package:caisse_dz/Services/PDFPreviewDialog.dart';
 import 'package:caisse_dz/Services/Produits.dart';
@@ -122,24 +123,24 @@ class _InventaireTabState extends State<InventaireTab> {
   double get _valeurStockVente => _lignes.fold(0.0, (s, l) => s + l.valeurVente);
   double get _margePotentielle => _lignes.fold(0.0, (s, l) => s + l.margePotentielle);
 
-  Future<void> _exportExcel(AppLocalizations l10n) async {
-    final lignes = _lignes;
+  // Lignes cochées dans le tableau (Extract filtre). Pas de setState : seul
+  // l'export les lit, et un rebuild recréerait la liste du tableau.
+  List<LigneInventaire> _lignesSelectionnees = [];
+
+  Future<void> _exportExcel(AppLocalizations l10n, {bool selectionSeulement = false}) async {
+    final lignes = selectionSeulement ? _lignesSelectionnees : _lignes;
     if (lignes.isEmpty) {
       await InformationDialog(
         context: context,
         titre_type_message: l10n.information,
         titre_concerne: l10n.stock,
-        message: l10n.noDataToExport,
+        message: selectionSeulement ? l10n.noRowSelected : l10n.noDataToExport,
       );
       return;
     }
 
+    final fermerSpinner = ouvrirSpinnerExport(context);
     try {
-      showDialog(
-        context: context,
-        barrierDismissible: false,
-        builder: (context) => const Center(child: CircularProgressIndicator()),
-      );
 
       final excelFile = await ExcelGenerator.generateInventaireExcel(
         lignes: lignes,
@@ -147,7 +148,7 @@ class _InventaireTabState extends State<InventaireTab> {
       );
 
       if (!mounted) return;
-      Navigator.pop(context);
+      fermerSpinner();
 
       final excel = Excel.decodeBytes(await excelFile.readAsBytes());
       var sheet = excel.tables['Inventaire'];
@@ -198,7 +199,7 @@ class _InventaireTabState extends State<InventaireTab> {
         ),
       );
     } catch (e) {
-      if (Navigator.canPop(context)) Navigator.pop(context);
+      fermerSpinner();
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('${l10n.exportError}: $e'), backgroundColor: Colors.red),
       );
@@ -330,6 +331,13 @@ class _InventaireTabState extends State<InventaireTab> {
                     color: Appstyle.Tblanc,
                     icon: Icons.download,
                     onPressed: () async => await _exportExcel(l10n),
+                  ),
+                  const SizedBox(width: 10),
+                  // Extract filtre : Excel des seules lignes cochées.
+                  MainIconButton(
+                    imagePath: "assets/icons/action/extacter_filtre_icon.png",
+                    color: Colors.orange,
+                    onPressed: () async => await _exportExcel(l10n, selectionSeulement: true),
                   ),
                   const SizedBox(width: 10),
                   MainButton(
@@ -474,6 +482,9 @@ class _InventaireTabState extends State<InventaireTab> {
       );
     }
 
-    return TableauInventaire(lignes: lignes);
+    return TableauInventaire(
+      lignes: lignes,
+      onSelectionChanged: (selection) => _lignesSelectionnees = selection,
+    );
   }
 }

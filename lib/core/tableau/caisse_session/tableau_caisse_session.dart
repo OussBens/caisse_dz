@@ -62,7 +62,7 @@ class _TableauCaisseSessionAdvancedState
       'soldeTheorique': {'visible': true, 'label': 'soldeTheorique', 'field': 'soldeTheorique'},
       'soldeReel': {'visible': true, 'label': 'soldeReel', 'field': 'soldeReel'},
       'ecart': {'visible': true, 'label': 'ecartCaisse', 'field': 'ecart'},
-      'dateCloture': {'visible': false, 'label': 'to', 'field': 'dateCloture'},
+      'dateCloture': {'visible': true, 'label': 'to', 'field': 'dateCloture'},
       'creeParCode': {'visible': false, 'label': 'createdBy', 'field': 'creeParCode'},
     };
 

@@ -1,4 +1,5 @@
 import 'dart:ui';
+import 'package:caisse_dz/core/dialog/dialog_kind.dart';
 import 'package:caisse_dz/DBCreate.dart';
 import 'package:caisse_dz/Services/CaisseGestion.dart' hide ApiResponse;
 import 'package:caisse_dz/Services/Historique.dart' hide ApiResponse;
@@ -87,6 +88,7 @@ Future<void> TransfertCaisseModif(
     await InformationDialog(
       context: context,
       titre_type_message: l10n.authentication,
+      kind: DialogKind.refuser,
       titre_concerne: l10n.user,
       message: l10n.loginRequiredModify,
     );
@@ -288,6 +290,7 @@ Future<void> TransfertCaisseModif(
                               await InformationDialog(
                                 context: context,
                                 titre_type_message: l10n.error,
+                                kind: DialogKind.refuser,
                                 titre_concerne: l10n.transfer,
                                 message: l10n.sourceAndDestinationMustBeDifferent,
                                 onTerminer: () {},
@@ -319,6 +322,7 @@ Future<void> TransfertCaisseModif(
                             await InformationDialog(
                                 context: context,
                                 titre_type_message: response.success ? l10n.success : l10n.error,
+                                kind: response.success ? DialogKind.confirmer : DialogKind.refuser,
                                 titre_concerne: l10n.transfer,
                                 message: response.message ?? (response.success ? l10n.transferModifiedSuccess : l10n.errorOccurred),
                                 onTerminer: () {

@@ -1,4 +1,5 @@
 import 'dart:ui';
+import 'package:caisse_dz/core/dialog/dialog_kind.dart';
 import 'package:caisse_dz/DBCreate.dart';
 import 'package:caisse_dz/Services/Historique.dart';
 import 'package:caisse_dz/Services/Pack.dart';
@@ -77,6 +78,7 @@ Future<void> ActiverPack(BuildContext context, List<Pack> packsSelectionnes) asy
     await InformationDialog(
       context: context,
       titre_type_message: AppLocalizations.of(context)!.authentication,
+      kind: DialogKind.refuser,
       titre_concerne: AppLocalizations.of(context)!.user,
       message: AppLocalizations.of(context)!.loginRequired,
     );
@@ -161,6 +163,7 @@ Future<void> ActiverPack(BuildContext context, List<Pack> packsSelectionnes) asy
                       onPressed: () async {
                         await ConfirmationDialog(
                           context: context,
+                          kind: DialogKind.danger,
                           titre: l10n.deletePacks,
                           message: l10n.confirmDeletePacks,
                           onConfirmer: () async {

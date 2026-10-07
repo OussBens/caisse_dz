@@ -1,4 +1,5 @@
 import 'dart:typed_data';
+import 'package:caisse_dz/core/dialog/dialog_kind.dart';
 import 'package:collection/collection.dart';
 import 'package:caisse_dz/DBCreate.dart';
 import 'package:caisse_dz/Services/CaisseGestion.dart' hide ApiResponse;
@@ -332,6 +333,7 @@ Future<void> EncaissementBLSCDialog({
     await InformationDialog(
       context: context,
       titre_type_message: l10n.authentication,
+      kind: DialogKind.refuser,
       titre_concerne: l10n.user,
       message: l10n.loginRequiredCreate,
     );
@@ -345,6 +347,7 @@ Future<void> EncaissementBLSCDialog({
     await InformationDialog(
       context: context,
       titre_type_message: l10n.error,
+      kind: DialogKind.refuser,
       titre_concerne: l10n.caisse,
       message: l10n.caisseNotFound(caisse.caisse),
     );
@@ -355,6 +358,7 @@ Future<void> EncaissementBLSCDialog({
     await InformationDialog(
       context: context,
       titre_type_message: l10n.attention,
+      kind: DialogKind.attention,
       titre_concerne: l10n.caisse,
       message: l10n.aucuneSessionOuverte(caisse.caisse),
     );
@@ -548,6 +552,7 @@ Future<void> EncaissementBLSCDialog({
                       await InformationDialog(
                         context: context,
                         titre_type_message: l10n.attention,
+                        kind: DialogKind.attention,
                         titre_concerne: l10n.payment,
                         message: l10n.paymentAmountMustBePositive,
                       );
@@ -567,6 +572,7 @@ Future<void> EncaissementBLSCDialog({
                       await InformationDialog(
                         context: context,
                         titre_type_message: l10n.error,
+                        kind: DialogKind.refuser,
                         titre_concerne: l10n.cart,
                         message: l10n.stockInsuffisantPourProduit(
                           produitInsuffisant.code,
@@ -588,6 +594,7 @@ Future<void> EncaissementBLSCDialog({
                         await InformationDialog(
                           context: context,
                           titre_type_message: l10n.error,
+                          kind: DialogKind.refuser,
                           titre_concerne: ligne.nom,
                           message: l10n.numberMustBeGreaterThanZero,
                         );
@@ -598,6 +605,7 @@ Future<void> EncaissementBLSCDialog({
                     /// ✅ Confirmation utilisateur
                     await ConfirmationDialog(
                       context: context,
+                      kind: DialogKind.attention,
                       titre: l10n.attention,
                       message: l10n.confirmPrint,
                       onConfirmer: () async {
@@ -809,6 +817,7 @@ Future<void> EncaissementBLSCDialog({
                           await InformationDialog(
                             context: context,
                             titre_type_message: l10n.error,
+                            kind: DialogKind.refuser,
                             titre_concerne: l10n.ticket,
                             message: ("Erreur : $e"),
                           );

@@ -36,7 +36,7 @@ Future<void> PackDetail(BuildContext context, Pack pack) async {
     barrierDismissible: true,
     builder: (context) {
       return BaseDialog(
-        width: 950,
+        width: 1100,
         height: 600,
 
         // ================= HEADER =================

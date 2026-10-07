@@ -111,6 +111,10 @@ class RetourDataSource extends BaseTableDataSource<Retour> {
       return Center(child: EtatBadge(isActive: item.etat));
     }
 
+    if (columnName == 'code') {
+      return Center(child: pilluleCellule(item.code, Appstyle.violet));
+    }
+
     if (columnName == 'montant') {
       return Center(
         child: pilluleCellule(
@@ -124,6 +128,18 @@ class RetourDataSource extends BaseTableDataSource<Retour> {
       return Center(
         child: pilluleCellule("${item.quantite}", Appstyle.violet),
       );
+    }
+
+    if (columnName == 'client') {
+      final nom = _nomClient(item.client_code);
+      if (nom == null) return null;
+      return Center(child: pilluleCellule(nom, Colors.blue));
+    }
+
+    if (columnName == 'fournisseur') {
+      final nom = _nomFournisseur(item.fournisseur_code);
+      if (nom == null) return null;
+      return Center(child: pilluleCellule(nom, Colors.orange));
     }
 
     if (columnName == 'type') {

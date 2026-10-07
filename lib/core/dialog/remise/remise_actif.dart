@@ -1,4 +1,5 @@
 import 'dart:ui';
+import 'package:caisse_dz/core/dialog/dialog_kind.dart';
 import 'package:caisse_dz/DBCreate.dart';
 import 'package:caisse_dz/Services/Historique.dart';
 import 'package:caisse_dz/Services/Produits.dart';
@@ -40,7 +41,7 @@ Future<void> DeleteRemise({
     await RemiseServices.deleteRemise(remise);
     produits = await services.getProduitsByRemiseId(remise.id);
     for (var produit in produits) {
-      produit.remiseId = 0;
+      produit.remiseId = null; // plus de remise (0 était pris pour une remise)
       produit.modifParCode = userCode;
       produit.dateModif = DateTime.now();
       await services.updateProduit(produit);
@@ -78,6 +79,7 @@ Future<void> AnnulerRemise(BuildContext context, List<Remise> remisesSelectionne
     await InformationDialog(
       context: context,
       titre_type_message: l10n.authentication,
+      kind: DialogKind.refuser,
       titre_concerne: l10n.user,
       message: l10n.loginRequiredDelete,
     );
@@ -153,6 +155,7 @@ Future<void> AnnulerRemise(BuildContext context, List<Remise> remisesSelectionne
                       onPressed: () async {
                         await ConfirmationDialog(
                           context: context,
+                          kind: DialogKind.danger,
                           titre: l10n.deletion,
                           message: l10n.confirmPermanentDeleteDiscounts,
                           onConfirmer: () async {

@@ -1,4 +1,6 @@
+import 'package:caisse_dz/core/utilis/quantite_format.dart';
 import 'dart:ui';
+import 'package:caisse_dz/core/dialog/dialog_kind.dart';
 import 'package:collection/collection.dart';
 import 'package:caisse_dz/DBCreate.dart';
 import 'package:caisse_dz/Services/CaisseGestion.dart' hide ApiResponse;
@@ -191,8 +193,23 @@ Future<ApiResponse<int>> _SaveRetour({
   final caisseSessionService = CaisseSessionServices(db);
   final pmdService = ProduitMagasinDetailServices(db);
 
-  final param = params.where((e) => e.creeParCode == userCode).first;
-  final caisse = Caisses.where((e) => e.nomCaisse == param.selectedCaisse).first;
+  // ✅ Résolution caisse/magasin de l'utilisateur connecté — même mécanisme
+  // que partout ailleurs (entree/sortie/smartscan/transfert), au lieu de
+  // filtrer sur creeParCode (qui a créé la ligne, pas à qui elle appartient).
+  final param = await CaisseParamServices(db).getCaisseParamByUserCode(userCode);
+  if (param == null) {
+    return ApiResponse(
+      success: false,
+      message: "Aucune caisse configurée pour cet utilisateur. Contactez un administrateur.",
+    );
+  }
+  final caisse = Caisses.where((e) => e.code == param.caisseCode).firstOrNull;
+  if (caisse == null) {
+    return ApiResponse(
+      success: false,
+      message: "Caisse '${param.selectedCaisse}' introuvable.",
+    );
+  }
 
   // Magasin du retour = magasin de la caisse active — jusqu'ici jamais
   // renseigné (retour.magasinCode restait toujours null).
@@ -575,6 +592,7 @@ Future<void> RetourNouveau(BuildContext context, {String? initialType}) async {
     await InformationDialog(
       context: context,
       titre_type_message: l10n.authentication,
+      kind: DialogKind.refuser,
       titre_concerne: l10n.user,
       message: l10n.loginRequired,
     );
@@ -987,6 +1005,7 @@ Future<void> RetourNouveau(BuildContext context, {String? initialType}) async {
                                   obligatoire: true,
                                   numeric: true,
                                   isQuantite: true,
+                                  uniteMesure: produitsDisponibles.firstWhereOrNull((e) => e.nom == newSelectedProduitR)?.uniteMesure,
                                   controller: quantiteControllerN,
                                   maxValue: quantiteMaxSelectionnee,
                                   hint: quantiteMaxSelectionnee != null
@@ -1003,6 +1022,7 @@ Future<void> RetourNouveau(BuildContext context, {String? initialType}) async {
                                     obligatoire: true,
                                     numeric: true,
                                     isQuantite: true,
+                                    uniteMesure: QuantiteFormat.unitePiece,
                                     controller: nombreControllerN,
                                     hint: "",
                                   ),
@@ -1068,6 +1088,7 @@ Future<void> RetourNouveau(BuildContext context, {String? initialType}) async {
                           await InformationDialog(
                             context: context,
                             titre_type_message: l10n.error,
+                            kind: DialogKind.refuser,
                             titre_concerne: l10n.return_,
                             message: l10n.fillRequiredFields,
                           );
@@ -1078,6 +1099,7 @@ Future<void> RetourNouveau(BuildContext context, {String? initialType}) async {
                           await InformationDialog(
                             context: context,
                             titre_type_message: l10n.error,
+                            kind: DialogKind.refuser,
                             titre_concerne: l10n.return_,
                             message: l10n.selectPannierForReturn,
                           );
@@ -1088,6 +1110,7 @@ Future<void> RetourNouveau(BuildContext context, {String? initialType}) async {
                           await InformationDialog(
                             context: context,
                             titre_type_message: l10n.error,
+                            kind: DialogKind.refuser,
                             titre_concerne: l10n.return_,
                             message: l10n.selectEntreeOrSmartScanForReturn,
                           );
@@ -1096,9 +1119,32 @@ Future<void> RetourNouveau(BuildContext context, {String? initialType}) async {
 
                         // ✅ Session de caisse obligatoire : aucun retour ne
                         // peut être enregistré tant que la caisse de
-                        // l'utilisateur n'a pas été ouverte.
-                        final paramR = params.where((e) => e.creeParCode == userCode).first;
-                        final caisseR = Caisses.where((e) => e.nomCaisse == paramR.selectedCaisse).first;
+                        // l'utilisateur n'a pas été ouverte. Résolution
+                        // caisse/magasin via CaisseParam (même mécanisme que
+                        // partout ailleurs, cf. _SaveRetour).
+                        final dbR = await DbCreator.openDb();
+                        final paramR = await CaisseParamServices(dbR).getCaisseParamByUserCode(userCode);
+                        if (paramR == null) {
+                          await InformationDialog(
+                            context: context,
+                            titre_type_message: l10n.error,
+                            kind: DialogKind.refuser,
+                            titre_concerne: l10n.return_,
+                            message: "Aucune caisse configurée pour cet utilisateur. Contactez un administrateur.",
+                          );
+                          return;
+                        }
+                        final caisseR = Caisses.where((e) => e.code == paramR.caisseCode).firstOrNull;
+                        if (caisseR == null) {
+                          await InformationDialog(
+                            context: context,
+                            titre_type_message: l10n.error,
+                            kind: DialogKind.refuser,
+                            titre_concerne: l10n.return_,
+                            message: "Caisse '${paramR.selectedCaisse}' introuvable.",
+                          );
+                          return;
+                        }
                         final sessionOuverteR = await CaisseSessionServices.getSessionOuverte(caisseR.code);
                         if (sessionOuverteR == null) {
                           await CaisseFermeeDialog(
@@ -1117,6 +1163,7 @@ Future<void> RetourNouveau(BuildContext context, {String? initialType}) async {
                           await InformationDialog(
                             context: context,
                             titre_type_message: l10n.error,
+                            kind: DialogKind.refuser,
                             titre_concerne: l10n.return_,
                             message: l10n.numberMustBeGreaterThanZero,
                           );
@@ -1152,6 +1199,7 @@ Future<void> RetourNouveau(BuildContext context, {String? initialType}) async {
                             await InformationDialog(
                               context: context,
                               titre_type_message: l10n.error,
+                              kind: DialogKind.refuser,
                               titre_concerne: l10n.return_,
                               message: response.message ?? l10n.errorOccurred,
                             );
@@ -1183,6 +1231,7 @@ Future<void> RetourNouveau(BuildContext context, {String? initialType}) async {
                               await InformationDialog(
                                 context: context,
                                 titre_type_message: l10n.error,
+                                kind: DialogKind.refuser,
                                 titre_concerne: l10n.return_,
                                 message: l10n.stockInsuffisantPourProduit(
                                   produitConcerneRetour.code,
@@ -1222,6 +1271,7 @@ Future<void> RetourNouveau(BuildContext context, {String? initialType}) async {
                             await InformationDialog(
                               context: context,
                               titre_type_message: l10n.error,
+                              kind: DialogKind.refuser,
                               titre_concerne: l10n.return_,
                               message: response.message ?? l10n.errorOccurred,
                             );

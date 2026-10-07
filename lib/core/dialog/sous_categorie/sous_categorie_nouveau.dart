@@ -1,4 +1,5 @@
 import 'dart:ui';
+import 'package:caisse_dz/core/dialog/dialog_kind.dart';
 import 'package:collection/collection.dart';
 import 'package:caisse_dz/DBCreate.dart';
 import 'package:caisse_dz/Services/Categorie.dart' hide ApiResponse;
@@ -141,6 +142,7 @@ Future<void> SousCategorieNouveau(BuildContext context) async {
     await InformationDialog(
       context: context,
       titre_type_message: l10n.authentication,
+      kind: DialogKind.refuser,
       titre_concerne: l10n.user,
       message: l10n.loginRequiredCreate,
     );
@@ -300,6 +302,7 @@ Future<void> SousCategorieNouveau(BuildContext context) async {
                           await InformationDialog(
                             context: context,
                             titre_type_message: l10n.error,
+                            kind: DialogKind.refuser,
                             titre_concerne: l10n.subcategory,
                             message: l10n.fillRequiredFields,
                           );

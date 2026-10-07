@@ -8,8 +8,10 @@ import '../filter_icon_builder.dart';
 
 class TableauMargePeriode extends StatefulWidget {
   final List<LigneMargePeriode> lignes;
+  // Lignes cochées (Extract filtre de l'onglet Situation).
+  final void Function(List<LigneMargePeriode>)? onSelectionChanged;
 
-  const TableauMargePeriode({super.key, required this.lignes});
+  const TableauMargePeriode({super.key, required this.lignes, this.onSelectionChanged});
 
   @override
   State<TableauMargePeriode> createState() => _TableauMargePeriodeState();
@@ -60,7 +62,9 @@ class _TableauMargePeriodeState extends State<TableauMargePeriode> {
 
     dataSource.addListener(() {
       WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (mounted) setState(() {});
+        if (!mounted) return;
+        setState(() {});
+        widget.onSelectionChanged?.call(dataSource.getSelectedRows());
       });
     });
   }

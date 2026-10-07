@@ -77,6 +77,9 @@ class FournisseurDataSource extends BaseTableDataSource<Fournisseur> {
     if (columnName == 'etat') {
       return Center(child: EtatBadge(isActive: item.etat));
     }
+    if (columnName == 'nom') {
+      return boldCellWithIcon(item.nom, color: Colors.orange);
+    }
 
     return null;
   }

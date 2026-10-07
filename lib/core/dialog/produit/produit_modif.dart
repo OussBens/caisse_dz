@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'package:caisse_dz/core/dialog/dialog_kind.dart';
 import 'dart:ui';
 import 'package:caisse_dz/DBCreate.dart';
 import 'package:caisse_dz/Services/Categorie.dart' hide ApiResponse;
@@ -414,7 +415,7 @@ Future<void> calculPrixVenteAuto() async {
 
 int selectedCategorieid = 0;
 int selectedSousCategorieid = 0;
-int remiseId = 0;
+int? remiseId; // null = pas de remise (jamais 0, pris pour une remise)
 int id = 0;
 String code = "";
 List<Categorie> categoriesTest = [];
@@ -589,6 +590,7 @@ Future<void> ProduitModif(BuildContext context, Produit produit) async {
     await InformationDialog(
       context: context,
       titre_type_message: l10n.authentication,
+      kind: DialogKind.refuser,
       titre_concerne: l10n.user,
       message: l10n.loginRequiredModify,
     );
@@ -602,7 +604,7 @@ Future<void> ProduitModif(BuildContext context, Produit produit) async {
   selectedCategorieid = produit.categorieId;
   selectedSousCategorieid = produit.sousCategorieId;
   selectedSousCategorie = sousCategoriesTest.firstWhereOrNull((sc) => sc.id == produit.sousCategorieId)?.nom;
-  remiseId = produit.remiseId ?? 0;
+  remiseId = (produit.remiseId == 0) ? null : produit.remiseId;
   selectedRemise = remisesTest.firstWhereOrNull((r) => r.id == produit.remiseId)?.nom;
   selectedetat = produit.etat ? l10n.active : l10n.inactive;
 
@@ -821,6 +823,7 @@ Future<void> ProduitModif(BuildContext context, Produit produit) async {
                           await InformationDialog(
                             context: context,
                             titre_type_message: l10n.error,
+                            kind: DialogKind.refuser,
                             titre_concerne: l10n.product,
                             message: l10n.fillRequiredFields,
                           );
@@ -836,6 +839,7 @@ Future<void> ProduitModif(BuildContext context, Produit produit) async {
                           await InformationDialog(
                             context: context,
                             titre_type_message: l10n.error,
+                            kind: DialogKind.refuser,
                             titre_concerne: l10n.product,
                             message: l10n.productNameAlreadyExists,
                           );
@@ -858,6 +862,7 @@ Future<void> ProduitModif(BuildContext context, Produit produit) async {
                             await InformationDialog(
                               context: context,
                               titre_type_message: l10n.error,
+                              kind: DialogKind.refuser,
                               titre_concerne: l10n.product,
                               message: l10n.barcodeAlreadyUsed(conflit.nom),
                             );
@@ -920,6 +925,7 @@ Future<void> ProduitModif(BuildContext context, Produit produit) async {
                               await InformationDialog(
                                 context: context,
                                 titre_type_message: l10n.error,
+                                kind: DialogKind.refuser,
                                 titre_concerne: l10n.product,
                                 message: response.message ?? l10n.errorOccurred,
                               );
@@ -972,6 +978,9 @@ Widget _buildFormRapideDetail(
     BuildContext context,
     AppLocalizations l10n,
     ListsConstTranslator translator) {
+  // ✅ Permission spéciale (voir RoleDetail) : modifier le prix de vente
+  // reste verrouillé pour un rôle qui n'a pas la permission correspondante.
+  final canModifierPrixVente = Provider.of<AuthState>(context, listen: false).canModifierPrixVente;
   return Row(
     crossAxisAlignment: CrossAxisAlignment.start,
     children: [
@@ -1187,6 +1196,7 @@ Widget _buildFormRapideDetail(
                 obligatoire: true,
                 child: TextChampL(
                   obligatoire: true,
+                  enabled: canModifierPrixVente,
                   controller: prixController2,
                   hint: '250 ${l10n.currency}',
                   numeric: true,
@@ -1275,6 +1285,9 @@ Widget _buildFormDetailleDetail(
     BuildContext context,
     AppLocalizations l10n,
     ListsConstTranslator translator) {
+  // ✅ Permission spéciale (voir RoleDetail) : modifier le prix de vente
+  // reste verrouillé pour un rôle qui n'a pas la permission correspondante.
+  final canModifierPrixVente = Provider.of<AuthState>(context, listen: false).canModifierPrixVente;
   Widget tabPage(List<Widget> children) {
     return SingleChildScrollView(
       padding: const EdgeInsets.symmetric(vertical: 4),
@@ -1622,8 +1635,8 @@ Widget _buildFormDetailleDetail(
                           setState(() {
                             if (v == null || v.isEmpty) {
                               selectedRemise = null;
-                              produit.remiseId = 0;
-                              remiseId = 0;
+                              produit.remiseId = null;
+                              remiseId = null;
                               return;
                             }
 
@@ -1633,7 +1646,7 @@ Widget _buildFormDetailleDetail(
 
                             selectedRemise = v;
                             produit.remiseId = remise?.id;
-                            remiseId = remise?.id ?? 0;
+                            remiseId = remise?.id;
                           });
                         },
                       );
@@ -1653,8 +1666,14 @@ Widget _buildFormDetailleDetail(
                     controller: prixController,
                     onChanged: (_) {
                       setState(() {
-                        produitFormKey.currentState!.validate();
+                        // ✅ Recalculer le prix de vente AVANT de valider :
+                        // sinon validate() s'exécute sur l'ancien
+                        // prixController2.text (pas encore recalculé) et
+                        // affiche "prix de vente inférieur au prix d'achat"
+                        // même quand le prix recalculé qui s'affiche juste
+                        // après est correct.
                         calculPrixVenteAuto();
+                        produitFormKey.currentState!.validate();
                       });
                     },
                     hint: '150 ${l10n.currency}',
@@ -1701,6 +1720,7 @@ Widget _buildFormDetailleDetail(
                         ChampAvecLabel(
                           label: l10n.marginAmount,
                           child: TextChampL(
+                            enabled: canModifierPrixVente,
                             controller: margeController,
                             hint: "100 ${l10n.currency}",
                             numeric: true,
@@ -1714,6 +1734,7 @@ Widget _buildFormDetailleDetail(
                         ChampAvecLabel(
                           label: l10n.marginPercentage,
                           child: TextChampL(
+                            enabled: canModifierPrixVente,
                             controller: margePController,
                             hint: "5 %",
                             maxValue: 100,
@@ -1770,8 +1791,8 @@ Widget _buildFormDetailleDetail(
                     numeric: true,
                     onChanged: (_) {
                       setState(() {
-                        produitFormKey.currentState!.validate();
                         calculPrixVenteAuto();
+                        produitFormKey.currentState!.validate();
                       });
                     },
                     validator: (value) {
@@ -1830,6 +1851,9 @@ Widget _buildFormDetailleDetail(
                             child: TextChampL(
                               width: 120,
                               controller: jeu1Controller,
+                              // Pièces par emballage : entier si le produit se vend à la pièce.
+                              isQuantite: true,
+                              uniteMesure: selectedUnitemesure,
                               color: colorchamp,
                               colorEnabled: colorchampenabled,
                               hint: l10n.packaging1Hint,
@@ -1917,6 +1941,9 @@ Widget _buildFormDetailleDetail(
                             child: TextChampL(
                               width: 120,
                               controller: jeu2Controller,
+                              // Pièces par emballage : entier si le produit se vend à la pièce.
+                              isQuantite: true,
+                              uniteMesure: selectedUnitemesure,
                               color: colorchamp,
                               colorEnabled: colorchampenabled,
                               hint: l10n.packaging2Hint,

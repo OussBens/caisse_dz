@@ -86,8 +86,11 @@ class MouvementCaisseDataSource extends BaseTableDataSource<LigneMouvementCaisse
     }
   }
 
-  // sortValue par défaut (= cellValue) suffit désormais : montantEntree/
-  // montantSortie sont déjà des double bruts dans cellValue.
+  // Montants : déjà des double bruts dans cellValue. Date : triée sur le
+  // DateTime (le texte "jj/mm/aaaa" se triait d'abord par jour).
+  @override
+  dynamic sortValue(LigneMouvementCaisse l, String field) =>
+      field == 'date' ? l.date : cellValue(l, field);
 
   String _montant(double v) => v > 0 ? "${NumberFormatUtil.formatMontant(v, decimales: 2)} ${l10n.currency}" : '-';
 

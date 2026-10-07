@@ -4,6 +4,7 @@ import 'package:caisse_dz/core/theme/app_style.dart';
 import '../../../data/models/zakat.dart';
 import '../../widget/detail_widget.dart';
 import '../../widget/section_decoration.dart';
+import '../../widget/stats_card.dart';
 import '../base_dialog.dart';
 import 'package:caisse_dz/core/Auth/auth_state.dart';
 
@@ -172,32 +173,24 @@ Future<void> ZakatDetail(BuildContext context, Zakat zakat) async {
 }
 
 Widget _resumeZakat(Zakat z, AppLocalizations l10n) {
-  return Container(
-    decoration: BoxDecoration(
-      color: Appstyle.violet.withOpacity(0.6),
-      borderRadius: BorderRadius.circular(10),
-    ),
-    padding: const EdgeInsets.all(8),
-    child: Column(
-      children: [
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            detailbadge(l10n.stock, "${z.stock} ${l10n.currency}"),
-            detailbadge(l10n.liquidities, "${z.liquidites} ${l10n.currency}"),
-            detailbadge(l10n.receivables, "${z.creances} ${l10n.currency}"),
-          ],
-        ),
-        const SizedBox(height: 8),
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            detailbadge(l10n.debts, "${z.dettes} ${l10n.currency}"),
-            detailbadge(l10n.totalCapital, "${z.capitalTotal} ${l10n.currency}"),
-            detailbadge(l10n.zakatAmount, "${z.montantZakat} ${l10n.currency}"),
-          ],
-        ),
-      ],
-    ),
+  return Column(
+    children: [
+      StatsCard(
+        items: [
+          StatsItem(label: l10n.stock, value: "${z.stock} ${l10n.currency}", icon: Icons.inventory_2_outlined),
+          StatsItem(label: l10n.liquidities, value: "${z.liquidites} ${l10n.currency}", icon: Icons.account_balance_wallet_outlined),
+          StatsItem(label: l10n.receivables, value: "${z.creances} ${l10n.currency}", icon: Icons.call_received),
+        ],
+      ),
+      const SizedBox(height: 8),
+      StatsCard(
+        backgroundColor: Appstyle.crevete,
+        items: [
+          StatsItem(label: l10n.debts, value: "${z.dettes} ${l10n.currency}", icon: Icons.call_made),
+          StatsItem(label: l10n.totalCapital, value: "${z.capitalTotal} ${l10n.currency}", icon: Icons.account_balance_outlined),
+          StatsItem(label: l10n.zakatAmount, value: "${z.montantZakat} ${l10n.currency}", icon: Icons.volunteer_activism_outlined),
+        ],
+      ),
+    ],
   );
 }

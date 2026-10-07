@@ -1,4 +1,6 @@
+import 'package:caisse_dz/core/utilis/quantite_format.dart';
 import 'dart:ui';
+import 'package:caisse_dz/core/dialog/dialog_kind.dart';
 import 'package:caisse_dz/DBCreate.dart';
 import 'package:caisse_dz/Services/Sortie.dart';
 import 'package:caisse_dz/Services/CaisseParam.dart';
@@ -225,6 +227,7 @@ Future<void> SortieNouveau(BuildContext context) async {
     await InformationDialog(
       context: context,
       titre_type_message: l10n.authentication,
+      kind: DialogKind.refuser,
       titre_concerne: l10n.user,
       message: l10n.loginRequired,
     );
@@ -397,6 +400,7 @@ Future<void> SortieNouveau(BuildContext context) async {
                                   controller: quantiteControllerS,
                                   numeric: true,
                                   isQuantite: true,
+                                  uniteMesure: prod?.uniteMesure,
                                   hint: "0",
                                 ),
                               ),
@@ -410,6 +414,7 @@ Future<void> SortieNouveau(BuildContext context) async {
                                     obligatoire: true,
                                     numeric: true,
                                     isQuantite: true,
+                                    uniteMesure: QuantiteFormat.unitePiece,
                                     hint: "0",
                                   ),
                                 ),
@@ -477,6 +482,7 @@ Future<void> SortieNouveau(BuildContext context) async {
                           await InformationDialog(
                             context: context,
                             titre_type_message: l10n.error,
+                            kind: DialogKind.refuser,
                             titre_concerne: l10n.exit,
                             message: l10n.fillRequiredFields,
                           );
@@ -488,6 +494,7 @@ Future<void> SortieNouveau(BuildContext context) async {
                           await InformationDialog(
                             context: context,
                             titre_type_message: l10n.error,
+                            kind: DialogKind.refuser,
                             titre_concerne: l10n.entry,
                             message: l10n.quantityMustBeGreaterThanZero,
                           );
@@ -500,6 +507,7 @@ Future<void> SortieNouveau(BuildContext context) async {
                           await InformationDialog(
                             context: context,
                             titre_type_message: l10n.error,
+                            kind: DialogKind.refuser,
                             titre_concerne: l10n.exit,
                             message: l10n.numberMustBeGreaterThanZero,
                           );
@@ -515,6 +523,7 @@ Future<void> SortieNouveau(BuildContext context) async {
                           await InformationDialog(
                             context: context,
                             titre_type_message: l10n.error,
+                            kind: DialogKind.refuser,
                             titre_concerne: l10n.exit,
                             message: l10n.stockInsuffisantPourProduit(
                               prod!.code,
@@ -589,6 +598,7 @@ Future<void> SortieNouveau(BuildContext context) async {
                           await InformationDialog(
                             context: context,
                             titre_type_message: l10n.error,
+                            kind: DialogKind.refuser,
                             titre_concerne: l10n.exit,
                             message: response.message ?? l10n.errorOccurred,
                           );

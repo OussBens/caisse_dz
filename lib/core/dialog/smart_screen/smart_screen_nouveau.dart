@@ -1,4 +1,5 @@
 import 'package:collection/collection.dart';
+import 'package:caisse_dz/core/dialog/dialog_kind.dart';
 import 'package:intl/intl.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
@@ -483,19 +484,15 @@ class _SmartScanDialogState extends State<SmartScanDialog> {
       setState(() {
         peutChangerCaisseSS = auth.role == "Admin";
 
-        // ✅ Valeurs par défaut pour aller plus vite : date du jour et
-        // fournisseur système "Général", modifiables si besoin.
+        // ✅ Valeur par défaut pour aller plus vite : date du jour. Le
+        // fournisseur reste vide au départ (toujours à choisir explicitement
+        // ici, contrairement à Entrée rapide qui pré-remplit "Général").
         dateController.text =
             "${DateTime.now().year.toString().padLeft(4, '0')}-"
             "${DateTime.now().month.toString().padLeft(2, '0')}-"
             "${DateTime.now().day.toString().padLeft(2, '0')}";
-        final fournisseurGeneral = fournisseursTest.firstWhereOrNull(
-          (f) => f.code == AppConst.fournisseurGeneralCode,
-        );
-        if (fournisseurGeneral != null) {
-          selectedFournisseur = fournisseurGeneral.nom;
-          fournisseurController.text = fournisseurGeneral.nom;
-        }
+        selectedFournisseur = '';
+        fournisseurController.clear();
         selectedCaisse = caisseSuivieNom
             ?? (caissesTest.isNotEmpty ? caissesTest.first.nomCaisse : '');
       });
@@ -597,6 +594,7 @@ class _SmartScanDialogState extends State<SmartScanDialog> {
         InformationDialog(
           context: context,
           titre_type_message: l10n.error,
+          kind: DialogKind.refuser,
           titre_concerne: l10n.smartScan,
           message: l10n.supplierCodeRequired,
         );
@@ -607,6 +605,7 @@ class _SmartScanDialogState extends State<SmartScanDialog> {
         InformationDialog(
           context: context,
           titre_type_message: l10n.error,
+          kind: DialogKind.refuser,
           titre_concerne: l10n.smartScan,
           message: l10n.dateRequired,
         );
@@ -617,6 +616,7 @@ class _SmartScanDialogState extends State<SmartScanDialog> {
         InformationDialog(
           context: context,
           titre_type_message: l10n.error,
+          kind: DialogKind.refuser,
           titre_concerne: l10n.smartScan,
           message: l10n.amountRequired,
         );
@@ -627,6 +627,7 @@ class _SmartScanDialogState extends State<SmartScanDialog> {
         InformationDialog(
           context: context,
           titre_type_message: l10n.error,
+          kind: DialogKind.refuser,
           titre_concerne: l10n.smartScan,
           message: l10n.cashRegisterRequired,
         );
@@ -637,6 +638,7 @@ class _SmartScanDialogState extends State<SmartScanDialog> {
         InformationDialog(
           context: context,
           titre_type_message: l10n.error,
+          kind: DialogKind.refuser,
           titre_concerne: l10n.smartScan,
           message: l10n.atLeastOneProduct,
         );
@@ -649,6 +651,7 @@ class _SmartScanDialogState extends State<SmartScanDialog> {
           InformationDialog(
             context: context,
             titre_type_message: l10n.error,
+            kind: DialogKind.refuser,
             titre_concerne: _nomProduitCatalogue(produit.codeProduit),
             message: l10n.qtyAndBuyPriceMustBePositiveFor(_nomProduitCatalogue(produit.codeProduit)),
           );
@@ -663,6 +666,7 @@ class _SmartScanDialogState extends State<SmartScanDialog> {
           InformationDialog(
             context: context,
             titre_type_message: l10n.error,
+            kind: DialogKind.refuser,
             titre_concerne: _nomProduitCatalogue(produit.codeProduit),
             message: l10n.numberMustBeGreaterThanZero,
           );
@@ -676,6 +680,7 @@ class _SmartScanDialogState extends State<SmartScanDialog> {
           InformationDialog(
             context: context,
             titre_type_message: l10n.error,
+            kind: DialogKind.refuser,
             titre_concerne: _nomProduitCatalogue(produit.codeProduit),
             message: l10n.sellPriceMustExceedBuyPriceFor(_nomProduitCatalogue(produit.codeProduit)),
           );
@@ -722,6 +727,7 @@ class _SmartScanDialogState extends State<SmartScanDialog> {
       await InformationDialog(
         context: context,
         titre_type_message: l10n.error,
+        kind: DialogKind.refuser,
         titre_concerne: l10n.smartScan,
         message: l10n.caisseNotFound(selectedCaisse),
       );
@@ -790,6 +796,7 @@ class _SmartScanDialogState extends State<SmartScanDialog> {
       await InformationDialog(
         context: context,
         titre_type_message: l10n.error,
+        kind: DialogKind.refuser,
         titre_concerne: l10n.smartScan,
         message: response.message,
         onTerminer: () {
@@ -1143,12 +1150,14 @@ class _SmartScanDialogState extends State<SmartScanDialog> {
       itemCount: produits.length,
       itemBuilder: (_, i) {
         final p = produits[i];
+        // Unité du produit : 'Pièce' => quantité entière.
+        final uniteLigne = produitsTest.firstWhereOrNull((x) => x.code == p.codeProduit)?.uniteMesure;
 
-        final quantiteController = _ctrlFor(_quantiteControllers, p, QuantiteFormat.format(p.quantite));
+        final quantiteController = _ctrlFor(_quantiteControllers, p, QuantiteFormat.formatPour(p.quantite, uniteLigne));
         final prixAchatController = _ctrlFor(_prixAchatControllers, p, p.prix.toString());
         final prixVenteController = _ctrlFor(_prixVenteControllers, p, p.prixVente.toString());
         final totalController = _ctrlFor(_totalControllers, p, NumberFormatUtil.formatMontant((p.quantite * p.prix), decimales: 2));
-        final nombreController = _ctrlFor(_nombreControllers, p, p.nombre != null ? QuantiteFormat.format(p.nombre!) : '');
+        final nombreController = _ctrlFor(_nombreControllers, p, p.nombre != null ? QuantiteFormat.formatPour(p.nombre!, QuantiteFormat.unitePiece) : '');
 
         void _updateTotal() {
           final q = double.tryParse(quantiteController.text) ?? 0;
@@ -1181,7 +1190,7 @@ class _SmartScanDialogState extends State<SmartScanDialog> {
                 child: TextField(
                   controller: quantiteController,
                   keyboardType: TextInputType.number,
-                  inputFormatters: QuantiteFormat.inputFormatters,
+                  inputFormatters: QuantiteFormat.inputFormattersPour(uniteLigne),
                   decoration: InputDecoration(
                     labelText: l10n.quantity,
                     border: const OutlineInputBorder(),
@@ -1199,7 +1208,7 @@ class _SmartScanDialogState extends State<SmartScanDialog> {
                   child: TextField(
                     controller: nombreController,
                     keyboardType: TextInputType.number,
-                    inputFormatters: QuantiteFormat.inputFormatters,
+                    inputFormatters: QuantiteFormat.inputFormattersPour(QuantiteFormat.unitePiece),
                     decoration: InputDecoration(
                       labelText: l10n.numberField,
                       border: const OutlineInputBorder(),

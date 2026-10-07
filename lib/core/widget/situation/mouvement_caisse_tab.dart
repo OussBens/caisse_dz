@@ -1,4 +1,6 @@
+import 'package:caisse_dz/Services/excel_apercu.dart';
 import 'package:caisse_dz/Services/CaisseGestion.dart';
+import 'package:caisse_dz/Services/export_spinner.dart';
 import 'package:caisse_dz/Services/CaisseSession.dart';
 import 'package:caisse_dz/data/models/caisse_mouvement.dart';
 import 'package:caisse_dz/Services/Client.dart';
@@ -18,6 +20,7 @@ import 'package:caisse_dz/core/widget/button/main_button.dart';
 import 'package:caisse_dz/core/widget/champ/champ_avec_label.dart';
 import 'package:caisse_dz/core/widget/champ/date_champ.dart';
 import 'package:caisse_dz/core/widget/champ/liste_champ.dart';
+import 'package:caisse_dz/core/widget/filtre/ligne_filtre_tiers.dart';
 import 'package:caisse_dz/core/widget/filtre/periode_rapide_filter.dart';
 import 'package:caisse_dz/core/widget/section_decoration_filtre.dart';
 import 'package:caisse_dz/data/constant.dart';
@@ -319,12 +322,8 @@ class _MouvementCaisseTabState extends State<MouvementCaisseTab> {
       return;
     }
 
+    final fermerSpinner = ouvrirSpinnerExport(context);
     try {
-      showDialog(
-        context: context,
-        barrierDismissible: false,
-        builder: (context) => const Center(child: CircularProgressIndicator()),
-      );
 
       final translator = ListsConstTranslator(l10n);
       final excelFile = await ExcelGenerator.generateVersementsExcel(
@@ -334,7 +333,7 @@ class _MouvementCaisseTabState extends State<MouvementCaisseTab> {
       );
 
       if (!mounted) return;
-      Navigator.pop(context);
+      fermerSpinner();
 
       final excel = Excel.decodeBytes(await excelFile.readAsBytes());
       var sheet = excel.tables['Versements'];
@@ -385,7 +384,44 @@ class _MouvementCaisseTabState extends State<MouvementCaisseTab> {
         ),
       );
     } catch (e) {
-      if (Navigator.canPop(context)) Navigator.pop(context);
+      fermerSpinner();
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('${l10n.exportError}: $e'), backgroundColor: Colors.red),
+      );
+    }
+  }
+
+  // Lignes cochées dans le tableau (Extract filtre). Pas de setState : seul
+  // l'export les lit.
+  List<LigneMouvementCaisse> _lignesSelectionnees = [];
+
+  /// Extract filtre : Excel des seules lignes cochées, avec les colonnes du
+  /// tableau (y compris ouverture/clôture/mouvements manuels).
+  Future<void> _exportSelectionExcel(AppLocalizations l10n) async {
+    if (_lignesSelectionnees.isEmpty) {
+      await InformationDialog(
+        context: context,
+        titre_type_message: l10n.information,
+        titre_concerne: l10n.cashRegister,
+        message: l10n.noRowSelected,
+      );
+      return;
+    }
+    try {
+      final fichier = await executerAvecSpinner(
+        context,
+        () => ExcelGenerator.generateMouvementsCaisseExcel(lignes: List.of(_lignesSelectionnees), l10n: l10n),
+      );
+      if (!mounted) return;
+      await ouvrirApercuExcel(
+        context,
+        fichier: fichier,
+        nomFeuille: 'MouvementsCaisse',
+        titre: "${l10n.cashRegister} (${l10n.selected})",
+        l10n: l10n,
+      );
+    } catch (e) {
+      if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('${l10n.exportError}: $e'), backgroundColor: Colors.red),
       );
@@ -537,6 +573,13 @@ class _MouvementCaisseTabState extends State<MouvementCaisseTab> {
                   onPressed: () async => await _exportExcel(l10n),
                 ),
                 const SizedBox(width: 10),
+                // Extract filtre : Excel des seules lignes cochées.
+                MainIconButton(
+                  imagePath: "assets/icons/action/extacter_filtre_icon.png",
+                  color: Colors.orange,
+                  onPressed: () async => await _exportSelectionExcel(l10n),
+                ),
+                const SizedBox(width: 10),
                 MainButton(
                   text: l10n.extractPdf,
                   textColor: Colors.red,
@@ -614,40 +657,46 @@ class _MouvementCaisseTabState extends State<MouvementCaisseTab> {
     return SectionDecorationFiltre(
       padding: const EdgeInsets.all(10),
       color: Appstyle.Tblanc,
-      child: Row(
+      child: Column(
         children: [
-          Expanded(
-            child: ChampAvecLabel(
-              label: l10n.cashRegister,
-              child: TextListe(
-                value: selectedCaisse,
-                items: caisses.map((c) => c.nomCaisse).toList(),
-                clearable: true,
-                onChanged: (v) => setState(() => selectedCaisse = v),
+          Row(
+            children: [
+              Expanded(
+                child: ChampAvecLabel(
+                  label: l10n.from,
+                  child: TextDate(hint: l10n.startDate, controller: _dateDebutCtrl, onTap: _pickDateDebut),
+                ),
               ),
-            ),
+              const SizedBox(width: 20),
+              Expanded(
+                child: ChampAvecLabel(
+                  label: l10n.to,
+                  child: TextDate(hint: l10n.endDate, controller: _dateFinCtrl, onTap: _pickDateFin),
+                ),
+              ),
+              const SizedBox(width: 20),
+              Expanded(
+                child: ChampPeriodeRapide(
+                  l10n: l10n,
+                  value: periodeRapide,
+                  onSelected: _appliquerPeriodeRapide,
+                ),
+              ),
+            ],
           ),
-          const SizedBox(width: 20),
-          Expanded(
-            child: ChampAvecLabel(
-              label: l10n.from,
-              child: TextDate(hint: l10n.startDate, controller: _dateDebutCtrl, onTap: _pickDateDebut),
-            ),
-          ),
-          const SizedBox(width: 20),
-          Expanded(
-            child: ChampAvecLabel(
-              label: l10n.to,
-              child: TextDate(hint: l10n.endDate, controller: _dateFinCtrl, onTap: _pickDateFin),
-            ),
-          ),
-          const SizedBox(width: 20),
-          Expanded(
-            child: PeriodeRapideDropdown(
-              l10n: l10n,
-              value: periodeRapide,
-              onSelected: _appliquerPeriodeRapide,
-            ),
+          const SizedBox(height: 10),
+          LigneFiltreTiers(
+            children: [
+              ChampAvecLabel(
+                label: l10n.cashRegister,
+                child: TextListe(
+                  value: selectedCaisse,
+                  items: caisses.map((c) => c.nomCaisse).toList(),
+                  clearable: true,
+                  onChanged: (v) => setState(() => selectedCaisse = v),
+                ),
+              ),
+            ],
           ),
         ],
       ),
@@ -675,6 +724,9 @@ class _MouvementCaisseTabState extends State<MouvementCaisseTab> {
     // tableau (et donc le tri par en-tête actif) à chaque rafraîchissement.
     // didUpdateWidget() de TableauMouvementCaisse gère déjà la mise à jour
     // des données en conservant le tri.
-    return TableauMouvementCaisse(lignes: lignes);
+    return TableauMouvementCaisse(
+      lignes: lignes,
+      onSelectionChanged: (selection) => _lignesSelectionnees = selection,
+    );
   }
 }

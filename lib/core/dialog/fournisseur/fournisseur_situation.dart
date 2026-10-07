@@ -1,4 +1,6 @@
 import 'dart:ui';
+import 'package:caisse_dz/core/dialog/dialog_kind.dart';
+import 'package:caisse_dz/Services/export_spinner.dart';
 
 import 'package:caisse_dz/Services/ExcelPreviewDialog.dart';
 import 'package:caisse_dz/Services/PDFPreviewDialog.dart';
@@ -128,12 +130,8 @@ Future<void> _exportSituationFournisseurExcel(
     return;
   }
 
+  final fermerSpinner = ouvrirSpinnerExport(context);
   try {
-    showDialog(
-      context: context,
-      barrierDismissible: false,
-      builder: (context) => const Center(child: CircularProgressIndicator()),
-    );
 
     final headers = [l10n.date, l10n.type, l10n.ref, l10n.debit, l10n.credit, l10n.balance, l10n.description];
     final rows = _lignesOperationsFournisseur(operations, l10n);
@@ -168,7 +166,7 @@ Future<void> _exportSituationFournisseurExcel(
       ),
     );
   } catch (e) {
-    if (Navigator.canPop(context)) Navigator.pop(context);
+    fermerSpinner();
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(content: Text('${l10n.exportError}: $e'), backgroundColor: Colors.red),
     );
@@ -190,6 +188,7 @@ Future<void> SituationFournisseurDialog(
     await InformationDialog(
       context: context,
       titre_type_message: AppLocalizations.of(context)!.authentication,
+      kind: DialogKind.refuser,
       titre_concerne: AppLocalizations.of(context)!.user,
       message: AppLocalizations.of(context)!.loginRequired,
     );
@@ -239,7 +238,9 @@ Future<void> SituationFournisseurDialog(
               filter: ImageFilter.blur(sigmaX: 2, sigmaY: 2),
               child: BaseDialog(
                 width: 1200,
-                height: 650,
+                // Plus haut qu'avant (650) : 90 % de la hauteur de la fenêtre,
+                // plafonné à 950 pour les grands écrans.
+                height: (MediaQuery.of(context).size.height * 0.9).clamp(650.0, 950.0),
 
                 header: TitreAvecLigne(
                   imagePath: 'assets/icons/sidebar/fournisseur_icon.png',
@@ -251,53 +252,59 @@ Future<void> SituationFournisseurDialog(
                     Row(
                       children: [
                         Expanded(
-                          child: TextDate(
-                            hint: l10n.startDate,
-                            controller: dateDebutCtrl,
-                            onTap: () async {
-                              final d = await showDatePicker(
-                                context: context,
-                                initialDate: dateDebut,
-                                firstDate: DateTime(2000),
-                                lastDate: dateFin,
-                              );
-                              if (d != null) {
-                                setState(() {
-                                  dateDebut = d;
-                                  dateDebutCtrl.text = _formatDate(d);
-                                });
-                              }
-                            },
+                          child: ChampAvecLabel(
+                            label: l10n.from,
+                            child: TextDate(
+                              hint: l10n.startDate,
+                              controller: dateDebutCtrl,
+                              onTap: () async {
+                                final d = await showDatePicker(
+                                  context: context,
+                                  initialDate: dateDebut,
+                                  firstDate: DateTime(2000),
+                                  lastDate: dateFin,
+                                );
+                                if (d != null) {
+                                  setState(() {
+                                    dateDebut = d;
+                                    dateDebutCtrl.text = _formatDate(d);
+                                  });
+                                }
+                              },
+                            ),
                           ),
                         ),
 
                         const SizedBox(width: 12),
 
                         Expanded(
-                          child: TextDate(
-                            hint: l10n.endDate,
-                            controller: dateFinCtrl,
-                            onTap: () async {
-                              final d = await showDatePicker(
-                                context: context,
-                                initialDate: dateFin,
-                                firstDate: dateDebut,
-                                lastDate: DateTime(2100),
-                              );
-                              if (d != null) {
-                                setState(() {
-                                  dateFin = d;
-                                  dateFinCtrl.text = _formatDate(d);
-                                });
-                              }
-                            },
+                          child: ChampAvecLabel(
+                            label: l10n.to,
+                            child: TextDate(
+                              hint: l10n.endDate,
+                              controller: dateFinCtrl,
+                              onTap: () async {
+                                final d = await showDatePicker(
+                                  context: context,
+                                  initialDate: dateFin,
+                                  firstDate: dateDebut,
+                                  lastDate: DateTime(2100),
+                                );
+                                if (d != null) {
+                                  setState(() {
+                                    dateFin = d;
+                                    dateFinCtrl.text = _formatDate(d);
+                                  });
+                                }
+                              },
+                            ),
                           ),
                         ),
 
                         const SizedBox(width: 12),
 
                         Expanded(
-                          child: PeriodeRapideDropdown(
+                          child: ChampPeriodeRapide(
                             l10n: l10n,
                             value: periodeRapide,
                             onSelected: (key) {

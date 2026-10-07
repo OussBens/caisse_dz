@@ -1,4 +1,5 @@
 import 'dart:ui';
+import 'package:caisse_dz/core/dialog/dialog_kind.dart';
 import 'package:caisse_dz/DBCreate.dart';
 import 'package:caisse_dz/Services/Mouvement.dart';
 import 'package:caisse_dz/Services/Historique.dart' hide ApiResponse;
@@ -171,6 +172,7 @@ Future<void> ZakatNouveau(BuildContext context) async {
     await InformationDialog(
       context: context,
       titre_type_message: l10n.authentication,
+      kind: DialogKind.refuser,
       titre_concerne: l10n.user,
       message: l10n.loginRequired,
     );
@@ -501,6 +503,7 @@ Future<void> ZakatNouveau(BuildContext context) async {
                           await InformationDialog(
                             context: context,
                             titre_type_message: l10n.error,
+                            kind: DialogKind.refuser,
                             titre_concerne: l10n.zakat,
                             message: l10n.fillRequiredFields,
                           );
@@ -512,6 +515,7 @@ Future<void> ZakatNouveau(BuildContext context) async {
                           await InformationDialog(
                             context: context,
                             titre_type_message: l10n.error,
+                            kind: DialogKind.refuser,
                             titre_concerne: l10n.zakat,
                             message: l10n.selectStatus,
                           );
@@ -554,6 +558,7 @@ Future<void> ZakatNouveau(BuildContext context) async {
                             await InformationDialog(
                               context: context,
                               titre_type_message: l10n.error,
+                              kind: DialogKind.refuser,
                               titre_concerne: l10n.zakat,
                               message: response.message ?? l10n.errorOccurred,
                             );
@@ -575,6 +580,7 @@ Future<void> ZakatNouveau(BuildContext context) async {
                           await InformationDialog(
                             context: context,
                             titre_type_message: l10n.error,
+                            kind: DialogKind.refuser,
                             titre_concerne: l10n.zakat,
                             message: "${l10n.errorOccurred}: $e",
                           );

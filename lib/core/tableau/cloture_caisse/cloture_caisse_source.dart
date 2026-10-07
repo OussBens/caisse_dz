@@ -29,6 +29,27 @@ class ClotureCaisseDataSource extends BaseTableDataSource<ClotureCaisse> {
         "${date.minute.toString().padLeft(2, '0')}";
   }
 
+  // Tri sur la valeur brute (DateTime / nombre) et non sur le texte affiché :
+  // "jj/mm/aaaa" trié comme du texte classait d'abord par jour, et "1200 DA"
+  // par ordre alphabétique.
+  @override
+  dynamic sortValue(ClotureCaisse c, String field) {
+    switch (field) {
+      case 'dateDebut':
+        return c.dateDebut;
+      case 'dateFin':
+        return c.dateFin;
+      case 'totalVentes':
+        return c.totalVentes;
+      case 'totalAnnule':
+        return c.totalAnnule;
+      case 'dateCree':
+        return c.dateCree;
+      default:
+        return cellValue(c, field);
+    }
+  }
+
   @override
   dynamic cellValue(ClotureCaisse c, String field) {
     switch (field) {

@@ -1,4 +1,5 @@
 import 'dart:ui';
+import 'package:caisse_dz/core/dialog/dialog_kind.dart';
 import 'package:caisse_dz/DBCreate.dart';
 import 'package:caisse_dz/Services/Historique.dart';
 import 'package:caisse_dz/Services/Zakat.dart';
@@ -65,6 +66,7 @@ Future<void> AnnulerZakat(
     await InformationDialog(
       context: context,
       titre_type_message: l10n.authentication,
+      kind: DialogKind.refuser,
       titre_concerne: l10n.user,
       message: l10n.loginRequiredDelete,
     );
@@ -172,6 +174,7 @@ Future<void> AnnulerZakat(
 
                         await ConfirmationDialog(
                           context: context,
+                          kind: DialogKind.danger,
                           titre: l10n.zakat,
                           message: l10n.confirmDeleteZakats,
                           onConfirmer: () async {

@@ -66,6 +66,9 @@ class MagasinDataSource extends BaseTableDataSource<Magasin> {
     if (columnName == 'etat') {
       return Center(child: EtatBadge(isActive: item.etat));
     }
+    if (columnName == 'nom') {
+      return boldCell(item.nom, align: TextAlign.left);
+    }
 
     return null;
   }

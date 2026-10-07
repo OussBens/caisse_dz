@@ -178,6 +178,10 @@ class ProduitDataSource extends BaseTableDataSource<Produit> {
       return Center(child: EtatBadge(isActive: item.etat));
     }
 
+    if (columnName == 'nom') {
+      return boldCell(item.nom, align: TextAlign.left);
+    }
+
     if (columnName == 'prixAchat') {
       return Center(
         child: pilluleCellule("${item.prixAchat} ${l10n.currency}", Appstyle.violet),

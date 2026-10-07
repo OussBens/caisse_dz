@@ -1,4 +1,5 @@
 import 'dart:ui';
+import 'package:caisse_dz/core/dialog/dialog_kind.dart';
 import 'package:intl/intl.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
@@ -194,6 +195,18 @@ Future<void> AnnulerSmartScan(
   final userCode = auth.userCode!;
   final l10n = AppLocalizations.of(context)!;
 
+  // ✅ Permission spéciale (voir RoleDetail) : annuler une opération.
+  if (!auth.canAnnulerOperations) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(l10n.noPermissionAction),
+        backgroundColor: Colors.red,
+        duration: const Duration(seconds: 3),
+      ),
+    );
+    return;
+  }
+
   final fournisseurs = await FournisseurServices.getAllFournisseurs();
   String nomFournisseur(String code) =>
       fournisseurs.firstWhereOrNull((f) => f.code == code)?.nom ?? code;
@@ -311,6 +324,7 @@ Future<void> AnnulerSmartScan(
                           await InformationDialog(
                             context: context,
                             titre_type_message: l10n.error,
+                            kind: DialogKind.refuser,
                             titre_concerne: l10n.smartScan,
                             message: l10n.stockInsuffisantPourProduit(
                               produitInsuffisant.code,

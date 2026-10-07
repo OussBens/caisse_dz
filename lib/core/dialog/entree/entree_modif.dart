@@ -1,4 +1,5 @@
 import 'dart:ui';
+import 'package:caisse_dz/core/dialog/dialog_kind.dart';
 import 'package:collection/collection.dart';
 import 'package:caisse_dz/DBCreate.dart';
 import 'package:caisse_dz/Services/Historique.dart' hide ApiResponse;
@@ -194,6 +195,7 @@ Future<void> EntreeModif(BuildContext context, SmartScan scan) async {
     await InformationDialog(
       context: context,
       titre_type_message: l10n.authentication,
+      kind: DialogKind.refuser,
       titre_concerne: l10n.user,
       message: l10n.loginRequired,
     );
@@ -205,6 +207,7 @@ Future<void> EntreeModif(BuildContext context, SmartScan scan) async {
     await InformationDialog(
       context: context,
       titre_type_message: l10n.error,
+      kind: DialogKind.refuser,
       titre_concerne: l10n.entry,
       message: l10n.errorOccurred,
     );
@@ -465,6 +468,7 @@ Future<void> EntreeModif(BuildContext context, SmartScan scan) async {
                         await InformationDialog(
                           context: context,
                           titre_type_message: l10n.error,
+                          kind: DialogKind.refuser,
                           titre_concerne: l10n.entry,
                           message: l10n.fillRequiredFields,
                         );
@@ -475,6 +479,7 @@ Future<void> EntreeModif(BuildContext context, SmartScan scan) async {
                         await InformationDialog(
                           context: context,
                           titre_type_message: l10n.error,
+                          kind: DialogKind.refuser,
                           titre_concerne: l10n.entry,
                           message: l10n.cashRegisterRequired,
                         );
@@ -486,6 +491,7 @@ Future<void> EntreeModif(BuildContext context, SmartScan scan) async {
                         await InformationDialog(
                           context: context,
                           titre_type_message: l10n.error,
+                          kind: DialogKind.refuser,
                           titre_concerne: l10n.entry,
                           message: l10n.fillRequiredFields,
                         );
@@ -503,6 +509,7 @@ Future<void> EntreeModif(BuildContext context, SmartScan scan) async {
                           await InformationDialog(
                             context: context,
                             titre_type_message: l10n.attention,
+                            kind: DialogKind.attention,
                             titre_concerne: l10n.entry,
                             message: l10n.aucuneSessionOuverte(caisseChoisieE.nomCaisse),
                           );
@@ -526,6 +533,7 @@ Future<void> EntreeModif(BuildContext context, SmartScan scan) async {
                         await InformationDialog(
                           context: context,
                           titre_type_message: l10n.error,
+                          kind: DialogKind.refuser,
                           titre_concerne: l10n.entry,
                           message: response.message ?? l10n.errorOccurred,
                         );

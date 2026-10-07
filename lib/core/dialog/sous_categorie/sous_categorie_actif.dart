@@ -1,4 +1,5 @@
 import 'dart:ui';
+import 'package:caisse_dz/core/dialog/dialog_kind.dart';
 import 'package:caisse_dz/DBCreate.dart';
 import 'package:caisse_dz/Services/Historique.dart';
 import 'package:caisse_dz/Services/Produits.dart';
@@ -98,6 +99,7 @@ Future<void> AnnulerSousCategorie(
     await InformationDialog(
       context: context,
       titre_type_message: l10n.authentication,
+      kind: DialogKind.refuser,
       titre_concerne: l10n.user,
       message: l10n.loginRequiredDelete,
     );
@@ -178,6 +180,7 @@ Future<void> AnnulerSousCategorie(
                       onPressed: () async {
                         await ConfirmationDialog(
                           context: context,
+                          kind: DialogKind.danger,
                           titre: l10n.deletion,
                           message: l10n.confirmDeleteSubcategories,
                           onConfirmer: () async {

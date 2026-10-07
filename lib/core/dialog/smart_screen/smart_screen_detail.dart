@@ -49,7 +49,7 @@ Future<void> SmartScanDetail(
       final l10n = AppLocalizations.of(context)!;
 
       return BaseDialog(
-        width: 900,
+        width: 1100,
         height: 600,
 
         header: Column(
@@ -257,7 +257,7 @@ Widget _dialogListeProduitsSmartScan(
       .toList();
 
   return BaseDialog(
-    width: 700,
+    width: 1100,
     height: 550,
 
     header: Column(

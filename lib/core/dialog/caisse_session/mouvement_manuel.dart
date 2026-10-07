@@ -1,4 +1,5 @@
 import 'dart:ui';
+import 'package:caisse_dz/core/dialog/dialog_kind.dart';
 
 import 'package:caisse_dz/DBCreate.dart';
 import 'package:caisse_dz/Services/CaisseSession.dart';
@@ -36,12 +37,18 @@ Future<void> MouvementManuelDialog({
     await InformationDialog(
       context: context,
       titre_type_message: l10n.authentication,
+      kind: DialogKind.refuser,
       titre_concerne: l10n.user,
       message: l10n.loginRequiredCreate,
     );
     return;
   }
   final String userCode = auth.userCode!;
+  // Contexte stable de l'écran appelant, capturé avant le StatefulBuilder
+  // ci-dessous qui masque `context` par ombrage de nom — voir la même
+  // remarque dans cloture_caisse_session.dart (Navigator.pop suivi d'une
+  // réutilisation du contexte qu'on vient de faire disparaître).
+  final BuildContext callerContext = context;
 
   final montantController = TextEditingController();
   final motifController = TextEditingController();
@@ -49,6 +56,9 @@ Future<void> MouvementManuelDialog({
   final formKey = GlobalKey<FormState>();
   String sens = 'Entrée';
   String modePaiement = ListsConst.modePaiementList.first;
+  // Garde anti-double-soumission : voir la même remarque dans
+  // cloture_caisse_session.dart (double Navigator.pop -> assertion GoRouter).
+  bool isSubmitting = false;
 
   return showDialog(
     context: context,
@@ -148,7 +158,9 @@ Future<void> MouvementManuelDialog({
                       icon: Icons.save,
                       color: Appstyle.violet,
                       onPressed: () async {
+                        if (isSubmitting) return;
                         if (!formKey.currentState!.validate()) return;
+                        isSubmitting = true;
 
                         final db = await DbCreator.openDb();
                         final services = CaisseSessionServices(db);
@@ -179,18 +191,21 @@ Future<void> MouvementManuelDialog({
                         final response = await services.ajouterMouvement(mouvement);
 
                         if (!response.success) {
+                          isSubmitting = false;
                           await InformationDialog(
                             context: context,
                             titre_type_message: l10n.error,
+                            kind: DialogKind.refuser,
                             titre_concerne: l10n.mouvementManuel,
                             message: response.message,
                           );
                           return;
                         }
 
-                        if (context.mounted) Navigator.pop(context);
+                        if (!callerContext.mounted) return;
+                        Navigator.pop(context);
                         await InformationDialog(
-                          context: context,
+                          context: callerContext,
                           titre_type_message: l10n.success,
                           titre_concerne: l10n.mouvementManuel,
                           message: l10n.mouvementAjouteSuccess,

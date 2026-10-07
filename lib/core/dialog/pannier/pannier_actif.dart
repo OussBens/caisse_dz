@@ -1,3 +1,5 @@
+import 'package:caisse_dz/core/dialog/dialog_kind.dart';
+import 'package:caisse_dz/core/dialog/information_dialog.dart';
 import 'dart:ui';
 import 'package:caisse_dz/DBCreate.dart';
 import 'package:caisse_dz/Services/Client.dart';
@@ -190,6 +192,34 @@ Future<void> AnnulerPannier(
       ),
     );
     return;
+  }
+
+  // ✅ Permission spéciale (voir RoleDetail) : annuler une opération.
+  if (!auth.canAnnulerOperations) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(AppLocalizations.of(context)!.noPermissionAction),
+        backgroundColor: Colors.red,
+        duration: const Duration(seconds: 3),
+      ),
+    );
+    return;
+  }
+
+  // ✅ Panier(s) déjà annulé(s) : on le signale. Si tous le sont, rien à
+  // faire ; sinon on n'annule que les paniers encore actifs.
+  final dejaAnnules = paniersSelectionnes.where((p) => !p.etat).toList();
+  if (dejaAnnules.isNotEmpty) {
+    final l10n = AppLocalizations.of(context)!;
+    await InformationDialog(
+      context: context,
+      titre_type_message: l10n.error,
+      kind: DialogKind.refuser,
+      titre_concerne: l10n.panier,
+      message: l10n.cartsAlreadyCancelled(dejaAnnules.map((p) => p.code ?? '').join(', ')),
+    );
+    paniersSelectionnes = paniersSelectionnes.where((p) => p.etat).toList();
+    if (paniersSelectionnes.isEmpty || !context.mounted) return;
   }
 
   final motifController = TextEditingController();

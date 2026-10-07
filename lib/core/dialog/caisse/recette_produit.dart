@@ -1,4 +1,6 @@
+import 'package:caisse_dz/core/widget/status_badge.dart';
 import 'dart:ui';
+import 'package:caisse_dz/Services/export_spinner.dart';
 import 'package:caisse_dz/DBCreate.dart';
 import 'package:caisse_dz/Services/Client.dart';
 import 'package:caisse_dz/Services/ExcelPreviewDialog.dart';
@@ -43,6 +45,8 @@ class _LigneRecetteProduit {
   final double prix;
   final double montant;
   final String nomCaissier;
+  // Ligne de vente ET panier non annulés.
+  final bool actif;
 
   const _LigneRecetteProduit({
     required this.codePannier,
@@ -54,6 +58,7 @@ class _LigneRecetteProduit {
     required this.prix,
     required this.montant,
     required this.nomCaissier,
+    required this.actif,
   });
 
   String get searchableText =>
@@ -67,9 +72,14 @@ Future<void> DialogRecetteProduit({
   final db = await DbCreator.openDb();
   final ppService = PPServices(db);
 
+  // Comme la recette panier (pannier_vendu.dart) : uniquement les ventes
+  // du jour en cours.
+  final now = DateTime.now();
+  final debutJour = DateTime(now.year, now.month, now.day);
   final allPanniers = await PannierServices.getAllPanniers();
   final panniersCaisse = allPanniers
       .where((p) => p.caisse == caisseName && p.typepannier != "SmartScan")
+      .where((p) => !p.date.isBefore(debutJour) && !p.date.isAfter(now))
       .toList();
   final codesPanniersCaisse = panniersCaisse.map((p) => p.code).toSet();
 
@@ -102,6 +112,7 @@ Future<void> DialogRecetteProduit({
       prix: pp.prix,
       montant: pp.total,
       nomCaissier: nomCaissier(pannier?.caissier_code ?? ''),
+      actif: pp.etat && (pannier?.etat ?? true),
     );
   }).toList();
 
@@ -141,6 +152,9 @@ Future<void> DialogRecetteProduit({
 
             return produitOk && sousCategorieOk && quantiteOk && prixOk && searchOk;
           }).toList();
+          // Totaux = ventes actives uniquement (les lignes annulées restent
+          // affichées, avec leur état).
+          final lignesActives = lignesFiltrees.where((l) => l.actif).toList();
 
           Future<void> exportExcel() async {
             if (lignesFiltrees.isEmpty) {
@@ -153,12 +167,8 @@ Future<void> DialogRecetteProduit({
               return;
             }
 
+            final fermerSpinner = ouvrirSpinnerExport(context);
             try {
-              showDialog(
-                context: context,
-                barrierDismissible: false,
-                builder: (context) => const Center(child: CircularProgressIndicator()),
-              );
 
               final clesFiltrees = lignesFiltrees.map((l) => '${l.codePannier}|${l.codeProduit}').toSet();
               final pannierProduitsAExporter = allPannierProduits
@@ -173,7 +183,7 @@ Future<void> DialogRecetteProduit({
                 l10n: l10n,
               );
 
-              Navigator.pop(context);
+              fermerSpinner();
 
               final excel = Excel.decodeBytes(await excelFile.readAsBytes());
               var sheet = excel.tables['RecetteCaisseProduit'];
@@ -222,7 +232,7 @@ Future<void> DialogRecetteProduit({
                 ),
               );
             } catch (e) {
-              if (Navigator.canPop(context)) Navigator.pop(context);
+              fermerSpinner();
               ScaffoldMessenger.of(context).showSnackBar(
                 SnackBar(content: Text('${l10n.exportError}: $e'), backgroundColor: Colors.red),
               );
@@ -243,8 +253,9 @@ Future<void> DialogRecetteProduit({
             final pdfBytes = await PDFTableGenerator.generateTableReport(
               title: "${l10n.productRevenue} - $caisseName",
               subtitleLines: [
-                "${l10n.numberOfSales}: ${lignesFiltrees.length}    "
-                    "${l10n.totalSales}: ${NumberFormatUtil.formatMontant(lignesFiltrees.fold(0.0, (sum, l) => sum + l.montant), decimales: 2)} ${l10n.currency}",
+                "${l10n.date}: ${debutJour.day.toString().padLeft(2, '0')}/${debutJour.month.toString().padLeft(2, '0')}/${debutJour.year}    "
+                    "${l10n.numberOfSales}: ${lignesActives.length}    "
+                    "${l10n.totalSales}: ${NumberFormatUtil.formatMontant(lignesActives.fold(0.0, (sum, l) => sum + l.montant), decimales: 2)} ${l10n.currency}",
               ],
               headers: [
                 l10n.panierCode,
@@ -255,6 +266,7 @@ Future<void> DialogRecetteProduit({
                 l10n.price,
                 l10n.amount,
                 l10n.cashier,
+                l10n.status,
               ],
               rows: lignesFiltrees.map((l) => [
                 l.codePannier,
@@ -265,6 +277,7 @@ Future<void> DialogRecetteProduit({
                 NumberFormatUtil.formatMontant(l.prix, decimales: 2),
                 NumberFormatUtil.formatMontant(l.montant, decimales: 2),
                 l.nomCaissier,
+                l.actif ? l10n.active : l10n.inactive,
               ]).toList(),
             );
 
@@ -303,7 +316,8 @@ Future<void> DialogRecetteProduit({
                 height: 900,
                 header: TitreAvecLigne(
                   imagePath: 'assets/icons/sidebar/produit_icon.png',
-                  text: "${l10n.productRevenue} - $caisseName",
+                  text: "${l10n.productRevenue} - $caisseName - "
+                      "${debutJour.day.toString().padLeft(2, '0')}/${debutJour.month.toString().padLeft(2, '0')}/${debutJour.year}",
                 ),
                 content: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -459,11 +473,11 @@ Future<void> DialogRecetteProduit({
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
                           Text(
-                            "${l10n.numberOfSales}: ${lignesFiltrees.length}",
+                            "${l10n.numberOfSales}: ${lignesActives.length}",
                             style: Appstyle.textSB.copyWith(color: Appstyle.violet),
                           ),
                           Text(
-                            "${l10n.totalSales}: ${NumberFormatUtil.formatMontant(lignesFiltrees.fold(0.0, (sum, l) => sum + l.montant), decimales: 2)} ${l10n.currency}",
+                            "${l10n.totalSales}: ${NumberFormatUtil.formatMontant(lignesActives.fold(0.0, (sum, l) => sum + l.montant), decimales: 2)} ${l10n.currency}",
                             style: Appstyle.textSB.copyWith(color: Appstyle.crevete),
                           ),
                         ],
@@ -504,6 +518,7 @@ Future<void> DialogRecetteProduit({
                                       DataColumn(label: Text(l10n.price), numeric: true),
                                       DataColumn(label: Text(l10n.amount), numeric: true),
                                       DataColumn(label: Text(l10n.cashier)),
+                                      DataColumn(label: Text(l10n.status)),
                                     ],
                                     rows: lignesFiltrees.map((l) {
                                       return DataRow(cells: [
@@ -520,6 +535,7 @@ Future<void> DialogRecetteProduit({
                                           ),
                                         ),
                                         DataCell(Text(l.nomCaissier)),
+                                        DataCell(EtatBadge(isActive: l.actif)),
                                       ]);
                                     }).toList(),
                                   ),

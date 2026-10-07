@@ -1,4 +1,5 @@
 import 'package:caisse_dz/Services/CaisseGestion.dart';
+import 'package:caisse_dz/Services/export_spinner.dart';
 import 'package:caisse_dz/Services/Client.dart';
 import 'package:caisse_dz/Services/ExcelPreviewDialog.dart';
 import 'package:caisse_dz/Services/PDFPreviewDialog.dart';
@@ -207,24 +208,29 @@ class _RecetteCaisseProduitTabState extends State<RecetteCaisseProduitTab> {
   int get _nbrPannier => _panniersFiltres.map((p) => p.code).toSet().length;
   int get _nbrProduit => _lignesFiltrees.length;
 
-  Future<void> _exportExcel(AppLocalizations l10n) async {
-    final lignesAExporter = _lignesFiltrees;
+  // Lignes cochées dans le tableau (Extract filtre). Pas de setState : seul
+  // l'export les lit, et un rebuild recréerait la liste du tableau.
+  List<LigneRecetteCaisseProduit> _lignesSelectionnees = [];
+
+  Future<void> _exportExcel(AppLocalizations l10n, {bool selectionSeulement = false}) async {
+    // Ligne du tableau -> ligne de vente : même panier et même produit (nom).
+    String nomProduit(String code) => produits.firstWhereOrNull((p) => p.code == code)?.nom ?? code;
+    final clesSelection = _lignesSelectionnees.map((l) => '${l.codePannier}|${l.nomProduit}').toSet();
+    final lignesAExporter = selectionSeulement
+        ? _lignesFiltrees.where((pp) => clesSelection.contains('${pp.codePannier}|${nomProduit(pp.codeProduit)}')).toList()
+        : _lignesFiltrees;
     if (lignesAExporter.isEmpty) {
       await InformationDialog(
         context: context,
         titre_type_message: l10n.information,
         titre_concerne: l10n.panier,
-        message: l10n.noDataToExport,
+        message: selectionSeulement ? l10n.noRowSelected : l10n.noDataToExport,
       );
       return;
     }
 
+    final fermerSpinner = ouvrirSpinnerExport(context);
     try {
-      showDialog(
-        context: context,
-        barrierDismissible: false,
-        builder: (context) => const Center(child: CircularProgressIndicator()),
-      );
 
       final excelFile = await ExcelGenerator.generateRecetteCaisseProduitExcel(
         lignes: lignesAExporter,
@@ -235,7 +241,7 @@ class _RecetteCaisseProduitTabState extends State<RecetteCaisseProduitTab> {
       );
 
       if (!mounted) return;
-      Navigator.pop(context);
+      fermerSpinner();
 
       final excel = Excel.decodeBytes(await excelFile.readAsBytes());
       var sheet = excel.tables['RecetteCaisseProduit'];
@@ -286,7 +292,7 @@ class _RecetteCaisseProduitTabState extends State<RecetteCaisseProduitTab> {
         ),
       );
     } catch (e) {
-      if (Navigator.canPop(context)) Navigator.pop(context);
+      fermerSpinner();
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('${l10n.exportError}: $e'), backgroundColor: Colors.red),
       );
@@ -439,6 +445,13 @@ class _RecetteCaisseProduitTabState extends State<RecetteCaisseProduitTab> {
                     onPressed: () async => await _exportExcel(l10n),
                   ),
                   const SizedBox(width: 10),
+                  // Extract filtre : Excel des seules lignes cochées.
+                  MainIconButton(
+                    imagePath: "assets/icons/action/extacter_filtre_icon.png",
+                    color: Colors.orange,
+                    onPressed: () async => await _exportExcel(l10n, selectionSeulement: true),
+                  ),
+                  const SizedBox(width: 10),
                   MainButton(
                     text: l10n.extractPdf,
                     textColor: Colors.red,
@@ -587,7 +600,7 @@ class _RecetteCaisseProduitTabState extends State<RecetteCaisseProduitTab> {
               ),
               const SizedBox(width: 20),
               Expanded(
-                child: PeriodeRapideDropdown(
+                child: ChampPeriodeRapide(
                   l10n: l10n,
                   value: periodeRapide,
                   onSelected: _appliquerPeriodeRapide,
@@ -621,6 +634,9 @@ class _RecetteCaisseProduitTabState extends State<RecetteCaisseProduitTab> {
     // tableau (et donc le tri par en-tête actif) à chaque rafraîchissement.
     // didUpdateWidget() de TableauRecetteCaisseProduit gère déjà la mise à
     // jour des données en conservant le tri.
-    return TableauRecetteCaisseProduit(lignes: lignes);
+    return TableauRecetteCaisseProduit(
+      lignes: lignes,
+      onSelectionChanged: (selection) => _lignesSelectionnees = selection,
+    );
   }
 }

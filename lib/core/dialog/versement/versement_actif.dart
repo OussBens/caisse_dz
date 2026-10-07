@@ -1,4 +1,5 @@
 import 'dart:ui';
+import 'package:caisse_dz/core/dialog/dialog_kind.dart';
 import 'package:collection/collection.dart';
 import 'package:caisse_dz/DBCreate.dart';
 import 'package:caisse_dz/Services/Fournisseur.dart';
@@ -100,17 +101,19 @@ Future<void> ActiverVersements(
     await InformationDialog(
       context: context,
       titre_type_message: l10n.authentication,
+      kind: DialogKind.refuser,
       titre_concerne: l10n.user,
       message: l10n.loginRequiredDelete,
     );
     return;
   }
 
-  // Un versement généré par un retour ne peut pas être supprimé directement :
-  // il doit rester synchronisé avec le retour, donc toute suppression doit
-  // passer par le retour lui-même.
+  // Un versement généré par un retour (Client/Sortie ou Fournisseur/Entrée)
+  // ne peut pas être supprimé directement : il doit rester synchronisé avec
+  // le retour, donc toute suppression doit passer par le retour lui-même.
   for (final v in versementsSelectionnes) {
-    if (await RetourServices.estLieAUnRetour(v.codeOperation)) {
+    if (VerssementServices.estVersementDeRetour(v) ||
+        await RetourServices.estLieAUnRetour(v.codeOperation)) {
       await InformationDialog(
         context: context,
         titre_type_message: l10n.information,
@@ -241,6 +244,7 @@ Future<void> ActiverVersements(
                       onPressed: () async {
                         await ConfirmationDialog(
                           context: context,
+                          kind: DialogKind.danger,
                           titre: l10n.payment,
                           message: l10n.confirmDeletePayments,
                           onConfirmer: () async {

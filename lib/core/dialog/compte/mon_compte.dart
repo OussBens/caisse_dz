@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'package:caisse_dz/core/dialog/dialog_kind.dart';
 import 'dart:ui';
 
 import 'package:caisse_dz/DBCreate.dart';
@@ -23,7 +24,10 @@ import '../information_dialog.dart';
 import '../../widget/button/main_button.dart';
 import '../../widget/champ/champ_avec_label.dart';
 import '../../widget/champ/text_champ_l.dart';
+import '../../widget/champ/liste_champ.dart';
 import '../../widget/title/titre_avec_ligne.dart';
+
+const List<String> _languesDisponibles = ["fr", "en", "ar"];
 
 Future<int> _GetNextHistoriqueId() async {
   final db = await DbCreator.openDb();
@@ -76,6 +80,7 @@ Future<void> MonCompteDialog(BuildContext context) async {
     await InformationDialog(
       context: context,
       titre_type_message: l10n.authentication,
+      kind: DialogKind.refuser,
       titre_concerne: l10n.user,
       message: l10n.loginRequiredModify,
     );
@@ -87,6 +92,7 @@ Future<void> MonCompteDialog(BuildContext context) async {
     await InformationDialog(
       context: context,
       titre_type_message: l10n.error,
+      kind: DialogKind.refuser,
       titre_concerne: l10n.user,
       message: l10n.errorOccurred,
     );
@@ -105,9 +111,10 @@ Future<void> MonCompteDialog(BuildContext context) async {
   _caisseController.text = caisseParam?.selectedCaisse ?? '';
   _magasinController.text = caisseParam?.selectedMagasin ?? '';
 
-  final bool peutChangerCaisseCompte = auth.role == "Admin";
+  final bool peutChangerCaisseCompte = auth.canChangerCaisseMagasin;
 
   bool changerMotDePasse = false;
+  String selectedLanguage = auth.currentLanguage ?? 'fr';
 
   return showDialog(
     context: context,
@@ -179,6 +186,7 @@ Future<void> MonCompteDialog(BuildContext context) async {
                                   await ParametreCaisseDialog(
                                     context: context,
                                     Param: caisseParam!,
+                                    choixCaisse: true,
                                     onValider: ({required CaisseParam Param}) async {
                                       setState(() {
                                         caisseParam = Param;
@@ -202,6 +210,20 @@ Future<void> MonCompteDialog(BuildContext context) async {
                                   controller: _magasinController,
                                   enabled: false,
                                   hint: "",
+                                ),
+                              ),
+                              const SizedBox(height: 10),
+                              ChampAvecLabel(
+                                label: l10n.language,
+                                distance: 200,
+                                child: TextListe(
+                                  value: selectedLanguage,
+                                  items: _languesDisponibles,
+                                  clearable: false,
+                                  onChanged: (v) {
+                                    if (v == null) return;
+                                    setState(() => selectedLanguage = v);
+                                  },
                                 ),
                               ),
                             ],
@@ -316,6 +338,7 @@ Future<void> MonCompteDialog(BuildContext context) async {
                           await InformationDialog(
                             context: context,
                             titre_type_message: l10n.error,
+                            kind: DialogKind.refuser,
                             titre_concerne: l10n.user,
                             message: l10n.fillRequiredFields,
                           );
@@ -355,6 +378,7 @@ Future<void> MonCompteDialog(BuildContext context) async {
                               await InformationDialog(
                                 context: context,
                                 titre_type_message: l10n.error,
+                                kind: DialogKind.refuser,
                                 titre_concerne: l10n.user,
                                 message: response.message ?? l10n.errorOccurred,
                               );
@@ -374,6 +398,21 @@ Future<void> MonCompteDialog(BuildContext context) async {
                               dateCree: DateTime.now(),
                               creeParCode: auth.userCode!,
                             ));
+
+                            // La langue n'appartient pas au modèle Utilisateur (c'est un
+                            // paramètre applicatif, voir UserParam) : on ne touche que ce
+                            // champ, en préservant devise/magasin déjà en place.
+                            if (selectedLanguage != auth.currentLanguage) {
+                              await auth.updateUserParameters(
+                                language: selectedLanguage,
+                                currency: auth.currentCurrency ?? 'DZD',
+                                magasin: auth.currentMagasin ?? '',
+                                magasinId: auth.currentMagasinId ?? '',
+                                modifiedBy: auth.username ?? '',
+                                modifiedByCode: auth.userCode!,
+                                reason: "Changement de langue depuis Mon Compte",
+                              );
+                            }
 
                             auth.updateUsername(_usernameController.text.trim());
 

@@ -1,4 +1,5 @@
 import 'dart:ui';
+import 'package:caisse_dz/core/dialog/dialog_kind.dart';
 
 import 'package:caisse_dz/DBCreate.dart';
 import 'package:caisse_dz/Services/CaisseSession.dart';
@@ -32,6 +33,7 @@ Future<void> OuvertureCaisseDialog({
     await InformationDialog(
       context: context,
       titre_type_message: l10n.authentication,
+      kind: DialogKind.refuser,
       titre_concerne: l10n.user,
       message: l10n.loginRequiredCreate,
     );
@@ -43,12 +45,20 @@ Future<void> OuvertureCaisseDialog({
     text: caisse.soldeInitial.toStringAsFixed(2),
   );
   final formKey = GlobalKey<FormState>();
+  // Garde anti-double-soumission : sans elle, un double-clic sur "Enregistrer"
+  // déclenche deux fois l'appel async ci-dessous — le 1er Navigator.pop ferme
+  // bien ce dialog, mais le 2e (dialog déjà fermé) retombe alors sur la PAGE
+  // GoRouter sous-jacente et la fait sauter ("You have popped the last page
+  // off of the stack"), plantant l'app. Pas de StatefulBuilder ici (pas
+  // besoin d'un retour visuel type spinner) : un simple booléen capturé par
+  // la closure suffit à bloquer la ré-entrance.
+  bool isSubmitting = false;
 
   return showDialog(
     context: context,
     barrierDismissible: false,
     barrierColor: Appstyle.gris.withOpacity(0.2),
-    builder: (_) {
+    builder: (dialogContext) {
       return ClipRect(
         child: BackdropFilter(
           filter: ImageFilter.blur(sigmaX: 2, sigmaY: 2),
@@ -85,7 +95,7 @@ Future<void> OuvertureCaisseDialog({
                   text: l10n.cancel,
                   icon: Icons.cancel,
                   color: Appstyle.gris,
-                  onPressed: () => Navigator.pop(context),
+                  onPressed: () => Navigator.pop(dialogContext),
                 ),
                 const SizedBox(width: 10),
                 MainButton(
@@ -93,7 +103,9 @@ Future<void> OuvertureCaisseDialog({
                   icon: Icons.save,
                   color: Appstyle.violet,
                   onPressed: () async {
+                    if (isSubmitting) return;
                     if (!formKey.currentState!.validate()) return;
+                    isSubmitting = true;
 
                     final db = await DbCreator.openDb();
                     final services = CaisseSessionServices(db);
@@ -104,23 +116,26 @@ Future<void> OuvertureCaisseDialog({
                     );
 
                     if (!response.success) {
+                      isSubmitting = false;
                       await InformationDialog(
                         context: context,
                         titre_type_message: l10n.error,
+                        kind: DialogKind.refuser,
                         titre_concerne: l10n.ouvrirCaisse,
                         message: response.message,
                       );
                       return;
                     }
 
-                    if (context.mounted) Navigator.pop(context);
+                    Navigator.pop(dialogContext);
+                    onSuccess?.call();
+                    if (!context.mounted) return;
                     await InformationDialog(
                       context: context,
                       titre_type_message: l10n.success,
                       titre_concerne: l10n.ouvrirCaisse,
                       message: l10n.ouvertureCaisseSuccess,
                     );
-                    onSuccess?.call();
                   },
                 ),
               ],

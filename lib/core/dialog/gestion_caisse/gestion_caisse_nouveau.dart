@@ -1,4 +1,5 @@
 import 'dart:ui';
+import 'package:caisse_dz/core/dialog/dialog_kind.dart';
 
 import 'package:caisse_dz/DBCreate.dart';
 import 'package:caisse_dz/Services/CaisseGestion.dart';
@@ -120,8 +121,8 @@ Future<void> CaisseGestionNouveau(BuildContext context) async {
     return;
   }
 
-  // Palier Basic limité à une seule caisse — Avancé/Premium illimité. Défense
-  // en profondeur : au-delà de ce message, rien n'empêche techniquement de
+  // Palier Basic limité à une seule caisse — Avancé illimité. Défense en
+  // profondeur : au-delà de ce message, rien n'empêche techniquement de
   // recréer une caisse si ce dialog était appelé ailleurs, mais c'est le
   // seul point d'entrée de création actuel.
   if (auth.licenseTier == LicenseTier.basic) {
@@ -318,6 +319,7 @@ Future<void> CaisseGestionNouveau(BuildContext context) async {
                           await InformationDialog(
                             context: context,
                             titre_type_message: l10n.error,
+                            kind: DialogKind.refuser,
                             titre_concerne: l10n.cashRegisterDetail,
                             message: l10n.fillRequiredFields,
                           );
@@ -350,6 +352,7 @@ Future<void> CaisseGestionNouveau(BuildContext context) async {
                           await InformationDialog(
                             context: context,
                             titre_type_message: l10n.error,
+                            kind: DialogKind.refuser,
                             titre_concerne: l10n.cashRegisterDetail,
                             message: response.message ?? "Une erreur est survenue lors de l'enregistrement.",
                           );

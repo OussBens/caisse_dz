@@ -1,4 +1,5 @@
 import 'dart:ui';
+import 'package:caisse_dz/core/dialog/dialog_kind.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:intl/intl.dart';
@@ -37,6 +38,7 @@ Future<void> RemiseNouveau(BuildContext context, {VoidCallback? onSuccess}) asyn
     await InformationDialog(
       context: context,
       titre_type_message: l10n.authentication,
+      kind: DialogKind.refuser,
       titre_concerne: l10n.user,
       message: l10n.loginRequiredCreate,
     );
@@ -273,6 +275,7 @@ class _RemiseDialogState extends State<RemiseDialog> {
       await InformationDialog(
         context: context,
         titre_type_message: l10n.error,
+        kind: DialogKind.refuser,
         titre_concerne: l10n.discount,
         message: l10n.fillRequiredFields,
       );
@@ -286,6 +289,7 @@ class _RemiseDialogState extends State<RemiseDialog> {
       await InformationDialog(
         context: context,
         titre_type_message: l10n.error,
+        kind: DialogKind.refuser,
         titre_concerne: l10n.discount,
         message: l10n.fillRequiredFields,
       );
@@ -296,6 +300,7 @@ class _RemiseDialogState extends State<RemiseDialog> {
       await InformationDialog(
         context: context,
         titre_type_message: l10n.error,
+        kind: DialogKind.refuser,
         titre_concerne: l10n.discount,
         message: l10n.atLeastOneProduct,
       );
@@ -356,6 +361,7 @@ class _RemiseDialogState extends State<RemiseDialog> {
         await InformationDialog(
           context: context,
           titre_type_message: l10n.error,
+          kind: DialogKind.refuser,
           titre_concerne: l10n.discount,
           message: "${l10n.errorOccurred}: $e",
         );

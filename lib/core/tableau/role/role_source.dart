@@ -63,6 +63,9 @@ class RoleDataSource extends BaseTableDataSource<Role> {
     if (columnName == 'etat') {
       return Center(child: EtatBadge(isActive: item.etat));
     }
+    if (columnName == 'rolenom') {
+      return boldCell(item.rolenom, align: TextAlign.left);
+    }
     return null;
   }
 

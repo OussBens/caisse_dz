@@ -1,4 +1,5 @@
 import 'dart:ui';
+import 'package:caisse_dz/core/dialog/dialog_kind.dart';
 import 'package:collection/collection.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
@@ -130,6 +131,7 @@ Future<void> RetourModif(BuildContext context, Retour retour) async {
     await InformationDialog(
       context: context,
       titre_type_message: l10n.authentication,
+      kind: DialogKind.refuser,
       titre_concerne: l10n.user,
       message: l10n.loginRequired,
     );
@@ -229,6 +231,7 @@ Future<void> RetourModif(BuildContext context, Retour retour) async {
                                 child: TextChampL(
                                   numeric: true,
                                   isQuantite: true,
+                                  uniteMesure: produitsTest.firstWhereOrNull((p) => p.nom == selectedNomProduitR)?.uniteMesure,
                                   enabled: false,
                                   controller: quantiteControllerR,
                                   hint: "",
@@ -241,6 +244,7 @@ Future<void> RetourModif(BuildContext context, Retour retour) async {
                                   child: TextChampL(
                                     numeric: true,
                                     isQuantite: true,
+                                    uniteMesure: QuantiteFormat.unitePiece,
                                     enabled: false,
                                     controller: nombreControllerR,
                                     hint: "",
@@ -359,6 +363,7 @@ Future<void> RetourModif(BuildContext context, Retour retour) async {
                           await InformationDialog(
                             context: context,
                             titre_type_message: l10n.error,
+                            kind: DialogKind.refuser,
                             titre_concerne: l10n.return_,
                             message: l10n.fillRequiredFields,
                           );
@@ -386,6 +391,7 @@ Future<void> RetourModif(BuildContext context, Retour retour) async {
                               await InformationDialog(
                                 context: context,
                                 titre_type_message: l10n.error,
+                                kind: DialogKind.refuser,
                                 titre_concerne: l10n.return_,
                                 message: response.message ?? l10n.errorOccurred,
                               );

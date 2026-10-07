@@ -44,7 +44,7 @@ class _TableauUtilisateurAdvancedState
   // Constantes pour les colonnes
   static const int SETTINGS_COLUMN_WIDTH = 60;
   static const int SELECT_COLUMN_WIDTH = 55;
-  static const double MIN_COLUMN_WIDTH = 150;
+  static const double MIN_COLUMN_WIDTH = 170;
   static const double MAX_COLUMN_WIDTH = 400;
 
   late Map<String, Map<String, dynamic>> columnVisibility;

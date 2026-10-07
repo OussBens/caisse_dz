@@ -70,18 +70,13 @@ class _InsertionCodebarDialogState
       width: 500,
      couleur: Appstyle.Tblanc,
 
-      header: Row(
-        children: [
-          TitreAvecLigne(
-            imagePath: 'assets/icons/sidebar/produit_icon.png',
-            text: "Insertion Code Barre",
-          ),
-          const Spacer(),
-          GestureDetector(
-            onTap: () => Navigator.pop(context),
-            child: Icon(Icons.close, color: Appstyle.gris),
-          ),
-        ],
+      header: TitreAvecLigne(
+        imagePath: 'assets/icons/sidebar/produit_icon.png',
+        text: "Insertion Code Barre",
+        trailing: GestureDetector(
+          onTap: () => Navigator.pop(context),
+          child: Icon(Icons.close, color: Appstyle.gris),
+        ),
       ),
 
       content: Column(

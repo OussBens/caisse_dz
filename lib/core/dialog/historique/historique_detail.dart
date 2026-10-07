@@ -16,7 +16,7 @@ Future<void> HistoriqueDetail(
     barrierDismissible: true,
     builder: (context) {
       return BaseDialog(
-        width: 900,
+        width: 1100,
         height: 600,
 
         // ================= HEADER =================

@@ -1,12 +1,17 @@
 import 'dart:convert';
+import 'package:caisse_dz/core/dialog/dialog_kind.dart';
 import 'dart:ui';
 import 'package:collection/collection.dart';
 import 'package:caisse_dz/DBCreate.dart';
 import 'package:caisse_dz/Services/CaisseGestion.dart';
+import 'package:caisse_dz/Services/CaisseParam.dart' hide ApiResponse;
+import 'package:caisse_dz/Services/Magasin.dart';
 import 'package:caisse_dz/Services/Role.dart' hide ApiResponse;
 import 'package:caisse_dz/Services/UserParam.dart' hide ApiResponse;
 import 'package:caisse_dz/Services/Utilisateur.dart';
 import 'package:caisse_dz/core/Auth/auth_state.dart';
+import 'package:caisse_dz/core/utilis/colis_translator.dart';
+import 'package:caisse_dz/data/models/caisseParam.dart';
 import 'package:caisse_dz/data/models/gestion_caisse.dart';
 import 'package:caisse_dz/data/models/role.dart';
 import 'package:caisse_dz/data/models/userparam.dart';
@@ -84,6 +89,38 @@ Future<ApiResponse<int>> _SaveUtilisateur({required Utilisateur utilisateur, req
   final servicep  = UserParamServices(db);
   await servicep.addUserParam(userparam, utilisateur.creeParCode, utilisateur.creeParCode);
 
+  // ✅ CaisseParam initiale, dérivée de la caisse assignée ci-dessus : sans
+  // elle, l'utilisateur ne peut résoudre aucun magasin (Entrée, Sortie,
+  // SmartScan, Retour, Transfert restent bloqués/mal résolus tant que
+  // personne ne passe par ParametreCaisseDialog — qui ne fait que mettre à
+  // jour une ligne existante, jamais la créer).
+  if (response.success && utilisateur.caisseCode != null) {
+    final caisse = (await GCServices.getAllCaisses())
+        .where((c) => c.code == utilisateur.caisseCode)
+        .firstOrNull;
+    if (caisse != null) {
+      final magasinNom = (await MagasinServices.getAllMagasins())
+          .where((m) => m.code == caisse.magasinCode)
+          .firstOrNull
+          ?.nom ?? '';
+      final serviceCP = CaisseParamServices(db);
+      final cpId = await CaisseParamServices.getNextCaisseParamId(db);
+      await serviceCP.addCaisseParam(CaisseParam(
+        id: cpId,
+        utilisteur: utilisateur.code,
+        magasinParDefaut: true,
+        caisseParDefaut: true,
+        selectedCaisse: caisse.nomCaisse,
+        selectedMagasin: magasinNom,
+        selectedColis: ColisTranslator.UNITE,
+        dateCree: DateTime.now(),
+        creeParCode: userCode,
+        magasinCode: caisse.magasinCode,
+        caisseCode: caisse.code,
+      ));
+    }
+  }
+
   return response;
 }
 
@@ -159,6 +196,7 @@ Future<void> UtilisateurNouveau(BuildContext context) async {
     await InformationDialog(
       context: context,
       titre_type_message: l10n.authentication,
+      kind: DialogKind.refuser,
       titre_concerne: l10n.user,
       message: l10n.loginRequired,
     );
@@ -336,6 +374,7 @@ Future<void> UtilisateurNouveau(BuildContext context) async {
                           await InformationDialog(
                             context: context,
                             titre_type_message: l10n.error,
+                            kind: DialogKind.refuser,
                             titre_concerne: l10n.user,
                             message: l10n.fillRequiredFields,
                           );
@@ -355,6 +394,7 @@ Future<void> UtilisateurNouveau(BuildContext context) async {
                           await InformationDialog(
                             context: context,
                             titre_type_message: l10n.error,
+                            kind: DialogKind.refuser,
                             titre_concerne: l10n.user,
                             message: l10n.passwordTooShort ?? "Password must be at least 4 characters",
                           );
@@ -367,6 +407,7 @@ Future<void> UtilisateurNouveau(BuildContext context) async {
                           await InformationDialog(
                             context: context,
                             titre_type_message: l10n.error,
+                            kind: DialogKind.refuser,
                             titre_concerne: l10n.user,
                             message: l10n.usernameAlreadyExists,
                           );
@@ -403,6 +444,7 @@ Future<void> UtilisateurNouveau(BuildContext context) async {
                           await InformationDialog(
                             context: context,
                             titre_type_message: l10n.error,
+                            kind: DialogKind.refuser,
                             titre_concerne: l10n.user,
                             message: response.message ?? l10n.errorOccurred,
                           );

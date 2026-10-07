@@ -4,9 +4,15 @@ import 'package:caisse_dz/core/theme/app_style.dart';
 import '../../../data/models/magasin.dart';
 import '../../widget/detail_widget.dart';
 import '../../widget/section_decoration.dart';
+import '../../widget/stats_card.dart';
+import '../../utilis/number_format.dart';
+import 'package:caisse_dz/Services/Magasin.dart';
 import '../base_dialog.dart';
 
 Future<void> MagasinDetail(BuildContext context, Magasin magasin) async {
+  final stats = await MagasinServices.getStatistiquesMagasin(magasin.code);
+
+  if (!context.mounted) return;
   final l10n = AppLocalizations.of(context)!;
 
   return showDialog(
@@ -14,8 +20,8 @@ Future<void> MagasinDetail(BuildContext context, Magasin magasin) async {
     barrierDismissible: true,
     builder: (context) {
       return BaseDialog(
-        width: 700,
-        height: 520,
+        width: 1100,
+        height: 640,
 
         header: Column(
           children: [
@@ -56,6 +62,19 @@ Future<void> MagasinDetail(BuildContext context, Magasin magasin) async {
                   labelPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
                   elevation: magasin.etat ? 2 : 0,
                 ),
+              ],
+            ),
+            const SizedBox(height: 16),
+            StatsCard(
+              items: [
+                StatsItem(label: l10n.productCount, value: stats.produitsEnStock, icon: Icons.inventory_2_outlined),
+                StatsItem(
+                  label: l10n.stockValue,
+                  value: "${NumberFormatUtil.formatMontant(stats.valeurStock)} ${l10n.currency}",
+                  icon: Icons.payments_outlined,
+                ),
+                StatsItem(label: l10n.totalCaisses, value: stats.caisses, icon: Icons.point_of_sale),
+                StatsItem(label: l10n.transfers, value: stats.transferts, icon: Icons.swap_horiz),
               ],
             ),
           ],

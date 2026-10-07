@@ -140,19 +140,14 @@ class _InsertionProduitDialogState extends State<InsertionProduitDialog> {
       couleur: Appstyle.Tblanc,
       width: 1080,
       height: 1000,
-      header: Row(
-        children: [
-          TitreAvecLigne(
-            colligne: Appstyle.Tnoir,
-            imagePath: 'assets/icons/sidebar/produit_icon.png',
-            text: l10n.insertionProduct,
-          ),
-          const Spacer(),
-          GestureDetector(
-            onTap: () => Navigator.pop(context),
-            child: Icon(Icons.close, color: Appstyle.gris),
-          ),
-        ],
+      header: TitreAvecLigne(
+        colligne: Appstyle.Tnoir,
+        imagePath: 'assets/icons/sidebar/produit_icon.png',
+        text: l10n.insertionProduct,
+        trailing: GestureDetector(
+          onTap: () => Navigator.pop(context),
+          child: Icon(Icons.close, color: Appstyle.gris),
+        ),
       ),
       content: Container(
         child: Column(
@@ -270,6 +265,7 @@ class _InsertionProduitDialogState extends State<InsertionProduitDialog> {
                             text1: p.nom,
                             text2: "${p.prixVente} ${l10n.currency}",
                             photo: p.photo,
+                            sousCategorieId: p.sousCategorieId,
                             quantite: _quantite(p),
                             actif: p.etat,
                             selected: multiple

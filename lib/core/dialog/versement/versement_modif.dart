@@ -1,4 +1,5 @@
 import 'dart:ui';
+import 'package:caisse_dz/core/dialog/dialog_kind.dart';
 import 'package:collection/collection.dart';
 import 'package:caisse_dz/Services/Client.dart' hide ApiResponse;
 import 'package:caisse_dz/Services/Fournisseur.dart' hide ApiResponse;
@@ -138,6 +139,7 @@ Future<void> VersementModif(
     await InformationDialog(
       context: context,
       titre_type_message: l10n.authentication,
+      kind: DialogKind.refuser,
       titre_concerne: l10n.user,
       message: l10n.loginRequiredModify,
     );
@@ -147,7 +149,8 @@ Future<void> VersementModif(
   // Un versement généré par un retour ne peut pas être modifié directement :
   // il doit rester synchronisé avec le retour, donc toute modification doit
   // passer par le retour lui-même.
-  if (await RetourServices.estLieAUnRetour(versement.codeOperation)) {
+  if (VerssementServices.estVersementDeRetour(versement) ||
+      await RetourServices.estLieAUnRetour(versement.codeOperation)) {
     await InformationDialog(
       context: context,
       titre_type_message: l10n.information,
@@ -438,6 +441,7 @@ Future<void> VersementModif(
                           await InformationDialog(
                             context: context,
                             titre_type_message: l10n.error,
+                            kind: DialogKind.refuser,
                             titre_concerne: l10n.payment,
                             message: l10n.fillRequiredFields,
                           );
@@ -522,6 +526,7 @@ Future<void> VersementModif(
                               await InformationDialog(
                                 context: context,
                                 titre_type_message: l10n.error,
+                                kind: DialogKind.refuser,
                                 titre_concerne: l10n.payment,
                                 message: l10n.cashRegisterRequired,
                               );
@@ -537,6 +542,7 @@ Future<void> VersementModif(
                                 await InformationDialog(
                                   context: context,
                                   titre_type_message: l10n.attention,
+                                  kind: DialogKind.attention,
                                   titre_concerne: l10n.payment,
                                   message: l10n.aucuneSessionOuverte(caisseChoisieModif.nomCaisse),
                                 );
@@ -555,6 +561,7 @@ Future<void> VersementModif(
                               await InformationDialog(
                                 context: context,
                                 titre_type_message: l10n.error,
+                                kind: DialogKind.refuser,
                                 titre_concerne: l10n.payment,
                                 message: response.message ?? l10n.errorOccurred,
                               );

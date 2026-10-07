@@ -1,4 +1,5 @@
 import 'dart:ui';
+import 'package:caisse_dz/core/dialog/dialog_kind.dart';
 import 'package:caisse_dz/DBCreate.dart';
 import 'package:caisse_dz/Services/Historique.dart' hide ApiResponse;
 import 'package:caisse_dz/Services/Produits.dart';
@@ -89,6 +90,7 @@ Future<bool?> RemiseProduit(BuildContext context, List<Produit> produitsSelectio
     await InformationDialog(
       context: context,
       titre_type_message: l10n.authentication,
+      kind: DialogKind.refuser,
       titre_concerne: l10n.user,
       message: l10n.loginRequired,
     );
@@ -243,6 +245,7 @@ Future<bool?> RemiseProduit(BuildContext context, List<Produit> produitsSelectio
                               await InformationDialog(
                                 context: context,
                                 titre_type_message: l10n.error,
+                                kind: DialogKind.refuser,
                                 titre_concerne: l10n.product,
                                 message: response.message ?? l10n.errorOccurred,
                               );

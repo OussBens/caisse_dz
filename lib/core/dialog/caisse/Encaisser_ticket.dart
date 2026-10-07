@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'package:caisse_dz/core/dialog/dialog_kind.dart';
 import 'dart:typed_data';
 import 'dart:ui' as ui;
 
@@ -393,6 +394,7 @@ Future<void> EncaissementTicketDialog({
     await InformationDialog(
       context: context,
       titre_type_message: l10n.authentication,
+      kind: DialogKind.refuser,
       titre_concerne: l10n.user,
       message: l10n.loginRequiredCreate,
     );
@@ -409,6 +411,7 @@ Future<void> EncaissementTicketDialog({
     await InformationDialog(
       context: context,
       titre_type_message: l10n.error,
+      kind: DialogKind.refuser,
       titre_concerne: l10n.caisse,
       message: l10n.caisseNotFound(caisse.caisse),
     );
@@ -419,6 +422,7 @@ Future<void> EncaissementTicketDialog({
     await InformationDialog(
       context: context,
       titre_type_message: l10n.attention,
+      kind: DialogKind.attention,
       titre_concerne: l10n.caisse,
       message: l10n.aucuneSessionOuverte(caisse.caisse),
     );
@@ -607,6 +611,7 @@ Future<void> EncaissementTicketDialog({
                       await InformationDialog(
                         context: context,
                         titre_type_message: l10n.attention,
+                        kind: DialogKind.attention,
                         titre_concerne: l10n.payment,
                         message: l10n.paymentAmountMustBePositive,
                       );
@@ -626,6 +631,7 @@ Future<void> EncaissementTicketDialog({
                       await InformationDialog(
                         context: context,
                         titre_type_message: l10n.error,
+                        kind: DialogKind.refuser,
                         titre_concerne: l10n.cart,
                         message: l10n.stockInsuffisantPourProduit(
                           produitInsuffisant.code,
@@ -647,6 +653,7 @@ Future<void> EncaissementTicketDialog({
                         await InformationDialog(
                           context: context,
                           titre_type_message: l10n.error,
+                          kind: DialogKind.refuser,
                           titre_concerne: ligne.nom,
                           message: l10n.numberMustBeGreaterThanZero,
                         );
@@ -656,6 +663,7 @@ Future<void> EncaissementTicketDialog({
 
                     await ConfirmationDialog(
                       context: context,
+                      kind: DialogKind.attention,
                       titre: l10n.attention,
                       message: l10n.confirmPrint,
                       onConfirmer: () async {
@@ -773,6 +781,7 @@ Future<void> EncaissementTicketDialog({
                           await InformationDialog(
                             context: context,
                             titre_type_message: l10n.error,
+                            kind: DialogKind.refuser,
                             titre_concerne: l10n.print,
                             message: ("Erreur : $e"),
                           );

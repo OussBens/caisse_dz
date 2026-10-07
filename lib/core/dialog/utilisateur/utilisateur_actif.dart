@@ -1,4 +1,5 @@
 import 'dart:ui';
+import 'package:caisse_dz/core/dialog/dialog_kind.dart';
 import 'package:caisse_dz/DBCreate.dart';
 import 'package:caisse_dz/Services/Utilisateur.dart';
 import 'package:caisse_dz/core/Auth/auth_state.dart';
@@ -26,6 +27,7 @@ Future<int> _DeleteUser({required BuildContext context, required List<Utilisateu
       await InformationDialog(
         context: context,
         titre_type_message: l10n.deletionImpossible,
+        kind: DialogKind.refuser,
         titre_concerne: l10n.user,
         message: l10n.cannotDeleteAdminUser,
       );
@@ -65,6 +67,7 @@ Future<void> AnnulerUtilisateur(BuildContext context, List<Utilisateur> utilisat
     await InformationDialog(
       context: context,
       titre_type_message: l10n.authentication,
+      kind: DialogKind.refuser,
       titre_concerne: l10n.user,
       message: l10n.loginRequiredDelete,
     );
@@ -157,6 +160,7 @@ Future<void> AnnulerUtilisateur(BuildContext context, List<Utilisateur> utilisat
                       onPressed: () async {
                         await ConfirmationDialog(
                           context: context,
+                          kind: DialogKind.danger,
                           titre: l10n.users,
                           message: l10n.confirmDeleteUsers,
                           onConfirmer: () async {
@@ -165,6 +169,7 @@ Future<void> AnnulerUtilisateur(BuildContext context, List<Utilisateur> utilisat
                             await InformationDialog(
                               context: context,
                               titre_type_message: i > 0 ? l10n.success : l10n.error,
+                              kind: i > 0 ? DialogKind.confirmer : DialogKind.refuser,
                               titre_concerne: l10n.user,
                               message: i > 0
                                   ? l10n.usersDeletedCount(i)

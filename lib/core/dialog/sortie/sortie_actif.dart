@@ -127,6 +127,18 @@ Future<void> AnnulerSortie(
     return;
   }
 
+  // ✅ Permission spéciale (voir RoleDetail) : annuler une opération.
+  if (!auth.canAnnulerOperations) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(l10n.noPermissionAction),
+        backgroundColor: Colors.red,
+        duration: const Duration(seconds: 3),
+      ),
+    );
+    return;
+  }
+
   final motifController = TextEditingController();
 
   return showDialog(

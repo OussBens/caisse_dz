@@ -1,4 +1,5 @@
 import 'dart:ui';
+import 'package:caisse_dz/core/dialog/dialog_kind.dart';
 
 import 'package:caisse_dz/DBCreate.dart';
 import 'package:caisse_dz/Services/EntrepriseParam.dart';
@@ -89,6 +90,7 @@ Future<void> InitialSetupDialog(BuildContext context) async {
                 await InformationDialog(
                   context: context,
                   titre_type_message: l10n.error,
+                  kind: DialogKind.refuser,
                   titre_concerne: l10n.parametre,
                   message: l10n.pleaseLoginFirst,
                 );
@@ -148,6 +150,7 @@ Future<void> InitialSetupDialog(BuildContext context) async {
                 await InformationDialog(
                   context: context,
                   titre_type_message: l10n.error,
+                  kind: DialogKind.refuser,
                   titre_concerne: l10n.parametre,
                   message: errorMessage,
                 );
@@ -169,6 +172,7 @@ Future<void> InitialSetupDialog(BuildContext context) async {
               await InformationDialog(
                 context: context,
                 titre_type_message: l10n.error,
+                kind: DialogKind.refuser,
                 titre_concerne: l10n.parametre,
                 message: '${l10n.errorSavingSettings}: $e',
               );

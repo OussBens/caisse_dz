@@ -1,4 +1,5 @@
 import 'dart:ui';
+import 'package:caisse_dz/core/dialog/dialog_kind.dart';
 
 import 'package:caisse_dz/DBCreate.dart';
 import 'package:caisse_dz/Services/CaisseSession.dart';
@@ -34,16 +35,30 @@ Future<void> ClotureCaisseSessionDialog({
     await InformationDialog(
       context: context,
       titre_type_message: l10n.authentication,
+      kind: DialogKind.refuser,
       titre_concerne: l10n.user,
       message: l10n.loginRequiredCreate,
     );
     return;
   }
   final String userCode = auth.userCode!;
+  // Contexte stable de l'écran appelant, capturé AVANT le StatefulBuilder
+  // ci-dessous (qui redéclare son propre paramètre `context`, masquant
+  // celui-ci par ombrage de nom) — nécessaire car après le Navigator.pop qui
+  // ferme ce dialog, le contexte interne du StatefulBuilder devient invalide
+  // pour l'InformationDialog de succès qui suit (c'est exactement le crash
+  // "Null check operator" déjà rencontré sur cet écran : Navigator.pop suivi
+  // d'une réutilisation du contexte qu'on vient de faire disparaître).
+  final BuildContext callerContext = context;
 
   final soldeTheorique = await CaisseSessionServices.getSoldeCourant(session.code);
   final soldeReelController = TextEditingController(text: soldeTheorique.toStringAsFixed(2));
   final formKey = GlobalKey<FormState>();
+  // Garde anti-double-soumission : un double-clic sur "Enregistrer" pendant
+  // l'appel async ci-dessous déclencherait deux Navigator.pop successifs —
+  // le 2e, une fois ce dialog déjà fermé, retomberait sur la page GoRouter
+  // sous-jacente ("You have popped the last page off of the stack").
+  bool isSubmitting = false;
 
   if (!context.mounted) return;
 
@@ -123,7 +138,9 @@ Future<void> ClotureCaisseSessionDialog({
                       icon: Icons.save,
                       color: Appstyle.violet,
                       onPressed: () async {
+                        if (isSubmitting) return;
                         if (!formKey.currentState!.validate()) return;
+                        isSubmitting = true;
 
                         final db = await DbCreator.openDb();
                         final services = CaisseSessionServices(db);
@@ -134,23 +151,26 @@ Future<void> ClotureCaisseSessionDialog({
                         );
 
                         if (!response.success) {
+                          isSubmitting = false;
                           await InformationDialog(
                             context: context,
                             titre_type_message: l10n.error,
+                            kind: DialogKind.refuser,
                             titre_concerne: l10n.cloturerCaisse,
                             message: response.message,
                           );
                           return;
                         }
 
-                        if (context.mounted) Navigator.pop(context);
+                        Navigator.pop(context);
+                        onSuccess?.call();
+                        if (!callerContext.mounted) return;
                         await InformationDialog(
-                          context: context,
+                          context: callerContext,
                           titre_type_message: l10n.success,
                           titre_concerne: l10n.cloturerCaisse,
                           message: l10n.clotureCaisseSuccess,
                         );
-                        onSuccess?.call();
                       },
                     ),
                   ],

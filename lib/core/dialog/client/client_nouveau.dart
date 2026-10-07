@@ -1,4 +1,5 @@
 import 'dart:ui';
+import 'package:caisse_dz/core/dialog/dialog_kind.dart';
 import 'package:caisse_dz/DBCreate.dart';
 import 'package:caisse_dz/Services/Client.dart';
 import 'package:caisse_dz/core/Auth/auth_state.dart';
@@ -79,6 +80,7 @@ Future<void> ClientNouveau(BuildContext context) async {
     await InformationDialog(
       context: context,
       titre_type_message: AppLocalizations.of(context)!.authentication,
+      kind: DialogKind.refuser,
       titre_concerne: AppLocalizations.of(context)!.user,
       message: AppLocalizations.of(context)!.loginRequired,
     );
@@ -336,6 +338,7 @@ Future<void> ClientNouveau(BuildContext context) async {
                           await InformationDialog(
                             context: context,
                             titre_type_message: l10n.error,
+                            kind: DialogKind.refuser,
                             titre_concerne: l10n.newClient,
                             message: l10n.fillRequiredFields,
                           );
@@ -348,6 +351,7 @@ Future<void> ClientNouveau(BuildContext context) async {
                           await InformationDialog(
                             context: context,
                             titre_type_message: l10n.error,
+                            kind: DialogKind.refuser,
                             titre_concerne: l10n.newClient,
                             message: l10n.clientNameAlreadyExists,
                           );
@@ -392,6 +396,7 @@ Future<void> ClientNouveau(BuildContext context) async {
                           await InformationDialog(
                             context: context,
                             titre_type_message: l10n.error,
+                            kind: DialogKind.refuser,
                             titre_concerne: l10n.newClient,
                             message: response.message ??
                                 "Une erreur est survenue lors de l'enregistrement.",

@@ -1,5 +1,7 @@
 import 'dart:io';
 import 'package:caisse_dz/DBCreate.dart';
+import 'package:caisse_dz/core/Auth/auth_state.dart';
+import 'package:provider/provider.dart';
 import 'package:caisse_dz/Services/Categorie.dart';
 import 'package:caisse_dz/Services/Magasin.dart';
 import 'package:caisse_dz/Services/MagasinDetail.dart';
@@ -80,6 +82,11 @@ Future<void> loadAllData({required Produit prd}) async {
 Future<void> ProduitDetail(BuildContext context, Produit produit) async {
   await loadAllData(prd: produit);
   final stats = await ProduitServices.getProduitStats(produit);
+  // ✅ Permissions spéciales (voir RoleDetail) : prix d'achat / marge
+  // masqués pour un rôle qui n'a pas la permission correspondante.
+  final auth = Provider.of<AuthState>(context, listen: false);
+  final canVoirPrixAchat = auth.canVoirPrixAchat;
+  final canVoirMarge = auth.canVoirMarge;
 
   return showDialog(
     context: context,
@@ -130,7 +137,7 @@ Future<void> ProduitDetail(BuildContext context, Produit produit) async {
               ],
             ),
             const SizedBox(height: 16),
-            _resumeChiffre(produit, l10n),
+            _resumeChiffre(produit, l10n, canVoirPrixAchat: canVoirPrixAchat, canVoirMarge: canVoirMarge),
           ],
         ),
         content: SingleChildScrollView(
@@ -199,13 +206,13 @@ Future<void> ProduitDetail(BuildContext context, Produit produit) async {
                 title: l10n.priceTaxes,
                 icon: Icons.payments_outlined,
                 child: detailwrap([
-                  detailinfo(l10n.purchasePrice, "${produit.prixAchat} ${l10n.currency}"),
-                  detailinfo(l10n.averagePrice, "${NumberFormatUtil.formatMontant(prixMoyenTest, decimales: 2)} ${l10n.currency}"),
+                  if (canVoirPrixAchat) detailinfo(l10n.purchasePrice, "${produit.prixAchat} ${l10n.currency}"),
+                  if (canVoirPrixAchat) detailinfo(l10n.averagePrice, "${NumberFormatUtil.formatMontant(prixMoyenTest, decimales: 2)} ${l10n.currency}"),
                   detailinfo(l10n.salePrice, "${produit.prixVente} ${l10n.currency}"),
                   detailinfo(l10n.vat, "${produit.tva ?? 0}%"),
-                  detailinfo(l10n.marginBool, produit.margeBool ? l10n.yes : l10n.no),
-                  detailinfo(l10n.marginRate, produit.margeTaux),
-                  detailinfo(l10n.marginRatePercent, produit.margeTauxPrct),
+                  if (canVoirMarge) detailinfo(l10n.marginBool, produit.margeBool ? l10n.yes : l10n.no),
+                  if (canVoirMarge) detailinfo(l10n.marginRate, produit.margeTaux),
+                  if (canVoirMarge) detailinfo(l10n.marginRatePercent, produit.margeTauxPrct),
                 ]),
               ),
 
@@ -551,18 +558,23 @@ void _showFullScreenPhoto(BuildContext context, String photoPath) {
 }
 
 // Dans produit_detail.dart
-Widget _resumeChiffre(Produit p, AppLocalizations l10n) {
+Widget _resumeChiffre(
+  Produit p,
+  AppLocalizations l10n, {
+  required bool canVoirPrixAchat,
+  required bool canVoirMarge,
+}) {
   return StatsCard(
     items: [
       StatsItem(
         label: l10n.quantity,
         value: quantiteTest,
       ),
-      StatsItem(
+      if (canVoirPrixAchat) StatsItem(
         label: l10n.purchasePrice,
         value: "${p.prixAchat} ${l10n.currency}",
       ),
-      StatsItem(
+      if (canVoirPrixAchat) StatsItem(
         label: l10n.averagePrice,
         value: "${NumberFormatUtil.formatMontant(prixMoyenTest, decimales: 2)} ${l10n.currency}",
       ),
@@ -570,7 +582,7 @@ Widget _resumeChiffre(Produit p, AppLocalizations l10n) {
         label: l10n.salePrice,
         value: "${p.prixVente} ${l10n.currency}",
       ),
-      StatsItem(
+      if (canVoirMarge) StatsItem(
         label: l10n.margin,
         value: p.margeTaux,
       ),

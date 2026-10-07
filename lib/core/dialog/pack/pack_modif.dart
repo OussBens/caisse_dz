@@ -1,4 +1,5 @@
 import 'dart:ui';
+import 'package:caisse_dz/core/dialog/dialog_kind.dart';
 import 'package:caisse_dz/DBCreate.dart';
 import 'package:caisse_dz/Services/Historique.dart' hide ApiResponse;
 import 'package:caisse_dz/Services/Pack.dart';
@@ -244,6 +245,7 @@ void _ajouterProduitPackComplet(
             await InformationDialog(
               context: context,
               titre_type_message: l10n.error,
+              kind: DialogKind.refuser,
               titre_concerne: l10n.pack,
               message: l10n.productAlreadyAdded(produit.nom),
             );
@@ -357,6 +359,7 @@ Future<void> PackModif(BuildContext context, Pack pack) async {
     await InformationDialog(
       context: context,
       titre_type_message: AppLocalizations.of(context)!.authentication,
+      kind: DialogKind.refuser,
       titre_concerne: AppLocalizations.of(context)!.user,
       message: AppLocalizations.of(context)!.loginRequired,
     );
@@ -513,6 +516,7 @@ Future<void> PackModif(BuildContext context, Pack pack) async {
                           await InformationDialog(
                             context: context,
                             titre_type_message: l10n.error,
+                            kind: DialogKind.refuser,
                             titre_concerne: l10n.pack,
                             message: l10n.fillRequiredFields,
                           );
@@ -549,6 +553,7 @@ Future<void> PackModif(BuildContext context, Pack pack) async {
                                 await InformationDialog(
                                   context: context,
                                   titre_type_message: l10n.error,
+                                  kind: DialogKind.refuser,
                                   titre_concerne: l10n.pack,
                                   message: response.message ?? l10n.modificationError,
                                 );
@@ -592,6 +597,7 @@ Future<void> PackModif(BuildContext context, Pack pack) async {
                               await InformationDialog(
                                 context: context,
                                 titre_type_message: l10n.error,
+                                kind: DialogKind.refuser,
                                 titre_concerne: l10n.pack,
                                 message: "${l10n.errorOccurred}: $e",
                               );

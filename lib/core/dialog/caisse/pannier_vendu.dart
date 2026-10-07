@@ -1,4 +1,6 @@
+import 'package:caisse_dz/core/widget/status_badge.dart';
 import 'dart:ui';
+import 'package:caisse_dz/Services/export_spinner.dart';
 import 'package:caisse_dz/DBCreate.dart';
 import 'package:caisse_dz/Services/ExcelPreviewDialog.dart';
 import 'package:caisse_dz/Services/PDFPreviewDialog.dart';
@@ -112,6 +114,9 @@ Future<void> DialogPannierVendu({
           }).toList();
 
           panniersFiltres.sort((a, b) => b.date.compareTo(a.date));
+          // Totaux = paniers actifs uniquement (les paniers annulés restent
+          // listés, avec leur état).
+          final panniersActifs = panniersFiltres.where((p) => p.etat).toList();
 
           Future<void> exportExcel() async {
             if (panniersFiltres.isEmpty) {
@@ -124,12 +129,8 @@ Future<void> DialogPannierVendu({
               return;
             }
 
+            final fermerSpinner = ouvrirSpinnerExport(context);
             try {
-              showDialog(
-                context: context,
-                barrierDismissible: false,
-                builder: (context) => const Center(child: CircularProgressIndicator()),
-              );
 
               final translator = ListsConstTranslator(l10n);
               final excelFile = await ExcelGenerator.generatePanniersExcel(
@@ -139,7 +140,7 @@ Future<void> DialogPannierVendu({
                 translator: translator,
               );
 
-              Navigator.pop(context);
+              fermerSpinner();
 
               final excel = Excel.decodeBytes(await excelFile.readAsBytes());
               var sheet = excel.tables['Panniers'];
@@ -188,7 +189,7 @@ Future<void> DialogPannierVendu({
                 ),
               );
             } catch (e) {
-              if (Navigator.canPop(context)) Navigator.pop(context);
+              fermerSpinner();
               ScaffoldMessenger.of(context).showSnackBar(
                 SnackBar(content: Text('${l10n.exportError}: $e'), backgroundColor: Colors.red),
               );
@@ -209,8 +210,8 @@ Future<void> DialogPannierVendu({
             final pdfBytes = await PDFTableGenerator.generateTableReport(
               title: "${l10n.cashReceipt} - $caisseName",
               subtitleLines: [
-                "${l10n.numberOfSales}: ${panniersFiltres.length}    "
-                    "${l10n.totalSales}: ${NumberFormatUtil.formatMontant(panniersFiltres.fold(0.0, (sum, p) => sum + p.montant), decimales: 2)} ${l10n.currency}",
+                "${l10n.numberOfSales}: ${panniersActifs.length}    "
+                    "${l10n.totalSales}: ${NumberFormatUtil.formatMontant(panniersActifs.fold(0.0, (sum, p) => sum + p.montant), decimales: 2)} ${l10n.currency}",
               ],
               headers: [
                 l10n.code,
@@ -484,11 +485,11 @@ Future<void> DialogPannierVendu({
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
                           Text(
-                            "${l10n.numberOfSales}: ${panniersFiltres.length}",
+                            "${l10n.numberOfSales}: ${panniersActifs.length}",
                             style: Appstyle.textSB.copyWith(color: Appstyle.violet),
                           ),
                           Text(
-                            "${l10n.totalSales}: ${NumberFormatUtil.formatMontant(panniersFiltres.fold(0.0, (sum, p) => sum + p.montant), decimales: 2)} ${l10n.currency}",
+                            "${l10n.totalSales}: ${NumberFormatUtil.formatMontant(panniersActifs.fold(0.0, (sum, p) => sum + p.montant), decimales: 2)} ${l10n.currency}",
                             style: Appstyle.textSB.copyWith(color: Appstyle.crevete),
                           ),
                         ],
@@ -629,6 +630,14 @@ Widget _pannierTile({
                 style: Appstyle.textXS.copyWith(color: Appstyle.gris),
               ),
             ],
+          ),
+        ),
+        // État du panier (actif / annulé).
+        Expanded(
+          flex: 1,
+          child: Align(
+            alignment: Alignment.centerLeft,
+            child: EtatBadge(isActive: pannier.etat),
           ),
         ),
         Expanded(

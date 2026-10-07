@@ -99,6 +99,10 @@ class VerssementDataSource extends BaseTableDataSource<Verssement> {
       return Center(child: EtatBadge(isActive: item.etat));
     }
 
+    if (columnName == 'code') {
+      return Center(child: pilluleCellule(item.code, Appstyle.violet));
+    }
+
     if (columnName == 'montant') {
       return Center(
         child: pilluleCellule("${item.montant} ${l10n.currency}", Appstyle.violet),

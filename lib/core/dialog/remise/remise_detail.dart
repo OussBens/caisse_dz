@@ -31,7 +31,7 @@ Future<void> RemiseDetail(BuildContext context, Remise remise) async {
     builder: (context) {
       final l10n = AppLocalizations.of(context)!;
       return BaseDialog(
-        width: 950,
+        width: 1100,
         height: 600,
 
         header: Column(

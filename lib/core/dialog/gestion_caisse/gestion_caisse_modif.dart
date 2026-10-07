@@ -1,4 +1,7 @@
+import 'package:caisse_dz/Services/CaisseParam.dart';
+import 'package:collection/collection.dart';
 import 'dart:ui';
+import 'package:caisse_dz/core/dialog/dialog_kind.dart';
 import 'package:caisse_dz/l10n/app_localizations.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
@@ -284,6 +287,7 @@ Future<void> CaisseGestionModif(BuildContext context, CaisseGestion caisse) asyn
                           await InformationDialog(
                             context: context,
                             titre_type_message: l10n.error,
+                            kind: DialogKind.refuser,
                             titre_concerne: l10n.cashRegisterDetail,
                             message: l10n.fillRequiredFields,
                           );
@@ -324,11 +328,37 @@ Future<void> CaisseGestionModif(BuildContext context, CaisseGestion caisse) asyn
                               await InformationDialog(
                                 context: context,
                                 titre_type_message: l10n.error,
+                                kind: DialogKind.refuser,
                                 titre_concerne: l10n.cashRegisterDetail,
                                 message: response.message ?? "Une erreur est survenue lors de la modification.",
                               );
                               return;
                             }
+
+                            // ✅ Le magasin de la caisse a changé : les paramètres
+                            // de caisse et utilisateur de ses comptes suivent.
+                            if (NCaisse.magasinCode != caisse.magasinCode) {
+                              final magasin = magasinsDisponiblesM
+                                  .firstWhereOrNull((m) => m.code == NCaisse.magasinCode);
+                              if (magasin != null) {
+                                final db = await DbCreator.openDb();
+                                final comptesConcernes = await CaisseParamServices(db).synchroniserMagasinDeCaisse(
+                                  caisseCode: NCaisse.code,
+                                  magasinCode: magasin.code,
+                                  magasinNom: magasin.nom,
+                                  magasinId: magasin.id.toString(),
+                                );
+                                if (!context.mounted) return;
+                                final authState = Provider.of<AuthState>(context, listen: false);
+                                await authState.loadUserParameters();
+                                // Magasin de l'utilisateur connecté changé : l'écran
+                                // affiché se recharge avec le nouveau magasin.
+                                if (comptesConcernes.contains(authState.userCode)) {
+                                  authState.signalerChangementCaisseMagasin();
+                                }
+                              }
+                            }
+                            if (!context.mounted) return;
 
                             // ✅ Succès
                             await InformationDialog(

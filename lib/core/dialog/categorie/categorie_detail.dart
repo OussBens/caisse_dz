@@ -19,7 +19,7 @@ Future<void> CategorieDetail(
     barrierDismissible: true,
     builder: (context) {
       return BaseDialog(
-        width: 850,
+        width: 1100,
         height: 550,
 
         // ================= HEADER =================

@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'package:caisse_dz/core/dialog/dialog_kind.dart';
 import 'package:collection/collection.dart';
 import 'package:caisse_dz/DBCreate.dart';
 import 'package:caisse_dz/Services/BonReception.dart';
@@ -322,7 +323,11 @@ class _AISmartScanDialogState extends State<AISmartScanDialog> {
       }
 
       if (items.isEmpty) {
-        _showError('No items found on receipt. Please try with a clearer photo.');
+        if (ReceiptScannerService.lastScanHitQuotaLimit) {
+          _showError('Service IA indisponible (quota API atteint) — réessayez plus tard ou ajoutez les produits manuellement.');
+        } else {
+          _showError('No items found on receipt. Please try with a clearer photo.');
+        }
       } else {
         _showSuccess('Found ${items.length} items');
       }
@@ -398,6 +403,7 @@ class _AISmartScanDialogState extends State<AISmartScanDialog> {
     if (extractedItems.length != capturedItemsCount) {
       ConfirmationDialog(
         context: context,
+        kind: DialogKind.attention,
         titre: 'Attention',
         message:
             'Le nombre de produits sélectionnés (${extractedItems.length}) '

@@ -1,4 +1,5 @@
 import 'dart:ui';
+import 'package:caisse_dz/core/dialog/dialog_kind.dart';
 import 'package:caisse_dz/DBCreate.dart';
 import 'package:caisse_dz/Services/Role.dart';
 import 'package:caisse_dz/Services/RoleDetail.dart';
@@ -29,6 +30,7 @@ Future<int> _DeleteRoles({required BuildContext context, required List<Role> rol
       await InformationDialog(
         context: context,
         titre_type_message: l10n.deletionImpossible,
+        kind: DialogKind.refuser,
         titre_concerne: l10n.role,
         message: l10n.cannotDeleteAdminRole,
       );
@@ -44,6 +46,7 @@ Future<int> _DeleteRoles({required BuildContext context, required List<Role> rol
       await InformationDialog(
         context: context,
         titre_type_message: l10n.deletionImpossible,
+        kind: DialogKind.refuser,
         titre_concerne: l10n.role,
         message: l10n.roleHasUsers(role.rolenom ?? ''),
       );
@@ -64,6 +67,7 @@ Future<void> AnnulerRole(
     await InformationDialog(
       context: context,
       titre_type_message: l10n.authentication,
+      kind: DialogKind.refuser,
       titre_concerne: l10n.user,
       message: l10n.loginRequiredDelete,
     );
@@ -156,6 +160,7 @@ Future<void> AnnulerRole(
                       onPressed: () async {
                         await ConfirmationDialog(
                           context: context,
+                          kind: DialogKind.danger,
                           titre: l10n.role,
                           message: l10n.confirmDeleteRoles,
                           onConfirmer: () async {

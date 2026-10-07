@@ -408,6 +408,7 @@ class _RechercherProduitDialogContentState extends State<_RechercherProduitDialo
                                     text1: p.nom,
                                     text2: "${p.prixVente} ${l10n.currency}",
                                     photo: p.photo,
+                                    sousCategorieId: p.sousCategorieId,
                                     quantite: quantitesMap[p.code] ?? 0,
                                     actif: p.etat,
                                     selected: produitSelectionne?.id == p.id,

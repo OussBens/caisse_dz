@@ -1,4 +1,5 @@
 import 'dart:ui';
+import 'package:caisse_dz/core/dialog/dialog_kind.dart';
 import 'package:caisse_dz/DBCreate.dart';
 import 'package:caisse_dz/Services/Historique.dart' hide ApiResponse;
 import 'package:caisse_dz/Services/Produits.dart' hide ApiResponse;
@@ -131,6 +132,7 @@ Future<void> ZakatModif(BuildContext context, Zakat zakat) async {
     await InformationDialog(
       context: context,
       titre_type_message: l10n.authentication,
+      kind: DialogKind.refuser,
       titre_concerne: l10n.user,
       message: l10n.loginRequiredModify,
     );
@@ -435,6 +437,7 @@ Future<void> ZakatModif(BuildContext context, Zakat zakat) async {
                           await InformationDialog(
                             context: context,
                             titre_type_message: l10n.error,
+                            kind: DialogKind.refuser,
                             titre_concerne: l10n.zakat,
                             message: l10n.fillRequiredFields,
                           );
@@ -467,6 +470,7 @@ Future<void> ZakatModif(BuildContext context, Zakat zakat) async {
                               await InformationDialog(
                                 context: context,
                                 titre_type_message: l10n.error,
+                                kind: DialogKind.refuser,
                                 titre_concerne: l10n.zakat,
                                 message: response.message ?? l10n.errorOccurred,
                               );

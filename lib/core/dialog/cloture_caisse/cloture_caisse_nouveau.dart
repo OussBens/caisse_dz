@@ -1,4 +1,5 @@
 import 'dart:ui';
+import 'package:caisse_dz/core/dialog/dialog_kind.dart';
 
 import 'package:caisse_dz/Services/CaisseGestion.dart' hide ApiResponse;
 import 'package:caisse_dz/Services/ClotureCaisse.dart';
@@ -29,6 +30,7 @@ Future<void> ClotureCaisseNouveau(BuildContext context) async {
     await InformationDialog(
       context: context,
       titre_type_message: l10n.authentication,
+      kind: DialogKind.refuser,
       titre_concerne: l10n.user,
       message: l10n.loginRequired,
     );
@@ -37,10 +39,20 @@ Future<void> ClotureCaisseNouveau(BuildContext context) async {
 
   final caisses = (await GCServices.getAllCaisses()).where((c) => c.etat).toList();
 
+  // Contexte stable de l'écran appelant, capturé avant le StatefulBuilder
+  // ci-dessous qui masque `context` par ombrage de nom — voir la même
+  // remarque dans cloture_caisse_session.dart : sans ça, le Navigator.pop
+  // suivi de genererEtAfficherRapportZ(context, ...) réutilise un contexte
+  // en cours de désactivation, et le rapport Z ne s'affiche jamais.
+  final BuildContext callerContext = context;
+
   String? selectedCaisseNom;
   String? selectedCaisseCode;
   DateTime? derniereCloture;
   bool loadingPeriode = false;
+  // Garde anti-double-soumission : voir la même remarque dans
+  // cloture_caisse_session.dart (double Navigator.pop -> assertion GoRouter).
+  bool isSubmitting = false;
 
   if (!context.mounted) return;
   return showDialog(
@@ -141,26 +153,36 @@ Future<void> ClotureCaisseNouveau(BuildContext context) async {
                       onPressed: selectedCaisseCode == null
                           ? null
                           : () async {
+                              // Re-vérifié ici (pas seulement dans le ternaire
+                              // ci-dessus) : ce callback est capturé au dernier
+                              // build et reste "activé" tant qu'aucun setState
+                              // ne redessine le bouton — sans ce garde interne,
+                              // un double-clic pendant l'appel async ci-dessous
+                              // invoquerait deux fois la même closure.
+                              if (isSubmitting) return;
+                              isSubmitting = true;
                               final response = await ClotureCaisseServices.cloturer(
                                 caisseCode: selectedCaisseCode!,
                                 userCode: userCode,
                               );
 
                               if (!response.success || response.data == null) {
+                                isSubmitting = false;
                                 if (!context.mounted) return;
                                 await InformationDialog(
                                   context: context,
                                   titre_type_message: l10n.error,
+                                  kind: DialogKind.refuser,
                                   titre_concerne: l10n.cashRegisterClosures,
                                   message: response.message,
                                 );
                                 return;
                               }
 
-                              if (!context.mounted) return;
+                              if (!callerContext.mounted) return;
                               Navigator.pop(context);
                               await genererEtAfficherRapportZ(
-                                context,
+                                callerContext,
                                 l10n,
                                 response.data!,
                                 selectedCaisseNom!,
