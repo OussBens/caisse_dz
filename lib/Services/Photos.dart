@@ -76,29 +76,6 @@ class PhotoService {
   }
 
 
-  // Sauvegarder une photo à partir d'octets déjà en mémoire (ex: upload
-  // réseau depuis l'app mobile) — même convention que [savePhoto] (nom fixe
-  // "<code>_main.jpg", ancienne photo remplacée).
-  static Future<String?> savePhotoBytes(List<int> bytes, String productCode) async {
-    try {
-      final photosDir = await getPhotosDirectory();
-      final fileName = '${productCode}_main.jpg';
-      final destinationFile = File(path.join(photosDir.path, fileName));
-
-      if (await destinationFile.exists()) {
-        await destinationFile.delete();
-      }
-
-      await destinationFile.writeAsBytes(bytes, flush: true);
-      debugPrint('📸 Photo (octets) sauvegardée: $fileName');
-
-      return fileName;
-    } catch (e) {
-      debugPrint('❌ Erreur sauvegarde photo (octets): $e');
-      return null;
-    }
-  }
-
   // Obtenir le fichier de la photo
   static Future<File?> getPhotoFile(String? fileName) async {
     if (fileName == null || fileName.isEmpty) return null;

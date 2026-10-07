@@ -1,5 +1,7 @@
 import 'package:caisse_dz/DBCreate.dart';
+import 'package:caisse_dz/data/constant.dart';
 import 'package:caisse_dz/data/models/histore.dart';
+import 'package:caisse_dz/core/widget/code_generateur.dart';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 
 import '../core/utilis/api_response.dart';
@@ -11,10 +13,22 @@ class HistoriqueServices {
 
   HistoriqueServices(this.db);
 
+  /// Codification unique de l'historique (ex: "H000000001"), dérivée de son
+  /// [id] — recalculée ici plutôt que passée par chaque appelant : les ~60
+  /// sites d'appel construisaient historiquement leur propre code ad-hoc
+  /// (timestamp concaténé, longueur variable), ce qui rendait le tri/affichage
+  /// incohérent. Centraliser ici garantit un format fixe partout sans toucher
+  /// chaque appelant.
+  static String _formatCode(int id) => CodeGenerator.generateCode(
+        prefix: CodePrefix.historique,
+        id: id,
+        digitCount: 9,
+      );
 
   // ✅ Ajouter cette méthode pour la transaction
   Future<ApiResponse<int>> addHistoriqueWithTransaction(Transaction txn, Historique historique) async {
     try {
+      historique.code = _formatCode(historique.id);
       final existing = await txn.query(
         'Historique',
         where: 'code = ?',
@@ -107,6 +121,7 @@ class HistoriqueServices {
   // 🔹 ADD
   Future<ApiResponse<int>> addHistorique(Historique Historique) async {
     try {
+      Historique.code = _formatCode(Historique.id);
       final existing = await db.query(
         'Historique',
         where: 'code = ?',

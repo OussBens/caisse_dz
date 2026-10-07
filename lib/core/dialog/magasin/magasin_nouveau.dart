@@ -1,4 +1,5 @@
 import 'dart:ui';
+import 'package:caisse_dz/core/dialog/dialog_kind.dart';
 import 'package:caisse_dz/DBCreate.dart';
 import 'package:caisse_dz/Services/Magasin.dart';
 import 'package:caisse_dz/core/Auth/auth_state.dart';
@@ -45,6 +46,7 @@ Future<void> MagasinNouveau(BuildContext context) async {
     await InformationDialog(
       context: context,
       titre_type_message: AppLocalizations.of(context)!.authentication,
+      kind: DialogKind.refuser,
       titre_concerne: AppLocalizations.of(context)!.user,
       message: AppLocalizations.of(context)!.loginRequired,
     );
@@ -52,9 +54,9 @@ Future<void> MagasinNouveau(BuildContext context) async {
   }
 
   // Défense en profondeur : la gestion multi-magasin est réservée au palier
-  // Premium (déjà masquée côté sidebar/router) — on refuse aussi ici au cas
+  // Avancé (déjà masquée côté sidebar/router) — on refuse aussi ici au cas
   // où ce dialog serait un jour appelé depuis un autre point d'entrée.
-  if (auth.licenseTier != LicenseTier.premium) {
+  if (auth.licenseTier == LicenseTier.basic) {
     await InformationDialog(
       context: context,
       titre_type_message: AppLocalizations.of(context)!.information,
@@ -155,6 +157,7 @@ Future<void> MagasinNouveau(BuildContext context) async {
                           await InformationDialog(
                             context: context,
                             titre_type_message: l10n.error,
+                            kind: DialogKind.refuser,
                             titre_concerne: l10n.newStore,
                             message: l10n.fillRequiredFields,
                           );
@@ -166,6 +169,7 @@ Future<void> MagasinNouveau(BuildContext context) async {
                           await InformationDialog(
                             context: context,
                             titre_type_message: l10n.error,
+                            kind: DialogKind.refuser,
                             titre_concerne: l10n.newStore,
                             message: l10n.storeNameHint,
                           );
@@ -196,6 +200,7 @@ Future<void> MagasinNouveau(BuildContext context) async {
                           await InformationDialog(
                             context: context,
                             titre_type_message: l10n.error,
+                            kind: DialogKind.refuser,
                             titre_concerne: l10n.newStore,
                             message: response.message ?? "Une erreur est survenue lors de l'enregistrement.",
                           );

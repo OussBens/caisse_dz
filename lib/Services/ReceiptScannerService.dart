@@ -7,6 +7,14 @@ import 'package:caisse_dz/Services/deepseek_service.dart';
 class ReceiptScannerService {
   static const bool _useGemini = true;
 
+  // ✅ Vrai si le dernier scan a échoué parce que la clé API Mistral
+  // (partagée par OCR et extraction, voir mistral_ocr_service.dart /
+  // deepseek_service.dart) a atteint son quota — permet à l'appelant
+  // d'afficher "service IA indisponible, réessayez plus tard" plutôt que de
+  // laisser croire que la photo/le document scanné est en cause.
+  static bool get lastScanHitQuotaLimit =>
+      MistralOCRService.quotaExceeded || GeminiService.quotaExceeded;
+
   static Future<List<ReceiptItem>> scanReceipt(
       File imageFile,
       List<Produit> products,

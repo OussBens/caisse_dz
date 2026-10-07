@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'package:caisse_dz/core/dialog/dialog_kind.dart';
 import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
@@ -295,6 +296,7 @@ Future<void> imprimerRecuThermique({
     await InformationDialog(
       context: context,
       titre_type_message: l10n.attention,
+      kind: DialogKind.attention,
       titre_concerne: l10n.print,
       message: l10n.printError,
     );

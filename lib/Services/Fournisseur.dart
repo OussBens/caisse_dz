@@ -357,37 +357,7 @@ class FournisseurServices {
   static Future<FournisseurGlobalStats> getGlobalFournisseurStats() async {
     final db = await DbCreator.openDb();
     final fournisseurs = await getAllFournisseurs();
-
-    final scansParFournisseur = await db.rawQuery('''
-      SELECT fournisseur_code, SUM(montant) AS total
-      FROM smart_scan
-      WHERE etat = 1
-      GROUP BY fournisseur_code
-    ''');
-    final versementsParFournisseur = await db.rawQuery('''
-      SELECT beneficiare_code, sense, SUM(montant) AS total
-      FROM verssements
-      WHERE etat = 1 AND typebeneficiare = 'Fournisseur'
-      GROUP BY beneficiare_code, sense
-    ''');
-
-    final Map<String, double> achatParFournisseurCode = {};
-    for (final row in scansParFournisseur) {
-      final code = row['fournisseur_code'] as String;
-      achatParFournisseurCode[code] = (achatParFournisseurCode[code] ?? 0) + ((row['total'] as num?)?.toDouble() ?? 0);
-    }
-
-    final Map<String, double> entreeParFournisseurCode = {};
-    final Map<String, double> sortieParFournisseurCode = {};
-    for (final row in versementsParFournisseur) {
-      final code = row['beneficiare_code'] as String;
-      final total = (row['total'] as num?)?.toDouble() ?? 0;
-      if (row['sense'] == 'Entrée') {
-        entreeParFournisseurCode[code] = total;
-      } else if (row['sense'] == 'Sortie') {
-        sortieParFournisseurCode[code] = total;
-      }
-    }
+    final soldes = await _achatEtCreditParFournisseur(db);
 
     double totalAchat = 0;
     double totalCredit = 0;
@@ -397,11 +367,8 @@ class FournisseurServices {
     double montantTopCredit = 0;
 
     for (final fournisseur in fournisseurs) {
-      final achat = achatParFournisseurCode[fournisseur.code] ?? 0;
-      // Total versé sortie (règlement au fournisseur) - Total versé entrée (remboursement du fournisseur)
-      final verse = (sortieParFournisseurCode[fournisseur.code] ?? 0);
-      final solde = verse - achat;
-      final credit = solde < 0 ? -solde : 0.0;
+      final achat = soldes[fournisseur.code]?.achat ?? 0;
+      final credit = soldes[fournisseur.code]?.credit ?? 0;
 
       totalAchat += achat;
       totalCredit += credit;
@@ -425,6 +392,63 @@ class FournisseurServices {
       fournisseurTopCredit: fournisseurTopCredit,
       montantTopCredit: montantTopCredit,
     );
+  }
+
+  /// Fournisseurs actifs envers lesquels on a un crédit (achats non réglés
+  /// par les versements Sortie), du plus grand au plus petit — [limite]
+  /// premiers.
+  static Future<List<({Fournisseur fournisseur, double credit})>> getFournisseursParCredit({int limite = 3}) async {
+    final db = await DbCreator.openDb();
+    final fournisseurs = await getAllFournisseurs();
+    final soldes = await _achatEtCreditParFournisseur(db);
+    final resultat = [
+      for (final f in fournisseurs)
+        if (f.etat && (soldes[f.code]?.credit ?? 0) > 0) (fournisseur: f, credit: soldes[f.code]!.credit),
+    ]..sort((a, b) => b.credit.compareTo(a.credit));
+    return resultat.take(limite).toList();
+  }
+
+  /// Achats (smart scans actifs) et crédit (achats − versements Sortie) par
+  /// code fournisseur.
+  static Future<Map<String, ({double achat, double credit})>> _achatEtCreditParFournisseur(DatabaseExecutor db) async {
+    final scansParFournisseur = await db.rawQuery('''
+      SELECT fournisseur_code, SUM(montant) AS total
+      FROM smart_scan
+      WHERE etat = 1
+      GROUP BY fournisseur_code
+    ''');
+    final versementsParFournisseur = await db.rawQuery('''
+      SELECT beneficiare_code, sense, SUM(montant) AS total
+      FROM verssements
+      WHERE etat = 1 AND typebeneficiare = 'Fournisseur'
+      GROUP BY beneficiare_code, sense
+    ''');
+
+    final Map<String, double> achatParFournisseurCode = {};
+    for (final row in scansParFournisseur) {
+      final code = row['fournisseur_code'] as String;
+      achatParFournisseurCode[code] = (achatParFournisseurCode[code] ?? 0) + ((row['total'] as num?)?.toDouble() ?? 0);
+    }
+
+    final Map<String, double> sortieParFournisseurCode = {};
+    for (final row in versementsParFournisseur) {
+      final code = row['beneficiare_code'] as String;
+      final total = (row['total'] as num?)?.toDouble() ?? 0;
+      if (row['sense'] == 'Sortie') sortieParFournisseurCode[code] = total;
+    }
+
+    // Total versé sortie (règlement au fournisseur) − achats.
+    final codes = {...achatParFournisseurCode.keys, ...sortieParFournisseurCode.keys};
+    return {
+      for (final code in codes)
+        code: (
+          achat: achatParFournisseurCode[code] ?? 0,
+          credit: () {
+            final solde = (sortieParFournisseurCode[code] ?? 0) - (achatParFournisseurCode[code] ?? 0);
+            return solde < 0 ? -solde : 0.0;
+          }(),
+        ),
+    };
   }
 
 }

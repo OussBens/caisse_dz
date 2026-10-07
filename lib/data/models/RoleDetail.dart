@@ -19,6 +19,18 @@ class RoleDetail {
   bool    parametre;
   bool    historique;
 
+  // Permissions spéciales : transversales (pas liées à un module de la
+  // sidebar mais à une action sensible à l'intérieur d'un module déjà
+  // accessible). Admin les a toutes implicitement, indépendamment de ces
+  // champs (voir les usages de SpecialPermissions).
+  bool    voirPrixAchat;
+  bool    voirMarge;
+  bool    modifierPrixVente;
+  bool    annulerOperations;
+  bool    changerCaisseMagasin;
+  bool    gererTransfertsCaisse;
+  bool    voirStockTousMagasins;
+
   // Audit
   DateTime  dateCree;
   String    creeParCode;
@@ -51,6 +63,13 @@ class RoleDetail {
     required this.Rolecode,
     required this.stock,
 
+    this.voirPrixAchat = false,
+    this.voirMarge = false,
+    this.modifierPrixVente = false,
+    this.annulerOperations = false,
+    this.changerCaisseMagasin = false,
+    this.gererTransfertsCaisse = false,
+    this.voirStockTousMagasins = false,
 
     this.motifAnnul,
     this.dateAnnul,
@@ -83,6 +102,14 @@ class RoleDetail {
       fournisseur   : map['fournisseur']    == 1,
       utilisateur   : map['utilisateur']    == 1,
       gestionCaisse : map['gestionCaisse']  == 1,
+
+      voirPrixAchat         : map['voirPrixAchat']         == 1,
+      voirMarge             : map['voirMarge']             == 1,
+      modifierPrixVente     : map['modifierPrixVente']     == 1,
+      annulerOperations     : map['annulerOperations']     == 1,
+      changerCaisseMagasin  : map['changerCaisseMagasin']  == 1,
+      gererTransfertsCaisse : map['gererTransfertsCaisse'] == 1,
+      voirStockTousMagasins : map['voirStockTousMagasins'] == 1,
 
       dateCree    : DateTime.parse(map['date_cree']),
       creeParCode : map['cree_par_code'],
@@ -122,6 +149,14 @@ class RoleDetail {
       'utilisateur'   : utilisateur   ? 1 : 0,
       'gestionCaisse' : gestionCaisse ? 1 : 0,
 
+      'voirPrixAchat'         : voirPrixAchat         ? 1 : 0,
+      'voirMarge'             : voirMarge             ? 1 : 0,
+      'modifierPrixVente'     : modifierPrixVente     ? 1 : 0,
+      'annulerOperations'     : annulerOperations     ? 1 : 0,
+      'changerCaisseMagasin'  : changerCaisseMagasin  ? 1 : 0,
+      'gererTransfertsCaisse' : gererTransfertsCaisse ? 1 : 0,
+      'voirStockTousMagasins' : voirStockTousMagasins ? 1 : 0,
+
       'date_cree'         : dateCree.toIso8601String(),
       'cree_par_code'     : creeParCode,
 
@@ -138,25 +173,4 @@ class RoleDetail {
         .map((e) => e?.toString().toLowerCase() ?? '')
         .join(' ');
   }
-
-  /// Traduit les colonnes booléennes fixes en liste de strings, pour l'API
-  /// mobile (POST /api/auth/login -> user.permissions).
-  List<String> get permissionsList => [
-        if (dash) 'dash',
-        if (caisse) 'caisse',
-        if (produit) 'produit',
-        if (pannier) 'pannier',
-        if (client) 'client',
-        if (fournisseur) 'fournisseur',
-        if (entree) 'entree',
-        if (sortie) 'sortie',
-        if (retour) 'retour',
-        if (stock) 'stock',
-        if (besoin) 'besoin',
-        if (utilisateur) 'utilisateur',
-        if (gestionCaisse) 'gestionCaisse',
-        if (zakat) 'zakat',
-        if (parametre) 'parametre',
-        if (historique) 'historique',
-      ];
 }

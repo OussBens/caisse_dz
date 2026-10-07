@@ -148,7 +148,8 @@ class Produit {
       nom                   : map['nom'],
       code                  : map['code'],
       marque                : map['marque'],
-      remiseId              : map['remise_id'],
+      // 0 (ancienne valeur « pas de remise ») = pas de remise.
+      remiseId              : (map['remise_id'] == 0) ? null : map['remise_id'],
       description           : map['description'],
       categorieId           : map['categorie_id'],
       uniteMesure           : map['unite_mesure'],

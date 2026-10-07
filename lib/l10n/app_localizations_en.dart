@@ -669,6 +669,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get autre => 'Other';
 
   @override
+  String get peopleCategory => 'People';
+
+  @override
   String get ticket => 'Ticket';
 
   @override
@@ -4418,6 +4421,10 @@ class AppLocalizationsEn extends AppLocalizations {
   String get warning => 'Warning';
 
   @override
+  String get noPermissionAction =>
+      'You do not have the required permission to perform this action.';
+
+  @override
   String get permissions => 'Permissions';
 
   @override
@@ -4426,6 +4433,16 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get selectPermissions => 'Role Permissions';
+
+  @override
+  String get specialPermissions => 'Special Permission';
+
+  @override
+  String get specialPermissionsDescription =>
+      'Configure the special permissions for this role (cross-cutting sensitive actions, not tied to a module)';
+
+  @override
+  String get selectSpecialPermissions => 'Role Special Permissions';
 
   @override
   String get selectAll => 'Select All';
@@ -4743,6 +4760,58 @@ class AppLocalizationsEn extends AppLocalizations {
   String get viewMovements => 'View movements';
 
   @override
+  String get productMovementSituation => 'Product movement situation';
+
+  @override
+  String get initialQuantity => 'Initial Qty';
+
+  @override
+  String get movementQuantity => 'Movement Qty';
+
+  @override
+  String get quantityAfterMovement => 'Qty After';
+
+  @override
+  String get clientSituationLabel => 'Client Situation';
+
+  @override
+  String get supplierSituationLabel => 'Supplier Situation';
+
+  @override
+  String get saleBelowCostLabel => 'Sale below cost price';
+
+  @override
+  String get saleBelowCostHint =>
+      'Behavior when a cashier tries to sell a product below its purchase price.';
+
+  @override
+  String get saleBelowCostForbid => 'Forbid';
+
+  @override
+  String get saleBelowCostWarn => 'Warn';
+
+  @override
+  String get saleBelowCostAllow => 'Allow';
+
+  @override
+  String saleBelowCostBlockedMessage(
+    String prixVente,
+    String prixAchat,
+    String currency,
+  ) {
+    return 'Sale not allowed: the sale price ($prixVente $currency) is below the purchase price ($prixAchat $currency).';
+  }
+
+  @override
+  String saleBelowCostWarningMessage(
+    String prixVente,
+    String prixAchat,
+    String currency,
+  ) {
+    return 'The sale price ($prixVente $currency) is below the purchase price ($prixAchat $currency). Confirm anyway?';
+  }
+
+  @override
   String get noSessionSelected => 'No session selected';
 
   @override
@@ -4783,4 +4852,112 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get confirmCancelExits =>
       'Are you sure you want to cancel these exits?';
+
+  @override
+  String get cashTransferTab => 'Cash Transfer';
+
+  @override
+  String get storeTransferTab => 'Transfer between stores';
+
+  @override
+  String get noOpenSessionForManualMovement =>
+      'No open cash session: open a cash register before adding a manual movement.';
+
+  @override
+  String get selectOpenSessionForManualMovement =>
+      'Several sessions are open: choose the (open) session in the Session field before adding a manual movement.';
+
+  @override
+  String cartsAlreadyCancelled(String codes) {
+    return 'Cart(s) already cancelled: $codes';
+  }
+
+  @override
+  String transfersAlreadyCancelled(String codes) {
+    return 'Transfer(s) already cancelled: $codes';
+  }
+
+  @override
+  String get noRowSelected => 'No row selected: tick the rows to export.';
+
+  @override
+  String get productCostSituation => 'Product cost';
+
+  @override
+  String get minPurchasePrice => 'Min Purchase Price';
+
+  @override
+  String get maxPurchasePrice => 'Max Purchase Price';
+
+  @override
+  String get totalPurchasedQuantity => 'Total Qty Purchased';
+
+  @override
+  String get minSalePrice => 'Min Sale Price';
+
+  @override
+  String get maxSalePrice => 'Max Sale Price';
+
+  @override
+  String get totalSoldQuantity => 'Total Qty Sold';
+
+  @override
+  String get saleSettings => 'Sale settings';
+
+  @override
+  String get addToFavorites => 'Add to favorites';
+
+  @override
+  String get removeFromFavorites => 'Remove from favorites';
+
+  @override
+  String get maxFavoritesReached =>
+      '7 favorites maximum: remove one before adding another.';
+
+  @override
+  String get alerts => 'Alerts';
+
+  @override
+  String get alertsSubtitle => 'Important points to check today';
+
+  @override
+  String expiringSoonProducts(int days) {
+    return 'Products expiring within $days days';
+  }
+
+  @override
+  String get topClientsCredit => 'Clients with the highest credit';
+
+  @override
+  String get topSuppliersCredit => 'Suppliers with the highest credit';
+
+  @override
+  String get unclosedSessions => 'Unclosed cash sessions';
+
+  @override
+  String get noAlert => 'No alert';
+
+  @override
+  String get openModule => 'Open module';
+
+  @override
+  String andMore(int count) {
+    return '+ $count more';
+  }
+
+  @override
+  String expiresOn(String date) {
+    return 'Expires on $date';
+  }
+
+  @override
+  String openedOn(String date) {
+    return 'Opened on $date';
+  }
+
+  @override
+  String get tableView => 'Table view';
+
+  @override
+  String get cardView => 'Card view';
 }

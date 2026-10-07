@@ -17,6 +17,12 @@ class GeminiService {
 
   static const int _retryBaseSeconds = 2;
 
+  // ✅ Même convention que MistralOCRService.quotaExceeded — détecté quand
+  // tous les modèles essayés échouent en 429 (quota atteint sur la clé
+  // partagée), pour que l'appelant distingue "service IA indisponible" de
+  // "rien trouvé sur le document".
+  static bool quotaExceeded = false;
+
   // ─────────────────────────────────────────────────────────────────────────── //
 
   static Future<List<ReceiptItem>> parseReceiptWithGemini(
@@ -25,6 +31,7 @@ class GeminiService {
       bool isDeliveryNote,
       ) async {
     print('=== Mistral: parsing items from OCR text ===');
+    quotaExceeded = false;
 
     if (ocrText.trim().isEmpty) {
       print('⚠️ Mistral: OCR text is empty, skipping');
@@ -92,6 +99,7 @@ class GeminiService {
               '⚠️ $model rate-limited (429) – retry $attempt/$_maxRetries');
           if (attempt == _maxRetries) {
             exhausted = true;
+            quotaExceeded = true;
           } else {
             await Future.delayed(
                 Duration(seconds: _retryBaseSeconds * attempt * 2));

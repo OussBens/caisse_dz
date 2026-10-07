@@ -175,6 +175,8 @@ class MouvementsServices {
         return clientCode != null;
       case 'Distribution':
         return sousType == 'Entrée';
+      case 'Transfert':
+        return sousType == 'Entrée';
       default:
         // Type inconnu/futur : ne pas faire disparaître silencieusement la
         // quantité du calcul plutôt que de deviner un sens erroné.

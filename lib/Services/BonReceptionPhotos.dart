@@ -5,8 +5,8 @@ import 'package:path_provider/path_provider.dart';
 import 'package:flutter/foundation.dart';
 import 'package:uuid/uuid.dart';
 
-/// Stockage des photos de bons de réception (jointes depuis le disque ou
-/// reçues depuis le mobile via [BonReceptionServer]), organisées par date
+/// Stockage des photos de bons de réception (jointes depuis le disque ;
+/// d'anciens bons ont été reçus depuis l'app mobile, retirée), organisées par date
 /// comme demandé : bons_reception/YYYY/MM/DD/<uuid>_<nom_original>.
 ///
 /// Le chemin stocké en base est toujours RELATIF (ex: "2026/08/09/xxx.jpg",
@@ -77,20 +77,6 @@ class BonReceptionPhotoService {
 
     await sourceFile.copy(destinationFile.path);
     debugPrint('📸 Photo sauvegardée: $relativePath');
-
-    return relativePath;
-  }
-
-  /// Écrit directement des octets déjà en mémoire (upload HTTP) dans le
-  /// dossier daté et retourne le chemin relatif à stocker en base.
-  static Future<String> savePhotoBytes(List<int> bytes, String originalFileName, {DateTime? date, String? folder}) async {
-    final now = date ?? DateTime.now();
-    final relativePath = await _reserveRelativePath(originalFileName, now, folder: folder);
-    final rootDir = await getRootDirectory(folder: folder);
-    final destinationFile = File(path.joinAll([rootDir.path, ...relativePath.split('/')]));
-
-    await destinationFile.writeAsBytes(bytes, flush: true);
-    debugPrint('📸 Photo reçue: $relativePath');
 
     return relativePath;
   }

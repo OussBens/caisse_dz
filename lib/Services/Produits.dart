@@ -374,7 +374,7 @@ class ProduitServices{
             'id': detailId,
             'magasin_code': systemMagasin['code'],
             'produit_code': produit.code,
-            'quantite': 0,
+            'nombre': 0,
             'date_cree': DateTime.now().toIso8601String(),
             'cree_par_code': produit.creeParcode,
           };
@@ -388,7 +388,7 @@ class ProduitServices{
             'id': detailId,
             'magasin_code': magasin['code'],
             'produit_code': produit.code,
-            'quantite': 0,
+            'nombre': 0,
             'date_cree': DateTime.now().toIso8601String(),
             'cree_par_code': produit.creeParcode,
           };
@@ -582,6 +582,80 @@ class ProduitServices{
     return resultat;
   }
 
+  /// Situation "Coût produit" : pour chaque produit, prix d'achat min / max /
+  /// moyen pondéré et quantité achetée (lignes de SmartScan), prix de vente
+  /// min / max / moyen pondéré et quantité vendue (lignes de pannier).
+  /// Seules les lignes actives de documents actifs comptent ; [debut]/[fin]
+  /// (inclus, par jour) filtrent sur la date du document.
+  static Future<Map<String, ({double min, double max, double moyen, double quantite})>> _agregerPrix({
+    required String table,
+    required String jointure,
+    required String colonneDate,
+    String filtreSupplementaire = '',
+    DateTime? debut,
+    DateTime? fin,
+  }) async {
+    final db = await DbCreator.openDb();
+    final where = StringBuffer('l.etat = 1 AND d.etat = 1 $filtreSupplementaire');
+    final args = <Object>[];
+    if (debut != null) {
+      where.write(' AND d.$colonneDate >= ?');
+      args.add(DateTime(debut.year, debut.month, debut.day).toIso8601String());
+    }
+    if (fin != null) {
+      where.write(' AND d.$colonneDate <= ?');
+      args.add(DateTime(fin.year, fin.month, fin.day, 23, 59, 59, 999).toIso8601String());
+    }
+    final rows = await db.rawQuery('''
+      SELECT l.code_produit AS codeProduit,
+             MIN(l.prix) AS prixMin,
+             MAX(l.prix) AS prixMax,
+             SUM(l.prix * l.quantite) AS montant,
+             SUM(l.quantite) AS qte
+      FROM $table l
+      JOIN $jointure
+      WHERE $where
+      GROUP BY l.code_produit
+    ''', args);
+
+    return {
+      for (final r in rows)
+        r['codeProduit'] as String: (
+          min: (r['prixMin'] as num?)?.toDouble() ?? 0,
+          max: (r['prixMax'] as num?)?.toDouble() ?? 0,
+          moyen: ((r['qte'] as num?)?.toDouble() ?? 0) > 0
+              ? ((r['montant'] as num?)?.toDouble() ?? 0) / (r['qte'] as num).toDouble()
+              : 0,
+          quantite: (r['qte'] as num?)?.toDouble() ?? 0,
+        ),
+    };
+  }
+
+  static Future<Map<String, ({double min, double max, double moyen, double quantite})>> getPrixAchatParProduit({
+    DateTime? debut,
+    DateTime? fin,
+  }) =>
+      _agregerPrix(
+        table: 'smartScanProduit',
+        jointure: 'smart_scan d ON d.code = l.code_SmartScan',
+        colonneDate: 'date',
+        debut: debut,
+        fin: fin,
+      );
+
+  static Future<Map<String, ({double min, double max, double moyen, double quantite})>> getPrixVenteParProduit({
+    DateTime? debut,
+    DateTime? fin,
+  }) =>
+      _agregerPrix(
+        table: 'pannierProduit',
+        jointure: 'panniers d ON d.code = l.code_pannier',
+        colonneDate: 'date',
+        filtreSupplementaire: "AND d.type_pannier <> 'SmartScan'",
+        debut: debut,
+        fin: fin,
+      );
+
   /// Calcule en direct les statistiques de mouvement d'un produit
   /// (dernier achat, totaux achat/vente/retours, besoin) à partir
   /// des tables smartScanProduit, pannierProduit et retours.
@@ -631,7 +705,7 @@ class ProduitServices{
 
     final param = await ParamServices.getParam();
     final quantiteActuelle = await MouvementsServices.quantiteProduit(produit.code);
-    final bool besoin = quantiteActuelle < param.Minimum;
+    final bool besoin = quantiteActuelle <= param.Minimum; // même règle que la liste Rupture (besion_screen)
 
     String besoinStatus;
     if (!besoin) {

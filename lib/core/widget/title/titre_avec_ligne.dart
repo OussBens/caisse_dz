@@ -7,12 +7,18 @@ class TitreAvecLigne extends StatelessWidget {
   final String text;
   final double imageSize;
   final Color? colligne;
+  // Widget optionnel affiché en bout de ligne (ex. bouton fermer "X") — sur
+  // la même rangée que l'icône/titre, pour que la ligne du bas reste sous
+  // tout l'en-tête au lieu de n'être que sous le titre si ce widget était
+  // placé à côté de TitreAvecLigne dans un Row englobant séparé.
+  final Widget? trailing;
 
   const TitreAvecLigne({
     super.key,
     required this.imagePath,
     required this.text,
     this.imageSize =26, this.colligne=Appstyle.gris,
+    this.trailing,
 
   });
 
@@ -35,10 +41,14 @@ class TitreAvecLigne extends StatelessWidget {
             const SizedBox(width: 12),
 
             // Texte à droite
-            Text(
-              text,
-              style:Appstyle.textLB.copyWith(color: Appstyle.gris)
+            Expanded(
+              child: Text(
+                text,
+                style:Appstyle.textLB.copyWith(color: Appstyle.gris)
+              ),
             ),
+
+            if (trailing != null) trailing!,
           ],
         ),
 

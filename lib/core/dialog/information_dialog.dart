@@ -1,6 +1,8 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:caisse_dz/core/theme/app_style.dart';
+import 'dialog_kind.dart';
+import 'dialog_message.dart';
 import '../widget/button/main_button.dart';
 import '../widget/title/titre_avec_ligne.dart';
 import 'base_dialog.dart';
@@ -13,14 +15,29 @@ Future<void> InformationDialog({
   required String message,
   double width = 500,
   VoidCallback? onTerminer,
+  DialogKind kind = DialogKind.confirmer,
 }) {
   final l10n = AppLocalizations.of(context)!;
+
+  // Nature déduite de ce que passent déjà les appelants (titre + kind).
+  final NatureMessage nature;
+  if (kind == DialogKind.refuser ||
+      kind == DialogKind.danger ||
+      titre_type_message == l10n.error ||
+      titre_type_message == l10n.deletionImpossible ||
+      titre_type_message == l10n.modificationImpossible) {
+    nature = NatureMessage.erreur;
+  } else if (titre_type_message == l10n.success) {
+    nature = NatureMessage.succes;
+  } else {
+    nature = NatureMessage.information;
+  }
 
   return showDialog(
     context: context,
     barrierDismissible: true,
     barrierColor: Appstyle.gris.withOpacity(0.2),
-    builder: (_) {
+    builder: (dialogContext) {
       return ClipRect(
         child: BackdropFilter(
           filter: ImageFilter.blur(sigmaX: 2, sigmaY: 2),
@@ -33,14 +50,12 @@ Future<void> InformationDialog({
               text: "$titre_type_message - $titre_concerne",
             ),
 
-            content: Center(
-              child: Text(
-                message,
-                textAlign: TextAlign.center,
-                style: Appstyle.textSB.copyWith(
-                  color: Appstyle.Tnoir,
-                  height: 1.4,
-                ),
+            content: MessageAvecIcone(
+              nature: nature,
+              message: message,
+              style: Appstyle.textSB.copyWith(
+                color: Appstyle.Tnoir,
+                height: 1.4,
               ),
             ),
 
@@ -49,10 +64,10 @@ Future<void> InformationDialog({
               children: [
                 MainButton(
                   text: l10n.close,
-                  color: Appstyle.violet,
-                  icon: Icons.check_circle,
+                  color: kind.couleur,
+                  icon: kind.icone,
                   onPressed: () {
-                    Navigator.pop(context);
+                    Navigator.pop(dialogContext);
                     if (onTerminer != null) {
                       onTerminer();
                     }

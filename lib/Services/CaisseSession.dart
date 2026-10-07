@@ -84,7 +84,22 @@ class CaisseSessionServices {
       }
 
       late final CaisseSession session;
+      bool ouverteEntreTemps = false;
       await db.transaction((txn) async {
+        // Re-vérifié DANS la transaction : deux ouvertures quasi simultanées
+        // (double clic, deux postes) ne doivent pas créer deux sessions.
+        final existante = await txn.query(
+          'caisse_session',
+          columns: ['id'],
+          where: 'caisse_code = ? AND statut = ?',
+          whereArgs: [caisseCode, CaisseSession.statutOuverte],
+          limit: 1,
+        );
+        if (existante.isNotEmpty) {
+          ouverteEntreTemps = true;
+          return;
+        }
+
         final nextSessionId = await _getNextId(txn, 'caisse_session');
         final now = DateTime.now();
 
@@ -136,6 +151,12 @@ class CaisseSessionServices {
         );
       });
 
+      if (ouverteEntreTemps) {
+        return ApiResponse(
+          success: false,
+          message: "Une session de caisse est déjà ouverte pour cette caisse",
+        );
+      }
       return ApiResponse(success: true, message: "Caisse ouverte avec succès", data: session);
     } catch (e) {
       return ApiResponse(success: false, message: "Erreur ouverture caisse : ${e.toString()}");

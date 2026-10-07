@@ -320,17 +320,18 @@ class AfficheurProduit extends StatelessWidget {
   /// 🆕 Widget pour afficher la photo
   Widget _buildProductPhoto(BuildContext context) {
     if (produit.photo == null || produit.photo!.isEmpty) {
+      final Color couleur = Appstyle.couleurSousCategorie(produit.sousCategorieId);
       return Container(
         width: 50,
         height: 50,
         decoration: BoxDecoration(
-          color: Appstyle.violet.withOpacity(0.1),
+          color: couleur.withOpacity(0.1),
           borderRadius: BorderRadius.circular(12),
         ),
         child: Icon(
           Icons.inventory_2,
           size: 35,
-          color: Appstyle.violet.withOpacity(0.6),
+          color: couleur.withOpacity(0.6),
         ),
       );
     }

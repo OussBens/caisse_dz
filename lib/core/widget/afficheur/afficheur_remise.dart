@@ -111,7 +111,7 @@ class AfficheurRemise extends StatelessWidget {
                   l10n.reduction,
                   remise.taux,
                   Colors.blue,
-                  suffix: remise.tauxType == "POURCENTAGE" ? " %" : " ${l10n.currency}",
+                  suffix: remise.tauxType == "Pourcentage" ? " %" : " ${l10n.currency}",
                   l10n: l10n,
                 ),
               ],

@@ -36,6 +36,26 @@ class TransfertMagasinServices {
     }
   }
 
+  /// Modifie un transfert actif (contenu + audit). Les mouvements liés et le
+  /// stock "nombre" sont mis à jour par l'appelant (transfert_magasin_nouveau.dart).
+  Future<ApiResponse<int>> updateTransfert(TransfertMagasin transfert) async {
+    try {
+      final data = transfert.toMap()..remove('id');
+      final rows = await db.update(
+        'transfert_magasin',
+        data,
+        where: 'id = ? AND etat = 1',
+        whereArgs: [transfert.id],
+      );
+      if (rows == 0) {
+        return ApiResponse(success: false, message: "Transfert introuvable ou déjà annulé");
+      }
+      return ApiResponse(success: true, message: "Transfert modifié avec succès", data: rows);
+    } catch (e) {
+      return ApiResponse(success: false, message: "Erreur modification : ${e.toString()}");
+    }
+  }
+
   /// Annulation "douce" d'un transfert déjà enregistré : bascule etat=annulé
   /// avec motif obligatoire, sans toucher au contenu ni le supprimer
   /// physiquement (même principe que Sortie/Retour).

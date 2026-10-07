@@ -40,9 +40,15 @@ class ChampAvecLabel extends StatelessWidget {
               crossAxisAlignment:
               alignmentStart ? CrossAxisAlignment.start : CrossAxisAlignment.center,
               children: [
-                Text(
-                  label,
-                  style: Appstyle.textSB.copyWith(color: Appstyle.TgrisF),
+                // Expanded plutôt qu'un Text nu : un libellé plus long que
+                // `distance` (ex. "Solde d'ouverture (DA)") passe à la ligne
+                // au lieu de provoquer un RenderFlex overflow.
+                Expanded(
+                  child: Text(
+                    label,
+                    style: Appstyle.textSB.copyWith(color: Appstyle.TgrisF),
+                    softWrap: true,
+                  ),
                 ),
                 if (obligatoire)
                   Padding(

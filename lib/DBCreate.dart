@@ -49,17 +49,21 @@ class DbCreator {
     }
   }
 
-  static Future<Database> openDb() async {
-    // Réutilise la connexion déjà ouverte : chaque méthode de service appelle
-    // openDb() indépendamment (parfois 8-9 fois pour un seul écran, ex.
-    // ProduitScreen.loadAllData), donc sans ce court-circuit chaque appel
-    // recréait une nouvelle DatabaseFactory et une nouvelle connexion native
-    // vers le même fichier sans jamais fermer la précédente, ce qui finissait
-    // par saturer les handles/locks SQLite et geler l'appli.
-    if (_db != null && _db!.isOpen) {
-      return _db!;
-    }
+  // Réutilise la connexion déjà ouverte : chaque méthode de service appelle
+  // openDb() indépendamment (parfois 8-9 fois pour un seul écran, ex.
+  // ProduitScreen.loadAllData). Les appels concurrents avant la fin de la
+  // première ouverture partagent la même future — sinon chacun ouvrait sa
+  // propre connexion vers le même fichier, ce qui saturait les locks SQLite.
+  static Future<Database>? _ouverture;
 
+  static Future<Database> openDb() {
+    if (_db != null && _db!.isOpen) {
+      return Future.value(_db!);
+    }
+    return _ouverture ??= _ouvrirConnexion().whenComplete(() => _ouverture = null);
+  }
+
+  static Future<Database> _ouvrirConnexion() async {
     // Get activation status from secure storage instead of SharedPreferences
 
    //Maitnent reste comme ca toujours true mais aprés changé vers is Activated oiu non
@@ -83,7 +87,7 @@ class DbCreator {
     _db = await databaseFactory.openDatabase(
       dbPath,
       options: OpenDatabaseOptions(
-        version: 47,
+        version: 51,
         onConfigure: (db) async {
           await db.execute("PRAGMA KEY = '$password'");
           await db.execute('PRAGMA foreign_keys = ON');
@@ -143,6 +147,7 @@ class DbCreator {
           await _createClotureCaisse(db);
           await _createCaisseSession(db);
           await _createCaisseMouvement(db);
+          await _createModuleFavori(db);
 
           // ONLY INSERT DEFAULT DATA IF ACTIVATED
           if (isActivated) {
@@ -778,9 +783,9 @@ class DbCreator {
           }
 
           if (oldVersion < 27) {
-            // Token d'API mobile : généré par POST /api/auth/login, vérifié
-            // ensuite via le header Authorization Bearer sur les endpoints
-            // de sync avec l'app compagnon (BonReceptionServer).
+            // Token d'API de l'ancienne app mobile compagnon (intégration
+            // retirée le 2026-10-06). Colonne conservée pour la compatibilité
+            // des bases existantes.
             try {
               await db.execute('ALTER TABLE utilisateur ADD COLUMN api_token TEXT');
             } catch (e) {
@@ -1080,6 +1085,68 @@ class DbCreator {
             // (distinct du transfert d'argent entre caisses, table `transfert`).
             await _createTransfertMagasin(db);
           }
+
+          if (oldVersion < 48) {
+            // Permissions spéciales (phase 3 du formulaire Rôle) : actions
+            // sensibles transversales, pas liées à un module de la sidebar.
+            const specialPermissionColumns = <String>[
+              'voirPrixAchat',
+              'voirMarge',
+              'modifierPrixVente',
+              'annulerOperations',
+              'changerCaisseMagasin',
+              'gererTransfertsCaisse',
+              'voirStockTousMagasins',
+            ];
+            for (final column in specialPermissionColumns) {
+              try {
+                await db.execute('ALTER TABLE roledetail ADD COLUMN $column INTEGER NOT NULL DEFAULT 0');
+              } catch (e) {
+                print('Skip add roledetail.$column: $e');
+              }
+            }
+            // Le rôle Admin (seedé avant l'existence de ces colonnes) doit
+            // les avoir toutes, comme le reste de ses permissions.
+            try {
+              await db.update(
+                'roledetail',
+                { for (final column in specialPermissionColumns) column: 1 },
+                where: 'rolecode = ?',
+                whereArgs: ['ADMIN'],
+              );
+            } catch (e) {
+              print('Skip backfill roledetail special permissions for ADMIN: $e');
+            }
+          }
+
+          if (oldVersion < 49) {
+            // Comportement de la caisse face à une vente sous le prix
+            // d'achat (Paramètres > Système) — voir Paramters.venteSousAchat.
+            // Défaut "Autoriser" pour ne pas changer le comportement actuel
+            // des installations existantes.
+            try {
+              await db.execute("ALTER TABLE parametre ADD COLUMN vente_sous_achat TEXT NOT NULL DEFAULT 'Autoriser'");
+            } catch (e) {
+              print('Skip add parametre.vente_sous_achat: $e');
+            }
+          }
+
+          if (oldVersion < 50) {
+            // Une seule session ouverte par caisse, garantie en base.
+            await _createIndexSessionOuverteUnique(db);
+            // remise_id = 0 signifiait "pas de remise" mais était affiché
+            // comme une remise (tests `remiseId != null`) : 0 -> NULL.
+            try {
+              await db.execute('UPDATE produits SET remise_id = NULL WHERE remise_id = 0');
+            } catch (e) {
+              print('Skip nettoyage produits.remise_id = 0: $e');
+            }
+          }
+
+          if (oldVersion < 51) {
+            // Modules favoris (onglets en haut de l'écran), par utilisateur.
+            await _createModuleFavori(db);
+          }
         },
       ),
     );
@@ -1160,6 +1227,14 @@ class DbCreator {
         'fournisseur'   : 1,
         'utilisateur'   : 1,
         'gestionCaisse' : 1,
+
+        'voirPrixAchat'         : 1,
+        'voirMarge'             : 1,
+        'modifierPrixVente'     : 1,
+        'annulerOperations'     : 1,
+        'changerCaisseMagasin'  : 1,
+        'gererTransfertsCaisse' : 1,
+        'voirStockTousMagasins' : 1,
 
         'date_cree'     : now,
         'cree_par_code' : 'ADMIN'
@@ -1462,7 +1537,15 @@ class DbCreator {
         fournisseur   INTEGER NOT NULL,
         utilisateur   INTEGER NOT NULL,
         gestionCaisse INTEGER NOT NULL,
-        
+
+        voirPrixAchat         INTEGER NOT NULL DEFAULT 0,
+        voirMarge             INTEGER NOT NULL DEFAULT 0,
+        modifierPrixVente     INTEGER NOT NULL DEFAULT 0,
+        annulerOperations     INTEGER NOT NULL DEFAULT 0,
+        changerCaisseMagasin  INTEGER NOT NULL DEFAULT 0,
+        gererTransfertsCaisse INTEGER NOT NULL DEFAULT 0,
+        voirStockTousMagasins INTEGER NOT NULL DEFAULT 0,
+
         date_cree     TEXT NOT NULL,
         cree_par_code TEXT NOT NULL,
         
@@ -1781,6 +1864,7 @@ class DbCreator {
       active_bonus          INTEGER NOT NULL DEFAULT 0,
       bonus_taux            REAL NOT NULL DEFAULT 0,
       active_nombre_quantite INTEGER NOT NULL DEFAULT 0,
+      vente_sous_achat      TEXT NOT NULL DEFAULT 'Autoriser',
       date_cree             TEXT NOT NULL,
       cree_par_code         TEXT NOT NULL,
       date_modif            TEXT,
@@ -2413,8 +2497,9 @@ class DbCreator {
 
   /// Session de caisse (ouverture -> mouvements -> clôture) : la période
   /// pendant laquelle une caisse est active. Une seule session `ouverte`
-  /// doit exister à la fois par `caisse_code` (contrainte applicative, voir
-  /// CaisseSessionServices.ouvrirSession — pas de contrainte SQL dédiée).
+  /// doit exister à la fois par `caisse_code` : vérifié par
+  /// CaisseSessionServices.ouvrirSession et garanti en base par l'index
+  /// unique partiel créé dans [_createIndexSessionOuverteUnique].
   static Future<void> _createCaisseSession(Database db) async {
     await db.execute('''
       CREATE TABLE IF NOT EXISTS caisse_session (
@@ -2441,6 +2526,37 @@ class DbCreator {
         FOREIGN KEY (cree_par_code)   REFERENCES utilisateur(code)
       )
     ''');
+    await _createIndexSessionOuverteUnique(db);
+  }
+
+  /// Modules favoris d'un utilisateur (7 maximum, contrôlé par AuthState),
+  /// affichés en onglets en haut de l'écran (AppShell). [route] = route
+  /// GoRouter du module (ex. "/caisse"), [ordre] = position de l'onglet.
+  static Future<void> _createModuleFavori(Database db) async {
+    await db.execute('''
+      CREATE TABLE IF NOT EXISTS module_favori (
+        user_code   TEXT NOT NULL,
+        route       TEXT NOT NULL,
+        ordre       INTEGER NOT NULL DEFAULT 0,
+        date_cree   TEXT NOT NULL,
+        PRIMARY KEY (user_code, route),
+        FOREIGN KEY (user_code) REFERENCES utilisateur(code)
+      )
+    ''');
+  }
+
+  /// Au plus une session `ouverte` par caisse, garanti par SQLite (index
+  /// unique partiel) : même deux ouvertures simultanées ne peuvent pas passer.
+  /// Échoue sans bloquer si une base existante contient déjà des doublons.
+  static Future<void> _createIndexSessionOuverteUnique(Database db) async {
+    try {
+      await db.execute(
+        "CREATE UNIQUE INDEX IF NOT EXISTS idx_caisse_session_ouverte_unique "
+        "ON caisse_session(caisse_code) WHERE statut = 'ouverte'",
+      );
+    } catch (e) {
+      print('Skip index session ouverte unique (doublons existants ?): $e');
+    }
   }
 
   /// Grand-livre des mouvements de caisse : chaque encaissement/décaissement

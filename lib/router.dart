@@ -8,6 +8,7 @@ import 'package:caisse_dz/screens/sortie_screen.dart';
 import 'package:go_router/go_router.dart';
 import 'core/Auth/auth_state.dart';
 import 'core/Auth/license_tier.dart';
+import 'core/widget/app_shell.dart';
 import 'screens/dash_screen.dart';
 import 'screens/caisse_screen.dart';
 import 'screens/client_screen.dart';
@@ -38,9 +39,10 @@ class AppRouter {
         // Logged in & trying to go to login or activate → send to dashboard
         if (loggedIn && (goingToLogin || goingToActivate)) return '/caisse';
 
-        // Gestion des magasins réservée au palier Premium — bloque l'accès
-        // direct par URL même si l'entrée de menu est masquée (sidebar).
-        if (loggedIn && state.fullPath == '/magasin' && authState.licenseTier != LicenseTier.premium) {
+        // Gestion des magasins réservée au palier Avancé (Basic reste
+        // mono-magasin) — bloque l'accès direct par URL même si l'entrée de
+        // menu est masquée (sidebar).
+        if (loggedIn && state.fullPath == '/magasin' && authState.licenseTier == LicenseTier.basic) {
           return '/caisse';
         }
 
@@ -49,25 +51,35 @@ class AppRouter {
       },
 
       routes: [
-        GoRoute(path: '/login'          , builder: (context, state) =>  LoginScreen()),
-        GoRoute(path: '/dash'           , builder: (context, state) =>  DashScreen()),
-        GoRoute(path: '/caisse'         , builder: (_, __) =>  CaisseScreen()),
-        GoRoute(path: '/client'         , builder: (_, __) =>  ClientScreen()),
-        GoRoute(path: '/fournisseur'    , builder: (_, __) =>  FournisseurScreen()),
-        GoRoute(path: '/magasin'        , builder: (_, __) =>  const MagasinScreen()),
-        GoRoute(path: '/pannier'        , builder: (_, __) =>  PannierScreen()),
-        GoRoute(path: '/produit'        , builder: (_, __) =>  ProduitScreen()),
-        GoRoute(path: '/parametre'      , builder: (_, __) =>  ParametreScreen()),
-        GoRoute(path: '/stock'          , builder: (_, __) =>  StockScreen()),
-        GoRoute(path: '/utilisateur'    , builder: (_, __) =>  UtilisateurScreen()),
-        GoRoute(path: '/gestion_caisse' , builder: (_, __) =>  GestionCaisseScreen()),
-        GoRoute(path: '/zakat'          , builder: (_, __) =>  ZakatScreen()),
-        GoRoute(path: '/historique'     , builder: (_, __) =>  HistoriqueScreen()),
-        GoRoute(path: '/activate'       , builder: (_, __) =>  ActivationScreen()),
-        GoRoute(path: '/entree'         , builder: (_, __) =>  EntreeScreen()),
-        GoRoute(path: '/sortie'         , builder: (_, __) =>  SortieScreen()),
-        GoRoute(path: '/retour'         , builder: (_, __) =>  RetourScreen()),
-        GoRoute(path: '/besoin'         , builder: (_, __) =>  BesionScreen()),
+        GoRoute(path: '/login'    , builder: (context, state) =>  LoginScreen()),
+        GoRoute(path: '/activate' , builder: (_, __) =>  ActivationScreen()),
+
+        // Modules authentifiés : partagent tous le même AppShell (sidebar
+        // montée une seule fois pour toute la session, cf. app_shell.dart)
+        // au lieu d'un Scaffold+SideBarWidget dupliqué et recréé par chaque
+        // écran à chaque navigation.
+        ShellRoute(
+          builder: (context, state, child) => AppShell(child: child),
+          routes: [
+            GoRoute(path: '/dash'           , builder: (context, state) =>  DashScreen()),
+            GoRoute(path: '/caisse'         , builder: (_, __) =>  CaisseScreen()),
+            GoRoute(path: '/client'         , builder: (_, __) =>  ClientScreen()),
+            GoRoute(path: '/fournisseur'    , builder: (_, __) =>  FournisseurScreen()),
+            GoRoute(path: '/magasin'        , builder: (_, __) =>  const MagasinScreen()),
+            GoRoute(path: '/pannier'        , builder: (_, __) =>  PannierScreen()),
+            GoRoute(path: '/produit'        , builder: (_, __) =>  ProduitScreen()),
+            GoRoute(path: '/parametre'      , builder: (_, __) =>  ParametreScreen()),
+            GoRoute(path: '/stock'          , builder: (_, __) =>  StockScreen()),
+            GoRoute(path: '/utilisateur'    , builder: (_, __) =>  UtilisateurScreen()),
+            GoRoute(path: '/gestion_caisse' , builder: (_, __) =>  GestionCaisseScreen()),
+            GoRoute(path: '/zakat'          , builder: (_, __) =>  ZakatScreen()),
+            GoRoute(path: '/historique'     , builder: (_, __) =>  HistoriqueScreen()),
+            GoRoute(path: '/entree'         , builder: (_, __) =>  EntreeScreen()),
+            GoRoute(path: '/sortie'         , builder: (_, __) =>  SortieScreen()),
+            GoRoute(path: '/retour'         , builder: (_, __) =>  RetourScreen()),
+            GoRoute(path: '/besoin'         , builder: (_, __) =>  BesionScreen()),
+          ],
+        ),
       ],
     );
   }

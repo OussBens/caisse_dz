@@ -6,8 +6,8 @@ import 'package:caisse_dz/core/theme/app_style.dart';
 import 'package:caisse_dz/data/models/bon_reception.dart';
 import 'package:flutter/material.dart';
 
-/// Vignette d'un bon de réception (photo jointe depuis le disque ou reçue
-/// depuis le mobile) affichée dans le `Wrap` de l'onglet "Entrée IA".
+/// Vignette d'un bon de réception (photo jointe depuis le disque, ou reçue
+/// depuis l'ancienne app mobile pour les bons historiques) affichée dans le `Wrap` de l'onglet "Entrée IA".
 ///
 /// Bordure violette = pas encore scannée, verte = déjà transformée en Smart
 /// Scan, rouge = erreur. Un tap ouvre l'assistant IA sur cette photo.
@@ -15,9 +15,6 @@ class BonReceptionCard extends StatefulWidget {
   final BonReception bon;
   final VoidCallback onTap;
   final VoidCallback? onDelete;
-  // ✅ Vrai juste après réception depuis le mobile : joue une courte
-  // animation d'apparition pour que l'utilisateur remarque la nouvelle photo.
-  final bool justArrived;
   // ✅ Nom (déjà résolu par l'appelant, qui a la liste des utilisateurs) de
   // la personne ayant scanné/traité cette photo, si applicable.
   final String? traiteParNom;
@@ -27,7 +24,6 @@ class BonReceptionCard extends StatefulWidget {
     required this.bon,
     required this.onTap,
     this.onDelete,
-    this.justArrived = false,
     this.traiteParNom,
   });
 
@@ -52,24 +48,13 @@ class _BonReceptionCardState extends State<BonReceptionCard> {
 
   @override
   Widget build(BuildContext context) {
-    return TweenAnimationBuilder<double>(
-      tween: Tween(begin: widget.justArrived ? 0.0 : 1.0, end: 1.0),
-      duration: const Duration(milliseconds: 400),
-      curve: Curves.easeOutBack,
-      builder: (context, value, child) => Transform.scale(
-        scale: 0.85 + (0.15 * value),
-        child: Opacity(opacity: value.clamp(0.0, 1.0), child: child),
-      ),
-      child: GestureDetector(
+    return GestureDetector(
         onTap: widget.onTap,
         child: Container(
           width: 160,
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(12),
             border: Border.all(color: _borderColor, width: 3),
-            boxShadow: widget.justArrived
-                ? [BoxShadow(color: _borderColor.withOpacity(0.5), blurRadius: 10, spreadRadius: 1)]
-                : null,
           ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -121,7 +106,7 @@ class _BonReceptionCardState extends State<BonReceptionCard> {
                       ),
                     ),
 
-                    // Badge source (téléphone vs joint depuis le disque)
+                    // Badge source (téléphone = bon historique reçu du mobile, vs joint depuis le disque)
                     Positioned(
                       bottom: 4,
                       left: 4,
@@ -204,7 +189,6 @@ class _BonReceptionCardState extends State<BonReceptionCard> {
             ],
           ),
         ),
-      ),
     );
   }
 }

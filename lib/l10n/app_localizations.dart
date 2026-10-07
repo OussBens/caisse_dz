@@ -1396,6 +1396,12 @@ abstract class AppLocalizations {
   /// **'Autre'**
   String get autre;
 
+  /// No description provided for @peopleCategory.
+  ///
+  /// In fr, this message translates to:
+  /// **'People'**
+  String get peopleCategory;
+
   /// No description provided for @ticket.
   ///
   /// In fr, this message translates to:
@@ -8524,6 +8530,12 @@ abstract class AppLocalizations {
   /// **'Attention'**
   String get warning;
 
+  /// No description provided for @noPermissionAction.
+  ///
+  /// In fr, this message translates to:
+  /// **'Vous n\'avez pas la permission nécessaire pour effectuer cette action.'**
+  String get noPermissionAction;
+
   /// No description provided for @permissions.
   ///
   /// In fr, this message translates to:
@@ -8541,6 +8553,24 @@ abstract class AppLocalizations {
   /// In fr, this message translates to:
   /// **'Permissions du rôle'**
   String get selectPermissions;
+
+  /// No description provided for @specialPermissions.
+  ///
+  /// In fr, this message translates to:
+  /// **'Permission spéciale'**
+  String get specialPermissions;
+
+  /// No description provided for @specialPermissionsDescription.
+  ///
+  /// In fr, this message translates to:
+  /// **'Configurez les permissions spéciales pour ce rôle (actions sensibles transversales, non liées à un module)'**
+  String get specialPermissionsDescription;
+
+  /// No description provided for @selectSpecialPermissions.
+  ///
+  /// In fr, this message translates to:
+  /// **'Permissions spéciales du rôle'**
+  String get selectSpecialPermissions;
 
   /// No description provided for @selectAll.
   ///
@@ -9047,6 +9077,92 @@ abstract class AppLocalizations {
   /// **'Voir les mouvements'**
   String get viewMovements;
 
+  /// No description provided for @productMovementSituation.
+  ///
+  /// In fr, this message translates to:
+  /// **'Situation des mouvements produit'**
+  String get productMovementSituation;
+
+  /// No description provided for @initialQuantity.
+  ///
+  /// In fr, this message translates to:
+  /// **'Qtt Initiale'**
+  String get initialQuantity;
+
+  /// No description provided for @movementQuantity.
+  ///
+  /// In fr, this message translates to:
+  /// **'Qtt Mouvement'**
+  String get movementQuantity;
+
+  /// No description provided for @quantityAfterMovement.
+  ///
+  /// In fr, this message translates to:
+  /// **'Qtt Après'**
+  String get quantityAfterMovement;
+
+  /// No description provided for @clientSituationLabel.
+  ///
+  /// In fr, this message translates to:
+  /// **'Situation Client'**
+  String get clientSituationLabel;
+
+  /// No description provided for @supplierSituationLabel.
+  ///
+  /// In fr, this message translates to:
+  /// **'Situation Fournisseur'**
+  String get supplierSituationLabel;
+
+  /// No description provided for @saleBelowCostLabel.
+  ///
+  /// In fr, this message translates to:
+  /// **'Vente sous le prix d\'achat'**
+  String get saleBelowCostLabel;
+
+  /// No description provided for @saleBelowCostHint.
+  ///
+  /// In fr, this message translates to:
+  /// **'Comportement lorsqu\'un caissier essaie de vendre un produit à un prix inférieur à son prix d\'achat.'**
+  String get saleBelowCostHint;
+
+  /// No description provided for @saleBelowCostForbid.
+  ///
+  /// In fr, this message translates to:
+  /// **'Interdire'**
+  String get saleBelowCostForbid;
+
+  /// No description provided for @saleBelowCostWarn.
+  ///
+  /// In fr, this message translates to:
+  /// **'Avertir'**
+  String get saleBelowCostWarn;
+
+  /// No description provided for @saleBelowCostAllow.
+  ///
+  /// In fr, this message translates to:
+  /// **'Autoriser'**
+  String get saleBelowCostAllow;
+
+  /// No description provided for @saleBelowCostBlockedMessage.
+  ///
+  /// In fr, this message translates to:
+  /// **'Vente impossible : le prix de vente ({prixVente} {currency}) est inférieur au prix d\'achat ({prixAchat} {currency}).'**
+  String saleBelowCostBlockedMessage(
+    String prixVente,
+    String prixAchat,
+    String currency,
+  );
+
+  /// No description provided for @saleBelowCostWarningMessage.
+  ///
+  /// In fr, this message translates to:
+  /// **'Le prix de vente ({prixVente} {currency}) est inférieur au prix d\'achat ({prixAchat} {currency}). Confirmer quand même ?'**
+  String saleBelowCostWarningMessage(
+    String prixVente,
+    String prixAchat,
+    String currency,
+  );
+
   /// No description provided for @noSessionSelected.
   ///
   /// In fr, this message translates to:
@@ -9118,6 +9234,192 @@ abstract class AppLocalizations {
   /// In fr, this message translates to:
   /// **'Êtes-vous sûr de vouloir annuler ces sorties ?'**
   String get confirmCancelExits;
+
+  /// No description provided for @cashTransferTab.
+  ///
+  /// In fr, this message translates to:
+  /// **'Transfert Caisse'**
+  String get cashTransferTab;
+
+  /// No description provided for @storeTransferTab.
+  ///
+  /// In fr, this message translates to:
+  /// **'Transfert entre magasins'**
+  String get storeTransferTab;
+
+  /// No description provided for @noOpenSessionForManualMovement.
+  ///
+  /// In fr, this message translates to:
+  /// **'Aucune session de caisse ouverte : ouvrez une caisse avant d\'ajouter un mouvement manuel.'**
+  String get noOpenSessionForManualMovement;
+
+  /// No description provided for @selectOpenSessionForManualMovement.
+  ///
+  /// In fr, this message translates to:
+  /// **'Plusieurs sessions sont ouvertes : choisissez la session (ouverte) dans le champ Session avant d\'ajouter un mouvement manuel.'**
+  String get selectOpenSessionForManualMovement;
+
+  /// No description provided for @cartsAlreadyCancelled.
+  ///
+  /// In fr, this message translates to:
+  /// **'Panier(s) déjà annulé(s) : {codes}'**
+  String cartsAlreadyCancelled(String codes);
+
+  /// No description provided for @transfersAlreadyCancelled.
+  ///
+  /// In fr, this message translates to:
+  /// **'Transfert(s) déjà annulé(s) : {codes}'**
+  String transfersAlreadyCancelled(String codes);
+
+  /// No description provided for @noRowSelected.
+  ///
+  /// In fr, this message translates to:
+  /// **'Aucune ligne sélectionnée : cochez les lignes à exporter.'**
+  String get noRowSelected;
+
+  /// No description provided for @productCostSituation.
+  ///
+  /// In fr, this message translates to:
+  /// **'Coût produit'**
+  String get productCostSituation;
+
+  /// No description provided for @minPurchasePrice.
+  ///
+  /// In fr, this message translates to:
+  /// **'Prix Achat Min'**
+  String get minPurchasePrice;
+
+  /// No description provided for @maxPurchasePrice.
+  ///
+  /// In fr, this message translates to:
+  /// **'Prix Achat Max'**
+  String get maxPurchasePrice;
+
+  /// No description provided for @totalPurchasedQuantity.
+  ///
+  /// In fr, this message translates to:
+  /// **'Total Qtt Achetée'**
+  String get totalPurchasedQuantity;
+
+  /// No description provided for @minSalePrice.
+  ///
+  /// In fr, this message translates to:
+  /// **'Prix Vente Min'**
+  String get minSalePrice;
+
+  /// No description provided for @maxSalePrice.
+  ///
+  /// In fr, this message translates to:
+  /// **'Prix Vente Max'**
+  String get maxSalePrice;
+
+  /// No description provided for @totalSoldQuantity.
+  ///
+  /// In fr, this message translates to:
+  /// **'Total Qtt Vendue'**
+  String get totalSoldQuantity;
+
+  /// No description provided for @saleSettings.
+  ///
+  /// In fr, this message translates to:
+  /// **'Paramètres de vente'**
+  String get saleSettings;
+
+  /// No description provided for @addToFavorites.
+  ///
+  /// In fr, this message translates to:
+  /// **'Ajouter aux favoris'**
+  String get addToFavorites;
+
+  /// No description provided for @removeFromFavorites.
+  ///
+  /// In fr, this message translates to:
+  /// **'Retirer des favoris'**
+  String get removeFromFavorites;
+
+  /// No description provided for @maxFavoritesReached.
+  ///
+  /// In fr, this message translates to:
+  /// **'7 favoris maximum : retirez-en un avant d\'en ajouter un autre.'**
+  String get maxFavoritesReached;
+
+  /// No description provided for @alerts.
+  ///
+  /// In fr, this message translates to:
+  /// **'Alertes'**
+  String get alerts;
+
+  /// No description provided for @alertsSubtitle.
+  ///
+  /// In fr, this message translates to:
+  /// **'Points importants à vérifier aujourd\'hui'**
+  String get alertsSubtitle;
+
+  /// No description provided for @expiringSoonProducts.
+  ///
+  /// In fr, this message translates to:
+  /// **'Produits expirant sous {days} jours'**
+  String expiringSoonProducts(int days);
+
+  /// No description provided for @topClientsCredit.
+  ///
+  /// In fr, this message translates to:
+  /// **'Clients au crédit le plus élevé'**
+  String get topClientsCredit;
+
+  /// No description provided for @topSuppliersCredit.
+  ///
+  /// In fr, this message translates to:
+  /// **'Fournisseurs au crédit le plus élevé'**
+  String get topSuppliersCredit;
+
+  /// No description provided for @unclosedSessions.
+  ///
+  /// In fr, this message translates to:
+  /// **'Sessions de caisse non clôturées'**
+  String get unclosedSessions;
+
+  /// No description provided for @noAlert.
+  ///
+  /// In fr, this message translates to:
+  /// **'Aucune alerte'**
+  String get noAlert;
+
+  /// No description provided for @openModule.
+  ///
+  /// In fr, this message translates to:
+  /// **'Ouvrir le module'**
+  String get openModule;
+
+  /// No description provided for @andMore.
+  ///
+  /// In fr, this message translates to:
+  /// **'+ {count} autres'**
+  String andMore(int count);
+
+  /// No description provided for @expiresOn.
+  ///
+  /// In fr, this message translates to:
+  /// **'Expire le {date}'**
+  String expiresOn(String date);
+
+  /// No description provided for @openedOn.
+  ///
+  /// In fr, this message translates to:
+  /// **'Ouverte le {date}'**
+  String openedOn(String date);
+
+  /// No description provided for @tableView.
+  ///
+  /// In fr, this message translates to:
+  /// **'Affichage tableau'**
+  String get tableView;
+
+  /// No description provided for @cardView.
+  ///
+  /// In fr, this message translates to:
+  /// **'Affichage cards'**
+  String get cardView;
 }
 
 class _AppLocalizationsDelegate

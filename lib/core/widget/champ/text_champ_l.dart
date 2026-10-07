@@ -25,6 +25,9 @@ class TextChampL extends StatelessWidget {
   // dans Paramètres > Système (QuantiteFormat), au lieu du nombre de
   // décimales libre habituel des champs numériques (prix, montant...).
   final bool isQuantite;
+  // Unité du produit pour un champ quantité : 'Pièce' => entier uniquement
+  // (voir QuantiteFormat.decimalesPour). null => réglage système.
+  final String? uniteMesure;
 
   const TextChampL({
     super.key,
@@ -42,6 +45,7 @@ class TextChampL extends StatelessWidget {
     this.width=350,
     this.obscureText = false,
     this.isQuantite = false,
+    this.uniteMesure,
   });
 
   @override
@@ -96,7 +100,7 @@ class TextChampL extends StatelessWidget {
           // champs quantité, libre pour les autres champs numériques)
           inputFormatters: numeric
               ? (isQuantite
-                  ? QuantiteFormat.inputFormatters
+                  ? QuantiteFormat.inputFormattersPour(uniteMesure)
                   : [
                       FilteringTextInputFormatter.allow(
                         RegExp(r'^\d*\.?\d*'),

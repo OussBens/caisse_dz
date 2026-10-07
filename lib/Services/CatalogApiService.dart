@@ -25,16 +25,17 @@ class CatalogPage {
 }
 
 /// Client HTTP pour l'API du catalogue produit distant bensds.com
-/// (https://bensds.com/catalog-api). Suit les mêmes conventions que
+/// (https://catalog-api.bensds.com). Suit les mêmes conventions que
 /// [OpenFoodFactsService] : `http` package brut, exceptions dédiées, pas de
 /// dépendance ajoutée. Toutes les réponses suivent l'enveloppe
 /// `{"success": bool, "data": ...}`.
 ///
-/// L'API est actuellement ouverte (sans authentification) — voir le plan
-/// d'intégration ; un header `Authorization`/`X-Api-Key` pourra être ajouté
-/// ici le jour où le serveur l'exigera, sans impact sur les appelants.
+/// Les lectures sont publiques ; toute écriture (POST/PUT/DELETE, upload
+/// photo) exige le header `X-API-Key`, qui doit correspondre à `API_KEY` dans
+/// le `.env` du serveur. Le header est envoyé sur toutes les requêtes.
 class CatalogApiService {
-  static const String _baseUrl = 'https://bensds.com/catalog-api';
+  static const String _baseUrl = 'https://catalog-api.bensds.com';
+  static const String _apiKey = 'dbd176fec8095b043eabd805f3be731bb00ccf4a8765dfdce5c17f77a7f53790';
   static const Duration _timeout = Duration(seconds: 10);
 
   static final TtlCache<String, List<String>> _lookupCache =
@@ -45,6 +46,7 @@ class CatalogApiService {
   Map<String, String> get _headers => const {
         'Content-Type': 'application/json',
         'User-Agent': 'CaisseDZ - Windows - Version 1.0',
+        'X-API-Key': _apiKey,
       };
 
   Future<http.Response> _get(String path) async {
@@ -222,6 +224,7 @@ class CatalogApiService {
       final uri = Uri.parse('$_baseUrl/products/$id/photo');
       final request = http.MultipartRequest('POST', uri)
         ..headers['User-Agent'] = _headers['User-Agent']!
+        ..headers['X-API-Key'] = _apiKey
         ..files.add(await http.MultipartFile.fromPath('photo', photoFile.path));
       final streamedResponse = await request.send().timeout(_timeout);
       final response = await http.Response.fromStream(streamedResponse);

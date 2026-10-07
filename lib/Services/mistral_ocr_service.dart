@@ -7,7 +7,15 @@ class MistralOCRService {
   static const String _apiKey = 'MagGDgxaej4RtZorOxHGYjngW1ct4a0j';
   static const String _baseUrl = 'https://api.mistral.ai/v1';
 
+  // ✅ Détecté quand l'API Mistral répond 429 (quota/limite de requêtes
+  // atteint sur cette clé, partagée par toutes les installations) — permet à
+  // ReceiptScannerService/AISmartScanDialog d'afficher un message précis
+  // ("service IA indisponible") au lieu de laisser croire que la photo ou le
+  // document scanné est en cause (voir deepseek_service.dart, même drapeau).
+  static bool quotaExceeded = false;
+
   static Future<String> extractRawText(File imageFile) async {
+    quotaExceeded = false;
     print('=== Mistral OCR: extracting raw text ===');
     try {
       final bytes    = await imageFile.readAsBytes();
@@ -70,6 +78,7 @@ class MistralOCRService {
         print(response.body);
         return jsonDecode(response.body) as Map<String, dynamic>;
       } else {
+        if (response.statusCode == 429) quotaExceeded = true;
         print('Mistral OCR failed: ${response.body}');
         return null;
       }

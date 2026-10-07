@@ -17,6 +17,9 @@ class CardProduct extends StatelessWidget {
 
   final bool hasRemise;
   final String? photo;
+  // Sert uniquement de repli visuel (couleur automatique, voir
+  // Appstyle.couleurSousCategorie) quand [photo] est absente.
+  final int? sousCategorieId;
 
   final VoidCallback? onTap;
   final VoidCallback? onDoubleTap;
@@ -31,6 +34,7 @@ class CardProduct extends StatelessWidget {
     required this.seuil,
     this.hasRemise = false,
     this.photo,
+    this.sousCategorieId,
     this.selected = false,
     this.actif = true,
     this.rupture = false,
@@ -202,17 +206,19 @@ class CardProduct extends StatelessWidget {
   /// ✅ Widget pour afficher la photo (TAILLE AUGMENTÉE)
   Widget _buildProductPhoto() {
     if (photo == null || photo!.isEmpty) {
+      final Color couleurPlaceholder =
+          sousCategorieId != null ? Appstyle.couleurSousCategorie(sousCategorieId!) : Appstyle.violet;
       return Container(
         width: 70,  // ✅ Augmenté de 50 à 70
         height: 70, // ✅ Augmenté de 50 à 70
         decoration: BoxDecoration(
-          color: Appstyle.violet.withOpacity(0.1),
+          color: couleurPlaceholder.withOpacity(0.1),
           borderRadius: BorderRadius.circular(12),
         ),
         child: Icon(
           Icons.inventory_2,
           size: 40, // ✅ Augmenté de 30 à 40
-          color: Appstyle.violet.withOpacity(0.6),
+          color: couleurPlaceholder.withOpacity(0.6),
         ),
       );
     }

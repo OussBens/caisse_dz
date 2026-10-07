@@ -672,6 +672,9 @@ class AppLocalizationsFr extends AppLocalizations {
   String get autre => 'Autre';
 
   @override
+  String get peopleCategory => 'People';
+
+  @override
   String get ticket => 'Ticket';
 
   @override
@@ -4447,6 +4450,10 @@ class AppLocalizationsFr extends AppLocalizations {
   String get warning => 'Attention';
 
   @override
+  String get noPermissionAction =>
+      'Vous n\'avez pas la permission nécessaire pour effectuer cette action.';
+
+  @override
   String get permissions => 'Permissions';
 
   @override
@@ -4455,6 +4462,16 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get selectPermissions => 'Permissions du rôle';
+
+  @override
+  String get specialPermissions => 'Permission spéciale';
+
+  @override
+  String get specialPermissionsDescription =>
+      'Configurez les permissions spéciales pour ce rôle (actions sensibles transversales, non liées à un module)';
+
+  @override
+  String get selectSpecialPermissions => 'Permissions spéciales du rôle';
 
   @override
   String get selectAll => 'Tout sélectionner';
@@ -4775,6 +4792,58 @@ class AppLocalizationsFr extends AppLocalizations {
   String get viewMovements => 'Voir les mouvements';
 
   @override
+  String get productMovementSituation => 'Situation des mouvements produit';
+
+  @override
+  String get initialQuantity => 'Qtt Initiale';
+
+  @override
+  String get movementQuantity => 'Qtt Mouvement';
+
+  @override
+  String get quantityAfterMovement => 'Qtt Après';
+
+  @override
+  String get clientSituationLabel => 'Situation Client';
+
+  @override
+  String get supplierSituationLabel => 'Situation Fournisseur';
+
+  @override
+  String get saleBelowCostLabel => 'Vente sous le prix d\'achat';
+
+  @override
+  String get saleBelowCostHint =>
+      'Comportement lorsqu\'un caissier essaie de vendre un produit à un prix inférieur à son prix d\'achat.';
+
+  @override
+  String get saleBelowCostForbid => 'Interdire';
+
+  @override
+  String get saleBelowCostWarn => 'Avertir';
+
+  @override
+  String get saleBelowCostAllow => 'Autoriser';
+
+  @override
+  String saleBelowCostBlockedMessage(
+    String prixVente,
+    String prixAchat,
+    String currency,
+  ) {
+    return 'Vente impossible : le prix de vente ($prixVente $currency) est inférieur au prix d\'achat ($prixAchat $currency).';
+  }
+
+  @override
+  String saleBelowCostWarningMessage(
+    String prixVente,
+    String prixAchat,
+    String currency,
+  ) {
+    return 'Le prix de vente ($prixVente $currency) est inférieur au prix d\'achat ($prixAchat $currency). Confirmer quand même ?';
+  }
+
+  @override
   String get noSessionSelected => 'Aucune session sélectionnée';
 
   @override
@@ -4814,4 +4883,113 @@ class AppLocalizationsFr extends AppLocalizations {
   @override
   String get confirmCancelExits =>
       'Êtes-vous sûr de vouloir annuler ces sorties ?';
+
+  @override
+  String get cashTransferTab => 'Transfert Caisse';
+
+  @override
+  String get storeTransferTab => 'Transfert entre magasins';
+
+  @override
+  String get noOpenSessionForManualMovement =>
+      'Aucune session de caisse ouverte : ouvrez une caisse avant d\'ajouter un mouvement manuel.';
+
+  @override
+  String get selectOpenSessionForManualMovement =>
+      'Plusieurs sessions sont ouvertes : choisissez la session (ouverte) dans le champ Session avant d\'ajouter un mouvement manuel.';
+
+  @override
+  String cartsAlreadyCancelled(String codes) {
+    return 'Panier(s) déjà annulé(s) : $codes';
+  }
+
+  @override
+  String transfersAlreadyCancelled(String codes) {
+    return 'Transfert(s) déjà annulé(s) : $codes';
+  }
+
+  @override
+  String get noRowSelected =>
+      'Aucune ligne sélectionnée : cochez les lignes à exporter.';
+
+  @override
+  String get productCostSituation => 'Coût produit';
+
+  @override
+  String get minPurchasePrice => 'Prix Achat Min';
+
+  @override
+  String get maxPurchasePrice => 'Prix Achat Max';
+
+  @override
+  String get totalPurchasedQuantity => 'Total Qtt Achetée';
+
+  @override
+  String get minSalePrice => 'Prix Vente Min';
+
+  @override
+  String get maxSalePrice => 'Prix Vente Max';
+
+  @override
+  String get totalSoldQuantity => 'Total Qtt Vendue';
+
+  @override
+  String get saleSettings => 'Paramètres de vente';
+
+  @override
+  String get addToFavorites => 'Ajouter aux favoris';
+
+  @override
+  String get removeFromFavorites => 'Retirer des favoris';
+
+  @override
+  String get maxFavoritesReached =>
+      '7 favoris maximum : retirez-en un avant d\'en ajouter un autre.';
+
+  @override
+  String get alerts => 'Alertes';
+
+  @override
+  String get alertsSubtitle => 'Points importants à vérifier aujourd\'hui';
+
+  @override
+  String expiringSoonProducts(int days) {
+    return 'Produits expirant sous $days jours';
+  }
+
+  @override
+  String get topClientsCredit => 'Clients au crédit le plus élevé';
+
+  @override
+  String get topSuppliersCredit => 'Fournisseurs au crédit le plus élevé';
+
+  @override
+  String get unclosedSessions => 'Sessions de caisse non clôturées';
+
+  @override
+  String get noAlert => 'Aucune alerte';
+
+  @override
+  String get openModule => 'Ouvrir le module';
+
+  @override
+  String andMore(int count) {
+    return '+ $count autres';
+  }
+
+  @override
+  String expiresOn(String date) {
+    return 'Expire le $date';
+  }
+
+  @override
+  String openedOn(String date) {
+    return 'Ouverte le $date';
+  }
+
+  @override
+  String get tableView => 'Affichage tableau';
+
+  @override
+  String get cardView => 'Affichage cards';
 }

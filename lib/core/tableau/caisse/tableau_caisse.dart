@@ -27,6 +27,9 @@ class ProduitPanier {
   int? piecesParEmballage;
   int? produitId;
   String? packNom;
+  // Unité de mesure du produit (Produit.uniteMesure) : 'Pièce' => quantité
+  // entière (voir QuantiteFormat.decimalesPour).
+  String? uniteMesure;
 
   /// Prix unitaire avant application d'une remise produit automatique
   /// (voir caisse_screen.dart::_remiseProduitApplicable) — null si aucune
@@ -51,11 +54,15 @@ class ProduitPanier {
     this.piecesParEmballage,
     this.produitId,
     this.packNom,
+    this.uniteMesure,
     this.prixOriginal,
     this.remiseNom,
   });
 
   double get montant => prix * qte;
+  // Quantité en colis (boîte/carton) : toujours entière, sinon selon l'unité.
+  String? get uniteQuantite =>
+      (piecesParEmballage ?? 1) > 1 ? QuantiteFormat.unitePiece : uniteMesure;
   double get quantiteReelleEnPieces => qte * (piecesParEmballage ?? 1);
 }
 
@@ -129,7 +136,7 @@ class _TableauCaisseState extends State<TableauCaisse> {
   final Map<ProduitPanier, FocusNode> _nombreFocusNodes = {};
 
   TextEditingController _qteControllerFor(ProduitPanier p) {
-    final text = QuantiteFormat.format(p.qte);
+    final text = QuantiteFormat.formatPour(p.qte, p.uniteQuantite);
     final focus = _qteFocusNodes.putIfAbsent(p, () => FocusNode());
     var ctrl = _qteControllers[p];
     if (ctrl == null) {
@@ -142,7 +149,7 @@ class _TableauCaisseState extends State<TableauCaisse> {
   }
 
   TextEditingController _nombreControllerFor(ProduitPanier p) {
-    final text = p.nombre != null ? QuantiteFormat.format(p.nombre!) : '';
+    final text = p.nombre != null ? QuantiteFormat.formatPour(p.nombre!, QuantiteFormat.unitePiece) : '';
     final focus = _nombreFocusNodes.putIfAbsent(p, () => FocusNode());
     var ctrl = _nombreControllers[p];
     if (ctrl == null) {
@@ -223,8 +230,8 @@ class _TableauCaisseState extends State<TableauCaisse> {
     double fontSize, iconSize, checkboxScale, columnSpacing, horizontalMargin;
 
     if (isSmallScreen) {
-      colCheckbox = 18;
-      colCode = 50;
+      colCheckbox = 14;
+      colCode = 70;
       colProduit = 60;
       colColis = 45;
       colPrix = 40;
@@ -239,8 +246,8 @@ class _TableauCaisseState extends State<TableauCaisse> {
       columnSpacing = 2;
       horizontalMargin = 2;
     } else if (isMediumScreen) {
-      colCheckbox = 18;
-      colCode = 54;
+      colCheckbox = 16;
+      colCode = 80;
       colProduit = 80;
       colColis = 50;
       colPrix = 50;
@@ -256,7 +263,7 @@ class _TableauCaisseState extends State<TableauCaisse> {
       horizontalMargin = 4;
     } else {
       colCheckbox = 18;
-      colCode = 60;
+      colCode = 100;
       colProduit = 120;
       colColis = 60;
       colPrix = 50;
@@ -438,17 +445,23 @@ class _TableauCaisseState extends State<TableauCaisse> {
                               (states) => isSelected ? Appstyle.violet.withOpacity(0.15) : null,
                         ),
                         cells: [
-                          // ✅ CHECKBOX
+                          // ✅ CHECKBOX — SizedBox obligatoire : sans lui, la largeur
+                          // intrinsèque de la Checkbox (~32-40 px) élargit la colonne
+                          // au-delà de [colCheckbox] (Transform.scale ne réduit pas la
+                          // place occupée, seulement le rendu).
                           DataCell(
-                            Center(
-                              child: Transform.scale(
-                                scale: checkboxScale,
-                                child: Checkbox(
-                                  value: isSelected,
-                                  visualDensity: VisualDensity.compact,
-                                  materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                                  onChanged: widget.readOnly ? null : (_) => widget.onProduitSelected?.call(p),
-                                  activeColor: Appstyle.violet,
+                            SizedBox(
+                              width: colCheckbox,
+                              child: Center(
+                                child: Transform.scale(
+                                  scale: checkboxScale,
+                                  child: Checkbox(
+                                    value: isSelected,
+                                    visualDensity: VisualDensity.compact,
+                                    materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                                    onChanged: widget.readOnly ? null : (_) => widget.onProduitSelected?.call(p),
+                                    activeColor: Appstyle.violet,
+                                  ),
                                 ),
                               ),
                             ),
@@ -577,7 +590,7 @@ class _TableauCaisseState extends State<TableauCaisse> {
                                 ? SizedBox(
                               width: colQte,
                               child: Text(
-                                QuantiteFormat.format(p.qte),
+                                QuantiteFormat.formatPour(p.qte, p.uniteQuantite),
                                 overflow: TextOverflow.ellipsis,
                                 style: Appstyle.textpop_SB.copyWith(
                                   color: Appstyle.Tblue,
@@ -592,7 +605,7 @@ class _TableauCaisseState extends State<TableauCaisse> {
                                 keyboardType: TextInputType.number,
                                 controller: _qteControllerFor(p),
                                 focusNode: _qteFocusNodes[p],
-                                inputFormatters: QuantiteFormat.inputFormatters,
+                                inputFormatters: QuantiteFormat.inputFormattersPour(p.uniteQuantite),
                                 style: Appstyle.textpop_SB.copyWith(
                                   color: Appstyle.Tblue,
                                   fontSize: fontSize,
@@ -674,7 +687,7 @@ class _TableauCaisseState extends State<TableauCaisse> {
                                             keyboardType: TextInputType.number,
                                             controller: _nombreControllerFor(p),
                                             focusNode: _nombreFocusNodes[p],
-                                            inputFormatters: QuantiteFormat.inputFormatters,
+                                            inputFormatters: QuantiteFormat.inputFormattersPour(QuantiteFormat.unitePiece),
                                             style: Appstyle.textpop_SB.copyWith(
                                               color: Appstyle.Tblue,
                                               fontSize: fontSize,

@@ -1,3 +1,4 @@
+import 'package:bitsdojo_window/bitsdojo_window.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:go_router/go_router.dart';
@@ -11,11 +12,19 @@ import 'l10n/app_localizations.dart';
 import 'Services/BackupService.dart';
 import 'core/utilis/quantite_format.dart';
 import 'core/theme/app_style.dart';
+import 'core/widget/custom_title_bar.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   sqfliteFfiInit();
   databaseFactory = databaseFactoryFfi;
+
+  // Taille minimale de fenêtre — les contrôles de fenêtre intégrés (voir
+  // custom_title_bar.dart) remplacent le cadre Windows par défaut, qui imposait déjà
+  // implicitement une taille minimale raisonnable.
+  doWhenWindowReady(() {
+    appWindow.minSize = const Size(1000, 700);
+  });
 
   final localeProvider = LocaleProvider();
 
@@ -114,6 +123,20 @@ class MyApp extends StatelessWidget {
       // Dynamic Theme with Arabic Font Support
       theme: _buildTheme(localeProvider),
       routerConfig: router,
+
+      // Plus de barre de titre séparée : AppShell intègre logo, titre et
+      // boutons de fenêtre (sidebar + ligne des favoris). Les écrans hors
+      // AppShell (login, activation…) reçoivent ici des boutons flottants en
+      // haut à droite. Voir custom_title_bar.dart et windows/runner/main.cpp
+      // (bitsdojo_window_configure).
+      builder: (context, child) {
+        return Stack(
+          children: [
+            Positioned.fill(child: child ?? const SizedBox.shrink()),
+            const Positioned(top: 0, left: 0, right: 0, child: BoutonsFenetreFlottants()),
+          ],
+        );
+      },
     );
   }
 

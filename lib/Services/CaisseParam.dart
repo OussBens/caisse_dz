@@ -37,6 +37,42 @@ class CaisseParamServices{
 
   }
 
+  /// Quand le magasin d'une caisse change (Gestion Caisse > Modifier), les
+  /// paramètres de caisse (caisseparam) et les paramètres utilisateur
+  /// (userparam, Paramètres > Utilisateur) des comptes qui utilisent cette
+  /// caisse suivent le nouveau magasin. Retourne les codes utilisateur
+  /// concernés.
+  Future<List<String>> synchroniserMagasinDeCaisse({
+    required String caisseCode,
+    required String magasinCode,
+    required String magasinNom,
+    required String magasinId,
+  }) async {
+    return db.transaction((txn) async {
+      final rows = await txn.query('caisseparam', columns: ['user'], where: 'caisseCode = ?', whereArgs: [caisseCode]);
+      final userCodes = rows.map((r) => r['user'] as String).toSet().toList();
+
+      await txn.update(
+        'caisseparam',
+        {'magasinCode': magasinCode, 'magasin': magasinNom},
+        where: 'caisseCode = ?',
+        whereArgs: [caisseCode],
+      );
+
+      for (final userCode in userCodes) {
+        final user = await txn.query('utilisateur', columns: ['username'], where: 'code = ?', whereArgs: [userCode], limit: 1);
+        if (user.isEmpty) continue;
+        await txn.update(
+          'userparam',
+          {'magasin': magasinNom, 'magasinid': magasinId},
+          where: 'nom = ?',
+          whereArgs: [user.first['username']],
+        );
+      }
+      return userCodes;
+    });
+  }
+
   // Ajoutez cette fonction dans votre service CaisseParamServices
   Future<void> migrateColisData() async {
     final allParams = await getAllCaisseParam();

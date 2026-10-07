@@ -1,15 +1,20 @@
+import 'package:collection/collection.dart';
 import 'package:flutter/material.dart';
+import '../../../data/constant.dart';
 import '../../../data/models/histore.dart';
+import '../../../data/models/utilisateur.dart';
 import 'package:caisse_dz/core/theme/app_style.dart';
 import '../../../l10n/app_localizations.dart';
 import 'package:caisse_dz/core/utilis/number_format.dart';
 
 class DashboardHistorique extends StatefulWidget {
   final List<Historique> historiques;
+  final List<Utilisateur> utilisateurs;
 
   const DashboardHistorique({
     super.key,
     required this.historiques,
+    this.utilisateurs = const [],
   });
 
   @override
@@ -49,18 +54,32 @@ class _DashboardHistoriqueState extends State<DashboardHistorique>
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
 
+    // `oper` contient les valeurs de ListsConst.typeHisto (insertion /
+    // modification / suppression / login / logout), parfois avec une
+    // majuscule pour d'anciennes lignes ('Login') : comparaison insensible
+    // à la casse.
+    int compter(String oper) =>
+        widget.historiques.where((h) => h.oper.toLowerCase() == oper).length;
+
     final total = widget.historiques.length;
-    final creation = widget.historiques.where((h) => h.oper == "Création").length;
-    final modification = widget.historiques.where((h) => h.oper == "Modification").length;
-    final suppression = widget.historiques.where((h) => h.oper == "Suppression").length;
+    final creation = compter(ListsConst.typeHisto[0]);
+    final modification = compter(ListsConst.typeHisto[1]);
+    final suppression = compter(ListsConst.typeHisto[2]);
+    final now = DateTime.now();
     final today = widget.historiques.where((h) =>
-    h.dateCree.day == DateTime.now().day &&
-        h.dateCree.month == DateTime.now().month &&
-        h.dateCree.year == DateTime.now().year
-    ).length;
-    final lastUser = widget.historiques.isNotEmpty
-        ? widget.historiques.last.creeParCode
-        : "-";
+        h.dateCree.day == now.day &&
+        h.dateCree.month == now.month &&
+        h.dateCree.year == now.year).length;
+
+    // Dernière action = la plus récente par date (la liste n'est pas
+    // forcément triée), affichée par nom d'utilisateur plutôt que par code.
+    final derniere = widget.historiques.isEmpty
+        ? null
+        : widget.historiques.reduce((a, b) => a.dateCree.isAfter(b.dateCree) ? a : b);
+    final lastUser = derniere == null
+        ? "-"
+        : (widget.utilisateurs.firstWhereOrNull((u) => u.code == derniere.creeParCode)?.username ??
+            derniere.creeParCode);
 
     return FadeTransition(
       opacity: _controller,

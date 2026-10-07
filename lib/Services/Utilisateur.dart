@@ -251,34 +251,6 @@ class UtilisateurServices {
     }
   }
 
-  // 🔹 GET BY API TOKEN (app mobile compagnon — voir BonReceptionServer)
-  static Future<Utilisateur?> getUtilisateurByApiToken(String token) async {
-    final db = await DbCreator.openDb();
-
-    final maps = await db.query(
-      'utilisateur',
-      where: 'api_token = ? AND etat = 1',
-      whereArgs: [token],
-      limit: 1,
-    );
-
-    if (maps.isNotEmpty) {
-      return Utilisateur.fromMap(maps.first);
-    }
-
-    return null;
-  }
-
-  // 🔹 SET API TOKEN (POST /api/auth/login)
-  Future<void> setApiToken(int id, String? token) async {
-    await db.update(
-      'utilisateur',
-      {'api_token': token},
-      where: 'id = ?',
-      whereArgs: [id],
-    );
-  }
-
   // 🔹 NEXT ID
   static Future<int> getNextUtilisateurId(DatabaseExecutor db) async {
     final result = await db.rawQuery(

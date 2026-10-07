@@ -1,8 +1,5 @@
 /// Calcul du prix de vente automatique à partir d'un prix d'achat et d'une
-/// marge — logique partagée entre la création rapide desktop
-/// (produit_nouveau.dart) et la création de produit reçue du mobile
-/// (BonReceptionServer._pushProduitItem), pour garantir le même prix de
-/// vente quelle que soit l'origine de la création.
+/// marge — utilisé par la création rapide de produit (produit_nouveau.dart).
 class PrixVenteCalculator {
   /// Arrondit au multiple de 5 DA supérieur (104 -> 105, 126 -> 130).
   static double arrondirAuMultipleDe5(double prix) {

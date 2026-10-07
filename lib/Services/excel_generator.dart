@@ -11,6 +11,11 @@ import 'package:caisse_dz/data/models/categorie.dart';
 import 'package:caisse_dz/data/models/fournisseur.dart';
 import 'package:caisse_dz/data/models/gestion_caisse.dart';
 import 'package:caisse_dz/data/models/histore.dart';
+import 'package:caisse_dz/data/models/magasin.dart';
+import 'package:caisse_dz/data/models/transfert.dart';
+import 'package:caisse_dz/data/models/transfert_magasin.dart';
+import 'package:caisse_dz/core/tableau/mouvement_caisse/mouvement_caisse_source.dart';
+import 'package:caisse_dz/core/tableau/cout_produit/cout_produit_source.dart';
 import 'package:caisse_dz/data/models/mouvement.dart';
 import 'package:caisse_dz/data/models/pack.dart';
 import 'package:caisse_dz/data/models/pannier.dart';
@@ -302,7 +307,7 @@ class ExcelGenerator {
           .value = TextCellValue(resteDe(pannier).toStringAsFixed(2));
       // Payment Mode (translated)
       sheet.cell(CellIndex.indexByColumnRow(columnIndex: 9, rowIndex: rowIndex))
-          .value = TextCellValue(translator.translateModePaiement(pannier.modePaiement!));
+          .value = TextCellValue(translator.translateModePaiement(pannier.modePaiement ?? '-'));
       // Cashier
       sheet.cell(CellIndex.indexByColumnRow(columnIndex: 10, rowIndex: rowIndex))
           .value = TextCellValue(pannier.caissier_code);
@@ -643,9 +648,9 @@ class ExcelGenerator {
       sheet.cell(CellIndex.indexByColumnRow(columnIndex: 14, rowIndex: rowIndex))
           .value = TextCellValue(produit.uniteMesure ?? '-');
       sheet.cell(CellIndex.indexByColumnRow(columnIndex: 15, rowIndex: rowIndex))
-          .value = TextCellValue(produit.emballage1!.toString());
+          .value = TextCellValue(produit.emballage1?.toString() ?? '-');
       sheet.cell(CellIndex.indexByColumnRow(columnIndex: 16, rowIndex: rowIndex))
-          .value = TextCellValue(produit.emballage2!.toString());
+          .value = TextCellValue(produit.emballage2?.toString() ?? '-');
       sheet.cell(CellIndex.indexByColumnRow(columnIndex: 17, rowIndex: rowIndex))
           .value = TextCellValue(seuilMin.toString());
       sheet.cell(CellIndex.indexByColumnRow(columnIndex: 18, rowIndex: rowIndex))
@@ -662,7 +667,7 @@ class ExcelGenerator {
       sheet.cell(CellIndex.indexByColumnRow(columnIndex: 24, rowIndex: rowIndex))
           .value = TextCellValue(produit.margeTaux.toStringAsFixed(2));
       sheet.cell(CellIndex.indexByColumnRow(columnIndex: 25, rowIndex: rowIndex))
-          .value = TextCellValue(produit.margeTauxPrct!.toStringAsFixed(2));
+          .value = TextCellValue(produit.margeTauxPrct?.toStringAsFixed(2) ?? '-');
       sheet.cell(CellIndex.indexByColumnRow(columnIndex: 26, rowIndex: rowIndex))
           .value = TextCellValue(produit.tva.toStringAsFixed(2));
       sheet.cell(CellIndex.indexByColumnRow(columnIndex: 27, rowIndex: rowIndex))
@@ -2143,10 +2148,10 @@ class ExcelGenerator {
           .value = TextCellValue(retour.quantite.toString());
       // Purchase Price
       sheet.cell(CellIndex.indexByColumnRow(columnIndex: 5, rowIndex: rowIndex))
-          .value = TextCellValue(retour.prixAchat!.toStringAsFixed(2));
+          .value = TextCellValue(retour.prixAchat?.toStringAsFixed(2) ?? '-');
       // Sale Price
       sheet.cell(CellIndex.indexByColumnRow(columnIndex: 6, rowIndex: rowIndex))
-          .value = TextCellValue(retour.prixVente!.toStringAsFixed(2));
+          .value = TextCellValue(retour.prixVente?.toStringAsFixed(2) ?? '-');
       // Type (Client/Fournisseur - translated)
       sheet.cell(CellIndex.indexByColumnRow(columnIndex: 7, rowIndex: rowIndex))
           .value = TextCellValue(
@@ -3669,6 +3674,337 @@ class ExcelGenerator {
 
     final directory = await getExportDirectory();
     final fileName = 'Inventaire_${DateTime.now().year}${DateTime.now().month.toString().padLeft(2, '0')}${DateTime.now().day.toString().padLeft(2, '0')}_${DateTime.now().millisecondsSinceEpoch}.xlsx';
+    final file = File('${directory.path}/$fileName');
+    await file.writeAsBytes(excel.encode()!);
+    return file;
+  }
+
+  /// Transferts d'argent entre caisses (onglet Transfert Caisse de Gestion
+  /// Caisse). Caisses et utilisateurs servent à afficher les noms.
+  static Future<File> generateTransfertsCaisseExcel({
+    required List<TransfertCaisse> transferts,
+    required List<CaisseGestion> caisses,
+    required List<Utilisateur> utilisateurs,
+    required AppLocalizations l10n,
+  }) async {
+    var excel = Excel.createExcel();
+    var sheet = excel['TransfertsCaisse'];
+
+    String nomCaisse(String code) => caisses.firstWhereOrNull((c) => c.code == code)?.nomCaisse ?? code;
+    String nomUtilisateur(String code) => utilisateurs.firstWhereOrNull((u) => u.code == code)?.username ?? code;
+
+    final headers = [
+      l10n.status,
+      l10n.code,
+      l10n.date,
+      l10n.sourceCashRegister,
+      l10n.destinationCashRegister,
+      l10n.amount,
+      l10n.observation,
+      l10n.createdAt,
+      l10n.createdBy,
+    ];
+    for (int i = 0; i < headers.length; i++) {
+      final cell = sheet.cell(CellIndex.indexByColumnRow(columnIndex: i, rowIndex: 0));
+      cell.value = TextCellValue(headers[i]);
+      cell.cellStyle = CellStyle(bold: true, horizontalAlign: HorizontalAlign.Center);
+    }
+
+    for (int row = 0; row < transferts.length; row++) {
+      final t = transferts[row];
+      final values = [
+        t.etat ? l10n.active : l10n.inactive,
+        t.code,
+        _formatDate(t.dateTransfert),
+        nomCaisse(t.caisseExpCode),
+        nomCaisse(t.caisseDestCode),
+        t.montant.toStringAsFixed(2),
+        t.observation ?? '-',
+        _formatDate(t.dateCree),
+        nomUtilisateur(t.creeParCode),
+      ];
+      for (int col = 0; col < values.length; col++) {
+        sheet.cell(CellIndex.indexByColumnRow(columnIndex: col, rowIndex: row + 1)).value =
+            TextCellValue(values[col]);
+      }
+    }
+
+    for (int i = 0; i < headers.length; i++) {
+      sheet.setColumnWidth(i, 20);
+    }
+
+    var summarySheet = excel['Summary'];
+    final actifs = transferts.where((t) => t.etat);
+    final montantTotal = actifs.fold(0.0, (s, t) => s + t.montant);
+
+    final titleCell = summarySheet.cell(CellIndex.indexByColumnRow(columnIndex: 0, rowIndex: 0));
+    titleCell.value = TextCellValue(l10n.summary);
+    titleCell.cellStyle = CellStyle(bold: true, fontSize: 14);
+
+    final summaryRows = [
+      [l10n.transfers, transferts.length.toString()],
+      [l10n.active, actifs.length.toString()],
+      [l10n.totalAmount, montantTotal.toStringAsFixed(2)],
+      [l10n.generationDate, _formatDateTime(DateTime.now())],
+    ];
+    for (int i = 0; i < summaryRows.length; i++) {
+      summarySheet.cell(CellIndex.indexByColumnRow(columnIndex: 0, rowIndex: i + 2)).value =
+          TextCellValue(summaryRows[i][0]);
+      summarySheet.cell(CellIndex.indexByColumnRow(columnIndex: 1, rowIndex: i + 2)).value =
+          TextCellValue(summaryRows[i][1]);
+    }
+    summarySheet.setColumnWidth(0, 30);
+    summarySheet.setColumnWidth(1, 20);
+
+    final directory = await getExportDirectory();
+    final fileName = 'TransfertsCaisse_${DateTime.now().year}${DateTime.now().month.toString().padLeft(2, '0')}${DateTime.now().day.toString().padLeft(2, '0')}_${DateTime.now().millisecondsSinceEpoch}.xlsx';
+    final file = File('${directory.path}/$fileName');
+    await file.writeAsBytes(excel.encode()!);
+    return file;
+  }
+
+  /// Lignes du grand-livre de caisse (onglet Mouvements de Gestion Caisse) —
+  /// mêmes colonnes que TableauMouvementCaisse, y compris les mouvements
+  /// sans versement (ouverture, clôture, manuels, transferts).
+  static Future<File> generateMouvementsCaisseExcel({
+    required List<LigneMouvementCaisse> lignes,
+    required AppLocalizations l10n,
+  }) async {
+    var excel = Excel.createExcel();
+    var sheet = excel['MouvementsCaisse'];
+
+    final headers = [
+      l10n.number,
+      l10n.date,
+      l10n.paymentCode,
+      l10n.type,
+      l10n.operationCode,
+      l10n.client,
+      l10n.fournisseur,
+      l10n.incomingAmount,
+      l10n.outgoingAmount,
+    ];
+    for (int i = 0; i < headers.length; i++) {
+      final cell = sheet.cell(CellIndex.indexByColumnRow(columnIndex: i, rowIndex: 0));
+      cell.value = TextCellValue(headers[i]);
+      cell.cellStyle = CellStyle(bold: true, horizontalAlign: HorizontalAlign.Center);
+    }
+
+    for (int row = 0; row < lignes.length; row++) {
+      final l = lignes[row];
+      final values = [
+        l.numero.toString(),
+        _formatDate(l.date),
+        l.codeVersement,
+        l.type,
+        l.codeOperation,
+        l.nomClient,
+        l.nomFournisseur,
+        l.montantEntree > 0 ? l.montantEntree.toStringAsFixed(2) : '-',
+        l.montantSortie > 0 ? l.montantSortie.toStringAsFixed(2) : '-',
+      ];
+      for (int col = 0; col < values.length; col++) {
+        sheet.cell(CellIndex.indexByColumnRow(columnIndex: col, rowIndex: row + 1)).value =
+            TextCellValue(values[col]);
+      }
+    }
+
+    for (int i = 0; i < headers.length; i++) {
+      sheet.setColumnWidth(i, 20);
+    }
+
+    var summarySheet = excel['Summary'];
+    final totalEntree = lignes.fold(0.0, (s, l) => s + l.montantEntree);
+    final totalSortie = lignes.fold(0.0, (s, l) => s + l.montantSortie);
+
+    final titleCell = summarySheet.cell(CellIndex.indexByColumnRow(columnIndex: 0, rowIndex: 0));
+    titleCell.value = TextCellValue(l10n.summary);
+    titleCell.cellStyle = CellStyle(bold: true, fontSize: 14);
+
+    final summaryRows = [
+      [l10n.cashMovementsTab, lignes.length.toString()],
+      [l10n.incomingAmount, totalEntree.toStringAsFixed(2)],
+      [l10n.outgoingAmount, totalSortie.toStringAsFixed(2)],
+      [l10n.net, (totalEntree - totalSortie).toStringAsFixed(2)],
+      [l10n.generationDate, _formatDateTime(DateTime.now())],
+    ];
+    for (int i = 0; i < summaryRows.length; i++) {
+      summarySheet.cell(CellIndex.indexByColumnRow(columnIndex: 0, rowIndex: i + 2)).value =
+          TextCellValue(summaryRows[i][0]);
+      summarySheet.cell(CellIndex.indexByColumnRow(columnIndex: 1, rowIndex: i + 2)).value =
+          TextCellValue(summaryRows[i][1]);
+    }
+    summarySheet.setColumnWidth(0, 30);
+    summarySheet.setColumnWidth(1, 20);
+
+    final directory = await getExportDirectory();
+    final fileName = 'MouvementsCaisse_${DateTime.now().year}${DateTime.now().month.toString().padLeft(2, '0')}${DateTime.now().day.toString().padLeft(2, '0')}_${DateTime.now().millisecondsSinceEpoch}.xlsx';
+    final file = File('${directory.path}/$fileName');
+    await file.writeAsBytes(excel.encode()!);
+    return file;
+  }
+
+  /// Transferts de marchandise entre magasins (onglet Transferts du module
+  /// Magasin). Mêmes colonnes que TableauTransfertMagasinAdvanced ; produits
+  /// et magasins servent à afficher les noms à la place des codes.
+  static Future<File> generateTransfertsMagasinExcel({
+    required List<TransfertMagasin> transferts,
+    required List<Produit> produits,
+    required List<Magasin> magasins,
+    required List<Utilisateur> utilisateurs,
+    required AppLocalizations l10n,
+  }) async {
+    var excel = Excel.createExcel();
+    var sheet = excel['TransfertsMagasin'];
+
+    String nomProduit(String code) => produits.firstWhereOrNull((p) => p.code == code)?.nom ?? code;
+    String nomMagasin(String code) => magasins.firstWhereOrNull((m) => m.code == code)?.nom ?? code;
+    String nomUtilisateur(String code) => utilisateurs.firstWhereOrNull((u) => u.code == code)?.username ?? code;
+
+    final headers = [
+      l10n.status,
+      l10n.code,
+      l10n.product,
+      l10n.source,
+      l10n.destination,
+      l10n.quantity,
+      l10n.transferDate,
+      l10n.observation,
+      l10n.createdAt,
+      l10n.createdBy,
+    ];
+    for (int i = 0; i < headers.length; i++) {
+      final cell = sheet.cell(CellIndex.indexByColumnRow(columnIndex: i, rowIndex: 0));
+      cell.value = TextCellValue(headers[i]);
+      cell.cellStyle = CellStyle(bold: true, horizontalAlign: HorizontalAlign.Center);
+    }
+
+    for (int row = 0; row < transferts.length; row++) {
+      final t = transferts[row];
+      final values = [
+        t.etat ? l10n.active : l10n.inactive,
+        t.code,
+        nomProduit(t.produitCode),
+        nomMagasin(t.magasinSourceCode),
+        nomMagasin(t.magasinDestCode),
+        t.quantite.toStringAsFixed(2),
+        _formatDate(t.date),
+        t.observation ?? '-',
+        _formatDate(t.dateCree),
+        nomUtilisateur(t.creeParCode),
+      ];
+      for (int col = 0; col < values.length; col++) {
+        sheet.cell(CellIndex.indexByColumnRow(columnIndex: col, rowIndex: row + 1)).value =
+            TextCellValue(values[col]);
+      }
+    }
+
+    for (int i = 0; i < headers.length; i++) {
+      sheet.setColumnWidth(i, 20);
+    }
+
+    var summarySheet = excel['Summary'];
+    final actifs = transferts.where((t) => t.etat);
+    final quantiteTotale = actifs.fold(0.0, (s, t) => s + t.quantite);
+
+    final titleCell = summarySheet.cell(CellIndex.indexByColumnRow(columnIndex: 0, rowIndex: 0));
+    titleCell.value = TextCellValue(l10n.summary);
+    titleCell.cellStyle = CellStyle(bold: true, fontSize: 14);
+
+    final summaryRows = [
+      [l10n.transfers, transferts.length.toString()],
+      [l10n.active, actifs.length.toString()],
+      [l10n.totalQuantity, quantiteTotale.toStringAsFixed(2)],
+      [l10n.generationDate, _formatDateTime(DateTime.now())],
+    ];
+    for (int i = 0; i < summaryRows.length; i++) {
+      summarySheet.cell(CellIndex.indexByColumnRow(columnIndex: 0, rowIndex: i + 2)).value =
+          TextCellValue(summaryRows[i][0]);
+      summarySheet.cell(CellIndex.indexByColumnRow(columnIndex: 1, rowIndex: i + 2)).value =
+          TextCellValue(summaryRows[i][1]);
+    }
+    summarySheet.setColumnWidth(0, 30);
+    summarySheet.setColumnWidth(1, 20);
+
+    final directory = await getExportDirectory();
+    final fileName = 'TransfertsMagasin_${DateTime.now().year}${DateTime.now().month.toString().padLeft(2, '0')}${DateTime.now().day.toString().padLeft(2, '0')}_${DateTime.now().millisecondsSinceEpoch}.xlsx';
+    final file = File('${directory.path}/$fileName');
+    await file.writeAsBytes(excel.encode()!);
+    return file;
+  }
+
+  /// Situation "Coût produit" — mêmes colonnes que TableauCoutProduit.
+  static Future<File> generateCoutProduitExcel({
+    required List<LigneCoutProduit> lignes,
+    required AppLocalizations l10n,
+  }) async {
+    var excel = Excel.createExcel();
+    var sheet = excel['CoutProduit'];
+
+    final headers = [
+      l10n.productCode,
+      l10n.productName,
+      l10n.minPurchasePrice,
+      l10n.maxPurchasePrice,
+      l10n.averagePurchasePrice,
+      l10n.totalPurchasedQuantity,
+      l10n.minSalePrice,
+      l10n.maxSalePrice,
+      l10n.averageSalePrice,
+      l10n.totalSoldQuantity,
+    ];
+    for (int i = 0; i < headers.length; i++) {
+      final cell = sheet.cell(CellIndex.indexByColumnRow(columnIndex: i, rowIndex: 0));
+      cell.value = TextCellValue(headers[i]);
+      cell.cellStyle = CellStyle(bold: true, horizontalAlign: HorizontalAlign.Center);
+    }
+
+    String prix(double v) => v > 0 ? v.toStringAsFixed(2) : '-';
+    for (int row = 0; row < lignes.length; row++) {
+      final l = lignes[row];
+      final values = [
+        l.codeProduit,
+        l.nomProduit,
+        prix(l.prixAchatMin),
+        prix(l.prixAchatMax),
+        prix(l.prixAchatMoyen),
+        l.quantiteAchetee.toStringAsFixed(2),
+        prix(l.prixVenteMin),
+        prix(l.prixVenteMax),
+        prix(l.prixVenteMoyen),
+        l.quantiteVendue.toStringAsFixed(2),
+      ];
+      for (int col = 0; col < values.length; col++) {
+        sheet.cell(CellIndex.indexByColumnRow(columnIndex: col, rowIndex: row + 1)).value =
+            TextCellValue(values[col]);
+      }
+    }
+
+    for (int i = 0; i < headers.length; i++) {
+      sheet.setColumnWidth(i, 20);
+    }
+
+    var summarySheet = excel['Summary'];
+    final titleCell = summarySheet.cell(CellIndex.indexByColumnRow(columnIndex: 0, rowIndex: 0));
+    titleCell.value = TextCellValue(l10n.summary);
+    titleCell.cellStyle = CellStyle(bold: true, fontSize: 14);
+    final summaryRows = [
+      [l10n.products, lignes.length.toString()],
+      [l10n.totalPurchasedQuantity, lignes.fold(0.0, (s, l) => s + l.quantiteAchetee).toStringAsFixed(2)],
+      [l10n.totalSoldQuantity, lignes.fold(0.0, (s, l) => s + l.quantiteVendue).toStringAsFixed(2)],
+      [l10n.generationDate, _formatDateTime(DateTime.now())],
+    ];
+    for (int i = 0; i < summaryRows.length; i++) {
+      summarySheet.cell(CellIndex.indexByColumnRow(columnIndex: 0, rowIndex: i + 2)).value =
+          TextCellValue(summaryRows[i][0]);
+      summarySheet.cell(CellIndex.indexByColumnRow(columnIndex: 1, rowIndex: i + 2)).value =
+          TextCellValue(summaryRows[i][1]);
+    }
+    summarySheet.setColumnWidth(0, 30);
+    summarySheet.setColumnWidth(1, 20);
+
+    final directory = await getExportDirectory();
+    final fileName = 'CoutProduit_${DateTime.now().year}${DateTime.now().month.toString().padLeft(2, '0')}${DateTime.now().day.toString().padLeft(2, '0')}_${DateTime.now().millisecondsSinceEpoch}.xlsx';
     final file = File('${directory.path}/$fileName');
     await file.writeAsBytes(excel.encode()!);
     return file;

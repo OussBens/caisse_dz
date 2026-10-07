@@ -400,35 +400,7 @@ class ClientServices{
   static Future<ClientGlobalStats> getGlobalClientStats() async {
     final db = await DbCreator.openDb();
     final clients = await getAllClients();
-
-    final panniersParClient = await db.rawQuery('''
-      SELECT client_code, SUM(montant) AS total
-      FROM panniers
-      WHERE etat = 1 AND client_code IS NOT NULL
-      GROUP BY client_code
-    ''');
-    final versementsParClient = await db.rawQuery('''
-      SELECT beneficiare_code, sense, SUM(montant) AS total
-      FROM verssements
-      WHERE etat = 1 AND typebeneficiare = 'Client'
-      GROUP BY beneficiare_code, sense
-    ''');
-
-    final Map<String, double> achatParClientCode = {
-      for (final row in panniersParClient)
-        row['client_code'] as String: (row['total'] as num?)?.toDouble() ?? 0,
-    };
-    final Map<String, double> entreeParClientCode = {};
-    final Map<String, double> sortieParClientCode = {};
-    for (final row in versementsParClient) {
-      final code = row['beneficiare_code'] as String;
-      final total = (row['total'] as num?)?.toDouble() ?? 0;
-      if (row['sense'] == 'Entrée') {
-        entreeParClientCode[code] = total;
-      } else if (row['sense'] == 'Sortie') {
-        sortieParClientCode[code] = total;
-      }
-    }
+    final soldes = await _achatEtCreditParClient(db);
 
     double totalAchat = 0;
     double totalCredit = 0;
@@ -438,10 +410,8 @@ class ClientServices{
     double montantTopCredit = 0;
 
     for (final client in clients) {
-      final achat = achatParClientCode[client.code] ?? 0;
-      final verse = (entreeParClientCode[client.code] ?? 0);
-      final solde = verse - achat;
-      final credit = solde < 0 ? -solde : 0.0;
+      final achat = soldes[client.code]?.achat ?? 0;
+      final credit = soldes[client.code]?.credit ?? 0;
 
       totalAchat += achat;
       totalCredit += credit;
@@ -465,6 +435,59 @@ class ClientServices{
       clientTopCredit: clientTopCredit,
       montantTopCredit: montantTopCredit,
     );
+  }
+
+  /// Clients actifs ayant un crédit (achats non couverts par leurs
+  /// versements), du plus grand au plus petit — [limite] premiers.
+  static Future<List<({Client client, double credit})>> getClientsParCredit({int limite = 3}) async {
+    final db = await DbCreator.openDb();
+    final clients = await getAllClients();
+    final soldes = await _achatEtCreditParClient(db);
+    final resultat = [
+      for (final c in clients)
+        if (c.etat && (soldes[c.code]?.credit ?? 0) > 0) (client: c, credit: soldes[c.code]!.credit),
+    ]..sort((a, b) => b.credit.compareTo(a.credit));
+    return resultat.take(limite).toList();
+  }
+
+  /// Achats (paniers actifs) et crédit (achats − versements Entrée) par code
+  /// client — même règle que [getClientStats].
+  static Future<Map<String, ({double achat, double credit})>> _achatEtCreditParClient(DatabaseExecutor db) async {
+    final panniersParClient = await db.rawQuery('''
+      SELECT client_code, SUM(montant) AS total
+      FROM panniers
+      WHERE etat = 1 AND client_code IS NOT NULL
+      GROUP BY client_code
+    ''');
+    final versementsParClient = await db.rawQuery('''
+      SELECT beneficiare_code, sense, SUM(montant) AS total
+      FROM verssements
+      WHERE etat = 1 AND typebeneficiare = 'Client'
+      GROUP BY beneficiare_code, sense
+    ''');
+
+    final Map<String, double> achatParClientCode = {
+      for (final row in panniersParClient)
+        row['client_code'] as String: (row['total'] as num?)?.toDouble() ?? 0,
+    };
+    final Map<String, double> entreeParClientCode = {};
+    for (final row in versementsParClient) {
+      final code = row['beneficiare_code'] as String;
+      final total = (row['total'] as num?)?.toDouble() ?? 0;
+      if (row['sense'] == 'Entrée') entreeParClientCode[code] = total;
+    }
+
+    final codes = {...achatParClientCode.keys, ...entreeParClientCode.keys};
+    return {
+      for (final code in codes)
+        code: (
+          achat: achatParClientCode[code] ?? 0,
+          credit: () {
+            final solde = (entreeParClientCode[code] ?? 0) - (achatParClientCode[code] ?? 0);
+            return solde < 0 ? -solde : 0.0;
+          }(),
+        ),
+    };
   }
 
 }

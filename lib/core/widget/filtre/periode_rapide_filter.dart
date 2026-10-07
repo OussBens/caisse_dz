@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:caisse_dz/core/widget/champ/champ_avec_label.dart';
 import 'package:caisse_dz/l10n/app_localizations.dart';
 
 /// Plage de dates résultant d'un préréglage "période rapide".
@@ -56,6 +57,48 @@ PeriodeRapideResult calculerPeriodeRapide(String key) {
     default:
       final d = DateTime(now.year, now.month, now.day);
       return PeriodeRapideResult(d, d);
+  }
+}
+
+/// Champ "Période rapide" des panneaux de filtre (libellé + liste
+/// déroulante), identique dans tous les modules et les écrans Situation.
+/// Se place dans la 3e colonne d'une [LigneFiltreTiers] Du / Au / Période
+/// pour rester aligné avec les lignes de filtre au-dessus. Comme pour
+/// [PeriodeRapideDropdown], le consommateur applique lui-même
+/// [calculerPeriodeRapide] dans [onSelected].
+class ChampPeriodeRapide extends StatelessWidget {
+  final AppLocalizations l10n;
+  final String? value;
+  final ValueChanged<String> onSelected;
+
+  const ChampPeriodeRapide({
+    super.key,
+    required this.l10n,
+    required this.value,
+    required this.onSelected,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return ChampAvecLabel(
+      label: l10n.quickPeriod,
+      child: DropdownButtonFormField<String>(
+        value: value,
+        isExpanded: true,
+        decoration: InputDecoration(
+          hintText: l10n.choosePeriod,
+          isDense: true,
+          border: const OutlineInputBorder(),
+        ),
+        items: periodesRapidesLabels(l10n)
+            .entries
+            .map((e) => DropdownMenuItem<String>(value: e.key, child: Text(e.value)))
+            .toList(),
+        onChanged: (v) {
+          if (v != null) onSelected(v);
+        },
+      ),
+    );
   }
 }
 

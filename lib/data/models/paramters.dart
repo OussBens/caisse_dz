@@ -25,6 +25,13 @@ class Paramters {
   // mesure) — voir Produit.nombre. Actif ou non pour toute l'application.
   bool      activeNombreQuantite;
 
+  // Comportement de la caisse quand un caissier essaie de valider une vente
+  // à un prix inférieur au prix d'achat du produit (Paramètres > Système) —
+  // "Interdire" | "Avertir" | "Autoriser" (voir ListsConst.typeVenteSousAchat
+  // et son application dans modif_prix.dart). Défaut "Autoriser" pour ne pas
+  // changer le comportement existant des installations déjà en place.
+  String    venteSousAchat;
+
   DateTime Datecree;
   DateTime? Datemodif;
 
@@ -43,6 +50,7 @@ class Paramters {
         this.activeBonus = false,
         this.bonusTaux = 0,
         this.activeNombreQuantite = false,
+        this.venteSousAchat = 'Autoriser',
         this.Datemodif,
         this.modifParCode,
       }
@@ -61,6 +69,7 @@ class Paramters {
         activeBonus         : map['active_bonus'] == 1,
         bonusTaux           : (map['bonus_taux'] as num?)?.toDouble() ?? 0,
         activeNombreQuantite : map['active_nombre_quantite'] == 1,
+        venteSousAchat      : map['vente_sous_achat'] ?? 'Autoriser',
         Datecree            : DateTime.parse(map['date_cree']),
         creeParCode         : map['cree_par_code'],
         Datemodif           : map['date_modif'] != null ? DateTime.parse(map['date_modif']) : DateTime.parse('0000-00-00'),
@@ -80,6 +89,7 @@ class Paramters {
       'active_bonus'           : activeBonus ? 1 : 0,
       'bonus_taux'             : bonusTaux,
       'active_nombre_quantite' : activeNombreQuantite ? 1 : 0,
+      'vente_sous_achat'       : venteSousAchat,
       'date_cree'              : Datecree.toIso8601String(),
       'date_modif'             : Datemodif?.toIso8601String(),
       'cree_par_code'          : creeParCode,

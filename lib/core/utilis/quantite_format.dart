@@ -26,12 +26,30 @@ class QuantiteFormat {
 
   /// Restreint la saisie au nombre de décimales configuré (aucune décimale
   /// autorisée si [decimales] == 0).
-  static List<TextInputFormatter> get inputFormatters {
-    if (decimales <= 0) {
+  static List<TextInputFormatter> get inputFormatters => _formattersPour(decimales);
+
+  // ── Selon l'unité de mesure du produit ─────────────────────────────────
+  // Un produit vendu à la pièce ne se compte jamais en fraction : 0 décimale
+  // quelle que soit la configuration ; les autres unités (kg, litre, mètre…)
+  // suivent [decimales].
+
+  /// Valeur stockée de l'unité "pièce" (ListsConst.uniteMesureList).
+  static const String unitePiece = 'Pièce';
+
+  static int decimalesPour(String? uniteMesure) => uniteMesure == unitePiece ? 0 : decimales;
+
+  static String formatPour(num value, String? uniteMesure) =>
+      value.toStringAsFixed(decimalesPour(uniteMesure));
+
+  static List<TextInputFormatter> inputFormattersPour(String? uniteMesure) =>
+      _formattersPour(decimalesPour(uniteMesure));
+
+  static List<TextInputFormatter> _formattersPour(int nbDecimales) {
+    if (nbDecimales <= 0) {
       return [FilteringTextInputFormatter.digitsOnly];
     }
     return [
-      FilteringTextInputFormatter.allow(RegExp(r'^\d*[.,]?\d{0,' '$decimales' r'}')),
+      FilteringTextInputFormatter.allow(RegExp(r'^\d*[.,]?\d{0,' '$nbDecimales' r'}')),
     ];
   }
 }

@@ -93,13 +93,19 @@ class _TextListeState extends State<TextListe> {
             ? accent
             : Appstyle.surface;
         final double radius = showSelectedStyle ? Appstyle.radiusLG : Appstyle.radiusMD;
-        final Color labelColor = hasValue ? Appstyle.Tblanc : Appstyle.textMuted;
-        final Color valueColor = hasValue ? Appstyle.Tblanc : Appstyle.textPrimary;
-        final Color iconColor = hasValue
+        // Liste figée (enabled = false) : fond clair, donc texte gris — le blanc
+        // n'est lisible que sur le fond violet de l'état sélectionné.
+        final Color labelColor = !widget.enabled
+            ? Appstyle.gris
+            : hasValue ? Appstyle.Tblanc : Appstyle.textMuted;
+        final Color valueColor = !widget.enabled
+            ? Appstyle.gris
+            : hasValue ? Appstyle.Tblanc : Appstyle.textPrimary;
+        final Color iconColor = !widget.enabled
+            ? Appstyle.textMuted.withOpacity(0.5)
+            : hasValue
             ? Appstyle.Tblanc
-            : widget.enabled
-            ? Appstyle.textMuted
-            : Appstyle.textMuted.withOpacity(0.5);
+            : Appstyle.textMuted;
 
         Widget dropdown = Column(
           crossAxisAlignment: CrossAxisAlignment.start,

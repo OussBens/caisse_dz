@@ -12,6 +12,15 @@ class VerssementServices{
 
   VerssementServices(this.db);
 
+  /// Versement généré automatiquement par un retour : remboursement au client
+  /// (Client / Sortie) ou remboursement du fournisseur (Fournisseur / Entrée).
+  /// Les versements saisis à la main vont dans l'autre sens (client : Entrée,
+  /// fournisseur : Sortie). Ceux-ci ne se suppriment et ne se modifient que
+  /// via le retour.
+  static bool estVersementDeRetour(Verssement v) =>
+      (v.typebeneficiare == 'Client' && v.sense == 'Sortie') ||
+      (v.typebeneficiare == 'Fournisseur' && v.sense == 'Entrée');
+
   /// Si [verssement] règle une créance client via le mode de paiement
   /// "Points" (voir ListsConst.modePaiementList / programme de bonus), vérifie
   /// et débite le solde de points du client sur le même executor que

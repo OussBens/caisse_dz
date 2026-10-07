@@ -22,9 +22,11 @@ class PannierReprintService {
     final catalogue = await ProduitServices.getAllProduits();
 
     final produits = produitsPannier.map((pp) {
-      final nom = catalogue.firstWhereOrNull((p) => p.code == pp.codeProduit)?.nom ?? pp.codeProduit;
+      final produit = catalogue.firstWhereOrNull((p) => p.code == pp.codeProduit);
+      final nom = produit?.nom ?? pp.codeProduit;
       return ProduitPanier(
         nom: nom,
+        uniteMesure: produit?.uniteMesure,
         code: pp.codeProduit,
         colis: '',
         prix: pp.prix,

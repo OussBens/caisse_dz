@@ -188,17 +188,18 @@ class AfficheurProduitMouvement extends StatelessWidget {
   Widget _buildProductPhoto() {
     // Utiliser produit.photo au lieu de produit.photos
     if (produit.photo == null || produit.photo!.isEmpty) {
+      final Color couleur = Appstyle.couleurSousCategorie(produit.sousCategorieId);
       return Container(
         width: 50,
         height: 50,
         decoration: BoxDecoration(
-          color: Appstyle.violet.withOpacity(0.1),
+          color: couleur.withOpacity(0.1),
           borderRadius: BorderRadius.circular(12),
         ),
         child: Icon(
           Icons.inventory_2,
           size: 30,
-          color: Appstyle.violet.withOpacity(0.6),
+          color: couleur.withOpacity(0.6),
         ),
       );
     }

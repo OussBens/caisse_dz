@@ -1,3 +1,13 @@
+#include <bitsdojo_window_windows/bitsdojo_window_plugin.h>
+// Appel à portée globale (s'exécute à l'initialisation statique, avant
+// wWinMain) : requis par bitsdojo_window pour que ses indicateurs
+// (has_custom_frame) soient déjà positionnés quand WM_NCCREATE/WM_NCCALCSIZE
+// arrivent pendant Win32Window::Create ci-dessous. BDW_CUSTOM_FRAME seul
+// (sans BDW_HIDE_ON_STARTUP) : on garde notre propre séquence d'affichage
+// maximisé au démarrage (voir Win32Window::Show, SetWindowPlacement) au lieu
+// de déléguer le show/hide à bitsdojo.
+auto bdw = bitsdojo_window_configure(BDW_CUSTOM_FRAME);
+
 #include <flutter/dart_project.h>
 #include <flutter/flutter_view_controller.h>
 #include <windows.h>

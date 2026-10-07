@@ -177,7 +177,7 @@ class _ButtonAddPhotoState extends State<ButtonAddPhoto> {
           curve: Curves.easeOut,
           transform: Matrix4.identity()..translate(0.0, isHovered ? -2.0 : 0.0),
           transformAlignment: Alignment.center,
-          padding: EdgeInsets.symmetric(vertical: 20, horizontal: horizontalPadding),
+          padding: EdgeInsets.symmetric(vertical: 14, horizontal: horizontalPadding),
           decoration: BoxDecoration(
             color: backgroundColor,
             borderRadius: BorderRadius.circular(Appstyle.radiusMD),
@@ -189,8 +189,8 @@ class _ButtonAddPhotoState extends State<ButtonAddPhoto> {
               : Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Icon(icon, size: 32, color: color),
-              const SizedBox(height: 8),
+              Icon(icon, size: 20, color: color),
+              const SizedBox(height: 6),
               Text(label, style: Appstyle.textSB.copyWith(color: color)),
             ],
           ),

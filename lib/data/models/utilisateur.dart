@@ -22,8 +22,8 @@ class Utilisateur {
 
   String? observation;
 
-  // Token d'API mobile (POST /api/auth/login), vérifié via le header
-  // Authorization Bearer sur les endpoints de sync avec l'app compagnon.
+  // Token d'API de l'ancienne app mobile compagnon (intégration retirée) :
+  // gardé uniquement pour lire/écrire la colonne existante api_token.
   String? apiToken;
 
   // Audit

@@ -46,7 +46,7 @@ class CodePrefix {
   static const String client = "CL";
   static const String pannier = "PN";
   static const String mouvement = "MV";
-  static const String historique = "HS";
+  static const String historique = "H";
   static const String verssement = "VRS";
   static const String facture = "FAC";
   static const String bonLivraison = "BLSC";
@@ -184,6 +184,29 @@ class ListsConstTranslator {
   List<String> get typeCalculDisplayList => [
     l10n.montant,
     l10n.pourcentage,
+  ];
+
+  // ==================== VENTE SOUS PRIX D'ACHAT ====================
+  String translateVenteSousAchat(String frenchValue) {
+    switch (frenchValue) {
+      case 'Interdire': return l10n.saleBelowCostForbid;
+      case 'Avertir': return l10n.saleBelowCostWarn;
+      case 'Autoriser': return l10n.saleBelowCostAllow;
+      default: return frenchValue;
+    }
+  }
+
+  String venteSousAchatToFrench(String translatedValue) {
+    if (translatedValue == l10n.saleBelowCostForbid) return 'Interdire';
+    if (translatedValue == l10n.saleBelowCostWarn) return 'Avertir';
+    if (translatedValue == l10n.saleBelowCostAllow) return 'Autoriser';
+    return translatedValue;
+  }
+
+  List<String> get venteSousAchatDisplayList => [
+    l10n.saleBelowCostForbid,
+    l10n.saleBelowCostWarn,
+    l10n.saleBelowCostAllow,
   ];
 
   // ==================== ETAT ====================
@@ -897,6 +920,15 @@ class ListsConst {
   static const List<String> typeCalculList = [
     "Montant",
     "Pourcentage",
+  ];
+
+  // Comportement de la caisse face à une vente dont le prix de vente est
+  // inférieur au prix d'achat du produit (Paramètres > Système) — voir
+  // Paramters.venteSousAchat et son application dans modif_prix.dart.
+  static const List<String> typeVenteSousAchat = [
+    "Interdire",
+    "Avertir",
+    "Autoriser",
   ];
 
   static const List<String> typePannier = [

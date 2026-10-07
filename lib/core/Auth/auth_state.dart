@@ -1,10 +1,15 @@
 // core/Auth/auth_state.dart (Updated)
 import 'dart:convert';
 import 'dart:math';
+import 'package:collection/collection.dart';
 import 'package:caisse_dz/DBCreate.dart';
 import 'package:caisse_dz/Services/Historique.dart';
+import 'package:caisse_dz/Services/Role.dart';
+import 'package:caisse_dz/Services/RoleDetail.dart';
 import 'package:caisse_dz/Services/UserParam.dart';
+import 'package:caisse_dz/Services/ModuleFavori.dart';
 import 'package:caisse_dz/core/locale/locale_provider.dart';
+import 'package:caisse_dz/data/models/RoleDetail.dart';
 import 'package:caisse_dz/data/models/histore.dart';
 import 'package:caisse_dz/data/models/userparam.dart';
 import 'package:caisse_dz/services/machine_binding_service.dart';
@@ -44,17 +49,47 @@ class AuthState extends ChangeNotifier {
   bool _isAuthenticated = false;
   bool _isActivated = false;
 
-  // Palier de licence (voir license_tier.dart) — par défaut `premium` tant
-  // qu'aucune clé d'activation n'encode encore de palier différent (aucune
-  // fonctionnalité existante ne doit se retrouver masquée rétroactivement
-  // par l'introduction de ce mécanisme). Le futur flux d'activation pourra
-  // appeler setLicenseTier() pour le faire varier réellement.
-  LicenseTier _licenseTier = LicenseTier.premium;
+  // Palier de licence (voir license_tier.dart) — par défaut `avance` (le
+  // palier le plus capable) tant qu'aucune clé d'activation n'encode de
+  // palier différent (aucune fonctionnalité existante ne doit se retrouver
+  // masquée rétroactivement par l'introduction de ce mécanisme).
+  LicenseTier _licenseTier = LicenseTier.avance;
 
   String? _username ="admin";
   String? _role ="admin";
   String? _userCode="ADMIN";
   String? _userCaisseCode;
+
+  // Permissions du rôle courant, chargées une seule fois à la connexion
+  // plutôt que rechargées par SideBarWidget à chaque montage (donc à chaque
+  // changement de module, faute de shell de navigation persistant) — ça
+  // provoquait un flash "sidebar repliée + spinner" visible à chaque clic,
+  // qui donnait l'impression que toute la sidebar (et ses catégories
+  // dépliées) se recréait.
+  RoleDetail? _roleDetail;
+  RoleDetail? get roleDetail => _roleDetail;
+
+  Future<void> _loadRoleDetail() async {
+    if (_role == null) {
+      _roleDetail = null;
+      return;
+    }
+    final roles = await RoleServices.getAllRoles();
+    final code = roles.where((r) => r.rolenom == _role).map((r) => r.code).firstOrNull;
+    _roleDetail = code == null ? null : await RoleDetailServices.getRoleByCode(code);
+  }
+
+  // Permissions spéciales (phase 3 du formulaire Rôle, voir RoleDetail) —
+  // Admin les a toutes implicitement, quel que soit le contenu réel de son
+  // RoleDetail (source de vérité unique pour tous les points de contrôle de
+  // l'app, pour ne jamais dupliquer `role == "Admin" || roleDetail?.xxx`).
+  bool get canVoirPrixAchat => _role == 'Admin' || (_roleDetail?.voirPrixAchat ?? false);
+  bool get canVoirMarge => _role == 'Admin' || (_roleDetail?.voirMarge ?? false);
+  bool get canModifierPrixVente => _role == 'Admin' || (_roleDetail?.modifierPrixVente ?? false);
+  bool get canAnnulerOperations => _role == 'Admin' || (_roleDetail?.annulerOperations ?? false);
+  bool get canChangerCaisseMagasin => _role == 'Admin' || (_roleDetail?.changerCaisseMagasin ?? false);
+  bool get canGererTransfertsCaisse => _role == 'Admin' || (_roleDetail?.gererTransfertsCaisse ?? false);
+  bool get canVoirStockTousMagasins => _role == 'Admin' || (_roleDetail?.voirStockTousMagasins ?? false);
 
   UserParam? _userParam;
   String? _currentLanguage;
@@ -62,20 +97,73 @@ class AuthState extends ChangeNotifier {
   String? _currentMagasin;
   String? _currentMagasinId;
 
-  // Affiché une seule fois par lancement de l'app (menu "logo" de la sidebar
-  // sur /caisse) — volontairement en mémoire, non persisté : contrairement au
-  // flag de configuration initiale, il doit se réinitialiser à chaque
-  // redémarrage du process, pas rester vrai à vie après le tout premier lancement.
-  bool _hasShownStartupMenu = false;
-  bool get hasShownStartupMenu => _hasShownStartupMenu;
-  void markStartupMenuShown() => _hasShownStartupMenu = true;
-
-  // État "épinglé" de la sidebar (SideBarWidget est recréé sans état partagé
-  // par chaque écran — voir les 16 usages de SideBarWidget() — donc ce flag
-  // doit vivre ici pour survivre à la navigation entre modules.
-  bool _isSidebarPinned = false;
+  // État "épinglé" de la sidebar. Le SideBarWidget est désormais monté une
+  // seule fois pour toute la session (AppShell, voir router.dart) donc ce
+  // flag n'a plus besoin de survivre à un remontage — conservé ici malgré
+  // tout pour rester la source de vérité unique et cohérente avec
+  // expandedSidebarCategories ci-dessous. Ouverte par défaut : épinglée tant
+  // que l'utilisateur ne la replie pas explicitement via le bouton collapse
+  // (voir SideBarWidget) — repliée, elle redevient survolable (peek au
+  // survol, avec délai).
+  bool _isSidebarPinned = true;
   bool get isSidebarPinned => _isSidebarPinned;
   void setSidebarPinned(bool value) => _isSidebarPinned = value;
+
+  // ── Modules favoris (onglets en haut de l'écran, voir AppShell) ─────────
+  static const int maxFavoris = 7;
+  List<String> _favoris = [];
+  /// Routes des modules favoris de l'utilisateur connecté, dans l'ordre.
+  List<String> get favoris => List.unmodifiable(_favoris);
+  bool estFavori(String route) => _favoris.contains(route);
+
+  Future<void> chargerFavoris() async {
+    _favoris = _userCode == null ? [] : await ModuleFavoriServices.getFavoris(_userCode!);
+    notifyListeners();
+  }
+
+  /// Ajoute/retire [route] des favoris. Retourne false si l'ajout est refusé
+  /// (déjà [maxFavoris] favoris).
+  Future<bool> basculerFavori(String route) async {
+    if (_userCode == null) return false;
+    if (_favoris.contains(route)) {
+      await ModuleFavoriServices.supprimer(_userCode!, route);
+      _favoris.remove(route);
+    } else {
+      if (_favoris.length >= maxFavoris) return false;
+      await ModuleFavoriServices.ajouter(_userCode!, route, _favoris.length);
+      _favoris.add(route);
+    }
+    notifyListeners();
+    return true;
+  }
+
+  // ── Changement de caisse / magasin ───────────────────────────────────────
+  // Incrémenté quand la caisse ou le magasin de l'utilisateur change : AppShell
+  // s'en sert comme clé du module affiché, qui est alors reconstruit et
+  // recharge ses données (stock du nouveau magasin, caisse active...).
+  int _contexteVersion = 0;
+  int get contexteVersion => _contexteVersion;
+  void signalerChangementCaisseMagasin() {
+    _contexteVersion++;
+    notifyListeners();
+  }
+
+  // Catégories dépliées dans la sidebar — même remarque que isSidebarPinned
+  // ci-dessus. notifyListeners() pour que le SideBarWidget affiché se remette
+  // à jour immédiatement (il watch déjà AuthState).
+  final Set<String> _expandedSidebarCategories = {};
+  Set<String> get expandedSidebarCategories => _expandedSidebarCategories;
+  void toggleSidebarCategory(String key) {
+    if (_expandedSidebarCategories.contains(key)) {
+      _expandedSidebarCategories.remove(key);
+    } else {
+      _expandedSidebarCategories.add(key);
+    }
+    notifyListeners();
+  }
+  // Sans notifyListeners : appelé pendant le build de la sidebar (changement
+  // de route), qui lit l'ensemble juste après dans le même frame.
+  void ouvrirSidebarCategorie(String key) => _expandedSidebarCategories.add(key);
 
   final FlutterSecureStorage _secureStorage = const FlutterSecureStorage();
   final MachineBindingService _machineBinding = MachineBindingService();
@@ -169,7 +257,7 @@ class AuthState extends ChangeNotifier {
 
     _isActivated = false;
     _isAuthenticated = false;
-    _licenseTier = LicenseTier.premium;
+    _licenseTier = LicenseTier.avance;
     notifyListeners();
   }
 
@@ -226,17 +314,17 @@ class AuthState extends ChangeNotifier {
   }
 
   // ===============================
-  // LICENSE TIER (Basic / Avancé / Premium)
+  // LICENSE TIER (Basic / Avancé)
   // ===============================
   /// Charge le palier stocké (même mécanisme de chiffrement+signature que
-  /// `activated`) — retombe sur `premium` si absent/invalide, pour ne rien
+  /// `activated`) — retombe sur `avance` si absent/invalide, pour ne rien
   /// masquer tant qu'aucun flux d'activation ne fait réellement varier cette
   /// valeur (voir setLicenseTier).
   Future<void> _loadLicenseTier(String machineKey) async {
     try {
       final encrypted = await _secureStorage.read(key: 'license_tier');
       if (encrypted == null) {
-        _licenseTier = LicenseTier.premium;
+        _licenseTier = LicenseTier.avance;
         return;
       }
 
@@ -247,11 +335,11 @@ class AuthState extends ChangeNotifier {
       if (decrypted != null && signature == expectedSignature) {
         _licenseTier = LicenseTier.fromName(decrypted);
       } else {
-        _licenseTier = LicenseTier.premium; // absent de signature valide → pas de restriction appliquée
+        _licenseTier = LicenseTier.avance; // absent de signature valide → pas de restriction appliquée
       }
     } catch (e) {
       print('Error loading license tier: $e');
-      _licenseTier = LicenseTier.premium;
+      _licenseTier = LicenseTier.avance;
     }
   }
 
@@ -351,13 +439,13 @@ class AuthState extends ChangeNotifier {
   // ===============================
   // GENERATE SECURE KEY
   // ===============================
-  /// Premium garde exactement l'algorithme historique (deviceId seul, sans
+  /// Avancé garde exactement l'algorithme historique (deviceId seul, sans
   /// suffixe de palier) : toute clé déjà distribuée avant l'introduction des
-  /// paliers doit continuer à activer l'app — en Premium, comportement
-  /// identique à avant. Basic/Avancé sont de nouvelles variantes (suffixe
-  /// de palier mixé dans le hash), qui n'ont jamais existé auparavant.
+  /// paliers — ou sous l'ancien 3ᵉ palier "Premium", fusionné dans Avancé —
+  /// doit continuer à activer l'app avec les mêmes capacités qu'avant. Basic
+  /// est la seule variante avec suffixe de palier mixé dans le hash.
   String _generateKey(String deviceId, LicenseTier tier) {
-    final input = tier == LicenseTier.premium ? deviceId : '$deviceId#${tier.name}';
+    final input = tier == LicenseTier.avance ? deviceId : '$deviceId#${tier.name}';
     final mixed = _interleave(input, _secretKey);
     final bytes = utf8.encode(mixed);
     final digest = sha256.convert(bytes);
@@ -421,6 +509,7 @@ class AuthState extends ChangeNotifier {
         _role = 'demo';
         _userCode = 'DEMO';
         _userCaisseCode = null;
+        await _loadRoleDetail();
         notifyListeners();
 
         final db = await DbCreator.openDb();
@@ -464,7 +553,16 @@ class AuthState extends ChangeNotifier {
     _userCode = result.first['code'] as String;
     _userCaisseCode = result.first['caisse_code'] as String?;
 
+    // ✅ roleDetail doit être chargé AVANT loadUserParameters() : celle-ci
+    // déclenche son propre notifyListeners() dès qu'elle détecte un
+    // changement (systématique à chaque vrai login) — via
+    // `refreshListenable: authState`, GoRouter navigue alors immédiatement
+    // vers /caisse et AppShell ouvre le menu de modules avec roleDetail
+    // encore null, qui n'affichait donc que "magasin" (seul module dont la
+    // visibilité ne dépend pas de roleDetail, cf. side_bar.dart).
+    await _loadRoleDetail();
     await loadUserParameters();
+    await chargerFavoris();
     notifyListeners();
 
     final services = HistoriqueServices(db);
@@ -659,12 +757,14 @@ class AuthState extends ChangeNotifier {
     _userCode = null;
     _username = null;
     _role = null;
+    _roleDetail = null;
     _userCaisseCode = null;
     _userParam = null;
     _currentLanguage = null;
     _currentCurrency = null;
     _currentMagasin = null;
     _currentMagasinId = null;
+    _favoris = [];
 
     int idm = await _GetNextHistoriqueId();
     String codem = 'HS$idm${DateTime.now().millisecondsSinceEpoch}';

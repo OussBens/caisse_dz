@@ -5,6 +5,7 @@ import '../../../data/constant.dart';
 import '../../../data/models/produit.dart';
 import '../../../l10n/app_localizations.dart';
 import '../../theme/app_style.dart';
+import '../../dialog/produits_liste_dialog.dart';
 import 'package:caisse_dz/core/utilis/number_format.dart';
 
 class ProduitCaisseDataSource extends DataGridSource {
@@ -92,6 +93,28 @@ class ProduitCaisseDataSource extends DataGridSource {
           ? Colors.grey.withOpacity(0.04)
           : Colors.transparent,
       cells: row.getCells().map((cell) {
+        if (cell.columnName == 'nom') {
+          return Container(
+            alignment: Alignment.centerLeft,
+            padding: const EdgeInsets.symmetric(horizontal: 6),
+            child: Text(
+              cell.value?.toString() ?? '',
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(
+                fontSize: AppConst.FontSizeTable,
+                fontWeight: FontWeight.bold,
+                color: isSelected ? Appstyle.violet : Colors.black,
+              ),
+            ),
+          );
+        }
+
+        if (cell.columnName == 'quantite') {
+          return Center(
+            child: pilluleCellule(cell.value?.toString() ?? '', Appstyle.violet),
+          );
+        }
+
         return Container(
           alignment: Alignment.center,
           padding: const EdgeInsets.symmetric(horizontal: 6),

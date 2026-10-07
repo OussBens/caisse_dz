@@ -150,7 +150,19 @@ bool Win32Window::Create(const std::wstring& title,
 }
 
 bool Win32Window::Show() {
-  return ShowWindow(window_handle_, SW_SHOWNORMAL);
+  // ShowWindow(hwnd, SW_SHOWMAXIMIZED) alone is unreliable on a window that
+  // has never been shown yet (observed: it kept the window at its
+  // CreateWindow size/position instead of maximizing). Setting the
+  // placement's showCmd explicitly via SetWindowPlacement forces Windows to
+  // resize/position the window to the work area before it ever becomes
+  // visible, which is the documented reliable way to start a window
+  // maximized regardless of its prior shown state.
+  WINDOWPLACEMENT placement = {0};
+  placement.length = sizeof(WINDOWPLACEMENT);
+  GetWindowPlacement(window_handle_, &placement);
+  placement.showCmd = SW_SHOWMAXIMIZED;
+  SetWindowPlacement(window_handle_, &placement);
+  return ShowWindow(window_handle_, SW_SHOWMAXIMIZED);
 }
 
 // static

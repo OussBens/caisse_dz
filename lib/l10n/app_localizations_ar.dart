@@ -668,6 +668,9 @@ class AppLocalizationsAr extends AppLocalizations {
   String get autre => 'أخرى';
 
   @override
+  String get peopleCategory => 'الأشخاص';
+
+  @override
   String get ticket => 'تذكرة';
 
   @override
@@ -4367,6 +4370,10 @@ class AppLocalizationsAr extends AppLocalizations {
   String get warning => 'تحذير';
 
   @override
+  String get noPermissionAction =>
+      'لا تملك الصلاحية اللازمة لتنفيذ هذا الإجراء.';
+
+  @override
   String get permissions => 'الصلاحيات';
 
   @override
@@ -4374,6 +4381,16 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get selectPermissions => 'صلاحيات الدور';
+
+  @override
+  String get specialPermissions => 'صلاحية خاصة';
+
+  @override
+  String get specialPermissionsDescription =>
+      'تكوين الصلاحيات الخاصة لهذا الدور (إجراءات حساسة عابرة للوحدات)';
+
+  @override
+  String get selectSpecialPermissions => 'الصلاحيات الخاصة للدور';
 
   @override
   String get selectAll => 'تحديد الكل';
@@ -4690,6 +4707,58 @@ class AppLocalizationsAr extends AppLocalizations {
   String get viewMovements => 'عرض الحركات';
 
   @override
+  String get productMovementSituation => 'وضعية حركات المنتج';
+
+  @override
+  String get initialQuantity => 'الكمية الأولية';
+
+  @override
+  String get movementQuantity => 'كمية الحركة';
+
+  @override
+  String get quantityAfterMovement => 'الكمية بعد الحركة';
+
+  @override
+  String get clientSituationLabel => 'وضعية العميل';
+
+  @override
+  String get supplierSituationLabel => 'وضعية المورد';
+
+  @override
+  String get saleBelowCostLabel => 'البيع بأقل من سعر الشراء';
+
+  @override
+  String get saleBelowCostHint =>
+      'السلوك عندما يحاول الكاشير بيع منتج بسعر أقل من سعر شرائه.';
+
+  @override
+  String get saleBelowCostForbid => 'منع';
+
+  @override
+  String get saleBelowCostWarn => 'تحذير';
+
+  @override
+  String get saleBelowCostAllow => 'السماح';
+
+  @override
+  String saleBelowCostBlockedMessage(
+    String prixVente,
+    String prixAchat,
+    String currency,
+  ) {
+    return 'البيع غير ممكن: سعر البيع ($prixVente $currency) أقل من سعر الشراء ($prixAchat $currency).';
+  }
+
+  @override
+  String saleBelowCostWarningMessage(
+    String prixVente,
+    String prixAchat,
+    String currency,
+  ) {
+    return 'سعر البيع ($prixVente $currency) أقل من سعر الشراء ($prixAchat $currency). هل تريد المتابعة رغم ذلك؟';
+  }
+
+  @override
   String get noSessionSelected => 'لم يتم اختيار أي جلسة';
 
   @override
@@ -4729,4 +4798,112 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get confirmCancelExits => 'هل أنت متأكد أنك تريد إلغاء هذه الإخراجات؟';
+
+  @override
+  String get cashTransferTab => 'تحويل الصندوق';
+
+  @override
+  String get storeTransferTab => 'التحويل بين المخازن';
+
+  @override
+  String get noOpenSessionForManualMovement =>
+      'لا توجد جلسة صندوق مفتوحة: افتح صندوقًا قبل إضافة حركة يدوية.';
+
+  @override
+  String get selectOpenSessionForManualMovement =>
+      'توجد عدة جلسات مفتوحة: اختر الجلسة (المفتوحة) في حقل الجلسة قبل إضافة حركة يدوية.';
+
+  @override
+  String cartsAlreadyCancelled(String codes) {
+    return 'سلة (سلال) ملغاة مسبقًا: $codes';
+  }
+
+  @override
+  String transfersAlreadyCancelled(String codes) {
+    return 'تحويل (تحويلات) ملغى مسبقًا: $codes';
+  }
+
+  @override
+  String get noRowSelected => 'لم يتم تحديد أي سطر: حدد الأسطر المراد تصديرها.';
+
+  @override
+  String get productCostSituation => 'تكلفة المنتج';
+
+  @override
+  String get minPurchasePrice => 'أدنى سعر شراء';
+
+  @override
+  String get maxPurchasePrice => 'أعلى سعر شراء';
+
+  @override
+  String get totalPurchasedQuantity => 'إجمالي الكمية المشتراة';
+
+  @override
+  String get minSalePrice => 'أدنى سعر بيع';
+
+  @override
+  String get maxSalePrice => 'أعلى سعر بيع';
+
+  @override
+  String get totalSoldQuantity => 'إجمالي الكمية المباعة';
+
+  @override
+  String get saleSettings => 'إعدادات البيع';
+
+  @override
+  String get addToFavorites => 'إضافة إلى المفضلة';
+
+  @override
+  String get removeFromFavorites => 'إزالة من المفضلة';
+
+  @override
+  String get maxFavoritesReached =>
+      '7 مفضلات كحد أقصى: احذف واحدة قبل إضافة أخرى.';
+
+  @override
+  String get alerts => 'تنبيهات';
+
+  @override
+  String get alertsSubtitle => 'نقاط مهمة يجب التحقق منها اليوم';
+
+  @override
+  String expiringSoonProducts(int days) {
+    return 'منتجات تنتهي صلاحيتها خلال $days يومًا';
+  }
+
+  @override
+  String get topClientsCredit => 'العملاء الأعلى ديونًا';
+
+  @override
+  String get topSuppliersCredit => 'الموردون الأعلى ديونًا';
+
+  @override
+  String get unclosedSessions => 'جلسات صندوق غير مغلقة';
+
+  @override
+  String get noAlert => 'لا توجد تنبيهات';
+
+  @override
+  String get openModule => 'فتح الوحدة';
+
+  @override
+  String andMore(int count) {
+    return '+ $count أخرى';
+  }
+
+  @override
+  String expiresOn(String date) {
+    return 'تنتهي في $date';
+  }
+
+  @override
+  String openedOn(String date) {
+    return 'فُتحت في $date';
+  }
+
+  @override
+  String get tableView => 'عرض الجدول';
+
+  @override
+  String get cardView => 'عرض البطاقات';
 }

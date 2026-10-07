@@ -1,13 +1,10 @@
-import 'package:caisse_dz/DBCreate.dart';
-import 'package:caisse_dz/Services/Role.dart';
-import 'package:caisse_dz/Services/RoleDetail.dart';
+import 'dart:async';
 import 'package:caisse_dz/core/Auth/auth_state.dart';
 import 'package:caisse_dz/core/dialog/parametre/initial_setup_dialog.dart';
-import 'package:caisse_dz/core/dialog/magasin/magasin_actif_dialog.dart';
 import 'package:caisse_dz/core/Auth/license_tier.dart';
 import 'package:caisse_dz/core/theme/app_style.dart';
+import 'package:caisse_dz/core/widget/custom_title_bar.dart';
 import 'package:caisse_dz/data/models/RoleDetail.dart';
-import 'package:caisse_dz/data/models/role.dart';
 import 'package:caisse_dz/l10n/app_localizations.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
@@ -25,9 +22,18 @@ class SideBarWidget extends StatefulWidget {
 class SideBarWidgetState extends State<SideBarWidget> {
   bool isExpanded = false;
 
-  // Backé par AuthState (singleton) plutôt qu'un champ local : SideBarWidget
-  // est recréé sans état partagé par chaque écran, donc un champ local
-  // reviendrait à false à chaque changement de module.
+  // Délai avant qu'un survol n'ouvre/replie la sidebar (repliée uniquement,
+  // cf. isPinned) — évite l'ouverture/fermeture instantanée au moindre
+  // passage de souris. Annulé si la souris ressort avant l'échéance.
+  static const Duration _hoverDelay = Duration(milliseconds: 300);
+  Timer? _hoverTimer;
+  String? _routeAffichee;
+
+  // Backé par AuthState (singleton) plutôt qu'un champ local : même si
+  // SideBarWidget est désormais monté une seule fois pour toute la session
+  // (AppShell, voir router.dart), AuthState reste la source de vérité unique
+  // pour ce flag (ex. épinglage forcé au clic sur un module, cf. isExpanded
+  // plus bas dans buildMenuItem).
   bool get isPinned => Provider.of<AuthState>(context, listen: false).isSidebarPinned;
   set isPinned(bool value) => Provider.of<AuthState>(context, listen: false).setSidebarPinned(value);
 
@@ -40,7 +46,9 @@ class SideBarWidgetState extends State<SideBarWidget> {
   // toutes les deux le dialog avant que le flag n'ait fini d'être persisté.
   static bool _initialSetupChecked = false;
 
-  RoleDetail? roledetail;
+  // Chargé une seule fois à la connexion (AuthState.roleDetail) — voir
+  // commentaire sur roleReady ci-dessous.
+  RoleDetail? get roledetail => Provider.of<AuthState>(context, listen: false).roleDetail;
 
   // ─────────────────────────────────────────────
   bool _isRouteActive(String currentPath, String routePath) {
@@ -51,39 +59,27 @@ class SideBarWidgetState extends State<SideBarWidget> {
   }
 
   // ─────────────────────────────────────────────
-  Future<void> rolecode({required String rolenom}) async {
-    final db = DbCreator.openDb();
-    List<Role> roles = await RoleServices.getAllRoles();
-    String rolecod = roles.where((e) => e.rolenom == rolenom).first.code;
-
-    roledetail = await RoleDetailServices.getRoleByCode(rolecod);
-  }
-
-  // ─────────────────────────────────────────────
-  // Future exposée (via GlobalKey<SideBarWidgetState>) pour permettre à un
-  // écran parent (ex. CaisseScreen, menu auto-ouvert au démarrage) d'attendre
-  // que les permissions du rôle soient chargées avant d'appeler showModuleMenu.
-  Future<void>? _roleReadyFuture;
-  Future<void> get roleReady => _roleReadyFuture ?? Future.value();
+  // Les permissions du rôle sont chargées une seule fois à la connexion
+  // (AuthState.roleDetail) plutôt que rechargées ici. roleReady reste exposé
+  // pour compatibilité (AppShell l'attend avant showModuleMenu au démarrage,
+  // voir app_shell.dart) mais se résout immédiatement, la donnée étant déjà
+  // chargée avant même que le premier écran authentifié ne s'affiche.
+  Future<void> get roleReady => Future.value();
 
   @override
   void initState() {
     super.initState();
-    _roleReadyFuture = _initRole();
-    // La sidebar est recréée à chaque changement de module (voir isPinned) :
-    // si elle était épinglée, elle doit rester dépliée dès son montage.
+    // SideBarWidget est monté une seule fois pour toute la session (AppShell,
+    // voir router.dart) : si elle était épinglée lors d'une session
+    // précédente (AuthState), elle doit rester dépliée dès son montage.
     isExpanded = isPinned;
     WidgetsBinding.instance.addPostFrameCallback((_) => _runInitialSetupCheck());
   }
 
-  Future<void> _initRole() async {
-    final auth = Provider.of<AuthState>(context, listen: false);
-
-    await rolecode(rolenom: auth.role!);
-
-    if (mounted) {
-      setState(() {});
-    }
+  @override
+  void dispose() {
+    _hoverTimer?.cancel();
+    super.dispose();
   }
 
   // ✅ SideBarWidget est présent sur tous les écrans authentifiés (sauf
@@ -106,32 +102,81 @@ class SideBarWidgetState extends State<SideBarWidget> {
   }
 
   // ─────────────────────────────────────────────
-  // Liste des modules (icône/texte/route), filtrée par les permissions du
-  // rôle courant — utilisée à la fois par la liste de la sidebar et par le
-  // menu rapide ouvert en cliquant sur le logo, pour ne pas dupliquer la
-  // logique de permissions à deux endroits.
-  List<Map<String, dynamic>> _modules(AppLocalizations l10n, LicenseTier tier) => [
-    {'visible': roledetail?.dash == true, 'icon': "assets/icons/sidebar/dash_icon.png", 'text': l10n.dashboard, 'route': "/dash"},
-    {'visible': roledetail?.caisse == true, 'icon': "assets/icons/sidebar/caisse_icon.png", 'text': l10n.caisse, 'route': "/caisse"},
-    {'visible': roledetail?.produit == true, 'icon': "assets/icons/sidebar/produit_icon.png", 'text': l10n.produit, 'route': "/produit"},
-    {'visible': roledetail?.pannier == true, 'icon': "assets/icons/sidebar/pannier_icon.png", 'text': l10n.panier, 'route': "/pannier"},
-    {'visible': roledetail?.client == true, 'icon': "assets/icons/sidebar/client_icon.png", 'text': l10n.client, 'route': "/client"},
-    {'visible': roledetail?.fournisseur == true, 'icon': "assets/icons/sidebar/fournisseur_icon.png", 'text': l10n.fournisseur, 'route': "/fournisseur"},
-    // Gestion des magasins réservée au palier Premium (Basic/Avancé restent
-    // mono-magasin) — voir aussi le garde équivalent dans router.dart et le
-    // refus côté MagasinNouveau (défense en profondeur).
-    {'visible': tier == LicenseTier.premium, 'icon': "assets/icons/sidebar/magasin_icon.png", 'text': l10n.magasin, 'route': "/magasin"},
-    {'visible': roledetail?.entree == true, 'icon': "assets/icons/sidebar/entree_icon.png", 'text': l10n.entree, 'route': "/entree"},
-    {'visible': roledetail?.sortie == true, 'icon': "assets/icons/sidebar/sortie_icon.png", 'text': l10n.sortie, 'route': "/sortie"},
-    {'visible': roledetail?.retour == true, 'icon': "assets/icons/cardwidget/retour_icon.png", 'text': l10n.retour, 'route': "/retour"},
-    {'visible': roledetail?.stock == true, 'icon': "assets/icons/sidebar/stock_icon.png", 'text': l10n.stock, 'route': "/stock"},
-    {'visible': roledetail?.besoin == true, 'icon': "assets/icons/cardwidget/besion_icon.png", 'text': l10n.besoin, 'route': "/besoin"},
-    {'visible': roledetail?.utilisateur == true, 'icon': "assets/icons/sidebar/profile_icon.png", 'text': l10n.utilisateur, 'route': "/utilisateur"},
-    {'visible': roledetail?.gestionCaisse == true, 'icon': "assets/icons/sidebar/caisse_icon.png", 'text': l10n.gestionCaisse, 'route': "/gestion_caisse"},
-    {'visible': roledetail?.zakat == true, 'icon': "assets/icons/sidebar/zakat_icon.png", 'text': l10n.zakat, 'route': "/zakat"},
-    {'visible': roledetail?.parametre == true, 'icon': "assets/icons/sidebar/parametre_icon.png", 'text': l10n.parametre, 'route': "/parametre"},
-    {'visible': roledetail?.historique == true, 'icon': "assets/icons/sidebar/historique_icon.png", 'text': l10n.historique, 'route': "/historique"},
+  // Dashboard reste hors catégorie, toujours en premier et cliquable
+  // directement (écran d'accueil le plus consulté).
+  Map<String, dynamic> _dashboardModule(AppLocalizations l10n) =>
+      {'visible': roledetail?.dash == true, 'icon': "assets/icons/sidebar/dash_icon.png", 'text': l10n.dashboard, 'route': "/dash"};
+
+  // Modules (icône/texte/route) regroupés par catégorie dépliable, filtrés
+  // par les permissions du rôle courant — utilisé à la fois par la liste de
+  // la sidebar et par le menu rapide ouvert en cliquant sur le logo, pour ne
+  // pas dupliquer la logique de permissions à deux endroits.
+  List<Map<String, dynamic>> _moduleCategories(AppLocalizations l10n, LicenseTier tier) => [
+    {
+      'key': 'ventes',
+      'label': l10n.sales,
+      'icon': Icons.point_of_sale_outlined,
+      'modules': [
+        {'visible': roledetail?.caisse == true, 'icon': "assets/icons/sidebar/caisse_icon.png", 'text': l10n.caisse, 'route': "/caisse"},
+        {'visible': roledetail?.pannier == true, 'icon': "assets/icons/sidebar/pannier_icon.png", 'text': l10n.panier, 'route': "/pannier"},
+        {'visible': roledetail?.retour == true, 'icon': "assets/icons/cardwidget/retour_icon.png", 'text': l10n.retour, 'route': "/retour"},
+      ],
+    },
+    {
+      'key': 'stock',
+      'label': l10n.stock,
+      'icon': Icons.inventory_2_outlined,
+      'modules': [
+        {'visible': roledetail?.produit == true, 'icon': "assets/icons/sidebar/produit_icon.png", 'text': l10n.produit, 'route': "/produit"},
+        {'visible': roledetail?.stock == true, 'icon': "assets/icons/sidebar/stock_icon.png", 'text': l10n.stock, 'route': "/stock"},
+        {'visible': roledetail?.entree == true, 'icon': "assets/icons/sidebar/entree_icon.png", 'text': l10n.entree, 'route': "/entree"},
+        {'visible': roledetail?.sortie == true, 'icon': "assets/icons/sidebar/sortie_icon.png", 'text': l10n.sortie, 'route': "/sortie"},
+        // Gestion des magasins réservée au palier Avancé (Basic reste
+        // mono-magasin) — voir aussi le garde équivalent dans router.dart et
+        // le refus côté MagasinNouveau (défense en profondeur).
+        {'visible': tier == LicenseTier.avance, 'icon': "assets/icons/sidebar/magasin_icon.png", 'text': l10n.magasin, 'route': "/magasin"},
+        {'visible': roledetail?.besoin == true, 'icon': "assets/icons/cardwidget/besion_icon.png", 'text': l10n.besoin, 'route': "/besoin"},
+      ],
+    },
+    {
+      'key': 'people',
+      'label': l10n.peopleCategory,
+      'icon': Icons.groups_outlined,
+      'modules': [
+        {'visible': roledetail?.client == true, 'icon': "assets/icons/sidebar/client_icon.png", 'text': l10n.client, 'route': "/client"},
+        {'visible': roledetail?.fournisseur == true, 'icon': "assets/icons/sidebar/fournisseur_icon.png", 'text': l10n.fournisseur, 'route': "/fournisseur"},
+        {'visible': roledetail?.utilisateur == true, 'icon': "assets/icons/sidebar/profile_icon.png", 'text': l10n.utilisateur, 'route': "/utilisateur"},
+      ],
+    },
+    {
+      'key': 'autre',
+      'label': l10n.autre,
+      'icon': Icons.widgets_outlined,
+      'modules': [
+        {'visible': roledetail?.gestionCaisse == true, 'icon': "assets/icons/sidebar/caisse_icon.png", 'text': l10n.gestionCaisse, 'route': "/gestion_caisse"},
+        {'visible': roledetail?.zakat == true, 'icon': "assets/icons/sidebar/zakat_icon.png", 'text': l10n.zakat, 'route': "/zakat"},
+        {'visible': roledetail?.parametre == true, 'icon': "assets/icons/sidebar/parametre_icon.png", 'text': l10n.parametre, 'route': "/parametre"},
+        {'visible': roledetail?.historique == true, 'icon': "assets/icons/sidebar/historique_icon.png", 'text': l10n.historique, 'route': "/historique"},
+      ],
+    },
   ];
+
+  // Tous les modules visibles, à plat (dashboard + toutes catégories) —
+  // pour le menu rapide (showModuleMenu) et le mode replié de la sidebar,
+  // qui n'ont pas besoin du regroupement par catégorie.
+  List<Map<String, dynamic>> _allVisibleModules(AppLocalizations l10n, LicenseTier tier) {
+    final dashboard = _dashboardModule(l10n);
+    final fromCategories = _moduleCategories(l10n, tier)
+        .expand((c) => (c['modules'] as List<Map<String, dynamic>>))
+        .toList();
+    return [dashboard, ...fromCategories].where((m) => m['visible'] == true).toList();
+  }
+
+  /// Modules accessibles (permissions + licence), à plat : utilisé par la
+  /// barre des favoris d'AppShell pour retrouver icône et nom d'une route et
+  /// masquer un favori devenu inaccessible.
+  List<Map<String, dynamic>> modulesVisibles(AppLocalizations l10n) =>
+      _allVisibleModules(l10n, Provider.of<AuthState>(context, listen: false).licenseTier);
 
   static const List<Color> _moduleColors = [
     Appstyle.violet,
@@ -147,11 +192,11 @@ class SideBarWidgetState extends State<SideBarWidget> {
   // grille moderne (carte + icône colorée + animation d'entrée) de tous les
   // modules accessibles, en complément de la liste verticale de la sidebar
   // (utile notamment quand la sidebar est repliée).
-  void showModuleMenu(BuildContext context, AppLocalizations l10n) {
+  Future<void> showModuleMenu(BuildContext context, AppLocalizations l10n) {
     final tier = Provider.of<AuthState>(context, listen: false).licenseTier;
-    final modules = _modules(l10n, tier).where((m) => m['visible'] == true).toList();
+    final modules = _allVisibleModules(l10n, tier);
 
-    showGeneralDialog(
+    return showGeneralDialog(
       context: context,
       barrierLabel: l10n.dashboard,
       barrierDismissible: true,
@@ -250,10 +295,7 @@ class SideBarWidgetState extends State<SideBarWidget> {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
-    // Écoute (pas listen:false) : le libellé du magasin actif doit se
-    // rafraîchir dès que MagasinActifDialog appelle updateUserParameters().
     final authWatch = context.watch<AuthState>();
-    final authMagasin = authWatch.currentMagasin;
 
     // ✅ LOADING STATE
     if (roledetail == null) {
@@ -270,6 +312,18 @@ class SideBarWidgetState extends State<SideBarWidget> {
 
     final GoRouterState routeState = GoRouterState.of(context);
     final String currentLocation = routeState.uri.path;
+
+    // Seule la catégorie du module affiché s'ouvre automatiquement, à chaque
+    // changement de route ; les autres restent repliées au démarrage.
+    if (currentLocation != _routeAffichee) {
+      _routeAffichee = currentLocation;
+      for (final categorie in _moduleCategories(l10n, authWatch.licenseTier)) {
+        final modules = categorie['modules'] as List<Map<String, dynamic>>;
+        if (modules.any((m) => m['route'] == currentLocation)) {
+          authWatch.ouvrirSidebarCategorie(categorie['key'] as String);
+        }
+      }
+    }
 
     Widget buildMenuItem({
       required String iconPath,
@@ -296,7 +350,14 @@ class SideBarWidgetState extends State<SideBarWidget> {
                   });
                 },
                 child: InkWell(
-                  onTap: () => context.go(route),
+                  onTap: () {
+                    // Naviguer ne doit jamais refermer une sidebar
+                    // actuellement ouverte : si elle n'était ouverte que par
+                    // survol (non épinglée), l'épingler ici évite qu'elle se
+                    // replie au remontage de l'écran suivant (voir isPinned).
+                    if (isExpanded) isPinned = true;
+                    context.go(route);
+                  },
                   borderRadius: BorderRadius.circular(16),
                   child: Container(
                     margin: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
@@ -315,45 +376,54 @@ class SideBarWidgetState extends State<SideBarWidget> {
                     child: isExpanded
                         ? Row(
                       children: [
-                        Image.asset(
-                          iconPath,
-                          width: 24,
-                          height: 24,
-                          color: isActive
-                              ? Colors.white
-                              : isHovered
-                              ? Appstyle.violet
-                              : Appstyle.gris,
+                        Opacity(
+                          opacity: isActive ? 1.0 : 0.8,
+                          child: Image.asset(
+                            iconPath,
+                            width: 20,
+                            height: 20,
+                            color: isActive
+                                ? Colors.white
+                                : isHovered
+                                ? Appstyle.violet
+                                : Appstyle.gris,
+                          ),
                         ),
                         const SizedBox(width: 12),
                         Expanded(
-                          child: Text(
-                            text,
-                            maxLines: 1,
-                            overflow: TextOverflow.fade,
-                            softWrap: false,
-                            style: Appstyle.textXS.copyWith(
-                              color: isActive
-                                  ? Appstyle.Tblanc
-                                  : isHovered
-                                  ? Appstyle.violet
-                                  : Appstyle.TgrisC,
-                              fontWeight: FontWeight.w500,
+                          child: Opacity(
+                            opacity: isActive ? 1.0 : 0.8,
+                            child: Text(
+                              text,
+                              maxLines: 1,
+                              overflow: TextOverflow.fade,
+                              softWrap: false,
+                              style: Appstyle.textXS.copyWith(
+                                color: isActive
+                                    ? Appstyle.Tblanc
+                                    : isHovered
+                                    ? Appstyle.violet
+                                    : Appstyle.TgrisC,
+                                fontWeight: FontWeight.w500,
+                              ),
                             ),
                           ),
                         ),
                       ],
                     )
                         : Center(
-                      child: Image.asset(
-                        iconPath,
-                        width: 24,
-                        height: 24,
-                        color: isActive
-                            ? Colors.white
-                            : isHovered
-                            ? Appstyle.violet
-                            : Appstyle.gris,
+                      child: Opacity(
+                        opacity: isActive ? 1.0 : 0.8,
+                        child: Image.asset(
+                          iconPath,
+                          width: 20,
+                          height: 20,
+                          color: isActive
+                              ? Colors.white
+                              : isHovered
+                              ? Appstyle.violet
+                              : Appstyle.gris,
+                        ),
                       ),
                     ),
                   ),
@@ -365,12 +435,95 @@ class SideBarWidgetState extends State<SideBarWidget> {
       );
     }
 
+    // En-tête de catégorie : libellé + chevron dépliée, icône seule (avec
+    // tooltip) repliée — clic pour déplier/replier dans les deux cas, même
+    // logique de survol que buildMenuItem mais sans navigation (toggle
+    // persisté dans AuthState, voir plus haut).
+    Widget buildCategoryHeader({
+      required String label,
+      required IconData icon,
+      required String categoryKey,
+    }) {
+      final bool expanded = authWatch.expandedSidebarCategories.contains(categoryKey);
+
+      return Builder(
+        builder: (context) {
+          bool isHovered = false;
+
+          return StatefulBuilder(
+            builder: (context, setLocalState) {
+              // Design distinct des modules : fond violet très clair en
+              // permanence (pas seulement au survol), libellé en majuscules
+              // espacées et coloré violet — lecture immédiate "ceci est une
+              // section", pas un élément cliquable comme les autres.
+              final header = MouseRegion(
+                onEnter: (_) => setLocalState(() => isHovered = true),
+                onExit: (_) => setLocalState(() => isHovered = false),
+                child: InkWell(
+                  onTap: () => authWatch.toggleSidebarCategory(categoryKey),
+                  borderRadius: BorderRadius.circular(10),
+                  child: Container(
+                    margin: const EdgeInsets.fromLTRB(6, 10, 6, 2),
+                    padding: EdgeInsets.symmetric(horizontal: isExpanded ? 14 : 8, vertical: 8),
+                    decoration: BoxDecoration(
+                      color: isHovered ? Appstyle.violet.withOpacity(0.14) : Appstyle.violetC,
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: isExpanded
+                        ? Row(
+                      children: [
+                        Icon(icon, size: 15, color: Appstyle.violet),
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: Text(
+                            label.toUpperCase(),
+                            maxLines: 1,
+                            overflow: TextOverflow.fade,
+                            softWrap: false,
+                            style: Appstyle.textXSB.copyWith(
+                              color: Appstyle.violet,
+                              fontSize: 11,
+                              letterSpacing: 0.7,
+                            ),
+                          ),
+                        ),
+                        Icon(
+                          expanded ? Icons.expand_less : Icons.expand_more,
+                          size: 16,
+                          color: Appstyle.violet.withOpacity(0.7),
+                        ),
+                      ],
+                    )
+                        : Center(
+                      child: Icon(icon, size: 16, color: Appstyle.violet),
+                    ),
+                  ),
+                ),
+              );
+
+              return isExpanded ? header : Tooltip(message: label, child: header);
+            },
+          );
+        },
+      );
+    }
+
     return MouseRegion(
       onEnter: (_) {
-        if (!isPinned) setState(() => isExpanded = true);
+        _hoverTimer?.cancel();
+        if (!isPinned) {
+          _hoverTimer = Timer(_hoverDelay, () {
+            if (mounted) setState(() => isExpanded = true);
+          });
+        }
       },
       onExit: (_) {
-        if (!isPinned) setState(() => isExpanded = false);
+        _hoverTimer?.cancel();
+        if (!isPinned) {
+          _hoverTimer = Timer(_hoverDelay, () {
+            if (mounted) setState(() => isExpanded = false);
+          });
+        }
       },
       child: Container(
         height: double.infinity,
@@ -390,67 +543,35 @@ class SideBarWidgetState extends State<SideBarWidget> {
             // Header with logo — cliquable : ouvre le menu rapide "lanceur
             // de modules" (grille moderne, cf. showModuleMenu), pratique
             // notamment quand la sidebar est repliée.
-            Container(
-              padding: const EdgeInsets.fromLTRB(12, 12, 12, 8),
-              child: Column(
-                children: [
-                  Tooltip(
-                    message: l10n.situation,
-                    child: InkWell(
-                      borderRadius: BorderRadius.circular(12),
-                      onTap: () => showModuleMenu(context, l10n),
-                      child: Padding(
-                        padding: const EdgeInsets.all(6),
-                        child: Image.asset(
-                          "assets/icons/caisse_dz_logo.png",
-                          width: isExpanded ? 90 : 40,
+            // Remplace aussi l'ancienne barre de titre : logo + titre de
+            // l'app, et glisser cette zone déplace la fenêtre.
+            ZoneDeplacementFenetre(
+              doubleClicAgrandit: false,
+              child: Container(
+                padding: const EdgeInsets.fromLTRB(12, 12, 12, 8),
+                child: Column(
+                  children: [
+                    Tooltip(
+                      message: l10n.situation,
+                      child: InkWell(
+                        borderRadius: BorderRadius.circular(12),
+                        onTap: () => showModuleMenu(context, l10n),
+                        child: Padding(
+                          padding: const EdgeInsets.all(6),
+                          child: Image.asset(
+                            "assets/icons/caisse_dz_logo.png",
+                            width: isExpanded ? 90 : 40,
+                          ),
                         ),
                       ),
                     ),
-                  ),
-                  const SizedBox(height: 10),
-                  // Magasin actif de la session — mécanisme neuf (n'existait
-                  // pas avant, cf. dialog) : ouvre le sélecteur au clic. Reste
-                  // affiché même en Basic/Avancé (un seul magasin) pour que
-                  // l'utilisateur sache toujours dans quel magasin il opère ;
-                  // le futur gating par palier ne touchera que la capacité
-                  // d'en choisir un AUTRE, pas la visibilité de l'indicateur.
-                  Tooltip(
-                    message: l10n.defaultStore,
-                    child: InkWell(
-                      borderRadius: BorderRadius.circular(10),
-                      onTap: () => MagasinActifDialog(context),
-                      child: Container(
-                        padding: EdgeInsets.symmetric(horizontal: isExpanded ? 10 : 6, vertical: 6),
-                        decoration: BoxDecoration(
-                          color: Appstyle.violetC,
-                          borderRadius: BorderRadius.circular(10),
-                        ),
-                        child: isExpanded
-                            ? Row(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  Icon(Icons.storefront_outlined, size: 16, color: Appstyle.violet),
-                                  const SizedBox(width: 6),
-                                  Flexible(
-                                    child: Text(
-                                      (authMagasin == null || authMagasin.isEmpty) ? l10n.defaultStore : authMagasin,
-                                      maxLines: 1,
-                                      overflow: TextOverflow.ellipsis,
-                                      style: Appstyle.textXS.copyWith(
-                                        color: Appstyle.violet,
-                                        fontWeight: FontWeight.w600,
-                                      ),
-                                    ),
-                                  ),
-                                ],
-                              )
-                            : Icon(Icons.storefront_outlined, size: 18, color: Appstyle.violet),
+                    if (isExpanded)
+                      Text(
+                        'Caisse DZ',
+                        style: Appstyle.textSB.copyWith(color: Appstyle.violet, fontWeight: FontWeight.w700),
                       ),
-                    ),
-                  ),
-                  const SizedBox(height: 10),
-                ],
+                  ],
+                ),
               ),
             ),
 
@@ -460,12 +581,33 @@ class SideBarWidgetState extends State<SideBarWidget> {
                 physics: const BouncingScrollPhysics(),
                 child: Column(
                   children: [
-                    for (final m in _modules(l10n, authWatch.licenseTier).where((m) => m['visible'] == true))
+                    if (_dashboardModule(l10n)['visible'] == true)
                       buildMenuItem(
-                        iconPath: m['icon'] as String,
-                        text: m['text'] as String,
-                        route: m['route'] as String,
+                        iconPath: _dashboardModule(l10n)['icon'] as String,
+                        text: _dashboardModule(l10n)['text'] as String,
+                        route: _dashboardModule(l10n)['route'] as String,
                       ),
+
+                    // Regroupement par catégorie dans les deux modes (dépliée
+                    // ou repliée) : chaque catégorie reste dépliable
+                    // indépendamment, l'en-tête s'affiche en icône seule
+                    // (avec tooltip) quand la sidebar est repliée.
+                    for (final categorie in _moduleCategories(l10n, authWatch.licenseTier))
+                      if ((categorie['modules'] as List<Map<String, dynamic>>).any((m) => m['visible'] == true)) ...[
+                        buildCategoryHeader(
+                          label: categorie['label'] as String,
+                          icon: categorie['icon'] as IconData,
+                          categoryKey: categorie['key'] as String,
+                        ),
+                        if (authWatch.expandedSidebarCategories.contains(categorie['key']))
+                          for (final m in (categorie['modules'] as List<Map<String, dynamic>>)
+                              .where((m) => m['visible'] == true))
+                            buildMenuItem(
+                              iconPath: m['icon'] as String,
+                              text: m['text'] as String,
+                              route: m['route'] as String,
+                            ),
+                      ],
 
                     const SizedBox(height: 20),
                   ],
@@ -473,24 +615,29 @@ class SideBarWidgetState extends State<SideBarWidget> {
               ),
             ),
 
-            // Footer avec bouton Pin — le bouton de déconnexion a été
-            // déplacé dans HeaderModule (coin haut-gauche du header, présent
-            // sur tous les écrans) pour rester accessible même repliée.
+            // Footer avec bouton Collapse/Expand — le bouton de déconnexion a
+            // été déplacé dans HeaderModule (coin haut-gauche du header,
+            // présent sur tous les écrans) pour rester accessible même
+            // repliée. Dépliée manuellement : reste ouverte (épinglée),
+            // insensible au survol. Repliée manuellement : redevient
+            // survolable (peek au survol, avec délai — voir _hoverDelay).
             Container(
               padding: const EdgeInsets.fromLTRB(12, 8, 12, 16),
               child: Align(
                 alignment: Alignment.centerRight,
                 child: IconButton(
+                  tooltip: isExpanded ? l10n.close : l10n.pinSidebar,
                   icon: Icon(
-                    isPinned
-                        ? Icons.push_pin
-                        : Icons.push_pin_outlined,
+                    isExpanded
+                        ? Icons.chevron_left
+                        : Icons.chevron_right,
                     color: Appstyle.violet,
                   ),
                   onPressed: () {
+                    _hoverTimer?.cancel();
                     setState(() {
-                      isPinned = !isPinned;
-                      isExpanded = isPinned;
+                      isExpanded = !isExpanded;
+                      isPinned = isExpanded;
                     });
                   },
                 ),

@@ -1,4 +1,5 @@
 import 'package:caisse_dz/DBCreate.dart';
+import 'package:caisse_dz/Services/Mouvement.dart';
 import 'package:caisse_dz/data/models/magasin.dart';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 
@@ -13,6 +14,65 @@ class MagasinServices {
     final db = await DbCreator.openDb();
     final List<Map<String, dynamic>> result = await db.query('magasins', orderBy: 'nom ASC');
     return result.map((e) => Magasin.fromMap(e)).toList();
+  }
+
+  /// Magasin associé à un utilisateur : celui de la caisse attachée à son
+  /// compte (utilisateur.caisse_code -> caisseGestion.magasin_code), à défaut
+  /// celui de son paramètre de caisse (caisseparam, qui peut être obsolète).
+  static Future<String?> getMagasinCodeUtilisateur(String userCode) async {
+    final db = await DbCreator.openDb();
+    final viaCaisse = await db.rawQuery('''
+      SELECT c.magasin_code AS magasin
+      FROM utilisateur u
+      JOIN caisseGestion c ON c.code = u.caisse_code
+      WHERE u.code = ?
+      LIMIT 1
+    ''', [userCode]);
+    final magasin = viaCaisse.isEmpty ? null : viaCaisse.first['magasin'] as String?;
+    if (magasin != null && magasin.isNotEmpty) return magasin;
+
+    final viaParam = await db.query('caisseparam', columns: ['magasinCode'], where: 'user = ?', whereArgs: [userCode], limit: 1);
+    return viaParam.isEmpty ? null : viaParam.first['magasinCode'] as String?;
+  }
+
+  /// Chiffres clés affichés en haut du détail magasin : produits ayant du
+  /// stock dans ce magasin et leur valeur au prix d'achat (stock calculé
+  /// depuis le journal des mouvements, comme Produit/Stock), caisses actives
+  /// rattachées et transferts actifs (entrants ou sortants).
+  static Future<({int produitsEnStock, double valeurStock, int caisses, int transferts})> getStatistiquesMagasin(
+    String magasinCode,
+  ) async {
+    final db = await DbCreator.openDb();
+    final totaux = await MouvementsServices.totauxParProduit(magasinCode: magasinCode);
+
+    final prixRows = await db.query('produits', columns: ['code', 'prix_achat']);
+    final prixAchat = {
+      for (final r in prixRows) r['code'] as String: (r['prix_achat'] as num?)?.toDouble() ?? 0,
+    };
+
+    var produitsEnStock = 0;
+    var valeurStock = 0.0;
+    totaux.quantites.forEach((code, quantite) {
+      if (quantite <= 0) return;
+      produitsEnStock++;
+      valeurStock += quantite * (prixAchat[code] ?? 0);
+    });
+
+    Future<int> compter(String sql, List<Object?> args) async {
+      final rows = await db.rawQuery(sql, args);
+      return (rows.first['n'] as num?)?.toInt() ?? 0;
+    }
+
+    final caisses = await compter(
+      'SELECT COUNT(*) AS n FROM caisseGestion WHERE magasin_code = ? AND etat = 1',
+      [magasinCode],
+    );
+    final transferts = await compter(
+      'SELECT COUNT(*) AS n FROM transfert_magasin WHERE etat = 1 AND (magasin_source_code = ? OR magasin_dest_code = ?)',
+      [magasinCode, magasinCode],
+    );
+
+    return (produitsEnStock: produitsEnStock, valeurStock: valeurStock, caisses: caisses, transferts: transferts);
   }
 
   /// Retourne le magasin (autre que [excludeMagasinCode]) portant déjà ce nom

@@ -16,6 +16,10 @@ class PDFTableGenerator {
     required List<List<String>> rows,
   }) async {
     final pdf = pw.Document();
+    // Beaucoup de colonnes (ex. export Produit) : texte plus petit pour que
+    // le tableau tienne dans la largeur d'une page A4 paysage.
+    final double tailleCellule = headers.length > 14 ? 5.5 : headers.length > 10 ? 6.5 : 8;
+    final double tailleEntete = tailleCellule + 1;
 
     pdf.addPage(
       pw.MultiPage(
@@ -46,10 +50,10 @@ class PDFTableGenerator {
             headerStyle: pw.TextStyle(
               fontWeight: pw.FontWeight.bold,
               color: PdfColors.white,
-              fontSize: 9,
+              fontSize: tailleEntete,
             ),
             headerDecoration: const pw.BoxDecoration(color: primaryColor),
-            cellStyle: const pw.TextStyle(fontSize: 8),
+            cellStyle: pw.TextStyle(fontSize: tailleCellule),
             cellAlignment: pw.Alignment.centerLeft,
             border: pw.TableBorder.all(color: lightGray, width: 0.5),
             cellPadding: const pw.EdgeInsets.symmetric(horizontal: 4, vertical: 3),

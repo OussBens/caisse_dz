@@ -20,16 +20,6 @@ class BonReceptionServices {
     return result.map((e) => BonReception.fromMap(e)).toList();
   }
 
-  Future<BonReception?> getBonReceptionById(int id) async {
-    final maps = await db.query('bon_reception', where: 'id = ?', whereArgs: [id]);
-
-    if (maps.isNotEmpty) {
-      return BonReception.fromMap(maps.first);
-    }
-
-    return null;
-  }
-
   Future<ApiResponse<int>> addBonReception(BonReception bon) async {
     try {
       final data = bon.toMap()..remove('id');

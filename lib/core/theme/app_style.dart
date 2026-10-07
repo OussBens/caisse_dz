@@ -32,6 +32,22 @@ class Appstyle
   static const Color Tred = const Color(0XFFFF3B00);
   static const Color Tblanc = const Color(0XFFFFFFFF);
 
+  // Palette utilisée pour attribuer automatiquement une couleur à chaque
+  // sous-catégorie (voir [couleurSousCategorie]) — mêmes teintes de marque
+  // que le reste de l'appli plutôt que des couleurs Material génériques.
+  static const List<Color> _paletteSousCategorie = [
+    violet, crevete, indigo, jaune, blueF, blueC, maron, maron2, green, green2, red, lavande,
+  ];
+
+  /// Couleur stable pour une sous-catégorie donnée (même sous-catégorie =
+  /// toujours la même couleur, sans configuration manuelle) — utilisée comme
+  /// repli visuel quand un produit de cette sous-catégorie n'a pas de photo
+  /// (voir card_product.dart, afficher_produit_selectionner.dart,
+  /// afficheur_produit.dart, afficheur_produit_stock.dart).
+  static Color couleurSousCategorie(int sousCategorieId) {
+    return _paletteSousCategorie[sousCategorieId % _paletteSousCategorie.length];
+  }
+
   static const LinearGradient violetGradient = LinearGradient(
     begin: Alignment.topLeft,
     end: Alignment.bottomRight,
