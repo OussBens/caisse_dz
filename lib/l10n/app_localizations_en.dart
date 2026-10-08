@@ -4960,4 +4960,169 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get cardView => 'Card view';
+
+  @override
+  String get smartScanUsed => 'Scans used';
+
+  @override
+  String smartScanRemaining(int count) {
+    return '$count scans remaining';
+  }
+
+  @override
+  String smartScanRenewal(String date) {
+    return 'Renewal: $date';
+  }
+
+  @override
+  String smartScanOfferUntil(String date) {
+    return 'Offer active until: $date';
+  }
+
+  @override
+  String get smartScanQuotaUnavailable =>
+      'Smart Scan quota unavailable (server unreachable).';
+
+  @override
+  String get smartScanQuotaReachedTitle => 'Smart Scan quota reached';
+
+  @override
+  String smartScanQuotaReachedMessage(int limit) {
+    return 'You have used your $limit Smart Scans available this month.';
+  }
+
+  @override
+  String smartScanUpgradeMessage(String offer, int limit) {
+    return 'Upgrade to $offer to get up to $limit scans per month.';
+  }
+
+  @override
+  String smartScanPricePerYear(String price) {
+    return '$price DA / year';
+  }
+
+  @override
+  String smartScanPricePerMonths(String price, int months) {
+    return '$price DA / $months months';
+  }
+
+  @override
+  String smartScanNoUpgrade(String date) {
+    return 'Your quota will be renewed on $date.';
+  }
+
+  @override
+  String get smartScanRequestOffer => 'Request / Activate the offer';
+
+  @override
+  String get smartScanRequestSent =>
+      'Your request has been sent. We will contact you to activate the offer.';
+
+  @override
+  String get smartScanRequestAlreadySent =>
+      'Your request is already registered and will be processed soon.';
+
+  @override
+  String get smartScanRequestFailed =>
+      'The request could not be sent. Check your internet connection.';
+
+  @override
+  String smartScanContact(String contact) {
+    return 'Contact: $contact';
+  }
+
+  @override
+  String get smartScanErrRateLimited =>
+      'Too many scans in a short time. Try again in a minute.';
+
+  @override
+  String get smartScanErrInProgress =>
+      'A scan is already in progress for your account. Please wait a moment.';
+
+  @override
+  String get smartScanErrDuplicate => 'This receipt has just been scanned.';
+
+  @override
+  String get smartScanErrInvalidImage =>
+      'Invalid image. Use a JPG, PNG or WEBP photo.';
+
+  @override
+  String get smartScanErrImageTooLarge =>
+      'Image too large. Reduce its size and try again.';
+
+  @override
+  String get smartScanErrLicence =>
+      'Caisse DZ licence not recognised by the Smart Scan service.';
+
+  @override
+  String get smartScanErrBlocked =>
+      'Smart Scan is disabled for this device or account. Contact BENS.';
+
+  @override
+  String get smartScanErrOcrFailed =>
+      'Processing the receipt failed. No scan was counted, please try again.';
+
+  @override
+  String get smartScanErrOcrEmpty =>
+      'No readable text on the photo. No scan was counted.';
+
+  @override
+  String get smartScanErrServiceBusy =>
+      'Smart Scan service temporarily unavailable. No scan was counted.';
+
+  @override
+  String get smartScanErrNetwork =>
+      'Cannot reach the Smart Scan service. Check your internet connection.';
+
+  @override
+  String smartScanScansPerMonth(int count) {
+    return '$count scans / month';
+  }
+
+  @override
+  String get mainStore => 'Main';
+
+  @override
+  String get moveUp => 'Move up';
+
+  @override
+  String get moveDown => 'Move down';
+
+  @override
+  String get remove => 'Remove';
+
+  @override
+  String get addStore => 'Add a store';
+
+  @override
+  String get userStores => 'Stores';
+
+  @override
+  String get storesOrderHelp =>
+      'The 1st store is the main one (Entries, Smart Scan). Sales take stock in list order.';
+
+  @override
+  String get atLeastOneStore => 'Choose at least one store.';
+
+  @override
+  String get distributionTotal => 'Quantity to distribute';
+
+  @override
+  String get distributionDistributed => 'Distributed';
+
+  @override
+  String get distributionHelp =>
+      'Tick the stores then enter each quantity. The total does not change: stock is moved between stores.';
+
+  @override
+  String distributionInvalid(String total) {
+    return 'The distributed quantity must equal the total ($total).';
+  }
+
+  @override
+  String get distributionNothing =>
+      'No stock to distribute for this product in your stores.';
+
+  @override
+  String get distributionSaved => 'Distribution saved.';
 }

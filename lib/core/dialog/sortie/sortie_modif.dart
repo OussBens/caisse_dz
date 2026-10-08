@@ -79,9 +79,9 @@ Future<ApiResponse<int>> _UpdateR({
 
   // Répercuter la date sur le mouvement de stock lié — le contenu ne change
   // plus, seule la date peut être corrigée.
+  // Multi-magasin : tous les mouvements de la sortie (un par magasin touché).
   final mouvement = await MouvementsServices.getAllMouvementsByCodeOper(sortie.code);
-  if (mouvement.isNotEmpty) {
-    final m = mouvement.first;
+  for (final m in mouvement) {
     m.date = sortie.date;
     m.dateModif = DateTime.now();
     m.modifParCode = userCode;

@@ -379,7 +379,8 @@ Future<void> EntreeNouveau(
   // ✅ Éclatement sur plusieurs magasins réservé à l'Admin, et seulement s'il
   // y a plus d'un magasin actif — pour tout autre cas, l'entrée va
   // entièrement au magasin de la caisse active (comportement inchangé).
-  final bool peutEclaterMagasinsE = auth.role == "Admin" && magasinsDisponiblesE.length > 1;
+  // (rôle Admin enregistré « admin » en minuscules en base)
+  final bool peutEclaterMagasinsE = auth.role?.toLowerCase() == "admin" && magasinsDisponiblesE.length > 1;
   splitMagasinsActifE = false;
   repartitionsE = [];
 
@@ -1010,10 +1011,9 @@ Future<void> EntreeNouveau(
                           prixAchat: prixAchat,
                           prixVente: prixVente,
                           type: ListsConst.typeMouvement[1],
-                          // Magasin de la caisse active (voir CaisseGestion.magasinCode) —
-                          // même valeur que le produit_magasin_detail mis à jour
-                          // par ce même écran (voir _SaveEntreeRapide).
-                          magasinCode: caisseChoisieE.magasinCode,
+                          // Multi-magasin : une entrée alimente le magasin
+                          // principal de l'utilisateur (AuthState.magasinPrincipal).
+                          magasinCode: auth.magasinPrincipal,
                           etat: true,
                           codeOperation: code,
                           dateCree: DateTime.now(),

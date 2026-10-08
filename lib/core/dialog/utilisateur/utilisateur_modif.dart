@@ -3,6 +3,11 @@ import 'package:caisse_dz/core/dialog/dialog_kind.dart';
 import 'package:collection/collection.dart';
 import 'package:caisse_dz/DBCreate.dart';
 import 'package:caisse_dz/Services/CaisseGestion.dart';
+import 'package:caisse_dz/Services/Magasin.dart';
+import 'package:caisse_dz/Services/UtilisateurMagasin.dart';
+import 'package:caisse_dz/core/Auth/license_tier.dart';
+import 'package:caisse_dz/core/widget/champ/champ_magasins_ordonnes.dart';
+import 'package:caisse_dz/data/models/magasin.dart';
 import 'package:caisse_dz/Services/Historique.dart' hide ApiResponse;
 import 'package:caisse_dz/Services/Role.dart' hide ApiResponse;
 import 'package:caisse_dz/Services/Utilisateur.dart';
@@ -30,6 +35,9 @@ List<Role> rolesTest = [];
 List<String> roles = [];
 List<CaisseGestion> caissesTest = [];
 List<String> caisses = [];
+List<Magasin> magasinsActifsM = [];
+// Magasins de l'utilisateur modifié, dans l'ordre (le 1er = principal).
+List<String> magasinsSelectionnesM = [];
 
 Future<int> _GetNextHistoriqueId() async {
   final db = await DbCreator.openDb();
@@ -78,6 +86,7 @@ Future<void> loadAllData() async {
   roles = rolesTest.map((c) => c.rolenom).toList();
   caissesTest = await GCServices.getAllCaisses();
   caisses = caissesTest.map((c) => c.nomCaisse).toList();
+  magasinsActifsM = (await MagasinServices.getAllMagasins()).where((m) => m.etat).toList();
 }
 
 final TextEditingController observationController = TextEditingController();
@@ -132,6 +141,18 @@ Future<void> UtilisateurModif(BuildContext context, Utilisateur user) async {
   selectedCaisse = caissesTest.firstWhereOrNull((c) => c.code == user.caisseCode)?.nomCaisse
       ?? (caisses.contains('Caisse System') ? 'Caisse System' : caisses.firstOrNull);
 
+  // Magasins actuels de l'utilisateur (seulement les magasins encore actifs) ;
+  // à défaut, le magasin système. En Basic le champ n'est pas affiché.
+  final multiMagasin = auth.licenseTier == LicenseTier.avance;
+  magasinsSelectionnesM = (await UtilisateurMagasinServices.magasinsConfigures(user.code))
+      .where((code) => magasinsActifsM.any((m) => m.code == code))
+      .toList();
+  if (magasinsSelectionnesM.isEmpty && magasinsActifsM.isNotEmpty) {
+    magasinsSelectionnesM = [
+      magasinsActifsM.any((m) => m.code == 'MAG0000') ? 'MAG0000' : magasinsActifsM.first.code,
+    ];
+  }
+
   // ✅ Initialisation du roleCode avec le code du rôle actuel de l'utilisateur
   // Si l'utilisateur a un rôle, on utilise son code, sinon on prend le premier rôle disponible
   String? rolecode = user.role_code;
@@ -161,7 +182,7 @@ Future<void> UtilisateurModif(BuildContext context, Utilisateur user) async {
             child: BackdropFilter(
               filter: ImageFilter.blur(sigmaX: 2, sigmaY: 2),
               child: BaseDialog(
-                width: 750,
+                width: multiMagasin ? 850 : 750,
                 header: TitreAvecLigne(
                   imagePath: 'assets/icons/sidebar/profile_icon.png',
                   text: l10n.modifyUser,
@@ -253,6 +274,21 @@ Future<void> UtilisateurModif(BuildContext context, Utilisateur user) async {
                                   onChanged: (v) => setState(() => selectedCaisse = v),
                                 ),
                               ),
+
+                              // Multi-magasin (licence Avancée) : magasins de
+                              // l'utilisateur, dans l'ordre.
+                              if (multiMagasin) ...[
+                                const SizedBox(height: 10),
+                                ChampAvecLabel(
+                                  label: l10n.userStores,
+                                  obligatoire: true,
+                                  child: ChampMagasinsOrdonnes(
+                                    magasins: magasinsActifsM,
+                                    selection: magasinsSelectionnesM,
+                                    onChanged: (liste) => setState(() => magasinsSelectionnesM = liste),
+                                  ),
+                                ),
+                              ],
 
                               const SizedBox(height: 10),
                               ChampAvecLabel(
@@ -368,6 +404,16 @@ Future<void> UtilisateurModif(BuildContext context, Utilisateur user) async {
                                 message: response.message ?? l10n.errorOccurred,
                               );
                               return;
+                            }
+
+                            // Magasins de l'utilisateur (multi-magasin).
+                            if (magasinsSelectionnesM.isNotEmpty) {
+                              await UtilisateurMagasinServices.definirMagasins(user.code, magasinsSelectionnesM);
+                              // L'utilisateur connecté s'est modifié lui-même : ses
+                              // magasins sont rechargés et l'écran se rafraîchit.
+                              if (user.code == auth.userCode) {
+                                await auth.signalerChangementCaisseMagasin();
+                              }
                             }
 
                             await InformationDialog(

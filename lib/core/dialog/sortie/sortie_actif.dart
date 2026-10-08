@@ -77,9 +77,9 @@ Future<void> _AnnulerSs({
     }
 
     // Mouvement de stock lié : soft-cancel (jamais de suppression).
+    // Multi-magasin : une sortie peut avoir un mouvement par magasin touché.
     final mouvment = await MouvementsServices.getAllMouvementsByCodeOper(sortie.code);
-    if (mouvment.isNotEmpty) {
-      final m = mouvment.first;
+    for (final m in mouvment.where((e) => e.etat)) {
       m.etat = false;
       m.dateAnnul = DateTime.now();
       m.annulParCode = userCode;

@@ -8,6 +8,10 @@ import 'package:caisse_dz/Services/Historique.dart';
 import 'package:caisse_dz/Services/Mouvement.dart';
 import 'package:caisse_dz/Services/Produits.dart';
 import 'package:caisse_dz/Services/ReceiptScannerService.dart';
+import 'package:caisse_dz/Services/SmartScanQuota.dart';
+import 'package:caisse_dz/core/dialog/AI/quota_smart_scan_dialog.dart';
+import 'package:caisse_dz/core/widget/smart_scan/carte_quota_smart_scan.dart';
+import 'package:caisse_dz/data/models/smart_scan_quota.dart';
 import 'package:caisse_dz/Services/SmartScan.dart';
 import 'package:caisse_dz/Services/Verssement.dart';
 import 'package:caisse_dz/Services/CaisseGestion.dart';
@@ -137,6 +141,11 @@ class _AISmartScanDialogState extends State<AISmartScanDialog> {
   List<Fournisseur> fournisseurs = [];
   List<CaisseGestion> caisses = [];
 
+  // Quota Smart Scan du client, tel que renvoyé par le serveur BENS (seule
+  // source de vérité) — affiché par CarteQuotaSmartScan.
+  SmartScanQuota? _quota;
+  bool _quotaChargement = true;
+
   String _nomProduit(String code) =>
       databaseProducts.firstWhereOrNull((p) => p.code == code)?.nom ?? code;
   String selectedSupplier = '';
@@ -161,6 +170,7 @@ class _AISmartScanDialogState extends State<AISmartScanDialog> {
     super.initState();
     dateController.text = _formatDate(DateTime.now());
     selectedDate = DateTime.now();
+    _chargerQuota();
     if (widget.initialImage != null) {
       receiptImage = widget.initialImage;
       _loadData().then((_) => _scanReceipt());
@@ -283,8 +293,63 @@ class _AISmartScanDialogState extends State<AISmartScanDialog> {
     }
   }
 
+  Future<void> _chargerQuota() async {
+    if (mounted) setState(() => _quotaChargement = true);
+    final quota = await SmartScanQuotaServices.getQuota();
+    if (!mounted) return;
+    setState(() {
+      _quota = quota;
+      _quotaChargement = false;
+    });
+  }
+
+  /// Message traduit pour un refus du serveur Smart Scan.
+  String _messageErreurSmartScan(AppLocalizations l10n, SmartScanErreur erreur) {
+    switch (erreur.code) {
+      case 'RATE_LIMITED':
+        return l10n.smartScanErrRateLimited;
+      case 'SCAN_IN_PROGRESS':
+        return l10n.smartScanErrInProgress;
+      case 'DUPLICATE_SCAN':
+        return l10n.smartScanErrDuplicate;
+      case 'INVALID_IMAGE':
+        return l10n.smartScanErrInvalidImage;
+      case 'IMAGE_TOO_LARGE':
+        return l10n.smartScanErrImageTooLarge;
+      case 'LICENSE_INVALID':
+        return l10n.smartScanErrLicence;
+      case 'DEVICE_BLOCKED':
+      case 'CLIENT_SUSPENDED':
+      case 'CLIENT_UNKNOWN':
+        return l10n.smartScanErrBlocked;
+      case 'OCR_EMPTY':
+        return l10n.smartScanErrOcrEmpty;
+      case 'SERVICE_BUSY':
+      case 'SERVICE_UNAVAILABLE':
+      case 'SERVER_NOT_CONFIGURED':
+        return l10n.smartScanErrServiceBusy;
+      case SmartScanErreur.reseau:
+        return l10n.smartScanErrNetwork;
+      default:
+        return l10n.smartScanErrOcrFailed;
+    }
+  }
+
   Future<void> _scanReceipt() async {
-    if (receiptImage == null) return;
+    if (receiptImage == null || isScanning) return;
+    final l10n = AppLocalizations.of(context)!;
+
+    // Quota épuisé d'après le dernier état connu : on revérifie auprès du
+    // serveur (renouvellement, offre activée entre-temps) avant de bloquer.
+    // Le serveur refuse de toute façon un scan hors quota.
+    if (_quota?.epuise == true) {
+      await _chargerQuota();
+      if (!mounted) return;
+      if (_quota?.epuise == true) {
+        await QuotaSmartScanAtteintDialog(context, _quota!);
+        return;
+      }
+    }
 
     setState(() {
       isScanning = true;
@@ -295,8 +360,25 @@ class _AISmartScanDialogState extends State<AISmartScanDialog> {
         receiptImage!,
         databaseProducts,
       );
+      if (!mounted) return;
+
+      final erreur = ReceiptScannerService.derniereErreur;
+      if (erreur != null) {
+        // Refus ou échec côté serveur : on reste sur l'étape de scan.
+        setState(() {
+          isScanning = false;
+          if (erreur.quota != null) _quota = erreur.quota;
+        });
+        if (erreur.estQuotaAtteint && _quota != null) {
+          await QuotaSmartScanAtteintDialog(context, _quota!);
+        } else {
+          _showError(_messageErreurSmartScan(l10n, erreur));
+        }
+        return;
+      }
 
       setState(() {
+        if (ReceiptScannerService.dernierQuota != null) _quota = ReceiptScannerService.dernierQuota;
         extractedItems = items;
         capturedItemsCount = items.length;
         isScanning = false;
@@ -706,6 +788,12 @@ class _AISmartScanDialogState extends State<AISmartScanDialog> {
             ),
           ),
         const SizedBox(height: 30),
+        CarteQuotaSmartScan(
+          quota: _quota,
+          chargement: _quotaChargement,
+          onRafraichir: isScanning ? null : _chargerQuota,
+        ),
+        const SizedBox(height: 20),
         if (isScanning)
           const CircularProgressIndicator()
         else
@@ -1317,6 +1405,8 @@ class _AISmartScanDialogState extends State<AISmartScanDialog> {
           dateCree: DateTime.now(),
           creeParCode: userCode,
           fournisseurCode: selectedSupplierCode,
+          // Smart Scan alimente le magasin principal de l'utilisateur.
+          magasinCode: auth.magasinPrincipal,
         ));
       }
 

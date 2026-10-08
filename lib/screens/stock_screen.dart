@@ -140,7 +140,11 @@ class _StockScreenState extends State<StockScreen> with TickerProviderStateMixin
   List<Magasin> magasinsDisponiblesStock = [];
 
   Future<void> _chargerQuantitesParMagasin() async {
-    final totaux = await MouvementsServices.totauxParProduit(magasinCode: magasinFiltreCode);
+    final auth = Provider.of<AuthState>(context, listen: false);
+    final totaux = await MouvementsServices.totauxPourFiltre(
+      magasinCode: magasinFiltreCode,
+      magasinsConsultation: auth.magasinsConsultation,
+    );
     if (!mounted) return;
     setState(() => quantitesParMagasin = totaux.quantites);
   }
@@ -164,21 +168,17 @@ class _StockScreenState extends State<StockScreen> with TickerProviderStateMixin
     final magasins           = (await MagasinServices.getAllMagasins()).where((m) => m.etat).toList();
 
     final auth = Provider.of<AuthState>(context, listen: false);
-    // Quantités par magasin :
-    // - sans la permission "voir le stock de tous les magasins" (cas des
-    //   non-admin) : toujours le magasin de la caisse de l'utilisateur ;
-    // - non-admin autorisé : ce magasin par défaut, puis libre ;
-    // - admin : "Tous les magasins" par défaut.
-    if (!auth.canVoirStockTousMagasins) {
-      magasinFiltreCode = await MagasinServices.getMagasinCodeUtilisateur(auth.userCode!);
-    } else if (!_magasinFiltreInitialise) {
-      _magasinFiltreInitialise = true;
-      if (auth.role != 'Admin') {
-        magasinFiltreCode = await MagasinServices.getMagasinCodeUtilisateur(auth.userCode!);
-      }
+    // Quantités (multi-magasin) : par défaut la SOMME des magasins que
+    // l'utilisateur peut consulter (même règle que produit_screen.dart).
+    if (magasinFiltreCode != null && !auth.peutConsulterMagasin(magasinFiltreCode!)) {
+      magasinFiltreCode = null;
     }
+    _magasinFiltreInitialise = true;
 
-    final totaux             = await MouvementsServices.totauxParProduit(magasinCode: magasinFiltreCode);
+    final totaux = await MouvementsServices.totauxPourFiltre(
+      magasinCode: magasinFiltreCode,
+      magasinsConsultation: auth.magasinsConsultation,
+    );
 
     final compteurs = await StatistiquesGlobalesServices.getCompteurs();
     if (!mounted) return;
@@ -1186,6 +1186,34 @@ class _StockScreenState extends State<StockScreen> with TickerProviderStateMixin
                                               textDirection: textDirection,
                                               mainAxisAlignment: MainAxisAlignment.end,
                                               children: [
+                                                // Distribution : répartir le stock du produit
+                                                // sélectionné entre les magasins.
+                                                MainIconButton(
+                                                  imagePath: "assets/icons/action/distribution_icon.png",
+                                                  color: Appstyle.green,
+                                                  onPressed: () async {
+                                                    if (produitsSelectionnes.length != 1) {
+                                                      await InformationDialog(
+                                                        context: context,
+                                                        titre_type_message: l10n.information,
+                                                        titre_concerne: l10n.productDistribution,
+                                                        message: produitsSelectionnes.isEmpty
+                                                            ? l10n.noProductSelected
+                                                            : l10n.selectSingleProductForDetail,
+                                                      );
+                                                      return;
+                                                    }
+                                                    final fait = await DistributionProduit(context, produitsSelectionnes.first);
+                                                    if (fait && mounted) {
+                                                      await loadAllData();
+                                                      if (!mounted) return;
+                                                      ScaffoldMessenger.of(context).showSnackBar(
+                                                        SnackBar(content: Text(l10n.distributionSaved), backgroundColor: Appstyle.green),
+                                                      );
+                                                    }
+                                                  },
+                                                ),
+                                                SizedBox(width: paddingH / 5),
                                                 MainIconButton(
                                                   imagePath: "assets/icons/action/detail_icon.png",
                                                   color: Appstyle.violet,
@@ -1449,7 +1477,10 @@ class _StockScreenState extends State<StockScreen> with TickerProviderStateMixin
   Widget filtreProduit(void Function(VoidCallback fn) setState, double width, AppLocalizations l10n, ListsConstTranslator translator, bool isRTL) {
     final textDirection = isRTL ? TextDirection.rtl : TextDirection.ltr;
     // ✅ Permission spéciale (voir RoleDetail) : filtre "Tous les magasins".
-    final canVoirStockTousMagasins = Provider.of<AuthState>(context, listen: false).canVoirStockTousMagasins;
+    final authFiltre = Provider.of<AuthState>(context, listen: false);
+    // Filtre limité aux magasins consultables par l'utilisateur.
+    final magasinsFiltrables =
+        magasinsDisponiblesStock.where((m) => authFiltre.peutConsulterMagasin(m.code)).toList();
     List<String> marqueFilterOptions = produitsTest
         .map((p) => p.marque)
         .toSet()
@@ -1535,18 +1566,18 @@ class _StockScreenState extends State<StockScreen> with TickerProviderStateMixin
                 ChampAvecLabel(
                   label: l10n.magasin,
                   child: TextListe(
-                    enabled: canVoirStockTousMagasins,
+                    enabled: magasinsFiltrables.length > 1,
                     value: magasinFiltreCode == null
                         ? null
-                        : magasinsDisponiblesStock
+                        : magasinsFiltrables
                             .firstWhereOrNull((m) => m.code == magasinFiltreCode)
                             ?.nom,
                     hint: "Tous les magasins",
-                    items: magasinsDisponiblesStock.map((m) => m.nom).toList(),
+                    items: magasinsFiltrables.map((m) => m.nom).toList(),
                     onChanged: (v) {
                       magasinFiltreCode = (v == null || v.isEmpty)
                           ? null
-                          : magasinsDisponiblesStock.firstWhereOrNull((m) => m.nom == v)?.code;
+                          : magasinsFiltrables.firstWhereOrNull((m) => m.nom == v)?.code;
                       _chargerQuantitesParMagasin();
                     },
                   ),

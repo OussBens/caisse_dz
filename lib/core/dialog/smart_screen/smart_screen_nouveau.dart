@@ -776,7 +776,8 @@ class _SmartScanDialogState extends State<SmartScanDialog> {
       paye: _payeValue,
       caisseCode: caisseChoisie.code,
       caisseNom: caisseChoisie.nomCaisse,
-      magasinCode: caisseChoisie.magasinCode,
+      // Multi-magasin : le Smart Scan alimente le magasin principal de l'utilisateur.
+      magasinCode: AuthState().magasinPrincipal,
     );
 
     if (response.success) {

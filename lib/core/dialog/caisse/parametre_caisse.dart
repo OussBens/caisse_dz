@@ -60,24 +60,21 @@ Future<void> ParametreCaisseDialog({
   }
   await _LoadAllData();
 
-  // ✅ Le magasin n'est jamais choisi indépendamment : il suit toujours la
-  // caisse sélectionnée (CaisseGestion.magasinCode). Corrige un bug où
-  // changer de caisse ici ne rafraîchissait pas Param.magasinCode/
-  // selectedMagasin, laissant le magasin utilisé par le reste de l'app
-  // obsolète après un changement de caisse.
-  String? _nomMagasinDeLaCaisse(String? nomCaisse) {
-    final caisse = caisseTest.where((c) => c.nomCaisse == nomCaisse).firstOrNull;
-    if (caisse == null) return null;
-    return magasinsTest.where((m) => m.code == caisse.magasinCode).firstOrNull?.nom;
-  }
+  // ✅ Multi-magasin : une caisse n'a plus de magasin. Le magasin de travail
+  // est le magasin principal de l'utilisateur (utilisateur_magasin, voir
+  // AuthState.magasinPrincipal) — c'est lui qu'utilisent les ventes en
+  // attendant leur répartition sur tous ses magasins (RepartitionStock).
+  final authMagasin = Provider.of<AuthState>(context, listen: false);
+  String? _nomMagasinPrincipal() =>
+      magasinsTest.where((m) => m.code == authMagasin.magasinPrincipal).firstOrNull?.nom;
 
   void _synchroniserMagasin(String? nomCaisse) {
     final caisse = caisseTest.where((c) => c.nomCaisse == nomCaisse).firstOrNull;
     // Le code de caisse suit aussi le nom choisi (il restait sur l'ancienne
     // caisse : nom « Caisse 2 » enregistré avec le code de Caisse System).
     Param.caisseCode = caisse?.code ?? Param.caisseCode;
-    Param.magasinCode = caisse?.magasinCode ?? Param.magasinCode;
-    Param.selectedMagasin = _nomMagasinDeLaCaisse(nomCaisse) ?? Param.selectedMagasin;
+    Param.magasinCode = authMagasin.magasinPrincipal;
+    Param.selectedMagasin = _nomMagasinPrincipal() ?? Param.selectedMagasin;
   }
 
   String? caisseSelectionnee = Param.selectedCaisse;
@@ -159,12 +156,13 @@ Future<void> ParametreCaisseDialog({
                         ),
                       ),
                       const SizedBox(height: 10),
-                      // Magasin : toujours celui de la caisse choisie.
+                      // Magasin principal de l'utilisateur (lecture seule : il
+                      // se règle dans l'écran Utilisateur, pas sur la caisse).
                       ChampAvecLabel(
                         label: l10n.magasin,
                         child: TextChampL(
                           controller: TextEditingController(
-                            text: _nomMagasinDeLaCaisse(caisseSelectionnee) ?? '',
+                            text: _nomMagasinPrincipal() ?? '',
                           ),
                           enabled: false,
                           hint: "",

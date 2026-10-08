@@ -4906,4 +4906,168 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get cardView => 'عرض البطاقات';
+
+  @override
+  String get smartScanUsed => 'عمليات المسح المستخدمة';
+
+  @override
+  String smartScanRemaining(int count) {
+    return '$count عملية مسح متبقية';
+  }
+
+  @override
+  String smartScanRenewal(String date) {
+    return 'التجديد: $date';
+  }
+
+  @override
+  String smartScanOfferUntil(String date) {
+    return 'العرض ساري حتى: $date';
+  }
+
+  @override
+  String get smartScanQuotaUnavailable =>
+      'حصة المسح الذكي غير متاحة (تعذر الوصول إلى الخادم).';
+
+  @override
+  String get smartScanQuotaReachedTitle => 'تم بلوغ حصة المسح الذكي';
+
+  @override
+  String smartScanQuotaReachedMessage(int limit) {
+    return 'لقد استخدمت عمليات المسح الذكي المتاحة لهذا الشهر وعددها $limit.';
+  }
+
+  @override
+  String smartScanUpgradeMessage(String offer, int limit) {
+    return 'انتقل إلى عرض $offer للاستفادة من حتى $limit عملية مسح شهريًا.';
+  }
+
+  @override
+  String smartScanPricePerYear(String price) {
+    return '$price دج / سنة';
+  }
+
+  @override
+  String smartScanPricePerMonths(String price, int months) {
+    return '$price دج / $months أشهر';
+  }
+
+  @override
+  String smartScanNoUpgrade(String date) {
+    return 'سيتم تجديد حصتك في $date.';
+  }
+
+  @override
+  String get smartScanRequestOffer => 'طلب / تفعيل العرض';
+
+  @override
+  String get smartScanRequestSent => 'تم إرسال طلبك. سنتصل بك لتفعيل العرض.';
+
+  @override
+  String get smartScanRequestAlreadySent =>
+      'طلبك مسجل بالفعل وسيتم معالجته قريبًا.';
+
+  @override
+  String get smartScanRequestFailed =>
+      'تعذر إرسال الطلب. تحقق من اتصالك بالإنترنت.';
+
+  @override
+  String smartScanContact(String contact) {
+    return 'للتواصل: $contact';
+  }
+
+  @override
+  String get smartScanErrRateLimited =>
+      'عدد كبير من عمليات المسح في وقت قصير. أعد المحاولة بعد دقيقة.';
+
+  @override
+  String get smartScanErrInProgress =>
+      'عملية مسح جارية بالفعل لحسابك. يرجى الانتظار قليلًا.';
+
+  @override
+  String get smartScanErrDuplicate => 'تم مسح هذا الوصل للتو.';
+
+  @override
+  String get smartScanErrInvalidImage =>
+      'صورة غير صالحة. استخدم صورة JPG أو PNG أو WEBP.';
+
+  @override
+  String get smartScanErrImageTooLarge =>
+      'الصورة كبيرة جدًا. قلل حجمها وأعد المحاولة.';
+
+  @override
+  String get smartScanErrLicence =>
+      'رخصة Caisse DZ غير معترف بها من خدمة المسح الذكي.';
+
+  @override
+  String get smartScanErrBlocked =>
+      'المسح الذكي معطل لهذا الجهاز أو الحساب. اتصل بـ BENS.';
+
+  @override
+  String get smartScanErrOcrFailed =>
+      'فشلت معالجة الوصل. لم يتم احتساب أي عملية مسح، أعد المحاولة.';
+
+  @override
+  String get smartScanErrOcrEmpty =>
+      'لا يوجد نص مقروء في الصورة. لم يتم احتساب أي عملية مسح.';
+
+  @override
+  String get smartScanErrServiceBusy =>
+      'خدمة المسح الذكي غير متاحة مؤقتًا. لم يتم احتساب أي عملية مسح.';
+
+  @override
+  String get smartScanErrNetwork =>
+      'تعذر الاتصال بخدمة المسح الذكي. تحقق من اتصالك بالإنترنت.';
+
+  @override
+  String smartScanScansPerMonth(int count) {
+    return '$count عملية مسح / شهر';
+  }
+
+  @override
+  String get mainStore => 'الرئيسي';
+
+  @override
+  String get moveUp => 'تحريك لأعلى';
+
+  @override
+  String get moveDown => 'تحريك لأسفل';
+
+  @override
+  String get remove => 'إزالة';
+
+  @override
+  String get addStore => 'إضافة مخزن';
+
+  @override
+  String get userStores => 'المخازن';
+
+  @override
+  String get storesOrderHelp =>
+      'المخزن الأول هو الرئيسي (الإدخال، المسح الذكي). تأخذ المبيعات من المخازن حسب ترتيب القائمة.';
+
+  @override
+  String get atLeastOneStore => 'اختر مخزنًا واحدًا على الأقل.';
+
+  @override
+  String get distributionTotal => 'الكمية المراد توزيعها';
+
+  @override
+  String get distributionDistributed => 'الموزع';
+
+  @override
+  String get distributionHelp =>
+      'حدد المخازن ثم أدخل كمية كل منها. المجموع لا يتغير: يتم نقل المخزون بين المخازن.';
+
+  @override
+  String distributionInvalid(String total) {
+    return 'يجب أن تساوي الكمية الموزعة المجموع ($total).';
+  }
+
+  @override
+  String get distributionNothing =>
+      'لا يوجد مخزون لتوزيعه لهذا المنتج في مخازنك.';
+
+  @override
+  String get distributionSaved => 'تم حفظ التوزيع.';
 }

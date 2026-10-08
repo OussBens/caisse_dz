@@ -198,29 +198,38 @@ Future<ApiResponse<int>> _SavePannier ({
     );
     await serviceh.addHistorique(histo);
 
-    idm = await _GetNextMouvementId();
-    Mouvement Mouv = Mouvement(
-      id            : idm,
-      code          : CodeGenerator.generateCode(
-        prefix: CodePrefix.mouvement,
-        id: idm,
-        digitCount: 8,
-      ),
-      date          : pannier.date,
-      type          : ListsConst.typeMouvement[0],
-      etat          : true,
-      dateCree      : DateTime.now(),
-      quantite      : quantiteReelle,
-      nombre        : produit.nombre,
-      prixAchat     : Produitse.where((e) => e.code == prod.codeProduit).first.prixAchat,
-      prixVente     : prod.prix,
-      codeProduit   : prod.codeProduit,
-      creeParCode   : userCode,
-      codeOperation : pannier.code,
-      magasinCode   : magasinCode,
+    // Multi-magasin : la ligne est prise dans les magasins de l'utilisateur,
+    // dans l'ordre (magasin 1, puis 2…) — un mouvement par magasin servi.
+    final parts = await MouvementsServices.repartirSortie(
+      prod.codeProduit,
+      quantiteReelle,
+      AuthState().magasins,
     );
+    for (var p = 0; p < parts.length; p++) {
+      idm = await _GetNextMouvementId();
+      Mouvement Mouv = Mouvement(
+        id            : idm,
+        code          : CodeGenerator.generateCode(
+          prefix: CodePrefix.mouvement,
+          id: idm,
+          digitCount: 8,
+        ),
+        date          : pannier.date,
+        type          : ListsConst.typeMouvement[0],
+        etat          : true,
+        dateCree      : DateTime.now(),
+        quantite      : parts[p].quantite,
+        nombre        : p == 0 ? produit.nombre : null,
+        prixAchat     : Produitse.where((e) => e.code == prod.codeProduit).first.prixAchat,
+        prixVente     : prod.prix,
+        codeProduit   : prod.codeProduit,
+        creeParCode   : userCode,
+        codeOperation : pannier.code,
+        magasinCode   : parts[p].magasinCode,
+      );
 
-    await servicem.addMouvement(Mouv);
+      await servicem.addMouvement(Mouv);
+    }
 
     Produite = Produitse.where((e) => e.code == prod.codeProduit).first;
     if (!Produite.service) {

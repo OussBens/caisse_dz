@@ -9420,6 +9420,258 @@ abstract class AppLocalizations {
   /// In fr, this message translates to:
   /// **'Affichage cards'**
   String get cardView;
+
+  /// No description provided for @smartScanUsed.
+  ///
+  /// In fr, this message translates to:
+  /// **'Scans utilisés'**
+  String get smartScanUsed;
+
+  /// No description provided for @smartScanRemaining.
+  ///
+  /// In fr, this message translates to:
+  /// **'{count} scans restants'**
+  String smartScanRemaining(int count);
+
+  /// No description provided for @smartScanRenewal.
+  ///
+  /// In fr, this message translates to:
+  /// **'Renouvellement : {date}'**
+  String smartScanRenewal(String date);
+
+  /// No description provided for @smartScanOfferUntil.
+  ///
+  /// In fr, this message translates to:
+  /// **'Offre active jusqu\'au : {date}'**
+  String smartScanOfferUntil(String date);
+
+  /// No description provided for @smartScanQuotaUnavailable.
+  ///
+  /// In fr, this message translates to:
+  /// **'Quota Smart Scan indisponible (serveur injoignable).'**
+  String get smartScanQuotaUnavailable;
+
+  /// No description provided for @smartScanQuotaReachedTitle.
+  ///
+  /// In fr, this message translates to:
+  /// **'Quota Smart Scan atteint'**
+  String get smartScanQuotaReachedTitle;
+
+  /// No description provided for @smartScanQuotaReachedMessage.
+  ///
+  /// In fr, this message translates to:
+  /// **'Vous avez utilisé vos {limit} Smart Scans disponibles ce mois-ci.'**
+  String smartScanQuotaReachedMessage(int limit);
+
+  /// No description provided for @smartScanUpgradeMessage.
+  ///
+  /// In fr, this message translates to:
+  /// **'Passez à l\'offre {offer} pour bénéficier de jusqu\'à {limit} scans par mois.'**
+  String smartScanUpgradeMessage(String offer, int limit);
+
+  /// No description provided for @smartScanPricePerYear.
+  ///
+  /// In fr, this message translates to:
+  /// **'{price} DA / an'**
+  String smartScanPricePerYear(String price);
+
+  /// No description provided for @smartScanPricePerMonths.
+  ///
+  /// In fr, this message translates to:
+  /// **'{price} DA / {months} mois'**
+  String smartScanPricePerMonths(String price, int months);
+
+  /// No description provided for @smartScanNoUpgrade.
+  ///
+  /// In fr, this message translates to:
+  /// **'Votre quota sera renouvelé le {date}.'**
+  String smartScanNoUpgrade(String date);
+
+  /// No description provided for @smartScanRequestOffer.
+  ///
+  /// In fr, this message translates to:
+  /// **'Demander / Activer l\'offre'**
+  String get smartScanRequestOffer;
+
+  /// No description provided for @smartScanRequestSent.
+  ///
+  /// In fr, this message translates to:
+  /// **'Votre demande a été envoyée. Nous vous contacterons pour activer l\'offre.'**
+  String get smartScanRequestSent;
+
+  /// No description provided for @smartScanRequestAlreadySent.
+  ///
+  /// In fr, this message translates to:
+  /// **'Votre demande est déjà enregistrée, elle sera traitée prochainement.'**
+  String get smartScanRequestAlreadySent;
+
+  /// No description provided for @smartScanRequestFailed.
+  ///
+  /// In fr, this message translates to:
+  /// **'La demande n\'a pas pu être envoyée. Vérifiez votre connexion internet.'**
+  String get smartScanRequestFailed;
+
+  /// No description provided for @smartScanContact.
+  ///
+  /// In fr, this message translates to:
+  /// **'Contact : {contact}'**
+  String smartScanContact(String contact);
+
+  /// No description provided for @smartScanErrRateLimited.
+  ///
+  /// In fr, this message translates to:
+  /// **'Trop de scans en peu de temps. Réessayez dans une minute.'**
+  String get smartScanErrRateLimited;
+
+  /// No description provided for @smartScanErrInProgress.
+  ///
+  /// In fr, this message translates to:
+  /// **'Un scan est déjà en cours pour votre compte. Patientez quelques instants.'**
+  String get smartScanErrInProgress;
+
+  /// No description provided for @smartScanErrDuplicate.
+  ///
+  /// In fr, this message translates to:
+  /// **'Ce bon vient déjà d\'être scanné.'**
+  String get smartScanErrDuplicate;
+
+  /// No description provided for @smartScanErrInvalidImage.
+  ///
+  /// In fr, this message translates to:
+  /// **'Image non valide. Utilisez une photo JPG, PNG ou WEBP.'**
+  String get smartScanErrInvalidImage;
+
+  /// No description provided for @smartScanErrImageTooLarge.
+  ///
+  /// In fr, this message translates to:
+  /// **'Image trop volumineuse. Réduisez sa taille et réessayez.'**
+  String get smartScanErrImageTooLarge;
+
+  /// No description provided for @smartScanErrLicence.
+  ///
+  /// In fr, this message translates to:
+  /// **'Licence Caisse DZ non reconnue par le service Smart Scan.'**
+  String get smartScanErrLicence;
+
+  /// No description provided for @smartScanErrBlocked.
+  ///
+  /// In fr, this message translates to:
+  /// **'Smart Scan est désactivé pour ce poste ou ce compte. Contactez BENS.'**
+  String get smartScanErrBlocked;
+
+  /// No description provided for @smartScanErrOcrFailed.
+  ///
+  /// In fr, this message translates to:
+  /// **'Le traitement du bon a échoué. Aucun scan n\'a été décompté, réessayez.'**
+  String get smartScanErrOcrFailed;
+
+  /// No description provided for @smartScanErrOcrEmpty.
+  ///
+  /// In fr, this message translates to:
+  /// **'Aucun texte lisible sur la photo. Aucun scan n\'a été décompté.'**
+  String get smartScanErrOcrEmpty;
+
+  /// No description provided for @smartScanErrServiceBusy.
+  ///
+  /// In fr, this message translates to:
+  /// **'Service Smart Scan momentanément indisponible. Aucun scan n\'a été décompté.'**
+  String get smartScanErrServiceBusy;
+
+  /// No description provided for @smartScanErrNetwork.
+  ///
+  /// In fr, this message translates to:
+  /// **'Connexion au service Smart Scan impossible. Vérifiez votre connexion internet.'**
+  String get smartScanErrNetwork;
+
+  /// No description provided for @smartScanScansPerMonth.
+  ///
+  /// In fr, this message translates to:
+  /// **'{count} scans / mois'**
+  String smartScanScansPerMonth(int count);
+
+  /// No description provided for @mainStore.
+  ///
+  /// In fr, this message translates to:
+  /// **'Principal'**
+  String get mainStore;
+
+  /// No description provided for @moveUp.
+  ///
+  /// In fr, this message translates to:
+  /// **'Monter'**
+  String get moveUp;
+
+  /// No description provided for @moveDown.
+  ///
+  /// In fr, this message translates to:
+  /// **'Descendre'**
+  String get moveDown;
+
+  /// No description provided for @remove.
+  ///
+  /// In fr, this message translates to:
+  /// **'Retirer'**
+  String get remove;
+
+  /// No description provided for @addStore.
+  ///
+  /// In fr, this message translates to:
+  /// **'Ajouter un magasin'**
+  String get addStore;
+
+  /// No description provided for @userStores.
+  ///
+  /// In fr, this message translates to:
+  /// **'Magasins'**
+  String get userStores;
+
+  /// No description provided for @storesOrderHelp.
+  ///
+  /// In fr, this message translates to:
+  /// **'Le 1er magasin est le principal (Entrée, Smart Scan). Les ventes prennent dans l\'ordre de la liste.'**
+  String get storesOrderHelp;
+
+  /// No description provided for @atLeastOneStore.
+  ///
+  /// In fr, this message translates to:
+  /// **'Choisissez au moins un magasin.'**
+  String get atLeastOneStore;
+
+  /// No description provided for @distributionTotal.
+  ///
+  /// In fr, this message translates to:
+  /// **'Quantité à répartir'**
+  String get distributionTotal;
+
+  /// No description provided for @distributionDistributed.
+  ///
+  /// In fr, this message translates to:
+  /// **'Réparti'**
+  String get distributionDistributed;
+
+  /// No description provided for @distributionHelp.
+  ///
+  /// In fr, this message translates to:
+  /// **'Cochez les magasins puis saisissez la quantité de chacun. Le total ne change pas : le stock est déplacé entre magasins.'**
+  String get distributionHelp;
+
+  /// No description provided for @distributionInvalid.
+  ///
+  /// In fr, this message translates to:
+  /// **'La quantité répartie doit être égale au total ({total}).'**
+  String distributionInvalid(String total);
+
+  /// No description provided for @distributionNothing.
+  ///
+  /// In fr, this message translates to:
+  /// **'Aucun stock à répartir pour ce produit dans vos magasins.'**
+  String get distributionNothing;
+
+  /// No description provided for @distributionSaved.
+  ///
+  /// In fr, this message translates to:
+  /// **'Distribution enregistrée.'**
+  String get distributionSaved;
 }
 
 class _AppLocalizationsDelegate

@@ -1,11 +1,14 @@
+import 'package:caisse_dz/Services/ai_proxy.dart';
+import 'package:caisse_dz/Services/mistral_ocr_service.dart';
 import 'dart:convert';
 import 'package:caisse_dz/Services/receipt_scanner_windows.dart';
 import 'package:http/http.dart' as http;
 import 'package:caisse_dz/data/models/produit.dart';
 
+/// Extraction des lignes d'un bon (texte OCR → produits/quantités/prix) via
+/// le serveur BENS (POST /smartscan/extract), rattachée au scan OCR réussi
+/// (MistralOCRService.dernierScanId) : elle ne consomme pas de quota.
 class GeminiService {
-  static const String _apiKey = 'MagGDgxaej4RtZorOxHGYjngW1ct4a0j';
-  static const String _baseUrl = 'https://api.mistral.ai/v1';
 
   static const List<String> _models = [
     'mistral-small-latest',
@@ -17,9 +20,8 @@ class GeminiService {
 
   static const int _retryBaseSeconds = 2;
 
-  // ✅ Même convention que MistralOCRService.quotaExceeded — détecté quand
-  // tous les modèles essayés échouent en 429 (quota atteint sur la clé
-  // partagée), pour que l'appelant distingue "service IA indisponible" de
+  // ✅ Vrai quand tous les modèles essayés échouent en 429 (service Mistral
+  // saturé), pour que l'appelant distingue "service IA indisponible" de
   // "rien trouvé sur le document".
   static bool quotaExceeded = false;
 
@@ -33,7 +35,8 @@ class GeminiService {
     print('=== Mistral: parsing items from OCR text ===');
     quotaExceeded = false;
 
-    if (ocrText.trim().isEmpty) {
+    final scanId = MistralOCRService.dernierScanId;
+    if (ocrText.trim().isEmpty || scanId == null) {
       print('⚠️ Mistral: OCR text is empty, skipping');
       return [];
     }
@@ -48,13 +51,12 @@ class GeminiService {
 
         try {
           response = await http.post(
-            Uri.parse('$_baseUrl/chat/completions'),
-            headers: {
-              'Content-Type': 'application/json',
-              'Authorization': 'Bearer $_apiKey',
-            },
-            body: jsonEncode(
-                _buildRequestBody(model, ocrText, products, isDeliveryNote)),
+            Uri.parse('${AiProxy.baseUrl}/extract'),
+            headers: await AiProxy.enTetes(),
+            body: jsonEncode({
+              'scan_id': scanId,
+              ..._buildRequestBody(model, ocrText, products, isDeliveryNote),
+            }),
           );
         } catch (e) {
           print('❌ Network error on $model (attempt $attempt): $e');
@@ -93,6 +95,11 @@ class GeminiService {
             await Future.delayed(
                 Duration(seconds: _retryBaseSeconds * attempt));
           }
+        } else if (AiProxy.erreurServeur(response) != null) {
+          // Refus du serveur BENS (scan expiré, nombre d'analyses atteint…) :
+          // réessayer ou changer de modèle ne sert à rien.
+          print('⛔ Analyse refusée par le serveur: ${response.body}');
+          return [];
         } else if (response.statusCode == 429) {
 
           print(

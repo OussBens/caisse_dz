@@ -86,8 +86,41 @@ Future<ApiResponse<int>> _SaveSortie({
   final pmdService = ProduitMagasinDetailServices(db);
 
   final produits = await ProduitServices.getAllProduits();
+
+  // Multi-magasin : la sortie est prise dans un magasin de l'utilisateur qui
+  // a toute la quantité, sinon répartie dans l'ordre (RepartitionStock) —
+  // un mouvement par magasin touché.
+  final parts = await MouvementsServices.repartirSortie(
+    sortie.produitCode,
+    sortie.quantite,
+    AuthState().magasins,
+    unSeulMagasinSiPossible: true,
+  );
+  if (parts.isNotEmpty) sortie.magasinCode = parts.first.magasinCode;
+
   final response = await services.addSortie(sortie);
-  await serviceM.addMouvement(mouv);
+  for (var p = 0; p < parts.length; p++) {
+    final idm = p == 0 ? mouv.id : await _GetNextMouvementId();
+    await serviceM.addMouvement(Mouvement(
+      id: idm,
+      code: p == 0
+          ? mouv.code
+          : CodeGenerator.generateCode(prefix: CodePrefix.mouvement, id: idm, digitCount: 8),
+      date: mouv.date,
+      codeProduit: mouv.codeProduit,
+      quantite: parts[p].quantite,
+      nombre: p == 0 ? mouv.nombre : null,
+      prixAchat: mouv.prixAchat,
+      prixVente: mouv.prixVente,
+      type: mouv.type,
+      sousType: mouv.sousType,
+      etat: true,
+      codeOperation: mouv.codeOperation,
+      dateCree: mouv.dateCree,
+      creeParCode: mouv.creeParCode,
+      magasinCode: parts[p].magasinCode,
+    ));
+  }
 
   final prod = produits.where((e) => e.code == sortie.produitCode).first;
   if (!prod.service) {
@@ -340,27 +373,8 @@ Future<void> SortieNouveau(BuildContext context) async {
                               // de la caisse actuellement sélectionnée par
                               // l'utilisateur, jamais un choix libre (cf.
                               // synchronisation dans ParametreCaisseDialog).
-                              ChampAvecLabel(
-                                label: l10n.magasin,
-                                obligatoire: true,
-                                child: TextListe(
-                                  obligatoire: true,
-                                  clearable: false,
-                                  enabled: false,
-                                  value: magasinsDisponiblesS
-                                      .firstWhere(
-                                        (m) => m.code == selectedMagasinCodeS,
-                                        orElse: () => Magasin(
-                                          id: 0, code: '', nom: '', etat: true,
-                                          dateCree: DateTime.now(), creeParCode: userCode,
-                                        ),
-                                      )
-                                      .nom,
-                                  items: magasinsDisponiblesS.map((m) => m.nom).toList(),
-                                  onChanged: (_) {},
-                                ),
-                              ),
-                              const SizedBox(height: 10),
+                              // Magasin choisi automatiquement parmi ceux de l'utilisateur
+                              // (voir _SaveSortie / RepartitionStock).
 
                               ChampAvecLabel(
                                 label: l10n.date,
@@ -515,10 +529,14 @@ Future<void> SortieNouveau(BuildContext context) async {
                         }
                         // ✅ Vérifier que le stock ne passera pas en négatif
                         // (scope au magasin choisi pour cette sortie).
-                        final quantiteDisponibleS = await MouvementsServices.quantiteProduit(
+                        // (multi-magasin : somme des magasins de l'utilisateur)
+                        final quantiteDisponibleS = (await MouvementsServices.quantitesParMagasin(
                           prod!.code,
-                          magasinCode: selectedMagasinCodeS,
-                        );
+                          magasins: AuthState().magasins,
+                        ))
+                            .values
+                            .where((q) => q > 0)
+                            .fold<double>(0, (a, b) => a + b);
                         if (!StockGuard.suffisant(quantiteDisponibleS, quantite, service: prod!.service)) {
                           await InformationDialog(
                             context: context,

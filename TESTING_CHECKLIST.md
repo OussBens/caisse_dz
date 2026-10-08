@@ -194,6 +194,13 @@ Prérequis : licence Avancée, au moins 2 magasins actifs, un produit avec du st
 | 8.42 | Lancer l'app (login) | Plus de barre de titre séparée ; boutons réduire / agrandir / fermer en haut à droite ; glisser le haut de l'écran déplace la fenêtre | ⬜ | |
 | 8.43 | Après connexion (tous modules, FR et AR) | Logo + « Caisse DZ » en haut de la sidebar (glisser = déplacer la fenêtre, clic logo = menu rapide) ; ligne du haut : onglets favoris + boutons fenêtre à droite (même en arabe) ; double-clic sur la zone vide = agrandir/restaurer ; déconnexion → boutons du login réapparaissent | ⬜ | |
 | 8.44 | Produit › onglet Produit : bouton grille (à droite d'Extraire filtre) | Bascule tableau ⇄ cards ; filtres appliqués aux cards ; clic card = sélection (afficheur produit en haut si 1), « Tout sélectionner » ; boutons Détail/Supprimer/Modifier/Catégorie/Remise/Pack et Extraire filtre agissent sur la sélection ; double-clic card = détail ; bascule = sélection vidée | ⬜ | Réutilise CardProduct (recherche caisse) |
+| 8.45 | Déploiement serveur Smart Scan (voir server/README_SMARTSCAN.md) puis admin → « Installer les tables » | Tables ss_* créées ; forfaits STANDARD (60) et SMART_SCAN_200 (200, 3 000 DA) visibles dans Forfaits | ⬜ | |
+| 8.46 | Entrée › onglet IA | Carte « Smart Scan : x / 60, n restants, Renouvellement : 01/MM/AAAA » à côté de « Joindre une photo » | ⬜ | Testé en local 08/10 |
+| 8.47 | Scanner un bon | Lignes extraites ; carte passe à 1 / 60 ; admin › client : 1 scan réussi au journal | ⬜ | Testé en local 08/10 |
+| 8.48 | Couper internet puis scanner | Message « connexion impossible » ; compteur inchangé | ⬜ | |
+| 8.49 | Quota atteint (admin › quota exceptionnel = scans déjà faits) puis scanner | Dialog « Quota Smart Scan atteint » + offre (nom, quota, prix depuis l'API) ; « Demander l'offre » → confirmation + contact ; demande visible dans admin › Demandes | ⬜ | Testé en local 08/10 |
+| 8.50 | Admin › activer Smart Scan 200 pour ce client | Carte : « Smart Scan 200 : x / 200 … Offre active jusqu'au : JJ/MM/AAAA+1 » | ⬜ | Testé en local 08/10 |
+| 8.51 | 2 postes du même client : rattacher le 2e au client du 1er (admin › Postes) | Scans des 2 postes cumulés sur le même compteur | ⬜ | Couvert par tests serveur |
 | 8.23 | Bouton rouge « Extract PDF » : Panier, Retour, Produit (5 onglets), Stock (2), Entrée, Sortie (2), Transfert magasin, Besoin (3), Client (+versements), Fournisseur (+versements), Gestion Caisse (transferts, mouvements), Historique, Zakat, Utilisateur | Aperçu PDF avec les mêmes colonnes que l'Excel, imprimable / enregistrable | ⬜ | |
 
 ---

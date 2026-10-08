@@ -1,3 +1,4 @@
+import 'package:caisse_dz/core/utilis/quantite_format.dart';
 import 'package:caisse_dz/Services/Pack.dart';
 import 'package:caisse_dz/core/dialog/dialog_kind.dart';
 import 'package:caisse_dz/Services/PackDetailes.dart';
@@ -212,67 +213,45 @@ class _CaisseScreenState extends State<CaisseScreen> {
     // ✅ Un produit "service" n'a pas de stock physique suivi : toujours disponible.
     if (produit.service) return true;
 
-    final db = await DbCreator.openDb();
-    final pmdService = ProduitMagasinDetailServices(db);
     final l10n = AppLocalizations.of(context);
 
-    // 1️⃣ Vérifier le stock global (calculé depuis le journal des mouvements)
-    final quantiteGlobale = await MouvementsServices.quantiteProduit(produit.code);
-    if (quantiteReelle > quantiteGlobale) {
+    // Multi-magasin : le panier prend dans les magasins de l'utilisateur, dans
+    // l'ordre (RepartitionStock) — le stock vendable est donc leur SOMME (les
+    // magasins à stock négatif ne compensent pas les autres).
+    final magasins = Provider.of<AuthState>(context, listen: false).magasins;
+    final parMagasin = await MouvementsServices.quantitesParMagasin(produit.code, magasins: magasins);
+    final disponible = parMagasin.values.where((q) => q > 0).fold<double>(0, (a, b) => a + b);
+
+    if (disponible >= quantiteReelle) return true;
+
+    if (disponible <= 0) {
       await InformationDialog(
         context: context,
         titre_type_message: l10n.error,
         kind: DialogKind.refuser,
         titre_concerne: l10n.product,
-        message: l10n.stockGlobalInsuffisant(quantiteGlobale.toInt().toString(), quantiteReelle.toInt().toString()),
+        message: l10n.stockGlobalInsuffisant(
+          QuantiteFormat.formatPour(disponible, produit.uniteMesure),
+          QuantiteFormat.formatPour(quantiteReelle, produit.uniteMesure),
+        ),
       );
       return false;
     }
 
-    // 2️⃣ Récupérer le magasin sélectionné
-    final magasinSelectionneCode = Param?.magasinCode;
-    final magasinSelectionneNom = Param?.selectedMagasin;
-
-    // 3️⃣ Vérifier le stock dans le magasin (calculé depuis le journal des
-    // mouvements, filtré par magasin — remplace ProduitMagasinDetail.quantite).
-    if (magasinSelectionneCode != null && magasinSelectionneCode.isNotEmpty) {
-      final magasinDetail = await pmdService.getSingleByProduitAndMagasin(
-          produit.code,
-          magasinSelectionneCode
-      );
-
-      if (magasinDetail != null) {
-        final quantiteMagasin = await MouvementsServices.quantiteProduit(
-          produit.code,
-          magasinCode: magasinSelectionneCode,
-        );
-        if (quantiteMagasin >= quantiteReelle) {
-          return true; // Stock suffisant
-        }
-        // Stock insuffisant - proposer de prendre ce qui est disponible
-        final confirm = await ConfirmationDialog(
-          context: context,
-          kind: DialogKind.attention,
-          titre: l10n.attention,
-          message: l10n.stockInsuffisantMagasin(
-              magasinSelectionneNom ?? '',
-              quantiteMagasin.toInt().toString(),
-              quantiteReelle.toInt().toString()),
-          onConfirmer: () {},
-        );
-        return confirm == true;
-      }
-    }
-
-    // caisse_dz est mono-magasin : aucun autre magasin où chercher du stock.
-    await InformationDialog(
+    // Stock insuffisant : proposer de prendre ce qui est disponible
+    // (comportement conservé).
+    final confirm = await ConfirmationDialog(
       context: context,
-      titre_type_message: l10n.error,
-      kind: DialogKind.refuser,
-      titre_concerne: l10n.product,
-      message: l10n.produitAucunMagasin,
+      kind: DialogKind.attention,
+      titre: l10n.attention,
+      message: l10n.stockInsuffisantMagasin(
+        l10n.userStores,
+        QuantiteFormat.formatPour(disponible, produit.uniteMesure),
+        QuantiteFormat.formatPour(quantiteReelle, produit.uniteMesure),
+      ),
+      onConfirmer: () {},
     );
-    return false;
+    return confirm == true;
   }
 // Ajoutez cette méthode dans _CaisseScreenState
   Future<bool> appliquerRemise(Remise remise) async {
@@ -325,6 +304,11 @@ class _CaisseScreenState extends State<CaisseScreen> {
     final remisess  = await RemiseServices          .getAllRemise();
     final caiss     = await GCServices              .getAllCaisses();
     final caissParm = await service                 .getCaisseParamByUserCode(userCode!);
+    // Multi-magasin : la caisse n'a plus de magasin, la vente part du
+    // magasin principal de l'utilisateur (voir AuthState.magasinPrincipal).
+    if (mounted && caissParm != null) {
+      caissParm.magasinCode = Provider.of<AuthState>(context, listen: false).magasinPrincipal;
+    }
     final dernierPannier = await PannierServices.getLastPannierNumber();
     final param = await ParamServices.getParam();
     // ✅ Paramètres de paiement (modes actifs configurés dans l'écran Paramètres) :
@@ -337,7 +321,10 @@ class _CaisseScreenState extends State<CaisseScreen> {
     final codeDetails = await ProduitServices.getAllCodeDetails();
     // ✅ Quantités calculées depuis le journal des mouvements, scopées sur le
     // magasin de la caisse courante — remplace Produit.quantite.
-    final quantitesStock = (await MouvementsServices.totauxParProduit(magasinCode: caissParm?.magasinCode)).quantites;
+    // Multi-magasin : somme des magasins de l'utilisateur.
+    final quantitesStock = (await MouvementsServices.totauxParProduitPourMagasins(
+            Provider.of<AuthState>(context, listen: false).magasins))
+        .quantites;
 
     if (mounted) {
       setState(() {
@@ -1030,7 +1017,9 @@ class _CaisseScreenState extends State<CaisseScreen> {
 
         // Mettre à jour le StockManager
         final produitsMisAJour = await ProduitServices.getAllProduits();
-        final quantitesMisAJour = (await MouvementsServices.totauxParProduit(magasinCode: Param?.magasinCode)).quantites;
+        final quantitesMisAJour = (await MouvementsServices.totauxParProduitPourMagasins(
+            Provider.of<AuthState>(context, listen: false).magasins))
+        .quantites;
         _stockManager.initialiserStockReel(produitsMisAJour, quantitesMisAJour);
 
         // Mettre à jour les listes et l'affichage
@@ -1329,7 +1318,9 @@ class _CaisseScreenState extends State<CaisseScreen> {
           onSuccess: () async {
             await _reloadAllData();
             final produitsMisAJour = await ProduitServices.getAllProduits();
-            final quantitesMisAJour = (await MouvementsServices.totauxParProduit(magasinCode: Param?.magasinCode)).quantites;
+            final quantitesMisAJour = (await MouvementsServices.totauxParProduitPourMagasins(
+            Provider.of<AuthState>(context, listen: false).magasins))
+        .quantites;
             _stockManager.initialiserStockReel(produitsMisAJour, quantitesMisAJour);
             if (mounted) {
               setState(() {
@@ -1729,6 +1720,11 @@ class _CaisseScreenState extends State<CaisseScreen> {
     final remisess = await RemiseServices.getAllRemise();
     final caiss = await GCServices.getAllCaisses();
     final caissParm = await service.getCaisseParamByUserCode(userCode!);
+    // Multi-magasin : la caisse n'a plus de magasin, la vente part du
+    // magasin principal de l'utilisateur (voir AuthState.magasinPrincipal).
+    if (mounted && caissParm != null) {
+      caissParm.magasinCode = Provider.of<AuthState>(context, listen: false).magasinPrincipal;
+    }
     final paiementParm = await PaiementParamServices.getPaiementParam();
     final param = await ParamServices.getParam();
     final codeDetails = await ProduitServices.getAllCodeDetails();

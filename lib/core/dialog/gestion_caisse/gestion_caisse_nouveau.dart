@@ -222,36 +222,8 @@ Future<void> CaisseGestionNouveau(BuildContext context) async {
                                   },
                                 ),
                               ),
-                              const SizedBox(height: 10),
-
-                              // Magasin de rattachement de la caisse — jusqu'ici
-                              // toujours forcé à MAG0000 (kSystemMagasinCode),
-                              // désormais choisi parmi les magasins actifs.
-                              ChampAvecLabel(
-                                label: l10n.magasin,
-                                obligatoire: true,
-                                child: TextListe(
-                                  obligatoire: true,
-                                  clearable: false,
-                                  value: magasinsDisponiblesC
-                                      .firstWhere(
-                                        (m) => m.code == selectedMagasinCodeC,
-                                        orElse: () => Magasin(
-                                          id: 0, code: '', nom: '', etat: true,
-                                          dateCree: DateTime.now(), creeParCode: userCode,
-                                        ),
-                                      )
-                                      .nom,
-                                  items: magasinsDisponiblesC.map((m) => m.nom).toList(),
-                                  onChanged: (v) {
-                                    setState(() {
-                                      selectedMagasinCodeC = magasinsDisponiblesC
-                                          .firstWhere((m) => m.nom == v)
-                                          .code;
-                                    });
-                                  },
-                                ),
-                              ),
+                              // Plus de magasin ici : en multi-magasin, ce sont les
+                              // magasins de l'utilisateur qui comptent (écran Utilisateur).
                             ],
                           ),
                         ),
@@ -334,7 +306,9 @@ Future<void> CaisseGestionNouveau(BuildContext context) async {
                           dateCree: DateTime.now(),
                           nomCaisse: nomCaisseController.text,
                           typecaisse: selectedTypeC == "physique" ? "physique" : "compte",
-                          magasinCode: selectedMagasinCodeC ?? kSystemMagasinCode,
+                          // Colonne conservée (NOT NULL), non utilisée : les magasins
+                          // sont ceux de l'utilisateur (utilisateur_magasin).
+                          magasinCode: kSystemMagasinCode,
                           creeParCode: userCode,
                           observation: observationControllerC.text,
                           soldeInitial: double.parse(soldeInitialController.text),

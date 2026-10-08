@@ -87,7 +87,7 @@ class DbCreator {
     _db = await databaseFactory.openDatabase(
       dbPath,
       options: OpenDatabaseOptions(
-        version: 51,
+        version: 52,
         onConfigure: (db) async {
           await db.execute("PRAGMA KEY = '$password'");
           await db.execute('PRAGMA foreign_keys = ON');
@@ -148,6 +148,7 @@ class DbCreator {
           await _createCaisseSession(db);
           await _createCaisseMouvement(db);
           await _createModuleFavori(db);
+          await _createUtilisateurMagasin(db);
 
           // ONLY INSERT DEFAULT DATA IF ACTIVATED
           if (isActivated) {
@@ -1147,6 +1148,16 @@ class DbCreator {
             // Modules favoris (onglets en haut de l'écran), par utilisateur.
             await _createModuleFavori(db);
           }
+
+          if (oldVersion < 52) {
+            // Multi-magasin : chaque utilisateur a une liste ordonnée de
+            // magasins (le premier = principal) au lieu du seul magasin de
+            // sa caisse. Reprise de l'existant : le magasin de la caisse de
+            // chaque utilisateur devient son principal (Admin : tous).
+            await _createUtilisateurMagasin(db);
+            await _initialiserMagasinsUtilisateurs(db);
+            await _rattacherMouvementsSansMagasin(db);
+          }
         },
       ),
     );
@@ -1405,6 +1416,9 @@ class DbCreator {
         'date_cree': now,
         'observation': 'Paramètres par défaut pour l\'utilisateur admin',
       });
+
+      // Magasins de l'admin par défaut (multi-magasin, voir utilisateur_magasin).
+      await _initialiserMagasinsUtilisateurs(db);
 
       print('Default data inserted successfully');
     } catch (e) {
@@ -2543,6 +2557,79 @@ class DbCreator {
         FOREIGN KEY (user_code) REFERENCES utilisateur(code)
       )
     ''');
+  }
+
+  /// Magasins d'un utilisateur, dans l'ordre : [ordre] 0 = magasin principal
+  /// (celui qu'alimentent Entrée / Smart Scan, et le premier où l'on prend
+  /// pour une vente), puis les suivants. Les Admin ont accès à tous les
+  /// magasins (voir UtilisateurMagasinServices.magasinsUtilisateur).
+  static Future<void> _createUtilisateurMagasin(Database db) async {
+    await db.execute('''
+      CREATE TABLE IF NOT EXISTS utilisateur_magasin (
+        utilisateur_code TEXT NOT NULL,
+        magasin_code     TEXT NOT NULL,
+        ordre            INTEGER NOT NULL DEFAULT 0,
+        date_cree        TEXT NOT NULL,
+        PRIMARY KEY (utilisateur_code, magasin_code),
+        FOREIGN KEY (utilisateur_code) REFERENCES utilisateur(code),
+        FOREIGN KEY (magasin_code)     REFERENCES magasins(code)
+      )
+    ''');
+  }
+
+  /// Utilisateurs sans magasin (installation existante, données par défaut) :
+  /// magasin de leur caisse en principal — à défaut celui de leur paramètre
+  /// de caisse, sinon le magasin par défaut. Admin : tous les magasins actifs,
+  /// le sien en premier. Idempotent (ignore les utilisateurs déjà configurés).
+  static Future<void> _initialiserMagasinsUtilisateurs(DatabaseExecutor db) async {
+    try {
+      final now = DateTime.now().toIso8601String();
+      final magasins = (await db.query('magasins', columns: ['code'], where: 'etat = 1', orderBy: 'id'))
+          .map((m) => m['code'] as String)
+          .toList();
+      final utilisateurs = await db.rawQuery('''
+        SELECT u.code, u.role,
+               (SELECT c.magasin_code FROM caisseGestion c WHERE c.code = u.caisse_code) AS magasin_caisse,
+               (SELECT p.magasinCode FROM caisseparam p WHERE p.user = u.code LIMIT 1) AS magasin_param
+        FROM utilisateur u
+        WHERE NOT EXISTS (SELECT 1 FROM utilisateur_magasin um WHERE um.utilisateur_code = u.code)
+      ''');
+      for (final u in utilisateurs) {
+        final principal = (u['magasin_caisse'] as String?) ?? (u['magasin_param'] as String?) ?? 'MAG0000';
+        final liste = <String>[principal];
+        if ((u['role'] as String?)?.toLowerCase() == 'admin') {
+          liste.addAll(magasins.where((m) => m != principal));
+        }
+        for (var i = 0; i < liste.length; i++) {
+          await db.insert(
+            'utilisateur_magasin',
+            {'utilisateur_code': u['code'], 'magasin_code': liste[i], 'ordre': i, 'date_cree': now},
+            conflictAlgorithm: ConflictAlgorithm.ignore,
+          );
+        }
+      }
+    } catch (e) {
+      print('Initialisation utilisateur_magasin: $e');
+    }
+  }
+
+  /// Mouvements de stock créés sans magasin (anciens flux : Smart Scan IA,
+  /// annulations…) : rattachés au magasin principal de leur créateur, sinon
+  /// au magasin par défaut — sans quoi ils ne comptent dans aucun magasin.
+  static Future<void> _rattacherMouvementsSansMagasin(DatabaseExecutor db) async {
+    try {
+      await db.execute('''
+        UPDATE mouvements
+        SET magasin_code = COALESCE(
+          (SELECT um.magasin_code FROM utilisateur_magasin um
+           WHERE um.utilisateur_code = mouvements.cree_par_code
+           ORDER BY um.ordre LIMIT 1),
+          'MAG0000')
+        WHERE magasin_code IS NULL OR magasin_code = ''
+      ''');
+    } catch (e) {
+      print('Rattachement des mouvements sans magasin: $e');
+    }
   }
 
   /// Au plus une session `ouverte` par caisse, garanti par SQLite (index

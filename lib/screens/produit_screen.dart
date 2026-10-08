@@ -181,7 +181,11 @@ class _ProduitScreenState extends State<ProduitScreen> with TickerProviderStateM
   List<Magasin> magasinsDisponiblesProduit = [];
 
   Future<void> _chargerQuantitesParMagasin() async {
-    final totaux = await MouvementsServices.totauxParProduit(magasinCode: magasinFiltreCode);
+    final auth = Provider.of<AuthState>(context, listen: false);
+    final totaux = await MouvementsServices.totauxPourFiltre(
+      magasinCode: magasinFiltreCode,
+      magasinsConsultation: auth.magasinsConsultation,
+    );
     if (!mounted) return;
     setState(() => quantitesParMagasin = totaux.quantites);
   }
@@ -1283,21 +1287,19 @@ class _ProduitScreenState extends State<ProduitScreen> with TickerProviderStateM
       final magasins = (await MagasinServices.getAllMagasins()).where((m) => m.etat).toList();
 
       final auth = Provider.of<AuthState>(context, listen: false);
-      // Quantités par magasin :
-      // - sans la permission "voir le stock de tous les magasins" (cas des
-      //   non-admin) : toujours le magasin de la caisse de l'utilisateur ;
-      // - non-admin autorisé : ce magasin par défaut, puis libre ;
-      // - admin : "Tous les magasins" par défaut.
-      if (!auth.canVoirStockTousMagasins) {
-        magasinFiltreCode = await MagasinServices.getMagasinCodeUtilisateur(auth.userCode!);
-      } else if (!_magasinFiltreInitialise) {
-        _magasinFiltreInitialise = true;
-        if (auth.role != 'Admin') {
-          magasinFiltreCode = await MagasinServices.getMagasinCodeUtilisateur(auth.userCode!);
-        }
+      // Quantités (multi-magasin) : par défaut la SOMME des magasins que
+      // l'utilisateur peut consulter (les siens ; tous pour un Admin ou un
+      // rôle « Voir le stock de tous les magasins »). Le filtre permet de
+      // n'en voir qu'un, parmi ceux-là uniquement.
+      if (magasinFiltreCode != null && !auth.peutConsulterMagasin(magasinFiltreCode!)) {
+        magasinFiltreCode = null;
       }
+      _magasinFiltreInitialise = true;
 
-      final totaux = await MouvementsServices.totauxParProduit(magasinCode: magasinFiltreCode);
+      final totaux = await MouvementsServices.totauxPourFiltre(
+        magasinCode: magasinFiltreCode,
+        magasinsConsultation: auth.magasinsConsultation,
+      );
 
       if (!mounted) return;
 
@@ -2353,7 +2355,10 @@ class _ProduitScreenState extends State<ProduitScreen> with TickerProviderStateM
   Widget filtreproduit(void Function(VoidCallback fn) setState, double width, AppLocalizations l10n, ListsConstTranslator translator) {
     List<String> marqueFilterOptions = produitsTest.map((p) => p.marque).toSet().toList();
     // ✅ Permission spéciale (voir RoleDetail) : filtre "Tous les magasins".
-    final canVoirStockTousMagasins = Provider.of<AuthState>(context, listen: false).canVoirStockTousMagasins;
+    final authFiltre = Provider.of<AuthState>(context, listen: false);
+    // Filtre limité aux magasins consultables par l'utilisateur.
+    final magasinsFiltrables =
+        magasinsDisponiblesProduit.where((m) => authFiltre.peutConsulterMagasin(m.code)).toList();
 
     return SectionDecorationFiltre(
       padding: EdgeInsets.all(10),
@@ -2425,18 +2430,18 @@ class _ProduitScreenState extends State<ProduitScreen> with TickerProviderStateM
               ChampAvecLabel(
                 label: l10n.magasin,
                 child: TextListe(
-                  enabled: canVoirStockTousMagasins,
+                  enabled: magasinsFiltrables.length > 1,
                   value: magasinFiltreCode == null
                       ? null
-                      : magasinsDisponiblesProduit
+                      : magasinsFiltrables
                           .firstWhereOrNull((m) => m.code == magasinFiltreCode)
                           ?.nom,
                   hint: "Tous les magasins",
-                  items: magasinsDisponiblesProduit.map((m) => m.nom).toList(),
+                  items: magasinsFiltrables.map((m) => m.nom).toList(),
                   onChanged: (v) {
                     magasinFiltreCode = (v == null || v.isEmpty)
                         ? null
-                        : magasinsDisponiblesProduit.firstWhereOrNull((m) => m.nom == v)?.code;
+                        : magasinsFiltrables.firstWhereOrNull((m) => m.nom == v)?.code;
                     _chargerQuantitesParMagasin();
                   },
                 ),

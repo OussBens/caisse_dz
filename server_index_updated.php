@@ -6,7 +6,8 @@
 
 // Activer les erreurs
 error_reporting(E_ALL);
-ini_set('display_errors', 1);
+ini_set('display_errors', 0);
+ini_set('log_errors', 1);
 
 // ===== CHARGEMENT DU FICHIER .env =====
 function loadEnvManually() {
@@ -20,6 +21,16 @@ DB_USER="bensds64_oussama"
 DB_PASSWORD="VOTRE_MOT_DE_PASSE"
 API_URL="https://catalog-api.bensds.com"
 API_KEY=""
+MISTRAL_API_KEY=""
+LICENSE_SECRET=""
+SMARTSCAN_CONTACT=""
+SMARTSCAN_RATE_PAR_MINUTE="6"
+SMARTSCAN_MAX_SIMULTANES="1"
+SMARTSCAN_TAILLE_MAX_MO="8"
+SMARTSCAN_EXTRACTIONS_PAR_SCAN="6"
+SMARTSCAN_PLAFOND_GLOBAL_MENSUEL="0"
+SMARTSCAN_HTTPS_OBLIGATOIRE="1"
+ADMIN_PASSWORD=""
 ENV;
         file_put_contents($envFile, $defaultEnv);
         echo "⚠️ Fichier .env créé par défaut. Modifiez-le avec vos identifiants.<br>";
@@ -99,8 +110,13 @@ function requireApiKey() {
     }
 }
 
+// Smart Scan (OCR des bons) : voir smartscan_core/routes.php
+require_once __DIR__ . '/smartscan_core/routes.php';
+
 try {
-    if (!in_array($method, ['GET', 'HEAD', 'OPTIONS'], true)) {
+    // Les routes /smartscan/* s'authentifient par la licence Caisse DZ du
+    // poste (smartscan_core/routes.php), pas par la clé d'administration du catalogue.
+    if (!in_array($method, ['GET', 'HEAD', 'OPTIONS'], true) && ($path_parts[0] ?? '') !== 'smartscan') {
         requireApiKey();
     }
 
@@ -190,6 +206,12 @@ try {
                 'filename' => $filename
             ]
         ], JSON_UNESCAPED_UNICODE);
+        exit;
+    }
+
+    // ===== SMART SCAN (OCR des bons, quotas par client) =====
+    if ($resource === 'smartscan') {
+        smartscanRoute($db, $id, $method);
         exit;
     }
 

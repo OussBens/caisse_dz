@@ -6,6 +6,10 @@ import 'package:caisse_dz/DBCreate.dart';
 import 'package:caisse_dz/Services/CaisseGestion.dart';
 import 'package:caisse_dz/Services/CaisseParam.dart' hide ApiResponse;
 import 'package:caisse_dz/Services/Magasin.dart';
+import 'package:caisse_dz/Services/UtilisateurMagasin.dart';
+import 'package:caisse_dz/core/Auth/license_tier.dart';
+import 'package:caisse_dz/core/widget/champ/champ_magasins_ordonnes.dart';
+import 'package:caisse_dz/data/models/magasin.dart';
 import 'package:caisse_dz/Services/Role.dart' hide ApiResponse;
 import 'package:caisse_dz/Services/UserParam.dart' hide ApiResponse;
 import 'package:caisse_dz/Services/Utilisateur.dart';
@@ -38,6 +42,9 @@ List<Role> RoleTest = [];
 List<String> roles = [];
 List<CaisseGestion> CaisseTestN = [];
 List<String> caissesN = [];
+List<Magasin> magasinsActifsN = [];
+// Magasins de l'utilisateur, dans l'ordre (le 1er = principal).
+List<String> magasinsSelectionnesN = [];
 
 Future<void> loadAllData() async {
   // ✅ Un nouvel utilisateur ne peut pas se voir assigner le rôle Admin
@@ -46,10 +53,16 @@ Future<void> loadAllData() async {
   roles = RoleTest.map((c) => c.rolenom).toList();
   CaisseTestN = await GCServices.getAllCaisses();
   caissesN = CaisseTestN.map((c) => c.nomCaisse).toList();
+  magasinsActifsN = (await MagasinServices.getAllMagasins()).where((m) => m.etat).toList();
 }
 
 // Modifier _SaveUtilisateur
-Future<ApiResponse<int>> _SaveUtilisateur({required Utilisateur utilisateur, required String userName, required String userCode}) async {
+Future<ApiResponse<int>> _SaveUtilisateur({
+  required Utilisateur utilisateur,
+  required String userName,
+  required String userCode,
+  required List<String> magasins,
+}) async {
   final db = await DbCreator.openDb();
   final services = await UtilisateurServices(db);
   final serviceh = await HistoriqueServices(db);
@@ -72,6 +85,11 @@ Future<ApiResponse<int>> _SaveUtilisateur({required Utilisateur utilisateur, req
       creeParCode: userCode,
     );
     await serviceh.addHistorique(histo);
+  }
+
+  // Magasins de l'utilisateur (multi-magasin), le premier = principal.
+  if (response.success) {
+    await UtilisateurMagasinServices.definirMagasins(utilisateur.code, magasins);
   }
 
   // Le reste du code pour UserParam...
@@ -99,8 +117,11 @@ Future<ApiResponse<int>> _SaveUtilisateur({required Utilisateur utilisateur, req
         .where((c) => c.code == utilisateur.caisseCode)
         .firstOrNull;
     if (caisse != null) {
+      // Magasin de travail = magasin principal de l'utilisateur (une caisse
+      // n'a plus de magasin en multi-magasin).
+      final magasinPrincipal = magasins.isNotEmpty ? magasins.first : caisse.magasinCode;
       final magasinNom = (await MagasinServices.getAllMagasins())
-          .where((m) => m.code == caisse.magasinCode)
+          .where((m) => m.code == magasinPrincipal)
           .firstOrNull
           ?.nom ?? '';
       final serviceCP = CaisseParamServices(db);
@@ -115,7 +136,7 @@ Future<ApiResponse<int>> _SaveUtilisateur({required Utilisateur utilisateur, req
         selectedColis: ColisTranslator.UNITE,
         dateCree: DateTime.now(),
         creeParCode: userCode,
-        magasinCode: caisse.magasinCode,
+        magasinCode: magasinPrincipal,
         caisseCode: caisse.code,
       ));
     }
@@ -210,6 +231,13 @@ Future<void> UtilisateurNouveau(BuildContext context) async {
   // ✅ Champ caisse obligatoire, initialisé avec la caisse système.
   selectedCaisseN = caissesN.contains(_caisseSystemNom) ? _caisseSystemNom : caissesN.firstOrNull;
 
+  // Magasin par défaut : le magasin système (sinon le premier actif). En
+  // Basic, c'est le seul magasin et le champ n'est pas affiché.
+  final multiMagasin = Provider.of<AuthState>(context, listen: false).licenseTier == LicenseTier.avance;
+  magasinsSelectionnesN = [
+    if (magasinsActifsN.any((m) => m.code == 'MAG0000')) 'MAG0000' else if (magasinsActifsN.isNotEmpty) magasinsActifsN.first.code,
+  ];
+
   // ✅ Initialiser rolecode avec le code du premier rôle
   if (RoleTest.isNotEmpty) {
     final firstRole = RoleTest.first;
@@ -241,7 +269,7 @@ Future<void> UtilisateurNouveau(BuildContext context) async {
               filter: ImageFilter.blur(sigmaX: 2, sigmaY: 2),
               child: BaseDialog(
                 width: 850,
-                height: 380,
+                height: multiMagasin ? 560 : 380,
                 header: TitreAvecLigne(
                   imagePath: 'assets/icons/sidebar/profile_icon.png',
                   text: l10n.newUser,
@@ -335,6 +363,21 @@ Future<void> UtilisateurNouveau(BuildContext context) async {
                                 ),
                               ),
 
+                              // Multi-magasin (licence Avancée) : magasins de
+                              // l'utilisateur, dans l'ordre.
+                              if (multiMagasin) ...[
+                                const SizedBox(height: 10),
+                                ChampAvecLabel(
+                                  label: l10n.userStores,
+                                  obligatoire: true,
+                                  child: ChampMagasinsOrdonnes(
+                                    magasins: magasinsActifsN,
+                                    selection: magasinsSelectionnesN,
+                                    onChanged: (liste) => setState(() => magasinsSelectionnesN = liste),
+                                  ),
+                                ),
+                              ],
+
                               const SizedBox(height: 10),
                               ChampAvecLabel(
                                 label: l10n.observation,
@@ -414,6 +457,17 @@ Future<void> UtilisateurNouveau(BuildContext context) async {
                           return;
                         }
 
+                        if (magasinsSelectionnesN.isEmpty) {
+                          await InformationDialog(
+                            context: context,
+                            titre_type_message: l10n.error,
+                            kind: DialogKind.refuser,
+                            titre_concerne: l10n.user,
+                            message: l10n.atLeastOneStore,
+                          );
+                          return;
+                        }
+
                         // Hash password using the same method as AuthState
                         final hashedPassword = hashPassword(trimmedPassword);
 
@@ -438,7 +492,12 @@ Future<void> UtilisateurNouveau(BuildContext context) async {
                           creeParCode   : userCode,
                         );
 
-                        final response = await _SaveUtilisateur(utilisateur: user, userName: userName, userCode: userCode);
+                        final response = await _SaveUtilisateur(
+                          utilisateur: user,
+                          userName: userName,
+                          userCode: userCode,
+                          magasins: magasinsSelectionnesN,
+                        );
                         print(response.message);
                         if (!response.success) {
                           await InformationDialog(

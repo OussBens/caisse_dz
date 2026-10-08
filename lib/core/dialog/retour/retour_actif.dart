@@ -97,9 +97,9 @@ Future<void> _AnnulerR({
     }
 
     // Mouvement de stock lié : soft-cancel (jamais de suppression).
+    // Multi-magasin : un retour peut avoir un mouvement par magasin touché.
     final mouv = await MouvementsServices.getAllMouvementsByCodeOper(retour.code);
-    if (mouv.isNotEmpty) {
-      final m = mouv.first;
+    for (final m in mouv.where((e) => e.etat)) {
       m.etat = false;
       m.dateAnnul = DateTime.now();
       m.annulParCode = userCode;

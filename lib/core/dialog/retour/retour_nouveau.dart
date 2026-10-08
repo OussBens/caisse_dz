@@ -1,3 +1,4 @@
+import 'package:caisse_dz/Services/RepartitionStock.dart';
 import 'package:caisse_dz/core/utilis/quantite_format.dart';
 import 'dart:ui';
 import 'package:caisse_dz/core/dialog/dialog_kind.dart';
@@ -211,9 +212,27 @@ Future<ApiResponse<int>> _SaveRetour({
     );
   }
 
-  // Magasin du retour = magasin de la caisse active — jusqu'ici jamais
-  // renseigné (retour.magasinCode restait toujours null).
-  retour.magasinCode = caisse.magasinCode;
+  // Multi-magasin : magasins touchés par ce retour (voir RepartitionStock)
+  // - retour fournisseur : un magasin qui a toute la quantité, sinon réparti ;
+  // - retour client : vers le(s) magasin(s) d'où le panier est sorti.
+  // A défaut (retour client sans panier), le magasin principal.
+  final magasinsUtilisateur = AuthState().magasins;
+  List<PartMagasin> parts;
+  if (retour.fournisseur_code != null) {
+    parts = await MouvementsServices.repartirSortie(
+      retour.codeProduit,
+      retour.quantite,
+      magasinsUtilisateur,
+      unSeulMagasinSiPossible: true,
+    );
+  } else {
+    parts = retour.retourCorrespondDe != null
+        ? await MouvementsServices.repartirRetourClient(retour.retourCorrespondDe!, retour.codeProduit, retour.quantite)
+        : const [];
+  }
+  if (parts.isEmpty) parts = [PartMagasin(magasinsUtilisateur.first, retour.quantite)];
+  // Colonne unique conservée (affichage) : le premier magasin concerné.
+  retour.magasinCode = parts.first.magasinCode;
 
   // ✅ Session de caisse obligatoire : aucun retour ne peut être enregistré
   // tant que la caisse de l'utilisateur n'a pas été ouverte.
@@ -227,9 +246,6 @@ Future<ApiResponse<int>> _SaveRetour({
 
   final response = await services.addRetour(retour);
   final prod = await ProduitServices.getAllProduits();
-
-  // ✅ Convertir la quantité en int une seule fois
-  final int quantiteInt = retour.quantite.toInt();
 
   Produit produitConcerne = prod.where((e) => e.code == retour.codeProduit).first;
 
@@ -420,31 +436,33 @@ Future<ApiResponse<int>> _SaveRetour({
   );
   await serviceh.addHistorique(histo);
 
-  // Mouvement
-  idh = await _GetNextMouvementId();
-  Mouvement mouv = Mouvement(
-    id: idh,
-    code: CodeGenerator.generateCode(
-      prefix: CodePrefix.mouvement,
+  // Mouvements : un par magasin concerné (voir parts ci-dessus).
+  for (var p = 0; p < parts.length; p++) {
+    idh = await _GetNextMouvementId();
+    Mouvement mouv = Mouvement(
       id: idh,
-      digitCount: 8,
-    ),
-    date: retour.date,
-    type: ListsConst.typeMouvement[2],
-    etat: true,
-    quantite: quantiteInt.toDouble(),
-    nombre: retour.nombre,
-    dateCree: DateTime.now(),
-    prixAchat: retour.prixAchat!,
-    prixVente: retour.prixVente!,
-    codeProduit: retour.codeProduit,
-    fournisseurCode: retour.fournisseur_code,
-    clientCode: retour.client_code,
-    creeParCode: userCode,
-    codeOperation: retour.code,
-    magasinCode: retour.magasinCode,
-  );
-  await serviceM.addMouvement(mouv);
+      code: CodeGenerator.generateCode(
+        prefix: CodePrefix.mouvement,
+        id: idh,
+        digitCount: 8,
+      ),
+      date: retour.date,
+      type: ListsConst.typeMouvement[2],
+      etat: true,
+      quantite: parts[p].quantite,
+      nombre: p == 0 ? retour.nombre : null,
+      dateCree: DateTime.now(),
+      prixAchat: retour.prixAchat!,
+      prixVente: retour.prixVente!,
+      codeProduit: retour.codeProduit,
+      fournisseurCode: retour.fournisseur_code,
+      clientCode: retour.client_code,
+      creeParCode: userCode,
+      codeOperation: retour.code,
+      magasinCode: parts[p].magasinCode,
+    );
+    await serviceM.addMouvement(mouv);
+  }
 
   return response;
 }
@@ -1223,10 +1241,15 @@ Future<void> RetourNouveau(BuildContext context, {String? initialType}) async {
                           final produitConcerneRetour = produitsTest.where((p) => p.code == ProdCode).firstOrNull;
                           final quantiteRetourF = double.parse(quantiteControllerN.text);
                           if (produitConcerneRetour != null) {
-                            final quantiteDisponibleR = await MouvementsServices.quantiteProduit(
+                            // Multi-magasin : stock disponible = somme des magasins
+                            // de l'utilisateur (le retour fournisseur y puise).
+                            final quantiteDisponibleR = (await MouvementsServices.quantitesParMagasin(
                               produitConcerneRetour.code,
-                              magasinCode: caisseR.magasinCode,
-                            );
+                              magasins: AuthState().magasins,
+                            ))
+                                .values
+                                .where((q) => q > 0)
+                                .fold<double>(0, (a, b) => a + b);
                             if (!StockGuard.suffisant(quantiteDisponibleR, quantiteRetourF, service: produitConcerneRetour.service)) {
                               await InformationDialog(
                                 context: context,

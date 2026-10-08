@@ -3,17 +3,22 @@ import 'package:caisse_dz/data/models/produit.dart';
 import 'package:caisse_dz/Services/receipt_scanner_windows.dart';
 import 'package:caisse_dz/Services/mistral_ocr_service.dart';
 import 'package:caisse_dz/Services/deepseek_service.dart';
+import 'package:caisse_dz/data/models/smart_scan_quota.dart';
 
 class ReceiptScannerService {
   static const bool _useGemini = true;
 
-  // ✅ Vrai si le dernier scan a échoué parce que la clé API Mistral
-  // (partagée par OCR et extraction, voir mistral_ocr_service.dart /
-  // deepseek_service.dart) a atteint son quota — permet à l'appelant
-  // d'afficher "service IA indisponible, réessayez plus tard" plutôt que de
-  // laisser croire que la photo/le document scanné est en cause.
-  static bool get lastScanHitQuotaLimit =>
-      MistralOCRService.quotaExceeded || GeminiService.quotaExceeded;
+  // ✅ Vrai si le dernier scan a échoué parce que le service d'analyse
+  // était saturé — permet à l'appelant d'afficher "service IA indisponible"
+  // plutôt que de laisser croire que la photo est en cause.
+  static bool get lastScanHitQuotaLimit => GeminiService.quotaExceeded;
+
+  /// Refus du serveur Smart Scan au dernier scan (quota atteint, licence,
+  /// réseau…) — null si l'OCR a réussi. Voir SmartScanErreur.
+  static SmartScanErreur? get derniereErreur => MistralOCRService.derniereErreur;
+
+  /// Quota à jour renvoyé par le serveur après le dernier scan réussi.
+  static SmartScanQuota? get dernierQuota => MistralOCRService.dernierQuota;
 
   static Future<List<ReceiptItem>> scanReceipt(
       File imageFile,
@@ -24,6 +29,10 @@ class ReceiptScannerService {
     // ── STEP 1: Mistral OCR → raw text ──────────────────────────────────────
     print('Step 1: Running Mistral OCR...');
     final rawText = await MistralOCRService.extractRawText(imageFile);
+
+    // Refus du serveur (quota, licence, réseau…) : rien à analyser, l'appelant
+    // affiche la raison (voir derniereErreur).
+    if (MistralOCRService.derniereErreur != null) return [];
 
     if (rawText.trim().isEmpty) {
       print('⚠️ Mistral OCR returned no text — using local fallback with empty input');

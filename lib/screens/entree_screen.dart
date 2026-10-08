@@ -10,6 +10,9 @@ import 'package:caisse_dz/Services/BonReceptionPhotos.dart';
 import 'package:caisse_dz/core/dialog/AI/ai_receipt_dialog.dart';
 import 'package:caisse_dz/core/widget/photo/bon_reception_card.dart';
 import 'package:caisse_dz/core/widget/ai_smart_icon.dart';
+import 'package:caisse_dz/core/widget/smart_scan/carte_quota_smart_scan.dart';
+import 'package:caisse_dz/Services/SmartScanQuota.dart';
+import 'package:caisse_dz/data/models/smart_scan_quota.dart';
 import 'package:caisse_dz/data/models/bon_reception.dart';
 import 'package:excel/excel.dart';
 import 'package:file_picker/file_picker.dart';
@@ -182,6 +185,21 @@ class _EntreeScreenState extends State<EntreeScreen> with TickerProviderStateMix
 
   // ✅ Joindre une photo de bon depuis le disque : rejoint la même file
   // d'attente que les photos reçues depuis le mobile (statut 'recu').
+  // Quota Smart Scan du client (serveur BENS), affiché dans l'onglet IA à
+  // côté de l'import de bon, et rechargé après chaque passage dans l'assistant.
+  SmartScanQuota? _quotaSmartScan;
+  bool _quotaSmartScanChargement = true;
+
+  Future<void> _chargerQuotaSmartScan() async {
+    if (mounted) setState(() => _quotaSmartScanChargement = true);
+    final quota = await SmartScanQuotaServices.getQuota();
+    if (!mounted) return;
+    setState(() {
+      _quotaSmartScan = quota;
+      _quotaSmartScanChargement = false;
+    });
+  }
+
   Future<void> _attachBonFromDisk() async {
     final result = await FilePicker.platform.pickFiles(type: FileType.image);
     final pickedPath = result?.files.single.path;
@@ -237,6 +255,7 @@ class _EntreeScreenState extends State<EntreeScreen> with TickerProviderStateMix
       receptionFournisseurCode: bon.fournisseurCode,
     );
     await loadAllData();
+    await _chargerQuotaSmartScan();
   }
 
   Future<void> _deleteBon(BonReception bon) async {
@@ -357,6 +376,7 @@ class _EntreeScreenState extends State<EntreeScreen> with TickerProviderStateMix
   @override
   void initState() {
     super.initState();
+    _chargerQuotaSmartScan();
     _tabController = TabController(length: 2, vsync: this);
     _tabController.addListener(() {
       if (mounted) {
@@ -1159,6 +1179,12 @@ class _EntreeScreenState extends State<EntreeScreen> with TickerProviderStateMix
                                                 icon: Icons.attach_file,
                                                 onPressed: _attachBonFromDisk,
                                               ),
+                                            ),
+                                            const SizedBox(width: 16),
+                                            CarteQuotaSmartScan(
+                                              quota: _quotaSmartScan,
+                                              chargement: _quotaSmartScanChargement,
+                                              onRafraichir: _chargerQuotaSmartScan,
                                             ),
                                           ],
                                         ),

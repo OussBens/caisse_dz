@@ -8,6 +8,7 @@ import 'package:caisse_dz/Services/Role.dart';
 import 'package:caisse_dz/Services/RoleDetail.dart';
 import 'package:caisse_dz/Services/UserParam.dart';
 import 'package:caisse_dz/Services/ModuleFavori.dart';
+import 'package:caisse_dz/Services/UtilisateurMagasin.dart';
 import 'package:caisse_dz/core/locale/locale_provider.dart';
 import 'package:caisse_dz/data/models/RoleDetail.dart';
 import 'package:caisse_dz/data/models/histore.dart';
@@ -137,13 +138,50 @@ class AuthState extends ChangeNotifier {
     return true;
   }
 
+  // ── Magasins de l'utilisateur (multi-magasin) ───────────────────────────
+  // Liste ORDONNÉE : le premier est le magasin principal (Entrée / Smart
+  // Scan, premier servi à la vente). Admin : tous les magasins. Voir
+  // UtilisateurMagasinServices et RepartitionStock.
+  List<String> _magasins = [];
+  List<String> _magasinsConsultation = [];
+
+  /// Magasins de travail (ventes, entrées, sorties…), principal en tête.
+  List<String> get magasins => _magasins.isEmpty ? const ['MAG0000'] : List.unmodifiable(_magasins);
+
+  /// Magasin principal : alimenté par Entrée / Smart Scan.
+  String get magasinPrincipal => magasins.first;
+
+  /// Magasins dont l'utilisateur peut CONSULTER le stock : les siens, ou tous
+  /// pour un Admin / un rôle « Voir le stock de tous les magasins ».
+  List<String> get magasinsConsultation =>
+      _magasinsConsultation.isEmpty ? magasins : List.unmodifiable(_magasinsConsultation);
+
+  bool peutConsulterMagasin(String magasinCode) => magasinsConsultation.contains(magasinCode);
+
+  Future<void> chargerMagasins() async {
+    if (_userCode == null) {
+      _magasins = [];
+      _magasinsConsultation = [];
+    } else {
+      // Le rôle par défaut est enregistré « admin » (minuscules) en base.
+      final estAdmin = _role?.toLowerCase() == 'admin';
+      _magasins = await UtilisateurMagasinServices.magasinsUtilisateur(_userCode!, estAdmin: estAdmin);
+      _magasinsConsultation = estAdmin || canVoirStockTousMagasins
+          ? await UtilisateurMagasinServices.magasinsUtilisateur(_userCode!, estAdmin: true)
+          : _magasins;
+    }
+    notifyListeners();
+  }
+
   // ── Changement de caisse / magasin ───────────────────────────────────────
   // Incrémenté quand la caisse ou le magasin de l'utilisateur change : AppShell
   // s'en sert comme clé du module affiché, qui est alors reconstruit et
   // recharge ses données (stock du nouveau magasin, caisse active...).
   int _contexteVersion = 0;
   int get contexteVersion => _contexteVersion;
-  void signalerChangementCaisseMagasin() {
+  Future<void> signalerChangementCaisseMagasin() async {
+    // Les magasins de l'utilisateur ont pu changer avec sa caisse.
+    await chargerMagasins();
     _contexteVersion++;
     notifyListeners();
   }
@@ -444,6 +482,10 @@ class AuthState extends ChangeNotifier {
   /// paliers — ou sous l'ancien 3ᵉ palier "Premium", fusionné dans Avancé —
   /// doit continuer à activer l'app avec les mêmes capacités qu'avant. Basic
   /// est la seule variante avec suffixe de palier mixé dans le hash.
+  /// Clé de licence de ce poste pour son palier — même calcul que la clé
+  /// d'activation. Envoyée au serveur IA (AiProxy) qui la vérifie.
+  String cleLicence(String deviceId) => _generateKey(deviceId, _licenseTier);
+
   String _generateKey(String deviceId, LicenseTier tier) {
     final input = tier == LicenseTier.avance ? deviceId : '$deviceId#${tier.name}';
     final mixed = _interleave(input, _secretKey);
@@ -563,6 +605,7 @@ class AuthState extends ChangeNotifier {
     await _loadRoleDetail();
     await loadUserParameters();
     await chargerFavoris();
+    await chargerMagasins();
     notifyListeners();
 
     final services = HistoriqueServices(db);
@@ -765,6 +808,8 @@ class AuthState extends ChangeNotifier {
     _currentMagasin = null;
     _currentMagasinId = null;
     _favoris = [];
+    _magasins = [];
+    _magasinsConsultation = [];
 
     int idm = await _GetNextHistoriqueId();
     String codem = 'HS$idm${DateTime.now().millisecondsSinceEpoch}';

@@ -100,12 +100,15 @@ Future<void> _AnnulerPannier({
       prod.motifAnnul = motif;
       await servicep.updatePP(prod);
 
-      if (mouvOriginal != null) {
-        mouvOriginal.etat = false;
-        mouvOriginal.dateAnnul = DateTime.now();
-        mouvOriginal.annulParCode = userCode;
-        mouvOriginal.motifAnnul = motif;
-        await servicem.updateMouvement(mouvOriginal);
+      // Multi-magasin : une ligne vendue peut avoir un mouvement PAR magasin
+      // servi (RepartitionStock) — tous sont annulés, chaque magasin
+      // récupère ainsi exactement ce qui en était sorti.
+      for (final mouv in mouvs.where((e) => e.codeProduit == prod.codeProduit && e.etat)) {
+        mouv.etat = false;
+        mouv.dateAnnul = DateTime.now();
+        mouv.annulParCode = userCode;
+        mouv.motifAnnul = motif;
+        await servicem.updateMouvement(mouv);
       }
 
       int idh = await _GetNextHistoriqueId();

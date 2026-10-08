@@ -255,7 +255,13 @@ final GlobalKey<FormState> transfertMagasinFormKey = GlobalKey<FormState>();
 
 Future<void> _LoadDataTM() async {
   produitsTestTM = await ProduitServices.getAllProduits();
-  magasinsDisponiblesTM = (await MagasinServices.getAllMagasins()).where((m) => m.etat).toList();
+  // Multi-magasin : source et destination parmi les magasins de
+  // l'utilisateur (Admin : tous), dans leur ordre.
+  final mesMagasins = AuthState().magasins;
+  magasinsDisponiblesTM = (await MagasinServices.getAllMagasins())
+      .where((m) => m.etat && mesMagasins.contains(m.code))
+      .toList()
+    ..sort((a, b) => mesMagasins.indexOf(a.code).compareTo(mesMagasins.indexOf(b.code)));
 }
 
 void resetTransfertMagasinForm() {

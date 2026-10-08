@@ -1,5 +1,3 @@
-import 'package:caisse_dz/Services/CaisseParam.dart';
-import 'package:collection/collection.dart';
 import 'dart:ui';
 import 'package:caisse_dz/core/dialog/dialog_kind.dart';
 import 'package:caisse_dz/l10n/app_localizations.dart';
@@ -181,36 +179,8 @@ Future<void> CaisseGestionModif(BuildContext context, CaisseGestion caisse) asyn
                                   },
                                 ),
                               ),
-                              const SizedBox(height: 10),
-
-                              // Magasin de rattachement — modifiable ici
-                              // maintenant (auparavant figé à vie sur le
-                              // magasin choisi à la création).
-                              ChampAvecLabel(
-                                label: l10n.magasin,
-                                obligatoire: true,
-                                child: TextListe(
-                                  obligatoire: true,
-                                  clearable: false,
-                                  value: magasinsDisponiblesM
-                                      .firstWhere(
-                                        (m) => m.code == selectedMagasinCodeM,
-                                        orElse: () => Magasin(
-                                          id: 0, code: '', nom: '', etat: true,
-                                          dateCree: DateTime.now(), creeParCode: userCode,
-                                        ),
-                                      )
-                                      .nom,
-                                  items: magasinsDisponiblesM.map((m) => m.nom).toList(),
-                                  onChanged: (v) {
-                                    setState(() {
-                                      selectedMagasinCodeM = magasinsDisponiblesM
-                                          .firstWhere((m) => m.nom == v)
-                                          .code;
-                                    });
-                                  },
-                                ),
-                              ),
+                              // Plus de magasin ici : en multi-magasin, ce sont les
+                              // magasins de l'utilisateur qui comptent (écran Utilisateur).
                             ],
                           ),
                         ),
@@ -310,7 +280,7 @@ Future<void> CaisseGestionModif(BuildContext context, CaisseGestion caisse) asyn
                               dateModif: DateTime.now(),
                               nomCaisse: nomCaisseControllerM.text,
                               typecaisse: selectedTypeC == l10n.physical ? "physique" : "compte",
-                              magasinCode: selectedMagasinCodeM ?? caisse.magasinCode,
+                              magasinCode: caisse.magasinCode, // non utilisé (magasins de l'utilisateur)
                               creeParCode: caisse.creeParCode,
                               observation: observationControllerM.text,
                               soldeInitial: double.tryParse(soldeInitialControllerM.text) ?? 0,
@@ -335,29 +305,6 @@ Future<void> CaisseGestionModif(BuildContext context, CaisseGestion caisse) asyn
                               return;
                             }
 
-                            // ✅ Le magasin de la caisse a changé : les paramètres
-                            // de caisse et utilisateur de ses comptes suivent.
-                            if (NCaisse.magasinCode != caisse.magasinCode) {
-                              final magasin = magasinsDisponiblesM
-                                  .firstWhereOrNull((m) => m.code == NCaisse.magasinCode);
-                              if (magasin != null) {
-                                final db = await DbCreator.openDb();
-                                final comptesConcernes = await CaisseParamServices(db).synchroniserMagasinDeCaisse(
-                                  caisseCode: NCaisse.code,
-                                  magasinCode: magasin.code,
-                                  magasinNom: magasin.nom,
-                                  magasinId: magasin.id.toString(),
-                                );
-                                if (!context.mounted) return;
-                                final authState = Provider.of<AuthState>(context, listen: false);
-                                await authState.loadUserParameters();
-                                // Magasin de l'utilisateur connecté changé : l'écran
-                                // affiché se recharge avec le nouveau magasin.
-                                if (comptesConcernes.contains(authState.userCode)) {
-                                  authState.signalerChangementCaisseMagasin();
-                                }
-                              }
-                            }
                             if (!context.mounted) return;
 
                             // ✅ Succès
