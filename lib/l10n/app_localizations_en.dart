@@ -4915,6 +4915,11 @@ class AppLocalizationsEn extends AppLocalizations {
       '7 favorites maximum: remove one before adding another.';
 
   @override
+  String confirmRemoveFavorite(String module) {
+    return 'Remove \"$module\" from favorites? The tab will be closed; you can add it again with the module\'s star.';
+  }
+
+  @override
   String get alerts => 'Alerts';
 
   @override

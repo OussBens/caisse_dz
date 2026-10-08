@@ -1683,6 +1683,8 @@
   "addToFavorites": "Add to favorites",
   "removeFromFavorites": "Remove from favorites",
   "maxFavoritesReached": "7 favorites maximum: remove one before adding another.",
+  "confirmRemoveFavorite": "Remove \"{module}\" from favorites? The tab will be closed; you can add it again with the module's star.",
+  "@confirmRemoveFavorite": { "placeholders": { "module": { "type": "String" } } },
   "alerts": "Alerts",
   "alertsSubtitle": "Important points to check today",
   "expiringSoonProducts": "Products expiring within {days} days",

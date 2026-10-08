@@ -9343,6 +9343,12 @@ abstract class AppLocalizations {
   /// **'7 favoris maximum : retirez-en un avant d\'en ajouter un autre.'**
   String get maxFavoritesReached;
 
+  /// No description provided for @confirmRemoveFavorite.
+  ///
+  /// In fr, this message translates to:
+  /// **'Retirer « {module} » des favoris ? L\'onglet sera fermé ; vous pourrez le rajouter avec l\'étoile du module.'**
+  String confirmRemoveFavorite(String module);
+
   /// No description provided for @alerts.
   ///
   /// In fr, this message translates to:

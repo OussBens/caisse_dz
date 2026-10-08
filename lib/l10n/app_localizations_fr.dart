@@ -4947,6 +4947,11 @@ class AppLocalizationsFr extends AppLocalizations {
       '7 favoris maximum : retirez-en un avant d\'en ajouter un autre.';
 
   @override
+  String confirmRemoveFavorite(String module) {
+    return 'Retirer « $module » des favoris ? L\'onglet sera fermé ; vous pourrez le rajouter avec l\'étoile du module.';
+  }
+
+  @override
   String get alerts => 'Alertes';
 
   @override

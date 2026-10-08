@@ -1656,6 +1656,8 @@
   "addToFavorites": "Ajouter aux favoris",
   "removeFromFavorites": "Retirer des favoris",
   "maxFavoritesReached": "7 favoris maximum : retirez-en un avant d'en ajouter un autre.",
+  "confirmRemoveFavorite": "Retirer « {module} » des favoris ? L'onglet sera fermé ; vous pourrez le rajouter avec l'étoile du module.",
+  "@confirmRemoveFavorite": { "placeholders": { "module": { "type": "String" } } },
   "alerts": "Alertes",
   "alertsSubtitle": "Points importants à vérifier aujourd'hui",
   "expiringSoonProducts": "Produits expirant sous {days} jours",
