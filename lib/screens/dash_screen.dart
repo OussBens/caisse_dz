@@ -275,9 +275,10 @@ class _DashScreenState extends State<DashScreen> with SingleTickerProviderStateM
   List<Fournisseur>     fournisseursTest    = [];
   List<SmartScan>       smartScansTest      = [];
   List<Produit>         produitsTest        = [];
-  // Quantité par produit calculée depuis le journal des mouvements (tous
-  // magasins confondus — pas de filtre magasin sur ce tableau de bord) —
-  // voir produit_screen.dart/stock_screen.dart pour le même mécanisme.
+  // Quantité par produit calculée depuis le journal des mouvements, sommée
+  // sur les magasins CONSULTABLES par l'utilisateur (AuthState
+  // .magasinsConsultation) — même mécanisme que produit_screen.dart /
+  // stock_screen.dart, pour que valeur du stock et ruptures concordent.
   Map<String, double>   quantitesTest       = {};
   List<Pannier>         paniersTest         = [];
   List<Verssement>      versementsTest      = [];
@@ -443,6 +444,7 @@ class _DashScreenState extends State<DashScreen> with SingleTickerProviderStateM
     }
   }
   Future<void> _LoadAllData() async {
+    final magasinsConsultation = Provider.of<AuthState>(context, listen: false).magasinsConsultation;
     final db = await DbCreator.openDb();
     pannierProduitsTest = await PPServices.getAllPP();
     fournisseursTest    = await FournisseurServices.getAllFournisseurs();
@@ -450,7 +452,7 @@ class _DashScreenState extends State<DashScreen> with SingleTickerProviderStateM
     // totaux du tableau de bord — voir ClotureCaisse.dart pour le même filtre.
     smartScansTest      = (await SmartScanServices.getAllSmartScans()).where((s) => s.etat).toList();
     produitsTest        = await ProduitServices.getAllProduits();
-    quantitesTest       = (await MouvementsServices.totauxParProduit()).quantites;
+    quantitesTest       = (await MouvementsServices.totauxParProduitPourMagasins(magasinsConsultation)).quantites;
     paniersTest         = (await PannierServices.getAllPanniers()).where((p) => p.etat).toList();
     versementsTest      = await VerssementServices.getAllverssement();
     clientsTest         = await ClientServices.getAllClients();

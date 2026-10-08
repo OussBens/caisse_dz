@@ -298,6 +298,23 @@ class MouvementsServices {
 
   // ── Multi-magasin ────────────────────────────────────────────────────────
 
+  /// Journal des mouvements limité à [magasins] (les magasins consultables
+  /// de l'utilisateur, voir AuthState.magasinsConsultation) — même périmètre
+  /// que [totauxParProduitPourMagasins], pour que les listes de mouvements
+  /// (Stock, Situation Mouvement produit) et le stock affiché concordent.
+  static Future<List<Mouvement>> getMouvementsPourMagasins(Iterable<String> magasins) async {
+    final liste = magasins.toList();
+    if (liste.isEmpty) return [];
+    final db = await DbCreator.openDb();
+    final result = await db.query(
+      'mouvements',
+      where: 'magasin_code IN (${List.filled(liste.length, '?').join(',')})',
+      whereArgs: liste,
+      orderBy: 'id ASC',
+    );
+    return result.map((e) => Mouvement.fromMap(e)).toList();
+  }
+
   /// Stock d'un produit dans chaque magasin (journal des mouvements), limité
   /// à [magasins] si fourni. Sert à répartir une vente / une sortie
   /// (RepartitionStock) et à la distribution.

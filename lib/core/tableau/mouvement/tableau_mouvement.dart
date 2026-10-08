@@ -5,6 +5,7 @@ import 'package:caisse_dz/data/models/mouvement.dart';
 import 'package:caisse_dz/data/models/produit.dart';
 import 'package:caisse_dz/data/models/client.dart';
 import 'package:caisse_dz/data/models/fournisseur.dart';
+import 'package:caisse_dz/data/models/magasin.dart';
 import 'package:caisse_dz/data/models/utilisateur.dart';
 import 'package:caisse_dz/l10n/app_localizations.dart';
 import 'package:flutter/material.dart';
@@ -18,6 +19,7 @@ class TableauMouvementAdvanced extends StatefulWidget {
   final List<Produit> produits;
   final List<Client> clients;
   final List<Fournisseur> fournisseurs;
+  final List<Magasin> magasins;
   final List<Utilisateur> utilisateurs;
   final void Function(List<Mouvement>)? onSelectionChanged;
 
@@ -27,6 +29,7 @@ class TableauMouvementAdvanced extends StatefulWidget {
     required this.produits,
     required this.clients,
     required this.fournisseurs,
+    this.magasins = const [],
     this.utilisateurs = const [],
     this.onSelectionChanged,
   });
@@ -63,6 +66,7 @@ class _TableauMouvementAdvancedState extends State<TableauMouvementAdvanced> {
       'client': {'visible': true, 'label': 'client', 'field': 'client'},
       'fournisseur': {'visible': true, 'label': 'supplier', 'field': 'fournisseur'},
       'type': {'visible': true, 'label': 'type', 'field': 'type'},
+      'magasin': {'visible': true, 'label': 'magasin', 'field': 'magasin'},
 
       // Audit
       'dateCree': {'visible': true, 'label': 'createdAt', 'field': 'dateCree'},
@@ -92,6 +96,7 @@ class _TableauMouvementAdvancedState extends State<TableauMouvementAdvanced> {
       produits: widget.produits,
       clients: widget.clients,
       fournisseurs: widget.fournisseurs,
+      magasins: widget.magasins,
       utilisateurs: widget.utilisateurs,
     );
     dataSource.onRowDoubleTap = (mouvement) => MouvementDetail(
@@ -100,6 +105,7 @@ class _TableauMouvementAdvancedState extends State<TableauMouvementAdvanced> {
       produits: widget.produits,
       clients: widget.clients,
       fournisseurs: widget.fournisseurs,
+      magasins: widget.magasins,
     );
 
     dataSource.addListener(() {
@@ -263,6 +269,7 @@ class _TableauMouvementAdvancedState extends State<TableauMouvementAdvanced> {
       case 'client': return l10n.client;
       case 'supplier': return l10n.supplier;
       case 'type': return l10n.type;
+      case 'magasin': return l10n.magasin;
       case 'createdAt': return l10n.createdAt;
       case 'createdBy': return l10n.createdBy;
       case 'modifiedAt': return l10n.modifiedAt;

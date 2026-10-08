@@ -23,7 +23,7 @@ Future<int> _DeleteUser({required BuildContext context, required List<Utilisateu
 
   for (var user in users) {
     // ✅ L'utilisateur Admin ne peut pas être supprimé.
-    if (user.role.trim().toLowerCase() == 'admin') {
+    if (AuthState.estRoleAdmin(user.role)) {
       await InformationDialog(
         context: context,
         titre_type_message: l10n.deletionImpossible,

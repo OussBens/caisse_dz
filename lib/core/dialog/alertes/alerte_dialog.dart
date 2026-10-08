@@ -27,7 +27,7 @@ const int _maxLignesParSection = 8;
 Future<void> AlerteDialog(BuildContext context, {bool seulementSiAlertes = false}) async {
   final auth = Provider.of<AuthState>(context, listen: false);
   final role = auth.roleDetail;
-  final admin = auth.role == 'Admin';
+  final admin = auth.estAdmin;
   final voirProduits = admin || role?.produit == true || role?.stock == true || role?.besoin == true;
   final voirClients = admin || role?.client == true;
   final voirFournisseurs = admin || role?.fournisseur == true;

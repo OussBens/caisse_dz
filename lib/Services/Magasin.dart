@@ -16,30 +16,13 @@ class MagasinServices {
     return result.map((e) => Magasin.fromMap(e)).toList();
   }
 
-  /// Magasin associé à un utilisateur : celui de la caisse attachée à son
-  /// compte (utilisateur.caisse_code -> caisseGestion.magasin_code), à défaut
-  /// celui de son paramètre de caisse (caisseparam, qui peut être obsolète).
-  static Future<String?> getMagasinCodeUtilisateur(String userCode) async {
-    final db = await DbCreator.openDb();
-    final viaCaisse = await db.rawQuery('''
-      SELECT c.magasin_code AS magasin
-      FROM utilisateur u
-      JOIN caisseGestion c ON c.code = u.caisse_code
-      WHERE u.code = ?
-      LIMIT 1
-    ''', [userCode]);
-    final magasin = viaCaisse.isEmpty ? null : viaCaisse.first['magasin'] as String?;
-    if (magasin != null && magasin.isNotEmpty) return magasin;
-
-    final viaParam = await db.query('caisseparam', columns: ['magasinCode'], where: 'user = ?', whereArgs: [userCode], limit: 1);
-    return viaParam.isEmpty ? null : viaParam.first['magasinCode'] as String?;
-  }
-
   /// Chiffres clés affichés en haut du détail magasin : produits ayant du
   /// stock dans ce magasin et leur valeur au prix d'achat (stock calculé
-  /// depuis le journal des mouvements, comme Produit/Stock), caisses actives
-  /// rattachées et transferts actifs (entrants ou sortants).
-  static Future<({int produitsEnStock, double valeurStock, int caisses, int transferts})> getStatistiquesMagasin(
+  /// depuis le journal des mouvements, comme Produit/Stock), utilisateurs
+  /// actifs qui travaillent sur ce magasin (utilisateur_magasin — une caisse
+  /// n'a plus de magasin depuis le multi-magasin, DB v52) et transferts
+  /// actifs (entrants ou sortants).
+  static Future<({int produitsEnStock, double valeurStock, int utilisateurs, int transferts})> getStatistiquesMagasin(
     String magasinCode,
   ) async {
     final db = await DbCreator.openDb();
@@ -63,8 +46,9 @@ class MagasinServices {
       return (rows.first['n'] as num?)?.toInt() ?? 0;
     }
 
-    final caisses = await compter(
-      'SELECT COUNT(*) AS n FROM caisseGestion WHERE magasin_code = ? AND etat = 1',
+    final utilisateurs = await compter(
+      'SELECT COUNT(DISTINCT um.utilisateur_code) AS n FROM utilisateur_magasin um '
+      'JOIN utilisateur u ON u.code = um.utilisateur_code WHERE um.magasin_code = ? AND u.etat = 1',
       [magasinCode],
     );
     final transferts = await compter(
@@ -72,7 +56,7 @@ class MagasinServices {
       [magasinCode, magasinCode],
     );
 
-    return (produitsEnStock: produitsEnStock, valeurStock: valeurStock, caisses: caisses, transferts: transferts);
+    return (produitsEnStock: produitsEnStock, valeurStock: valeurStock, utilisateurs: utilisateurs, transferts: transferts);
   }
 
   /// Retourne le magasin (autre que [excludeMagasinCode]) portant déjà ce nom

@@ -82,7 +82,7 @@ class _AppShellState extends State<AppShell> {
     // ✅ Même règle de résolution de la "caisse courante" qu'ailleurs dans
     // l'app (cf. caisse_screen.dart _LoadAllData) : un non-Admin est
     // verrouillé sur sa caisse attachée, un Admin par défaut sur la première.
-    final caisseAttachee = auth.role != "Admin" && auth.userCaisseCode != null
+    final caisseAttachee = !auth.estAdmin && auth.userCaisseCode != null
         ? caisses.where((c) => c.code == auth.userCaisseCode).firstOrNull
         : null;
     final caisseActuelle = caisseAttachee ?? caisses.first;

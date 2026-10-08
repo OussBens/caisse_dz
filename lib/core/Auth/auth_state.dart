@@ -13,7 +13,7 @@ import 'package:caisse_dz/core/locale/locale_provider.dart';
 import 'package:caisse_dz/data/models/RoleDetail.dart';
 import 'package:caisse_dz/data/models/histore.dart';
 import 'package:caisse_dz/data/models/userparam.dart';
-import 'package:caisse_dz/services/machine_binding_service.dart';
+import 'package:caisse_dz/Services/machine_binding_service.dart';
 import 'package:caisse_dz/core/Auth/license_tier.dart';
 import 'package:crypto/crypto.dart';
 import 'package:flutter/material.dart';
@@ -80,17 +80,26 @@ class AuthState extends ChangeNotifier {
     _roleDetail = code == null ? null : await RoleDetailServices.getRoleByCode(code);
   }
 
+  /// Vrai si [role] est le rôle Admin. Le rôle par défaut est enregistré
+  /// « admin » (minuscules) en base alors que les rôles proposés à la saisie
+  /// s'écrivent « Admin » : toujours comparer via cette fonction, jamais
+  /// `role == 'Admin'`.
+  static bool estRoleAdmin(String? role) => role?.trim().toLowerCase() == 'admin';
+
+  /// Vrai si l'utilisateur connecté est Admin (voir [estRoleAdmin]).
+  bool get estAdmin => estRoleAdmin(_role);
+
   // Permissions spéciales (phase 3 du formulaire Rôle, voir RoleDetail) —
   // Admin les a toutes implicitement, quel que soit le contenu réel de son
   // RoleDetail (source de vérité unique pour tous les points de contrôle de
   // l'app, pour ne jamais dupliquer `role == "Admin" || roleDetail?.xxx`).
-  bool get canVoirPrixAchat => _role == 'Admin' || (_roleDetail?.voirPrixAchat ?? false);
-  bool get canVoirMarge => _role == 'Admin' || (_roleDetail?.voirMarge ?? false);
-  bool get canModifierPrixVente => _role == 'Admin' || (_roleDetail?.modifierPrixVente ?? false);
-  bool get canAnnulerOperations => _role == 'Admin' || (_roleDetail?.annulerOperations ?? false);
-  bool get canChangerCaisseMagasin => _role == 'Admin' || (_roleDetail?.changerCaisseMagasin ?? false);
-  bool get canGererTransfertsCaisse => _role == 'Admin' || (_roleDetail?.gererTransfertsCaisse ?? false);
-  bool get canVoirStockTousMagasins => _role == 'Admin' || (_roleDetail?.voirStockTousMagasins ?? false);
+  bool get canVoirPrixAchat => estAdmin || (_roleDetail?.voirPrixAchat ?? false);
+  bool get canVoirMarge => estAdmin || (_roleDetail?.voirMarge ?? false);
+  bool get canModifierPrixVente => estAdmin || (_roleDetail?.modifierPrixVente ?? false);
+  bool get canAnnulerOperations => estAdmin || (_roleDetail?.annulerOperations ?? false);
+  bool get canChangerCaisseMagasin => estAdmin || (_roleDetail?.changerCaisseMagasin ?? false);
+  bool get canGererTransfertsCaisse => estAdmin || (_roleDetail?.gererTransfertsCaisse ?? false);
+  bool get canVoirStockTousMagasins => estAdmin || (_roleDetail?.voirStockTousMagasins ?? false);
 
   UserParam? _userParam;
   String? _currentLanguage;
@@ -163,8 +172,6 @@ class AuthState extends ChangeNotifier {
       _magasins = [];
       _magasinsConsultation = [];
     } else {
-      // Le rôle par défaut est enregistré « admin » (minuscules) en base.
-      final estAdmin = _role?.toLowerCase() == 'admin';
       _magasins = await UtilisateurMagasinServices.magasinsUtilisateur(_userCode!, estAdmin: estAdmin);
       _magasinsConsultation = estAdmin || canVoirStockTousMagasins
           ? await UtilisateurMagasinServices.magasinsUtilisateur(_userCode!, estAdmin: true)

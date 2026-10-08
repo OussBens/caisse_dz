@@ -117,7 +117,7 @@ flutter run -d windows
 
 ```bash
 flutter analyze lib                      # 0 erreur attendue
-flutter test                             # règles multi-magasin + modèle Smart Scan
+flutter test                             # règles multi-magasin, rôle Admin, modèle Smart Scan
 php server/tests/smartscan_test.php      # 62 tests serveur (SQLite en mémoire, faux Mistral)
 ```
 
@@ -157,20 +157,19 @@ Non versionnés (voir `.gitignore`) : `.env`, bases `*.db`, installateurs
 
 ## Travaux en cours
 
-### Multi-magasin & multi-caisse — 🟡 étape 8 / 8 (vérification)
+### Multi-magasin & multi-caisse — 🟢 code terminé, recette manuelle à faire
 
-Étapes 1 à 7 terminées : fondation DB v52, magasins par utilisateur, caisse
+Étapes 1 à 9 terminées : fondation DB v52, magasins par utilisateur, caisse
 sans magasin, consultation, entrées, ventes / retours / sorties répartis,
-distribution. La migration v52 est appliquée et vérifiée sur la base réelle.
+distribution, Dashboard / Situations limités aux magasins consultables,
+colonne Magasin dans les mouvements et leurs exports, rôle Admin harmonisé
+(`AuthState.estAdmin`), code mort supprimé. La migration v52 est appliquée et
+vérifiée sur la base réelle.
 
-**📍 Arrêt :** juste avant le test visuel dans l'application, l'écran de
-connexion étant ouvert.
-
-**Reste à faire :**
-- Tests réels : Utilisateur (magasins ordonnés), Distribution, vente sur 2 magasins puis annulation, retours, sortie, licence Basic.
-- Dashboard / Situations limités aux magasins consultables.
-- Harmoniser les tests du rôle `admin` (enregistré en minuscules en base).
-- Nettoyages : `synchroniserMagasinDeCaisse` (code mort), compteur « nombre » de `produit_magasin_detail`.
+**Reste à faire :** dérouler la section 9 de
+[TESTING_CHECKLIST.md](TESTING_CHECKLIST.md) sur Windows (vente sur 2
+magasins + annulation, retours, sortie, distribution, compte `admin`, licence
+Basic).
 
 Le détail complet est dans [docs/05_multi_magasin.md](docs/05_multi_magasin.md).
 

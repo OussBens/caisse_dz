@@ -3,8 +3,10 @@ import 'package:caisse_dz/core/dialog/information_dialog.dart';
 import 'package:caisse_dz/Services/export_spinner.dart';
 import 'package:caisse_dz/Services/excel_generator.dart';
 import 'package:caisse_dz/Services/excel_apercu.dart';
+import 'package:caisse_dz/Services/Magasin.dart';
 import 'package:caisse_dz/Services/Mouvement.dart';
 import 'package:caisse_dz/Services/Produits.dart';
+import 'package:caisse_dz/core/Auth/auth_state.dart';
 import 'package:caisse_dz/core/tableau/situation/mouvement_produit_source.dart';
 import 'package:caisse_dz/core/tableau/situation/tableau_mouvement_produit.dart';
 import 'package:caisse_dz/core/theme/app_style.dart';
@@ -21,6 +23,7 @@ import 'package:caisse_dz/data/models/produit.dart';
 import 'package:caisse_dz/l10n/app_localizations.dart';
 import 'package:collection/collection.dart';
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 
 /// Onglet "Situation Mouvement Produit" (Dashboard > Situation) : tous les
 /// mouvements de stock (entrée, sortie, pannier, retour, distribution,
@@ -41,6 +44,8 @@ class _MouvementProduitTabState extends State<MouvementProduitTab> {
 
   List<Produit> produits = [];
   List<Mouvement> mouvements = [];
+  // Code magasin -> nom, pour la colonne Magasin.
+  Map<String, String> nomsMagasins = {};
 
   String? selectedProduitNom;
   String? selectedType;
@@ -66,8 +71,13 @@ class _MouvementProduitTabState extends State<MouvementProduitTab> {
   }
 
   Future<void> _loadData() async {
+    // Multi-magasin : seuls les mouvements des magasins consultables par
+    // l'utilisateur (comme le stock affiché dans Produit / Stock) — la
+    // quantité avant/après est donc celle de ces magasins réunis.
+    final magasinsConsultation = Provider.of<AuthState>(context, listen: false).magasinsConsultation;
     produits = await ProduitServices.getAllProduits();
-    mouvements = await MouvementsServices.getAllMouvements();
+    mouvements = await MouvementsServices.getMouvementsPourMagasins(magasinsConsultation);
+    nomsMagasins = {for (final m in await MagasinServices.getAllMagasins()) m.code: m.nom};
     if (!mounted) return;
     setState(() => loading = false);
   }
@@ -190,6 +200,7 @@ class _MouvementProduitTabState extends State<MouvementProduitTab> {
           qttMouvement: delta,
           qttApres: cumul,
           etat: m.etat,
+          magasin: nomsMagasins[m.magasinCode] ?? m.magasinCode ?? '-',
         ));
       }
     });
@@ -244,6 +255,7 @@ class _MouvementProduitTabState extends State<MouvementProduitTab> {
             l10n.date,
             l10n.product,
             l10n.motifMouvement,
+            l10n.magasin,
             l10n.initialQuantity,
             l10n.movementQuantity,
             l10n.quantityAfterMovement,
@@ -255,6 +267,7 @@ class _MouvementProduitTabState extends State<MouvementProduitTab> {
                     _formatDateHeure(l.date),
                     l.nomProduit,
                     l.motif,
+                    l.magasin,
                     QuantiteFormat.format(l.qttInitiale),
                     QuantiteFormat.format(l.qttMouvement),
                     QuantiteFormat.format(l.qttApres),

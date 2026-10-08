@@ -28,6 +28,7 @@ import 'package:caisse_dz/data/models/smart_scan.dart';
 import 'package:caisse_dz/data/models/sortie.dart';
 import 'package:caisse_dz/data/models/sous_categorie.dart';
 import 'package:caisse_dz/data/models/utilisateur.dart';
+import 'package:caisse_dz/core/Auth/auth_state.dart';
 import 'package:caisse_dz/data/models/verssement.dart';
 import 'package:caisse_dz/data/models/zakat.dart';
 import 'package:excel/excel.dart';
@@ -2470,6 +2471,7 @@ class ExcelGenerator {
     required List<Produit> produits,
     required List<Client> clients,
     required List<Fournisseur> fournisseurs,
+    List<Magasin> magasins = const [],
     required AppLocalizations l10n,
     required ListsConstTranslator translator,
   }) async
@@ -2484,6 +2486,8 @@ class ExcelGenerator {
         code == null ? null : (clients.where((c) => c.code == code).firstOrNull?.nom ?? code);
     String? nomFournisseur(String? code) =>
         code == null ? null : (fournisseurs.where((f) => f.code == code).firstOrNull?.nom ?? code);
+    String? nomMagasin(String? code) =>
+        code == null ? null : (magasins.where((m) => m.code == code).firstOrNull?.nom ?? code);
 
     // ALL movement fields - Export everything from the Mouvement model
     List<TextCellValue> headers = [
@@ -2506,6 +2510,8 @@ class ExcelGenerator {
       TextCellValue(l10n.cancelledBy),
       TextCellValue(l10n.cancellationReason),
       TextCellValue(l10n.generationDate),
+      // Ajoutée en fin pour ne pas décaler les colonnes existantes.
+      TextCellValue(l10n.magasin),
     ];
 
     // Add headers
@@ -2580,6 +2586,9 @@ class ExcelGenerator {
       // Generation Date
       sheet.cell(CellIndex.indexByColumnRow(columnIndex: 18, rowIndex: rowIndex))
           .value = TextCellValue(_formatDateTime(DateTime.now()));
+      // Magasin (multi-magasin)
+      sheet.cell(CellIndex.indexByColumnRow(columnIndex: 19, rowIndex: rowIndex))
+          .value = TextCellValue(nomMagasin(mouvement.magasinCode) ?? '-');
     }
 
     // Set column widths
@@ -2815,7 +2824,7 @@ class ExcelGenerator {
 
     int activeUsers = utilisateurs.where((u) => u.etat).length;
     int inactiveUsers = utilisateurs.where((u) => !u.etat).length;
-    int adminUsers = utilisateurs.where((u) => u.role == "Admin").length;
+    int adminUsers = utilisateurs.where((u) => AuthState.estRoleAdmin(u.role)).length;
     int cashierUsers = utilisateurs.where((u) => u.role == "Caissier").length;
     int storekeeperUsers = utilisateurs.where((u) => u.role == "Magasinier").length;
     double totalCredit = utilisateurs.fold(0.0, (sum, u) => sum + (u.credit ?? 0));

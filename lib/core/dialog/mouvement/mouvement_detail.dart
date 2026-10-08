@@ -4,6 +4,7 @@ import '../../../data/models/mouvement.dart';
 import '../../../data/models/produit.dart';
 import '../../../data/models/client.dart';
 import '../../../data/models/fournisseur.dart';
+import '../../../data/models/magasin.dart';
 import '../../../l10n/app_localizations.dart';
 import '../../widget/detail_widget.dart';
 import '../../widget/section_decoration.dart';
@@ -16,6 +17,7 @@ Future<void> MouvementDetail(
       required List<Produit> produits,
       required List<Client> clients,
       required List<Fournisseur> fournisseurs,
+      List<Magasin> magasins = const [],
     }) async {
   final l10n = AppLocalizations.of(context)!;
 
@@ -27,6 +29,10 @@ Future<void> MouvementDetail(
   final nomFournisseur = mouvement.fournisseurCode == null
       ? null
       : fournisseurs.where((f) => f.code == mouvement.fournisseurCode).firstOrNull?.nom ?? mouvement.fournisseurCode;
+
+  final nomMagasin = mouvement.magasinCode == null
+      ? null
+      : magasins.where((m) => m.code == mouvement.magasinCode).firstOrNull?.nom ?? mouvement.magasinCode;
 
   return showDialog(
     context: context,
@@ -87,6 +93,7 @@ Future<void> MouvementDetail(
                   detailinfo(l10n.type, _getTranslatedType(mouvement.type, l10n)),
                   detailinfo(l10n.client, nomClient),
                   detailinfo(l10n.supplier, nomFournisseur),
+                  detailinfo(l10n.magasin, nomMagasin),
                   detailinfo(l10n.status, mouvement.etat ? l10n.active : l10n.inactive),
                   detailinfo(l10n.date, _formatDate(mouvement.date)),
                 ]),

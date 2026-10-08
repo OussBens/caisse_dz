@@ -1,6 +1,6 @@
 # CaisseDZ — Checklist de test
 
-**Légende Statut :** ⬜ À tester · ✅ Réussi · ❌ Échoué · ⚠️ Partiel / à vérifier
+**Légende Statut :** ⬜ À tester · ✅ Réussi · ❌ Échoué · ⚠️ Partiel / à vérifier · ➖ Obsolète
 
 **Comment on travaille :** vous testez un scénario, vous remplacez ⬜ par ✅/❌/⚠️ dans la colonne Statut et notez ce que vous observez dans Notes (surtout si ❌ ou ⚠️ — capture d'écran, message d'erreur exact, étape précise). Je reviens régulièrement lire ce fichier, j'investigue/corrige les ❌, et on avance section par section. Pas besoin de tout finir avant de me montrer le fichier — dites-moi simplement où vous en êtes.
 
@@ -118,7 +118,7 @@ Prérequis : licence Avancée, au moins 2 magasins actifs, un produit avec du st
 | # | Scénario | Résultat attendu | Statut | Notes |
 |---|---|---|---|---|
 | 6.1 | Magasin › onglet Magasins : créer un 2ᵉ magasin, le modifier, le désactiver | CRUD OK ; le magasin système ne peut être ni modifié ni supprimé | ⬜ | |
-| 6.2 | Gestion Caisse : rattacher une caisse au magasin B | La caisse affiche le bon magasin ; les ventes de cette caisse sortent le stock du magasin B | ⬜ | |
+| 6.2 | Gestion Caisse : rattacher une caisse au magasin B | La caisse affiche le bon magasin ; les ventes de cette caisse sortent le stock du magasin B | ➖ | Obsolète (DB v52) : une caisse n'a plus de magasin — voir 9.1 / 9.4 |
 | 6.3 | Magasin › onglet « Transfert entre magasins » : transférer 5 unités du produit de A vers B | Stock A −5, stock B +5 (Stock et Produit avec filtre Magasin = A puis B) ; le total « Tous les magasins » ne change pas | ⬜ | |
 | 6.4 | Annuler ce transfert | Stocks A et B reviennent à leur valeur d'avant | ⬜ | |
 | 6.5 | Filtre Transfert : Produit / Source / Destination / Du-Au / Période rapide | La liste se filtre correctement ; « Supprimer filtre » remet tout | ⬜ | |
@@ -156,8 +156,8 @@ Prérequis : licence Avancée, au moins 2 magasins actifs, un produit avec du st
 | 8.3 | Fiche produit ouverte : scanner un autre produit | Le 1er est ajouté (quantité saisie, pas le code-barres), la fiche se ferme, celle du 2ᵉ s'ouvre | ⬜ | |
 | 8.4 | Tableau panier de la caisse | Colonne Code plus large, colonne case à cocher plus étroite | ⬜ | |
 | 8.5 | Produit et Stock à l'ouverture | Quantités du magasin associé à l'utilisateur ; « Tous les magasins » reste choisissable si permission | ⬜ | |
-| 8.6 | Paramètres caisse : changer de caisse (autre magasin) puis Sauvegarder | Paramètres › Utilisateur affiche le nouveau magasin | ⬜ | |
-| 8.7 | Gestion Caisse › Modifier une caisse : changer son magasin | Paramètres caisse + utilisateur des comptes de cette caisse suivent le nouveau magasin | ⬜ | |
+| 8.6 | Paramètres caisse : changer de caisse (autre magasin) puis Sauvegarder | Paramètres › Utilisateur affiche le nouveau magasin | ➖ | Obsolète (DB v52) : le magasin vient de l'utilisateur (Utilisateur › Magasins), plus de la caisse — voir 9.1 |
+| 8.7 | Gestion Caisse › Modifier une caisse : changer son magasin | Paramètres caisse + utilisateur des comptes de cette caisse suivent le nouveau magasin | ➖ | Obsolète (DB v52) : le magasin a été retiré des dialogs Caisse |
 | 8.8 | Caisse › Recette produit (P) | Uniquement les ventes du jour, colonne État ; totaux = ventes actives | ⬜ | |
 | 8.9 | Caisse › Recette caisse (R) | Colonne/badge État sur chaque panier ; totaux = paniers actifs | ⬜ | |
 | 8.10 | Gestion Caisse : les 5 onglets | Les cards globales apparaissent en haut de chaque onglet | ⬜ | |
@@ -167,7 +167,7 @@ Prérequis : licence Avancée, au moins 2 magasins actifs, un produit avec du st
 | 8.14 | Gestion Caisse : onglets | Icône différente pour Caisse / Transfert / Clôtures / Mouvements / Sessions | ⬜ | |
 | 8.15 | Déclencher un message de succès, une information/confirmation et une erreur | Grande icône à gauche du texte : ✓ verte / ! orange / ✕ rouge | ⬜ | |
 | 8.16 | Liste verrouillée (ex. Source dans Nouveau transfert magasin) | Texte de la valeur en gris, lisible | ⬜ | Avant : blanc sur fond clair |
-| 8.17 | Produit / Stock connecté avec un compte non-admin (ex. moh, caisse « Caisse 2 ») | Quantités = stock du magasin de SA caisse (magasin 2), filtre Magasin verrouillé ; en admin : « Tous les magasins » par défaut | ⬜ | |
+| 8.17 | Produit / Stock connecté avec un compte non-admin (ex. moh, caisse « Caisse 2 ») | Quantités = stock du magasin de SA caisse (magasin 2), filtre Magasin verrouillé ; en admin : « Tous les magasins » par défaut | ➖ | Remplacé par 9.2 (DB v52 : somme des magasins de l'utilisateur, plus le magasin de sa caisse) |
 | 8.18 | Panier : sélectionner un panier déjà annulé puis Annuler | Message « Panier(s) déjà annulé(s) : … » ; si mélangé, seuls les actifs sont annulés | ⬜ | |
 | 8.19 | Client / Fournisseur › Situation | Dialog plus haut (≈ 90 % de la fenêtre) | ⬜ | |
 | 8.20 | Client › Versements : supprimer un versement « Sortie » (remboursement de retour) ; Fournisseur : un versement « Entrée » | Refusé avec message « lié au retour… » (à faire via le retour) | ⬜ | |
@@ -186,7 +186,7 @@ Prérequis : licence Avancée, au moins 2 magasins actifs, un produit avec du st
 | 8.34 | Admin › Mon compte › Caisse (bouton) : choisir une caisse d'un autre magasin, enregistrer | Le module affiché se recharge (Produit/Stock : quantités du nouveau magasin) | ⬜ | |
 | 8.35 | Cliquer l'étoile dans l'en-tête de 7 modules | Onglets favoris en haut ; clic = ouvre le module ; croix = retire ; 8ᵉ → message « 7 favoris maximum » ; favoris conservés après déconnexion/reconnexion | ⬜ | Migration v51 |
 | 8.36 | Ouvrir le détail d'un enregistrement dans chaque module (client, fournisseur, produit, stock, pannier, zakat…) | Chiffres en haut sous forme de cards style afficheur global (carte blanche, icône colorée, titre, grande valeur, trait dégradé) ; montants longs réduits, pas coupés | ⬜ | Widget partagé StatsCard |
-| 8.37 | Magasin › détail d'un magasin | 4 cards : Nb produits en stock, Valeur stock (qté × prix d'achat), Total caisses actives, Transferts actifs (entrants + sortants) — mêmes quantités que Produit/Stock filtré sur ce magasin | ⬜ | |
+| 8.37 | Magasin › détail d'un magasin | 4 cards : Nb produits en stock, Valeur stock (qté × prix d'achat), Total caisses actives, Transferts actifs (entrants + sortants) — mêmes quantités que Produit/Stock filtré sur ce magasin | ➖ | 3ᵉ card remplacée (DB v52) : « Utilisateurs » ayant ce magasin, au lieu de « Total caisses » — voir 9.12 |
 | 8.38 | Gestion caisse › Clôtures › détail | Même présentation que les autres détails : icône, code + caisse, puce période, 4 cards (total ventes, nb ventes, total annulé, nb annulés) ; largeur 1100 comme tous les dialogs détail | ⬜ | |
 | 8.39 | Se connecter (avec au moins 1 produit en rupture ou 1 client en crédit) | Dialog « Alertes » s'ouvre AVANT le menu rapide, puis le menu, puis l'ouverture de caisse si fermée ; aucune alerte → le dialog ne s'ouvre pas | ⬜ | |
 | 8.40 | Dialog Alertes : contenu | Cards en haut (rupture, expirés, expirant ≤ 30 j, sessions non clôturées) ; sections : rupture, expirés, expirant bientôt, top 3 clients crédit, top 3 fournisseurs crédit, sessions ouvertes un jour précédent ; max 8 lignes + « + N autres » ; « Ouvrir le module » ferme et navigue | ⬜ | Mêmes règles que Besoin (seuil minimum Paramètres) et que les cards Client/Fournisseur |
@@ -202,6 +202,32 @@ Prérequis : licence Avancée, au moins 2 magasins actifs, un produit avec du st
 | 8.50 | Admin › activer Smart Scan 200 pour ce client | Carte : « Smart Scan 200 : x / 200 … Offre active jusqu'au : JJ/MM/AAAA+1 » | ⬜ | Testé en local 08/10 |
 | 8.51 | 2 postes du même client : rattacher le 2e au client du 1er (admin › Postes) | Scans des 2 postes cumulés sur le même compteur | ⬜ | Couvert par tests serveur |
 | 8.23 | Bouton rouge « Extract PDF » : Panier, Retour, Produit (5 onglets), Stock (2), Entrée, Sortie (2), Transfert magasin, Besoin (3), Client (+versements), Fournisseur (+versements), Gestion Caisse (transferts, mouvements), Historique, Zakat, Utilisateur | Aperçu PDF avec les mêmes colonnes que l'Excel, imprimable / enregistrable | ⬜ | |
+
+---
+
+## Section 9 — Multi-magasin v52 : magasins par utilisateur (licence Avancée)
+
+Prérequis : licence Avancée, 2 magasins actifs A et B, un utilisateur non-admin U
+avec Magasins = A (principal) puis B, un produit P avec 3 en stock dans A et
+10 dans B. Règles : [docs/05_multi_magasin.md](docs/05_multi_magasin.md).
+
+| # | Scénario | Résultat attendu | Statut | Notes |
+|---|---|---|---|---|
+| 9.1 | Utilisateur › Modifier U : champ « Magasins » (flèches, Principal, ajout / retrait), enregistrer, rouvrir | Ordre conservé, le 1er porte « Principal » ; U reconnecté : Entrée alimente A | ⬜ | |
+| 9.2 | Produit / Stock connecté en U | Quantité de P = 13 (A + B) ; filtre Magasin limité à A et B ; en Admin : tous les magasins | ⬜ | |
+| 9.3 | Rôle de U avec « Voir le stock de tous les magasins » | Filtre Magasin : tous les magasins ; quantité = somme de tous les magasins | ⬜ | |
+| 9.4 | Caisse (U) : vendre 5 P | Encaissement accepté ; Stock › Mouvements : 2 lignes Vente (A : 3, B : 2), colonne Magasin renseignée | ⬜ | |
+| 9.5 | Annuler cette vente (Panier) | A et B récupèrent chacun leur quantité (3 et 2) | ⬜ | |
+| 9.6 | Refaire la vente de 5, puis Retour client de 1, puis de 4 | Le 1er retour revient dans B (dernier servi), le 2ᵉ : 1 dans B puis 3 dans A | ⬜ | |
+| 9.7 | Sortie de 4 P alors que A = 3 et B = 10 | 1 seul mouvement, sur B (seul magasin qui a toute la quantité) | ⬜ | |
+| 9.8 | Retour fournisseur de 12 P alors que A = 3 et B = 10 | Réparti : 3 sur A puis 9 sur B | ⬜ | |
+| 9.9 | Stock › bouton Distribution sur P | Total inchangé ; un total différent est refusé ; mouvements Distribution Entrée / Sortie créés | ⬜ | |
+| 9.10 | Entrée et Smart Scan en U | Le stock entre dans A (magasin principal) | ⬜ | |
+| 9.11 | Dashboard (KPI valeur du stock, ruptures) puis Situation › Inventaire et Mouvement produit, connecté en U | Mêmes quantités que Produit / Stock (A + B seulement) ; colonne Magasin dans Mouvement produit et dans son export | ⬜ | |
+| 9.12 | Magasin › détail de A | Cards : produits en stock, valeur, Utilisateurs (comptes actifs ayant A dans leurs magasins), transferts | ⬜ | |
+| 9.13 | Stock › Mouvements : double-clic sur un mouvement, puis Extract | Le détail affiche le Magasin ; l'Excel a une colonne Magasin (dernière colonne) | ⬜ | |
+| 9.14 | Connexion avec le compte `admin` (rôle « admin » en minuscules en base) | Admin reconnu partout : prix d'achat / marges visibles, choix de magasin dans Transfert, éclatement Entrée, caisse non imposée, alertes complètes | ⬜ | |
+| 9.15 | Licence Basic | Aucun champ Magasins dans Utilisateur ; colonne Magasin = magasin unique ; tout passe par ce magasin | ⬜ | |
 
 ---
 

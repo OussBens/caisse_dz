@@ -380,7 +380,7 @@ Future<void> EntreeNouveau(
   // y a plus d'un magasin actif — pour tout autre cas, l'entrée va
   // entièrement au magasin de la caisse active (comportement inchangé).
   // (rôle Admin enregistré « admin » en minuscules en base)
-  final bool peutEclaterMagasinsE = auth.role?.toLowerCase() == "admin" && magasinsDisponiblesE.length > 1;
+  final bool peutEclaterMagasinsE = auth.estAdmin && magasinsDisponiblesE.length > 1;
   splitMagasinsActifE = false;
   repartitionsE = [];
 
