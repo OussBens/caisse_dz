@@ -46,3 +46,32 @@ app.*.map.json
 /android/app/debug
 /android/app/profile
 /android/app/release
+
+# ── Caisse DZ ───────────────────────────────────────────────────────────────
+# Secrets et configuration locale (serveur BENS : .env à côté de index.php)
+.env
+.env.*
+*.env
+
+# Bases de données locales et sauvegardes (données clients)
+*.db
+*.db-journal
+*.db-wal
+*.db-shm
+*.bak
+/database/
+
+# Installateurs et exécutables générés (Inno Setup / NSIS)
+*.exe
+/installer/output/
+
+# Dépendances / outils locaux
+/vcpkg/
+
+# Journaux et fichiers temporaires
+error_log
+run_*.log
+*.tmp
+
+# Réglages locaux de Claude Code
+.claude/
