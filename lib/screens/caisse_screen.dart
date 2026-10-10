@@ -354,7 +354,7 @@ class _CaisseScreenState extends State<CaisseScreen> {
         // son compte (Utilisateur.caisseCode) : elle le suit automatiquement
         // dans toutes les opérations, sans dépendre d'un choix manuel dans
         // Paramètres > Caisse (verrouillé pour ce rôle, cf. parametre_caisse.dart).
-        final String? caisseAttachee = auth.role != "Admin" && auth.userCaisseCode != null
+        final String? caisseAttachee = !auth.estAdmin && auth.userCaisseCode != null
             ? CaisseTest.where((c) => c.code == auth.userCaisseCode).firstOrNull?.nomCaisse
             : null;
         CaisseAct   = caisseAttachee ?? (CaisseList.isNotEmpty ? CaisseList.first : "");
@@ -1771,7 +1771,7 @@ class _CaisseScreenState extends State<CaisseScreen> {
         // ✅ Même verrouillage qu'à l'initialisation (cf. _LoadAllData) : un
         // rechargement ne doit pas faire revenir un utilisateur non-Admin
         // sur la première caisse de la liste.
-        final String? caisseAttachee = auth.role != "Admin" && auth.userCaisseCode != null
+        final String? caisseAttachee = !auth.estAdmin && auth.userCaisseCode != null
             ? CaisseTest.where((c) => c.code == auth.userCaisseCode).firstOrNull?.nomCaisse
             : null;
         CaisseAct = caisseAttachee ?? (CaisseList.isNotEmpty ? CaisseList.first : "");

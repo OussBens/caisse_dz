@@ -6,6 +6,7 @@ import '../../../../data/models/mouvement.dart';
 import '../../../../data/models/produit.dart';
 import '../../../../data/models/client.dart';
 import '../../../../data/models/fournisseur.dart';
+import 'package:caisse_dz/Services/Magasin.dart';
 import '../../../l10n/app_localizations.dart';
 import 'package:caisse_dz/core/theme/app_style.dart';
 import '../../dialog/produits_liste_dialog.dart';
@@ -17,6 +18,10 @@ class MouvementDataSource extends BaseTableDataSource<Mouvement> {
   final List<Produit> produits;
   final List<Client> clients;
   final List<Fournisseur> fournisseurs;
+  // Multi-magasin : code -> nom des magasins (MagasinServices.getNomsMagasins)
+  // pour la colonne Magasin — une vente répartie sur deux magasins = deux
+  // mouvements, chacun avec son magasin.
+  final Map<String, String> nomsMagasins;
 
   MouvementDataSource({
     required List<Mouvement> mouvements,
@@ -25,6 +30,7 @@ class MouvementDataSource extends BaseTableDataSource<Mouvement> {
     required this.produits,
     required this.clients,
     required this.fournisseurs,
+    this.nomsMagasins = const {},
     super.utilisateurs = const [],
   }) : super(items: mouvements);
 
@@ -89,6 +95,8 @@ class MouvementDataSource extends BaseTableDataSource<Mouvement> {
         return _nomFournisseur(mouvement.fournisseurCode);
       case 'type':
         return _getTranslatedType(mouvement.type);
+      case 'magasin':
+        return MagasinServices.nomMagasin(nomsMagasins, mouvement.magasinCode);
       case 'etat':
         return mouvement.etat ? l10n.active : l10n.inactive;
 

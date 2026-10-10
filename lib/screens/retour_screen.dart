@@ -105,6 +105,7 @@ class _RetourScreenState extends State<RetourScreen> with SingleTickerProviderSt
   CompteursGlobaux compteursGlobaux = const CompteursGlobaux();
 
   Future<void> loadAllData() async {
+    final magasinsConsultation = Provider.of<AuthState>(context, listen: false).magasinsConsultation;
     final test = await ProduitServices.getAllProduits();
     final fournisseurs      = await FournisseurServices.getAllFournisseurs();
     final produits          = await ProduitServices.getAllProduits();
@@ -113,9 +114,9 @@ class _RetourScreenState extends State<RetourScreen> with SingleTickerProviderSt
     final param              = await ParamServices.getParam();
     final utilisateurs      = await UtilisateurServices.getAllUtilisateurs();
     // ✅ Quantités calculées depuis le journal des mouvements — remplace Produit.quantite.
-    final quantitesTest = (await MouvementsServices.totauxParProduit()).quantites;
+    final quantitesTest = await MouvementsServices.quantitesConsultables(magasinsConsultation);
 
-    final compteurs = await StatistiquesGlobalesServices.getCompteurs();
+    final compteurs = await StatistiquesGlobalesServices.getCompteurs(magasinsConsultation: magasinsConsultation);
     if (!mounted) return;
     setState(() {
       compteursGlobaux = compteurs;

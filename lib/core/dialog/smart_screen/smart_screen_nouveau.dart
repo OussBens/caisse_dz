@@ -482,7 +482,7 @@ class _SmartScanDialogState extends State<SmartScanDialog> {
 
       if (!mounted) return;
       setState(() {
-        peutChangerCaisseSS = auth.role == "Admin";
+        peutChangerCaisseSS = auth.estAdmin;
 
         // ✅ Valeur par défaut pour aller plus vite : date du jour. Le
         // fournisseur reste vide au départ (toujours à choisir explicitement

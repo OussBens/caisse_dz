@@ -58,7 +58,7 @@ Future<void> RoleModif(BuildContext context, Role role) async {
   }
 
   // ✅ Le rôle Admin ne peut pas être modifié.
-  if (role.rolenom.trim().toLowerCase() == 'admin') {
+  if (RoleServices.estRoleAdmin(role.rolenom)) {
     await InformationDialog(
       context: context,
       titre_type_message: l10n.modificationImpossible,

@@ -1675,6 +1675,8 @@
   "addToFavorites": "إضافة إلى المفضلة",
   "removeFromFavorites": "إزالة من المفضلة",
   "maxFavoritesReached": "7 مفضلات كحد أقصى: احذف واحدة قبل إضافة أخرى.",
+  "confirmRemoveFavorite": "إزالة «{module}» من المفضلة؟ سيتم إغلاق التبويب، ويمكنك إضافته مجددًا بالنجمة الخاصة بالوحدة.",
+  "@confirmRemoveFavorite": { "placeholders": { "module": { "type": "String" } } },
   "alerts": "تنبيهات",
   "alertsSubtitle": "نقاط مهمة يجب التحقق منها اليوم",
   "expiringSoonProducts": "منتجات تنتهي صلاحيتها خلال {days} يومًا",

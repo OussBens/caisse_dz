@@ -73,7 +73,7 @@ Future<void> MagasinDetail(BuildContext context, Magasin magasin) async {
                   value: "${NumberFormatUtil.formatMontant(stats.valeurStock)} ${l10n.currency}",
                   icon: Icons.payments_outlined,
                 ),
-                StatsItem(label: l10n.totalCaisses, value: stats.caisses, icon: Icons.point_of_sale),
+                StatsItem(label: l10n.users, value: stats.utilisateurs, icon: Icons.people_outline),
                 StatsItem(label: l10n.transfers, value: stats.transferts, icon: Icons.swap_horiz),
               ],
             ),

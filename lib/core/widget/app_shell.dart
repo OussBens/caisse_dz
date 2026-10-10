@@ -7,6 +7,8 @@ import '../locale/locale_provider.dart';
 import '../../l10n/app_localizations.dart';
 import '../Auth/auth_state.dart';
 import '../dialog/alertes/alerte_dialog.dart';
+import '../dialog/confirmation_dialog.dart';
+import '../dialog/dialog_kind.dart';
 import '../dialog/caisse_session/caisse_fermee_dialog.dart';
 import '../../Services/CaisseGestion.dart';
 import '../../Services/CaisseSession.dart';
@@ -82,7 +84,7 @@ class _AppShellState extends State<AppShell> {
     // ✅ Même règle de résolution de la "caisse courante" qu'ailleurs dans
     // l'app (cf. caisse_screen.dart _LoadAllData) : un non-Admin est
     // verrouillé sur sa caisse attachée, un Admin par défaut sur la première.
-    final caisseAttachee = auth.role != "Admin" && auth.userCaisseCode != null
+    final caisseAttachee = !auth.estAdmin && auth.userCaisseCode != null
         ? caisses.where((c) => c.code == auth.userCaisseCode).firstOrNull
         : null;
     final caisseActuelle = caisseAttachee ?? caisses.first;
@@ -253,8 +255,7 @@ class _BarreFavoris extends StatelessWidget {
                   texte: m['text'] as String,
                   actif: m['route'] == routeCourante,
                   onOuvrir: () => context.go(m['route'] as String),
-                  onRetirer: () => Provider.of<AuthState>(context, listen: false)
-                      .basculerFavori(m['route'] as String),
+                  onRetirer: () => _confirmerRetrait(context, m['route'] as String, m['text'] as String),
                 ),
               ),
           ],
@@ -262,6 +263,20 @@ class _BarreFavoris extends StatelessWidget {
       ),
     );
   }
+}
+
+/// Croix d'un onglet favori : demande confirmation avant de retirer le
+/// module des favoris (l'onglet disparaît de la barre).
+Future<void> _confirmerRetrait(BuildContext context, String route, String nomModule) async {
+  final l10n = AppLocalizations.of(context);
+  final auth = Provider.of<AuthState>(context, listen: false);
+  final confirme = await ConfirmationDialog(
+    context: context,
+    titre: l10n.removeFromFavorites,
+    message: l10n.confirmRemoveFavorite(nomModule),
+    kind: DialogKind.attention,
+  );
+  if (confirme == true) await auth.basculerFavori(route);
 }
 
 class _OngletFavori extends StatelessWidget {

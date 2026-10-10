@@ -117,7 +117,7 @@ Future<void> UtilisateurModif(BuildContext context, Utilisateur user) async {
   }
 
   // ✅ L'utilisateur Admin ne peut pas être modifié.
-  if (user.role.trim().toLowerCase() == 'admin') {
+  if (RoleServices.estRoleAdmin(user.role)) {
     await InformationDialog(
       context: context,
       titre_type_message: l10n.modificationImpossible,

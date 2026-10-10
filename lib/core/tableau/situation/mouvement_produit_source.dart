@@ -22,6 +22,9 @@ class LigneMouvementProduit {
   final double qttMouvement;
   final double qttApres;
   final bool etat;
+  // Nom du magasin du mouvement (multi-magasin) : une vente répartie sur
+  // deux magasins donne deux lignes, une par magasin servi.
+  final String magasin;
 
   const LigneMouvementProduit({
     required this.numero,
@@ -32,6 +35,7 @@ class LigneMouvementProduit {
     required this.qttMouvement,
     required this.qttApres,
     required this.etat,
+    this.magasin = '',
   });
 
   LigneMouvementProduit copyWith({int? numero}) {
@@ -44,6 +48,7 @@ class LigneMouvementProduit {
       qttMouvement: qttMouvement,
       qttApres: qttApres,
       etat: etat,
+      magasin: magasin,
     );
   }
 }
@@ -76,6 +81,8 @@ class MouvementProduitDataSource extends BaseTableDataSource<LigneMouvementProdu
         return l.nomProduit;
       case 'motif':
         return l.motif;
+      case 'magasin':
+        return l.magasin;
       case 'qttInitiale':
         return l.qttInitiale;
       case 'qttMouvement':

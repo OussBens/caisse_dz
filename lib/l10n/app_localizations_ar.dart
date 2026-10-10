@@ -4861,6 +4861,11 @@ class AppLocalizationsAr extends AppLocalizations {
       '7 مفضلات كحد أقصى: احذف واحدة قبل إضافة أخرى.';
 
   @override
+  String confirmRemoveFavorite(String module) {
+    return 'إزالة «$module» من المفضلة؟ سيتم إغلاق التبويب، ويمكنك إضافته مجددًا بالنجمة الخاصة بالوحدة.';
+  }
+
+  @override
   String get alerts => 'تنبيهات';
 
   @override

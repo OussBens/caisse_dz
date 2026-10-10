@@ -300,7 +300,7 @@ Future<void> _TransfertMagasinDialog(BuildContext context, {TransfertMagasin? ex
 
   final userName = auth.username!;
   final userCode = auth.userCode!;
-  final bool peutChoisirMagasin = auth.role == "Admin";
+  final bool peutChoisirMagasin = auth.estAdmin;
 
   // Un transfert annulé ne se modifie plus.
   if (existant != null && !existant.etat) {

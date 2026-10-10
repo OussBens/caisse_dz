@@ -107,6 +107,14 @@ class _MagasinScreenState extends State<MagasinScreen> with SingleTickerProvider
     super.dispose();
   }
 
+  /// Après création / modification / (dés)activation d'un magasin : les
+  /// magasins de travail de l'utilisateur (un Admin a tous les magasins
+  /// actifs) sont rechargés, puis l'écran.
+  Future<void> _apresChangementMagasins() async {
+    await Provider.of<AuthState>(context, listen: false).chargerMagasins();
+    await loadAllData();
+  }
+
   Future<void> loadAllData() async {
     setState(() => isLoading = true);
 
@@ -559,7 +567,7 @@ class _MagasinScreenState extends State<MagasinScreen> with SingleTickerProvider
                                           );
                                         } else {
                                           await AnnulerMagasin(context, magasinsSelectionnes);
-                                          await loadAllData();
+                                          await _apresChangementMagasins();
                                         }
                                       },
                                     ),
@@ -583,7 +591,7 @@ class _MagasinScreenState extends State<MagasinScreen> with SingleTickerProvider
                                             );
                                           } else {
                                             await MagasinModif(context, m);
-                                            await loadAllData();
+                                            await _apresChangementMagasins();
                                           }
                                         } else if (magasinsSelectionnes.isEmpty) {
                                           await InformationDialog(
@@ -608,7 +616,7 @@ class _MagasinScreenState extends State<MagasinScreen> with SingleTickerProvider
                                       color: Appstyle.crevete,
                                       onPressed: () async {
                                         await MagasinNouveau(context);
-                                        await loadAllData();
+                                        await _apresChangementMagasins();
                                       },
                                     ),
                                   ],

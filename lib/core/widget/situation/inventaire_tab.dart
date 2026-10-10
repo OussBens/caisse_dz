@@ -1,4 +1,5 @@
 import 'package:caisse_dz/Services/Categorie.dart';
+import 'package:caisse_dz/core/Auth/auth_state.dart';
 import 'package:caisse_dz/Services/export_spinner.dart';
 import 'package:caisse_dz/Services/ExcelPreviewDialog.dart';
 import 'package:caisse_dz/Services/PDFPreviewDialog.dart';
@@ -23,6 +24,7 @@ import 'package:caisse_dz/l10n/app_localizations.dart';
 import 'package:collection/collection.dart';
 import 'package:excel/excel.dart' hide Border;
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import 'package:caisse_dz/core/utilis/number_format.dart';
 
 /// Situation "Inventaire" : valorisation du stock actuel (quantité, valeur
@@ -41,8 +43,9 @@ class _InventaireTabState extends State<InventaireTab> {
   List<Categorie> categories = [];
   Map<String, double> prixMoyenAchatParProduit = {};
   Map<String, double> prixMoyenVenteParProduit = {};
-  // Quantité par produit calculée depuis le journal des mouvements — voir
-  // produit_screen.dart pour le même mécanisme. Remplace Produit.quantite.
+  // Quantité par produit calculée depuis le journal des mouvements, sommée
+  // sur les magasins consultables par l'utilisateur — voir produit_screen
+  // .dart pour le même mécanisme. Remplace Produit.quantite.
   Map<String, double> quantitesParProduit = {};
 
   String? selectedCategorie;
@@ -59,11 +62,12 @@ class _InventaireTabState extends State<InventaireTab> {
   }
 
   Future<void> _loadData() async {
+    final magasinsConsultation = Provider.of<AuthState>(context, listen: false).magasinsConsultation;
     produits = await ProduitServices.getAllProduits();
     categories = await CategorieServices.getAllCategorie();
     prixMoyenAchatParProduit = await ProduitServices.getPrixMoyenAchatParProduit();
     prixMoyenVenteParProduit = await ProduitServices.getPrixMoyenVenteParProduit();
-    quantitesParProduit = (await MouvementsServices.totauxParProduit()).quantites;
+    quantitesParProduit = await MouvementsServices.quantitesConsultables(magasinsConsultation);
 
     if (!mounted) return;
     setState(() => loading = false);

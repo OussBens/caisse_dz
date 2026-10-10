@@ -119,6 +119,7 @@ class _SortieScreenState extends State<SortieScreen> with TickerProviderStateMix
   CompteursGlobaux compteursGlobaux = const CompteursGlobaux();
 
   Future<void> loadAllData() async {
+    final magasinsConsultation = Provider.of<AuthState>(context, listen: false).magasinsConsultation;
     final test = await ProduitServices.getAllProduits();
 
     final produits  = await ProduitServices .getAllProduits();
@@ -132,7 +133,7 @@ class _SortieScreenState extends State<SortieScreen> with TickerProviderStateMix
     final retours = await RetourServices.getAllRetour();
     final utilisateurs = await UtilisateurServices.getAllUtilisateurs();
 
-    final compteurs = await StatistiquesGlobalesServices.getCompteurs();
+    final compteurs = await StatistiquesGlobalesServices.getCompteurs(magasinsConsultation: magasinsConsultation);
     if (!mounted) return;
     setState(() {
       compteursGlobaux = compteurs;

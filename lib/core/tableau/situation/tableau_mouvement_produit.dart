@@ -34,6 +34,7 @@ class _TableauMouvementProduitState extends State<TableauMouvementProduit> {
       'date': {'visible': true, 'label': 'date', 'field': 'date'},
       'nomProduit': {'visible': true, 'label': 'product', 'field': 'nomProduit'},
       'motif': {'visible': true, 'label': 'motifMouvement', 'field': 'motif'},
+      'magasin': {'visible': true, 'label': 'magasin', 'field': 'magasin'},
       'qttInitiale': {'visible': true, 'label': 'initialQuantity', 'field': 'qttInitiale'},
       'qttMouvement': {'visible': true, 'label': 'movementQuantity', 'field': 'qttMouvement'},
       'qttApres': {'visible': true, 'label': 'quantityAfterMovement', 'field': 'qttApres'},
@@ -198,6 +199,7 @@ class _TableauMouvementProduitState extends State<TableauMouvementProduit> {
       case 'date': return l10n.date;
       case 'product': return l10n.product;
       case 'motifMouvement': return l10n.motifMouvement;
+      case 'magasin': return l10n.magasin;
       case 'initialQuantity': return l10n.initialQuantity;
       case 'movementQuantity': return l10n.movementQuantity;
       case 'quantityAfterMovement': return l10n.quantityAfterMovement;
