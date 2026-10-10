@@ -31,10 +31,10 @@ class AfficheurProduitExpire extends StatelessWidget {
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(14),
+        borderRadius: BorderRadius.circular(Appstyle.radiusButton),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.05),
+            color: Appstyle.shadowTint.withOpacity(0.05),
             blurRadius: 10,
             offset: const Offset(0, 5),
           ),
@@ -45,8 +45,8 @@ class AfficheurProduitExpire extends StatelessWidget {
           Padding(
             padding: const EdgeInsets.only(right: 12),
             child: CircleAvatar(
-              backgroundColor: Colors.redAccent.withOpacity(0.15),
-              child: const Icon(Icons.event_busy, color: Colors.redAccent),
+              backgroundColor: Appstyle.danger.withOpacity(0.15),
+              child: const Icon(Icons.event_busy, color: Appstyle.danger),
             ),
           ),
           Expanded(
@@ -84,7 +84,7 @@ class AfficheurProduitExpire extends StatelessWidget {
             style: ElevatedButton.styleFrom(
               backgroundColor: Appstyle.violet,
               padding: const EdgeInsets.symmetric(horizontal: 22, vertical: 14),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(Appstyle.radiusMD)),
             ),
             child: Text(
               l10n.details,
@@ -104,7 +104,7 @@ class AfficheurProduitExpire extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(label, style: const TextStyle(fontSize: 11, color: Colors.grey)),
+        Text(label, style: const TextStyle(fontSize: 11, color: Appstyle.gris)),
         Text(
           value,
           style: const TextStyle(fontWeight: FontWeight.bold),

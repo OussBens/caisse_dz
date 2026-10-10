@@ -117,8 +117,8 @@ class SortieDataSource extends BaseTableDataSource<Sortie> {
         child: Container(
           padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
           decoration: BoxDecoration(
-            color: Colors.blue[300],
-            borderRadius: BorderRadius.circular(8),
+            color: Appstyle.info,
+            borderRadius: BorderRadius.circular(Appstyle.radiusSM),
           ),
           child: Text(
             "${item.montant} ${l10n.currency}",

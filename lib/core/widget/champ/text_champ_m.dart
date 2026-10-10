@@ -25,8 +25,8 @@ class TextChampM extends StatelessWidget {
       alignment: Alignment.center, // ✅ centre verticalement
       decoration: BoxDecoration(
         color: enabled ? Appstyle.grischamp : Appstyle.grisC,
-        borderRadius: BorderRadius.circular(10), // optionnel
-        border: Border.all(color: Colors.grey.shade300, width: 1),
+        borderRadius: BorderRadius.circular(Appstyle.radiusMD), // optionnel
+        border: Border.all(color: Appstyle.neutral200, width: 1),
       ),
       child: TextField(
         controller: controller,

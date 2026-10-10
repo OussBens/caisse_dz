@@ -721,7 +721,7 @@ Future<void> EntreeNouveau(
                                     ),
                                   ),
                                   IconButton(
-                                    icon: const Icon(Icons.delete, color: Colors.red),
+                                    icon: const Icon(Icons.delete, color: Appstyle.danger),
                                     onPressed: repartitionsE.length > 1
                                         ? () => setState(() => repartitionsE.remove(rep))
                                         : null,
@@ -747,7 +747,7 @@ Future<void> EntreeNouveau(
                                 final ok = _quantitesEquivalentes(totalReparti, quantiteTotale);
                                 return Text(
                                   "${l10n.total}: ${totalReparti.toStringAsFixed(0)} / ${quantiteTotale.toStringAsFixed(0)}",
-                                  style: Appstyle.textSB.copyWith(color: ok ? Appstyle.green : Colors.red),
+                                  style: Appstyle.textSB.copyWith(color: ok ? Appstyle.green : Appstyle.danger),
                                 );
                               }),
                             ],

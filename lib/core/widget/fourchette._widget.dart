@@ -34,7 +34,7 @@ class FourchettePrixWidget extends StatelessWidget {
         padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 10),
         decoration: BoxDecoration(
           color: hasValue ? couleur.withOpacity(.15) : Colors.white,
-          borderRadius: BorderRadius.circular(10),
+          borderRadius: BorderRadius.circular(Appstyle.radiusMD),
           border: Border.all(color: couleur, width: 1),
         ),
         child: Row(

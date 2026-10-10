@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:caisse_dz/core/theme/app_style.dart';
 
 
 class SectionDecorationFiltre extends StatelessWidget {
@@ -24,14 +25,14 @@ class SectionDecorationFiltre extends StatelessWidget {
       padding: padding,
       decoration: BoxDecoration(
         color: color.withOpacity(0.8),
-        borderRadius: BorderRadius.circular(14),
+        borderRadius: BorderRadius.circular(Appstyle.radiusButton),
         border: Border.all(
           color: color.withOpacity(0.25),
           width: 0.2,
         ),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.04),
+            color: Appstyle.shadowTint.withOpacity(0.04),
             blurRadius: 6,
             offset: const Offset(0, 2),
           ),

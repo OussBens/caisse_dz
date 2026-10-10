@@ -86,7 +86,7 @@ Future<bool> DistributionProduit(BuildContext context, Produit produit) async {
                 padding: const EdgeInsets.all(10),
                 decoration: BoxDecoration(
                   color: couleur.withOpacity(0.08),
-                  borderRadius: BorderRadius.circular(10),
+                  borderRadius: BorderRadius.circular(Appstyle.radiusMD),
                   border: Border.all(color: couleur.withOpacity(0.25)),
                 ),
                 child: Column(
@@ -130,7 +130,7 @@ Future<bool> DistributionProduit(BuildContext context, Produit produit) async {
                         padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                         decoration: BoxDecoration(
                           color: coches.contains(m.code) ? Colors.white : Appstyle.grischamp,
-                          borderRadius: BorderRadius.circular(10),
+                          borderRadius: BorderRadius.circular(Appstyle.radiusMD),
                           border: Border.all(color: coches.contains(m.code) ? Appstyle.violet.withOpacity(0.35) : Appstyle.grisC),
                         ),
                         child: Row(
@@ -171,7 +171,7 @@ Future<bool> DistributionProduit(BuildContext context, Produit produit) async {
                                 decoration: InputDecoration(
                                   isDense: true,
                                   suffixText: produit.uniteMesure,
-                                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+                                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(Appstyle.radiusSM)),
                                 ),
                                 onChanged: (_) => setState(() {}),
                               ),

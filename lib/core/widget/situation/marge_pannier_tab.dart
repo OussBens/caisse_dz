@@ -252,7 +252,7 @@ class _MargeParPannierTabState extends State<MargeParPannierTab> {
           onSave: () {
             Navigator.pop(context);
             ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(content: Text(l10n.exportSuccess), backgroundColor: Colors.green),
+              SnackBar(content: Text(l10n.exportSuccess), backgroundColor: Appstyle.success),
             );
           },
           onShare: () => Navigator.pop(context),
@@ -262,7 +262,7 @@ class _MargeParPannierTabState extends State<MargeParPannierTab> {
     } catch (e) {
       fermerSpinner();
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('${l10n.exportError}: $e'), backgroundColor: Colors.red),
+        SnackBar(content: Text('${l10n.exportError}: $e'), backgroundColor: Appstyle.danger),
       );
     }
   }
@@ -326,7 +326,7 @@ class _MargeParPannierTabState extends State<MargeParPannierTab> {
           if (!mounted) return;
           Navigator.pop(context);
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text(l10n.exportSuccess), backgroundColor: Colors.green),
+            SnackBar(content: Text(l10n.exportSuccess), backgroundColor: Appstyle.success),
           );
           await PDFGeneratorLatin.openPDF(file);
         },
@@ -354,7 +354,7 @@ class _MargeParPannierTabState extends State<MargeParPannierTab> {
       return Container(
         width: double.infinity,
         height: 300,
-        decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(18)),
+        decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(Appstyle.radiusCard)),
         child: Center(
           child: Text(
             "Aucune caisse configurée",
@@ -388,7 +388,7 @@ class _MargeParPannierTabState extends State<MargeParPannierTab> {
                   if (filtresActifs) ...[
                     const SizedBox(width: 8),
                     MainIconButton(
-                      color: Colors.grey.shade400,
+                      color: Appstyle.neutral300,
                       imagePath: 'assets/icons/action/supprimer_icon.png',
                       onPressed: () => setState(() => _supprimerFiltre()),
                     ),
@@ -399,8 +399,8 @@ class _MargeParPannierTabState extends State<MargeParPannierTab> {
                 children: [
                   MainButton(
                     text: l10n.extract,
-                    textColor: Colors.green,
-                    iconColor: Colors.green,
+                    textColor: Appstyle.success,
+                    iconColor: Appstyle.success,
                     color: Appstyle.Tblanc,
                     icon: Icons.download,
                     onPressed: () async => await _exportExcel(l10n),
@@ -409,14 +409,14 @@ class _MargeParPannierTabState extends State<MargeParPannierTab> {
                   // Extract filtre : Excel des seules lignes cochées.
                   MainIconButton(
                     imagePath: "assets/icons/action/extacter_filtre_icon.png",
-                    color: Colors.orange,
+                    color: Appstyle.warning,
                     onPressed: () async => await _exportExcel(l10n, selectionSeulement: true),
                   ),
                   const SizedBox(width: 10),
                   MainButton(
                     text: l10n.extractPdf,
-                    textColor: Colors.red,
-                    iconColor: Colors.red,
+                    textColor: Appstyle.danger,
+                    iconColor: Appstyle.danger,
                     color: Appstyle.Tblanc,
                     icon: Icons.picture_as_pdf,
                     onPressed: () async => await _exportPdf(l10n),
@@ -442,8 +442,8 @@ class _MargeParPannierTabState extends State<MargeParPannierTab> {
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 12, offset: const Offset(0, 6))],
+        borderRadius: BorderRadius.circular(Appstyle.radiusLG),
+        boxShadow: [BoxShadow(color: Appstyle.shadowTint.withOpacity(0.05), blurRadius: 12, offset: const Offset(0, 6))],
       ),
       child: Row(
         children: [
@@ -451,7 +451,7 @@ class _MargeParPannierTabState extends State<MargeParPannierTab> {
           const SizedBox(width: 12),
           _statCard(l10n.date, _dateCtrl.text, Appstyle.indigo),
           const SizedBox(width: 12),
-          _statCard(l10n.totalAmount, "${NumberFormatUtil.formatMontant(_totalVendu, decimales: 2)} ${l10n.currency}", Colors.green),
+          _statCard(l10n.totalAmount, "${NumberFormatUtil.formatMontant(_totalVendu, decimales: 2)} ${l10n.currency}", Appstyle.success),
           const SizedBox(width: 12),
           _statCard(l10n.net, "${NumberFormatUtil.formatMontant(_totalNet, decimales: 2)} ${l10n.currency}", Appstyle.crevete),
           const SizedBox(width: 12),
@@ -465,7 +465,7 @@ class _MargeParPannierTabState extends State<MargeParPannierTab> {
     return Expanded(
       child: Container(
         padding: const EdgeInsets.all(12),
-        decoration: BoxDecoration(color: color.withOpacity(0.08), borderRadius: BorderRadius.circular(12)),
+        decoration: BoxDecoration(color: color.withOpacity(0.08), borderRadius: BorderRadius.circular(Appstyle.radiusMD)),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -577,7 +577,7 @@ class _MargeParPannierTabState extends State<MargeParPannierTab> {
       return Container(
         decoration: BoxDecoration(
           border: Border.all(color: Appstyle.violet.withOpacity(0.3)),
-          borderRadius: BorderRadius.circular(10),
+          borderRadius: BorderRadius.circular(Appstyle.radiusMD),
         ),
         padding: const EdgeInsets.all(40),
         child: Center(

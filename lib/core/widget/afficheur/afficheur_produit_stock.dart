@@ -28,10 +28,10 @@ class AfficheurProduitMouvement extends StatelessWidget {
       padding: const EdgeInsets.all(8),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(18),
+        borderRadius: BorderRadius.circular(Appstyle.radiusCard),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.05),
+            color: Appstyle.shadowTint.withOpacity(0.05),
             blurRadius: 12,
             offset: const Offset(0, 6),
           ),
@@ -72,7 +72,7 @@ class AfficheurProduitMouvement extends StatelessWidget {
                     const SizedBox(height: 4),
                     Text(
                       "${l10n.code} : ${produit.code}",
-                      style: Appstyle.textSB.copyWith(color: Colors.grey),
+                      style: Appstyle.textSB.copyWith(color: Appstyle.gris),
                       overflow: TextOverflow.ellipsis,
                     ),
                   ],
@@ -88,7 +88,7 @@ class AfficheurProduitMouvement extends StatelessWidget {
                     final stock = snapshot.data ?? 0;
                     return Row(
                       children: [
-                        _stat(l10n.actualStock, stock.toString(), Colors.blue, l10n),
+                        _stat(l10n.actualStock, stock.toString(), Appstyle.info, l10n),
                       ],
                     );
                   },
@@ -107,7 +107,7 @@ class AfficheurProduitMouvement extends StatelessWidget {
                     vertical: 14,
                   ),
                   shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
+                    borderRadius: BorderRadius.circular(Appstyle.radiusMD),
                   ),
                 ),
                 child: Text(
@@ -133,18 +133,18 @@ class AfficheurProduitMouvement extends StatelessWidget {
                     _statFixed(
                       l10n.lastPurchaseQuantity,
                       NumberFormatUtil.formatMontant(stats.quantiteDernierAchat, decimales: 0),
-                      Colors.indigo,
+                      Appstyle.primary,
                     ),
                     _statFixed(
                       l10n.lastPurchaseDate,
                       stats.dateDernierAchat != null ? _formatDate(stats.dateDernierAchat!) : "-",
-                      Colors.indigo,
+                      Appstyle.primary,
                     ),
-                    _statFixed(l10n.totalAchat, NumberFormatUtil.formatMontant(stats.totalAchat, decimales: 0), Colors.purple),
-                    _statFixed(l10n.totalSold, NumberFormatUtil.formatMontant(stats.totalVendu, decimales: 0), Colors.teal),
-                    _statFixed(l10n.clientReturns, NumberFormatUtil.formatMontant(stats.totalRetourClient, decimales: 0), Colors.redAccent),
-                    _statFixed(l10n.supplierReturns, NumberFormatUtil.formatMontant(stats.totalRetourFournisseur, decimales: 0), Colors.brown),
-                    _statFixed(l10n.need, stats.besoin ? l10n.yes : l10n.no, stats.besoin ? Colors.red : Colors.green),
+                    _statFixed(l10n.totalAchat, NumberFormatUtil.formatMontant(stats.totalAchat, decimales: 0), Appstyle.primary),
+                    _statFixed(l10n.totalSold, NumberFormatUtil.formatMontant(stats.totalVendu, decimales: 0), Appstyle.successInk),
+                    _statFixed(l10n.clientReturns, NumberFormatUtil.formatMontant(stats.totalRetourClient, decimales: 0), Appstyle.danger),
+                    _statFixed(l10n.supplierReturns, NumberFormatUtil.formatMontant(stats.totalRetourFournisseur, decimales: 0), Appstyle.warningInk),
+                    _statFixed(l10n.need, stats.besoin ? l10n.yes : l10n.no, stats.besoin ? Appstyle.danger : Appstyle.success),
                     _statFixed(l10n.needStatus, stats.besoinStatus, Appstyle.blueF),
                   ],
                 );
@@ -160,18 +160,18 @@ class AfficheurProduitMouvement extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
       decoration: BoxDecoration(
-        color: Colors.orange.withOpacity(0.15),
-        borderRadius: BorderRadius.circular(20),
+        color: Appstyle.warning.withOpacity(0.15),
+        borderRadius: BorderRadius.circular(Appstyle.radiusCard),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          const Icon(Icons.local_offer, size: 12, color: Colors.orange),
+          const Icon(Icons.local_offer, size: 12, color: Appstyle.warning),
           const SizedBox(width: 4),
           Text(
             l10n.discount,
             style: const TextStyle(
-              color: Colors.orange,
+              color: Appstyle.warning,
               fontSize: 10,
               fontWeight: FontWeight.bold,
             ),
@@ -194,7 +194,7 @@ class AfficheurProduitMouvement extends StatelessWidget {
         height: 50,
         decoration: BoxDecoration(
           color: couleur.withOpacity(0.1),
-          borderRadius: BorderRadius.circular(12),
+          borderRadius: BorderRadius.circular(Appstyle.radiusMD),
         ),
         child: Icon(
           Icons.inventory_2,
@@ -209,7 +209,7 @@ class AfficheurProduitMouvement extends StatelessWidget {
       builder: (context, snapshot) {
         if (snapshot.hasData && snapshot.data != null) {
           return ClipRRect(
-            borderRadius: BorderRadius.circular(12),
+            borderRadius: BorderRadius.circular(Appstyle.radiusMD),
             child: Image.file(
               snapshot.data!,
               width: 50,
@@ -223,13 +223,13 @@ class AfficheurProduitMouvement extends StatelessWidget {
           width: 50,
           height: 50,
           decoration: BoxDecoration(
-            color: Colors.grey[200],
-            borderRadius: BorderRadius.circular(12),
+            color: Appstyle.neutral150,
+            borderRadius: BorderRadius.circular(Appstyle.radiusMD),
           ),
           child: const Icon(
             Icons.broken_image,
             size: 30,
-            color: Colors.grey,
+            color: Appstyle.gris,
           ),
         );
       },
@@ -243,7 +243,7 @@ class AfficheurProduitMouvement extends StatelessWidget {
       padding: const EdgeInsets.all(10),
       decoration: BoxDecoration(
         color: color.withOpacity(0.08),
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(Appstyle.radiusMD),
       ),
       child: Column(
         children: [
@@ -271,7 +271,7 @@ class AfficheurProduitMouvement extends StatelessWidget {
         padding: const EdgeInsets.all(12),
         decoration: BoxDecoration(
           color: color.withOpacity(0.08),
-          borderRadius: BorderRadius.circular(12),
+          borderRadius: BorderRadius.circular(Appstyle.radiusMD),
         ),
         child: Column(
           children: [

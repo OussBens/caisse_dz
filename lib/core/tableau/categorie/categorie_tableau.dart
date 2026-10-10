@@ -119,10 +119,10 @@ class _TableauCategorieAdvancedState extends State<TableauCategorieAdvanced> {
           child: Container(
             decoration: BoxDecoration(
               color: Colors.white,
-              borderRadius: BorderRadius.circular(18),
+              borderRadius: BorderRadius.circular(Appstyle.radiusCard),
               boxShadow: [
                 BoxShadow(
-                  color: Colors.black12,
+                  color: Appstyle.shadowSoft,
                   spreadRadius: 1,
                   blurRadius: 12,
                   offset: const Offset(0, 4),
@@ -131,7 +131,7 @@ class _TableauCategorieAdvancedState extends State<TableauCategorieAdvanced> {
             ),
             padding: const EdgeInsets.all(8),
             child: ClipRRect(
-              borderRadius: BorderRadius.circular(16),
+              borderRadius: BorderRadius.circular(Appstyle.radiusLG),
               child: LayoutBuilder(
                 builder: (context, constraints) {
                   return SingleChildScrollView(
@@ -144,7 +144,7 @@ class _TableauCategorieAdvancedState extends State<TableauCategorieAdvanced> {
                       child: SfDataGridTheme(
                         data: SfDataGridThemeData(
                           headerColor: Appstyle.violet.withOpacity(0.7),
-                          gridLineColor: Colors.grey.shade300,
+                          gridLineColor: Appstyle.neutral200,
                           gridLineStrokeWidth: 0.4,
                           sortIconColor: Appstyle.Tblanc,
                           filterIcon: Builder(builder: (context) => buildFilterIcon(context, dataSource)),
@@ -233,8 +233,8 @@ class _TableauCategorieAdvancedState extends State<TableauCategorieAdvanced> {
           padding: const EdgeInsets.symmetric(vertical: 6, horizontal: 12),
           decoration: BoxDecoration(
             color: Colors.white,
-            borderRadius: BorderRadius.circular(14),
-            boxShadow: const [BoxShadow(color: Colors.black12, blurRadius: 10)],
+            borderRadius: BorderRadius.circular(Appstyle.radiusButton),
+            boxShadow: const [BoxShadow(color: Appstyle.shadowSoft, blurRadius: 10)],
           ),
           child: Row(
             mainAxisAlignment: MainAxisAlignment.center,
@@ -303,7 +303,7 @@ class _TableauCategorieAdvancedState extends State<TableauCategorieAdvanced> {
           builder: (context, setDialog) {
             return AlertDialog(
               shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(16),
+                borderRadius: BorderRadius.circular(Appstyle.radiusLG),
               ),
               title: Text(l10n.showHideColumns),
 

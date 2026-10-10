@@ -179,7 +179,7 @@ class _CaisseScreenState extends State<CaisseScreen> {
   // gris si elle est sélectionnée mais hors délais.
   Color _remiseAfficheurColor() {
     if (caisseActive.remiseInfo == null) return Appstyle.Tblanc;
-    return caisseActive.remiseHorsPeriode ? Appstyle.gris : Colors.orange;
+    return caisseActive.remiseHorsPeriode ? Appstyle.gris : Appstyle.warning;
   }
 
   // Ajoutez cette méthode dans _CaisseScreenState
@@ -198,7 +198,7 @@ class _CaisseScreenState extends State<CaisseScreen> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(l10n.discountAppliedNamed(caisseActive.remiseInfo!.nom)),
-            backgroundColor: Colors.green,
+            backgroundColor: Appstyle.success,
             duration: const Duration(seconds: 2),
           ),
         );
@@ -481,7 +481,7 @@ class _CaisseScreenState extends State<CaisseScreen> {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(l10n.packAddedToCart(pack.nom, quantitePack > 1 ? ' x$quantitePack' : '')),
-        backgroundColor: Colors.green,
+        backgroundColor: Appstyle.success,
         duration: const Duration(seconds: 2),
       ),
     );
@@ -532,7 +532,7 @@ class _CaisseScreenState extends State<CaisseScreen> {
                     margin: const EdgeInsets.symmetric(vertical: 8, horizontal: 12),
                     elevation: 2,
                     shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
+                      borderRadius: BorderRadius.circular(Appstyle.radiusMD),
                     ),
                     child: ListTile(
                       leading: CircleAvatar(
@@ -600,7 +600,7 @@ class _CaisseScreenState extends State<CaisseScreen> {
                             style: ElevatedButton.styleFrom(
                               backgroundColor: Appstyle.violet,
                               shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(8),
+                                borderRadius: BorderRadius.circular(Appstyle.radiusSM),
                               ),
                             ),
                             child: Text(
@@ -1151,7 +1151,7 @@ class _CaisseScreenState extends State<CaisseScreen> {
           padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
           decoration: BoxDecoration(
             color: isActive ? Appstyle.violet : Appstyle.grisC,
-            borderRadius: BorderRadius.circular(20),
+            borderRadius: BorderRadius.circular(Appstyle.radiusCard),
             boxShadow: isActive
                 ? [BoxShadow(color: Appstyle.violet.withOpacity(0.4), blurRadius: 12)]
                 : [],
@@ -1964,8 +1964,8 @@ class _CaisseScreenState extends State<CaisseScreen> {
                                           child: Container(
                                             padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
                                             decoration: BoxDecoration(
-                                              color: selectedCaisse == i ? Appstyle.indigo : Colors.grey[300],
-                                              borderRadius: BorderRadius.circular(20),
+                                              color: selectedCaisse == i ? Appstyle.indigo : Appstyle.neutral200,
+                                              borderRadius: BorderRadius.circular(Appstyle.radiusCard),
                                               boxShadow: selectedCaisse == i
                                                   ? [BoxShadow(color: Appstyle.indigo.withOpacity(0.4), blurRadius: 12)]
                                                   : [],
@@ -2009,7 +2009,7 @@ class _CaisseScreenState extends State<CaisseScreen> {
                                           padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 6),
                                           decoration: BoxDecoration(
                                             color: Appstyle.violet,
-                                            borderRadius: BorderRadius.circular(20),
+                                            borderRadius: BorderRadius.circular(Appstyle.radiusCard),
                                             boxShadow: [BoxShadow(color: Appstyle.violet.withOpacity(0.4), blurRadius: 12)],
                                           ),
                                           child: const Icon(Icons.add, color: Colors.white),
@@ -2020,7 +2020,7 @@ class _CaisseScreenState extends State<CaisseScreen> {
                                   SizedBox(height: paddingV / 4),
                                   Container(
                                     padding: const EdgeInsets.all(0),
-                                    decoration: BoxDecoration(borderRadius: BorderRadius.circular(20)),
+                                    decoration: BoxDecoration(borderRadius: BorderRadius.circular(Appstyle.radiusCard)),
                                     child: Column(
                                       children: [
                                         Row(
@@ -2293,8 +2293,8 @@ class _CaisseScreenState extends State<CaisseScreen> {
                                                       : l10n.ouvrirCaisse,
                                                   child: MainIconButton(
                                                     color: sessionOuverteActuelle != null
-                                                        ? Colors.red
-                                                        : Colors.green,
+                                                        ? Appstyle.danger
+                                                        : Appstyle.success,
                                                     imagePath: "assets/icons/sidebar/caisse_icon.png",
                                                     onPressed: () async {
                                                       final caisseGestion = CaisseTest
@@ -2472,7 +2472,7 @@ class _CaisseScreenState extends State<CaisseScreen> {
                                                               child: Container(
                                                                 padding: EdgeInsets.all(8),
                                                                 decoration: BoxDecoration(
-                                                                  borderRadius: BorderRadius.circular(18),
+                                                                  borderRadius: BorderRadius.circular(Appstyle.radiusCard),
                                                                   gradient: LinearGradient(
                                                                     begin: Alignment.topLeft,
                                                                     end: Alignment.bottomRight,
@@ -2749,13 +2749,13 @@ Widget _panierVideWidget(double height, AppLocalizations l10n) {
         Image.asset("assets/icons/sidebar/pannier_icon.png",
           width: 72,
           height: 72,
-          color: Colors.grey.shade400,
+          color: Appstyle.neutral300,
         ),
         const SizedBox(height: 12),
         Text(
           l10n.emptyCart,
           style: Appstyle.textM.copyWith(
-            color: Colors.grey.shade500,
+            color: Appstyle.neutral500,
             fontWeight: FontWeight.w600,
           ),
         ),
@@ -2763,7 +2763,7 @@ Widget _panierVideWidget(double height, AppLocalizations l10n) {
         Text(
           l10n.addProductsToStart,
           style: Appstyle.textS.copyWith(
-            color: Colors.grey.shade400,
+            color: Appstyle.neutral300,
             fontStyle: FontStyle.italic,
           ),
         ),
@@ -2842,7 +2842,7 @@ class _AnimatedSwitchButtonState extends State<AnimatedSwitchButton> {
           height: 34,
           decoration: BoxDecoration(
             color: Appstyle.violet,
-            borderRadius: BorderRadius.circular(10),
+            borderRadius: BorderRadius.circular(Appstyle.radiusMD),
             boxShadow: hover
                 ? [
               BoxShadow(
@@ -2877,14 +2877,14 @@ class _AnimatedSwitchButtonState extends State<AnimatedSwitchButton> {
 BoxDecoration sectionDecoration(Color color) {
   return BoxDecoration(
     color: color.withOpacity(0.8),
-    borderRadius: BorderRadius.circular(14),
+    borderRadius: BorderRadius.circular(Appstyle.radiusButton),
     border: Border.all(
       color: color.withOpacity(0.25),
       width: 0.2,
     ),
     boxShadow: [
       BoxShadow(
-        color: Colors.black.withOpacity(0.04),
+        color: Appstyle.shadowTint.withOpacity(0.04),
         offset: Offset(0, 2),
         blurRadius: 6,
       ),
@@ -2925,7 +2925,7 @@ class _AnimatedCalcSwitchButtonState extends State<AnimatedCalcSwitchButton> {
           height: 34,
           decoration: BoxDecoration(
             color: Appstyle.violet,
-            borderRadius: BorderRadius.circular(10),
+            borderRadius: BorderRadius.circular(Appstyle.radiusMD),
             boxShadow: hover
                 ? [
               BoxShadow(

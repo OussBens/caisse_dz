@@ -12,6 +12,7 @@ import 'package:open_file/open_file.dart';
 import 'package:caisse_dz/data/models/caisse.dart';
 import 'package:caisse_dz/data/models/client.dart';
 import 'package:caisse_dz/core/utilis/number_format.dart';
+import 'package:caisse_dz/core/theme/app_style.dart';
 
 class PDFGeneratorArabic {
   static const PdfColor primaryColor = PdfColor(0.2, 0.4, 0.6);
@@ -325,7 +326,7 @@ class PDFGeneratorArabic {
       padding: const pw.EdgeInsets.all(16),
       decoration: pw.BoxDecoration(
         border: pw.Border.all(color: borderColor),
-        borderRadius: pw.BorderRadius.circular(8),
+        borderRadius: pw.BorderRadius.circular(Appstyle.radiusSM),
       ),
       child: pw.Column(
         crossAxisAlignment: pw.CrossAxisAlignment.end,
@@ -353,7 +354,7 @@ class PDFGeneratorArabic {
       padding: const pw.EdgeInsets.all(12),
       decoration: pw.BoxDecoration(
         color: lightGray,
-        borderRadius: pw.BorderRadius.circular(8),
+        borderRadius: pw.BorderRadius.circular(Appstyle.radiusSM),
       ),
       child: pw.Text(
         "تم الدفع: ${NumberFormatUtil.formatMontant(verse, decimales: 2)} $currency | المتبقي: ${NumberFormatUtil.formatMontant(reste, decimales: 2)} $currency",

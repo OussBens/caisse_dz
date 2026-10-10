@@ -60,10 +60,10 @@ class _TimeDateWidgetState extends State<TimeDateWidget> {
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(Appstyle.radiusMD),
         boxShadow: [
           BoxShadow(
-            color: Colors.black12,
+            color: Appstyle.shadowSoft,
             blurRadius: 4,
             offset: const Offset(0, 2),
           )

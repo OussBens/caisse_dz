@@ -25,10 +25,10 @@ class AfficheurCategorie extends StatelessWidget {
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(Appstyle.radiusLG),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.05),
+            color: Appstyle.shadowTint.withOpacity(0.05),
             blurRadius: 12,
             offset: const Offset(0, 6),
           ),
@@ -72,7 +72,7 @@ class AfficheurCategorie extends StatelessWidget {
                   const SizedBox(height: 4),
                   Text(
                     "${l10n.code} : ${categorie.code}",  // 🔥 Translated
-                    style: TextStyle(color: Colors.grey.shade700),
+                    style: TextStyle(color: Appstyle.ink500),
                   ),
                 ],
                 if (categorie.observation != null) ...[
@@ -81,7 +81,7 @@ class AfficheurCategorie extends StatelessWidget {
                     categorie.observation!,
                     maxLines: 2,
                     overflow: TextOverflow.ellipsis,
-                    style: TextStyle(color: Colors.grey.shade600),
+                    style: TextStyle(color: Appstyle.neutral500),
                   ),
                 ],
               ],
@@ -132,7 +132,7 @@ class AfficheurCategorie extends StatelessWidget {
                 vertical: 14,
               ),
               shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12),
+                borderRadius: BorderRadius.circular(Appstyle.radiusMD),
               ),
             ),
             child: Text(
@@ -149,14 +149,14 @@ class AfficheurCategorie extends StatelessWidget {
   Widget _etatBadge(AppLocalizations l10n) {  // 🔥 Accept l10n parameter
     final bool actif = categorie.etat;
 
-    final Color color = actif ? Colors.green : Colors.red;
+    final Color color = actif ? Appstyle.success : Appstyle.danger;
     final String label = actif ? l10n.active : l10n.inactive;  // 🔥 Translated
 
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
       decoration: BoxDecoration(
         color: color.withOpacity(0.15),
-        borderRadius: BorderRadius.circular(20),
+        borderRadius: BorderRadius.circular(Appstyle.radiusCard),
       ),
       child: Text(
         label,
@@ -181,7 +181,7 @@ class AfficheurCategorie extends StatelessWidget {
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
         color: color.withOpacity(0.08),
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(Appstyle.radiusMD),
       ),
       child: Column(
         children: [
@@ -207,7 +207,7 @@ class AfficheurCategorie extends StatelessWidget {
       padding: const EdgeInsets.only(bottom: 6),
       child: Row(
         children: [
-          Icon(icon, size: 16, color: Colors.grey),
+          Icon(icon, size: 16, color: Appstyle.gris),
           const SizedBox(width: 6),
           Expanded(
             child: Text(

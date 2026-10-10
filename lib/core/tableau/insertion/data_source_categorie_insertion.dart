@@ -3,6 +3,7 @@ import 'package:syncfusion_flutter_datagrid/datagrid.dart';
 import '../../../../data/models/categorie.dart';
 import '../../../data/constant.dart';
 import '../../../l10n/app_localizations.dart';
+import 'package:caisse_dz/core/theme/app_style.dart';
 
 class CategorieInsertionDataSource extends DataGridSource {
   List<Categorie> categories;
@@ -55,7 +56,7 @@ class CategorieInsertionDataSource extends DataGridSource {
           return Center(
             child: Checkbox(
               value: selectedIndex == rowIndex,
-              activeColor: Colors.deepPurple,
+              activeColor: Appstyle.primary,
               onChanged: (_) {
                 onSelectRow?.call(rowIndex);
               },

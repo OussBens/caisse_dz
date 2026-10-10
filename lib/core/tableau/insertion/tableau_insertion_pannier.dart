@@ -92,13 +92,13 @@ class _TableauPannierInsertionState extends State<TableauPannierInsertion> {
             padding: const EdgeInsets.all(8),
             decoration: BoxDecoration(
               color: Colors.white,
-              borderRadius: BorderRadius.circular(18),
+              borderRadius: BorderRadius.circular(Appstyle.radiusCard),
               boxShadow: const [
-                BoxShadow(color: Colors.black12, blurRadius: 12)
+                BoxShadow(color: Appstyle.shadowSoft, blurRadius: 12)
               ],
             ),
             child: ClipRRect(
-              borderRadius: BorderRadius.circular(16),
+              borderRadius: BorderRadius.circular(Appstyle.radiusLG),
               child: SfDataGridTheme(
                 data: SfDataGridThemeData(
                   headerColor: Appstyle.violet.withOpacity(0.7),
@@ -180,8 +180,8 @@ class _TableauPannierInsertionState extends State<TableauPannierInsertion> {
       padding: const EdgeInsets.symmetric(vertical: 4, horizontal: 10),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(14),
-        boxShadow: const [BoxShadow(color: Colors.black12, blurRadius: 10)],
+        borderRadius: BorderRadius.circular(Appstyle.radiusButton),
+        boxShadow: const [BoxShadow(color: Appstyle.shadowSoft, blurRadius: 10)],
       ),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.center,

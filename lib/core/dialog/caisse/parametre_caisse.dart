@@ -196,7 +196,7 @@ Future<void> ParametreCaisseDialog({
                       const SizedBox(height: 10),
                       Text(
                         erreur!,
-                        style: Appstyle.textS.copyWith(color: Colors.red),
+                        style: Appstyle.textS.copyWith(color: Appstyle.danger),
                       ),
                     ],
                   ],

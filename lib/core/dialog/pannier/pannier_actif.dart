@@ -190,7 +190,7 @@ Future<void> AnnulerPannier(
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(AppLocalizations.of(context)!.loginRequired),
-        backgroundColor: Colors.red,
+        backgroundColor: Appstyle.danger,
         duration: const Duration(seconds: 3),
       ),
     );
@@ -202,7 +202,7 @@ Future<void> AnnulerPannier(
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(AppLocalizations.of(context)!.noPermissionAction),
-        backgroundColor: Colors.red,
+        backgroundColor: Appstyle.danger,
         duration: const Duration(seconds: 3),
       ),
     );
@@ -267,7 +267,7 @@ Future<void> AnnulerPannier(
                               padding: const EdgeInsets.all(8),
                               decoration: BoxDecoration(
                                 color: Appstyle.grisC.withOpacity(0.2),
-                                borderRadius: BorderRadius.circular(8),
+                                borderRadius: BorderRadius.circular(Appstyle.radiusSM),
                               ),
                               child: Text(
                                 "${l10n.cartId(p.code)} - ${l10n.client}: ${nomClient(p.client_code)} - ${l10n.totalAmount}: ${NumberFormatUtil.formatMontant(p.montant, decimales: 2)} ${l10n.currency}",
@@ -314,7 +314,7 @@ Future<void> AnnulerPannier(
                           ScaffoldMessenger.of(context).showSnackBar(
                             SnackBar(
                               content: Text(l10n.cancellationReason),
-                              backgroundColor: Colors.red,
+                              backgroundColor: Appstyle.danger,
                               duration: const Duration(seconds: 3),
                             ),
                           );

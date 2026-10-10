@@ -3,6 +3,7 @@ import 'dart:io';
 
 import 'package:caisse_dz/l10n/app_localizations.dart';
 import 'package:flutter/material.dart';
+import 'package:caisse_dz/core/theme/app_style.dart';
 
 /// Témoin de connexion internet (vert = connecté, rouge = déconnecté).
 /// Vérifie périodiquement l'accès réseau via une résolution DNS,
@@ -56,7 +57,7 @@ class _InternetStatusWidgetState extends State<InternetStatusWidget> {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
-    final color = _isConnected ? Colors.green : Colors.red;
+    final color = _isConnected ? Appstyle.success : Appstyle.danger;
 
     return Tooltip(
       message: _isConnected ? l10n.internetConnected : l10n.internetDisconnected,
@@ -67,7 +68,7 @@ class _InternetStatusWidgetState extends State<InternetStatusWidget> {
           shape: BoxShape.circle,
           boxShadow: [
             BoxShadow(
-              color: Colors.black12,
+              color: Appstyle.shadowSoft,
               blurRadius: 4,
               offset: const Offset(0, 2),
             ),

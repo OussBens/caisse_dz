@@ -172,7 +172,7 @@ Future<void> AnnulerProduit(
                               padding: const EdgeInsets.all(8),
                               decoration: BoxDecoration(
                                 color: Appstyle.grisC.withOpacity(0.2),
-                                borderRadius: BorderRadius.circular(8),
+                                borderRadius: BorderRadius.circular(Appstyle.radiusSM),
                               ),
                               child: Row(
                                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -273,7 +273,7 @@ Future<void> AnnulerProduit(
           children: [
             Text(
               l10n.cannotDeleteWithMovements,
-              style: Appstyle.textSB.copyWith(color: Colors.red),
+              style: Appstyle.textSB.copyWith(color: Appstyle.danger),
             ),
             const SizedBox(height: 15),
             Expanded(
@@ -286,12 +286,12 @@ Future<void> AnnulerProduit(
                       margin: const EdgeInsets.symmetric(vertical: 4),
                       padding: const EdgeInsets.all(8),
                       decoration: BoxDecoration(
-                        color: Colors.red.withOpacity(0.1),
-                        borderRadius: BorderRadius.circular(8),
+                        color: Appstyle.danger.withOpacity(0.1),
+                        borderRadius: BorderRadius.circular(Appstyle.radiusSM),
                       ),
                       child: Text(
                         p,
-                        style: Appstyle.textSB.copyWith(color: Colors.red),
+                        style: Appstyle.textSB.copyWith(color: Appstyle.danger),
                       ),
                     );
                   }).toList(),

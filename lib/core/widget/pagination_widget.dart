@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:caisse_dz/core/theme/app_style.dart';
 
 class PaginationWidget extends StatelessWidget {
   final int currentPage;
@@ -43,7 +44,7 @@ class PaginationWidget extends StatelessWidget {
             borderRadius: BorderRadius.circular(40),
             boxShadow: [
               BoxShadow(
-                color: Colors.black.withOpacity(0.06),
+                color: Appstyle.shadowTint.withOpacity(0.06),
                 blurRadius: 6,
                 offset: const Offset(0, 3),
               ),
@@ -69,7 +70,7 @@ class PaginationWidget extends StatelessWidget {
         height: 30,
         alignment: Alignment.center,
         decoration: BoxDecoration(
-          color: isSelected ? const Color(0xFF6A4CE3) : Colors.transparent,
+          color: isSelected ? Appstyle.primary : Colors.transparent,
           shape: BoxShape.circle,
         ),
         child: Text(

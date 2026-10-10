@@ -368,9 +368,9 @@ Widget _buildPhotoSection(Produit produit, AppLocalizations l10n) {
     margin: const EdgeInsets.only(left: 16),
     padding: const EdgeInsets.all(16),
     decoration: BoxDecoration(
-      color: Colors.grey[50],
-      borderRadius: BorderRadius.circular(16),
-      border: Border.all(color: Colors.grey[200]!),
+      color: Appstyle.neutral100,
+      borderRadius: BorderRadius.circular(Appstyle.radiusLG),
+      border: Border.all(color: Appstyle.neutral150),
     ),
     child: Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -407,9 +407,9 @@ Widget _buildQrCodeSection(Produit produit, AppLocalizations l10n, String? bouti
     margin: const EdgeInsets.only(left: 16),
     padding: const EdgeInsets.all(16),
     decoration: BoxDecoration(
-      color: Colors.grey[50],
-      borderRadius: BorderRadius.circular(16),
-      border: Border.all(color: Colors.grey[200]!),
+      color: Appstyle.neutral100,
+      borderRadius: BorderRadius.circular(Appstyle.radiusLG),
+      border: Border.all(color: Appstyle.neutral150),
     ),
     child: Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -452,17 +452,17 @@ Widget _buildSinglePhoto(String photoName) {
             height: 300,
             width: double.infinity,
             decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(12),
+              borderRadius: BorderRadius.circular(Appstyle.radiusMD),
               boxShadow: [
                 BoxShadow(
-                  color: Colors.black.withOpacity(0.1),
+                  color: Appstyle.shadowTint.withOpacity(0.1),
                   blurRadius: 4,
                   offset: const Offset(0, 2),
                 ),
               ],
             ),
             child: ClipRRect(
-              borderRadius: BorderRadius.circular(12),
+              borderRadius: BorderRadius.circular(Appstyle.radiusMD),
               child: Image.file(
                 snapshot.data!,
                 fit: BoxFit.cover,
@@ -478,12 +478,12 @@ Widget _buildSinglePhoto(String photoName) {
         height: 300,
         width: double.infinity,
         decoration: BoxDecoration(
-          color: Colors.grey[200],
-          borderRadius: BorderRadius.circular(12),
+          color: Appstyle.neutral150,
+          borderRadius: BorderRadius.circular(Appstyle.radiusMD),
         ),
         child: Center(
           child: snapshot.hasError
-              ? Icon(Icons.broken_image, color: Colors.grey[400], size: 48)
+              ? Icon(Icons.broken_image, color: Appstyle.neutral300, size: 48)
               : const CircularProgressIndicator(strokeWidth: 2),
         ),
       );
@@ -497,8 +497,8 @@ Widget _buildEmptyPhotosWidget(AppLocalizations l10n) {
     height: 300,
     decoration: BoxDecoration(
       color: Colors.white,
-      borderRadius: BorderRadius.circular(12),
-      border: Border.all(color: Colors.grey[200]!),
+      borderRadius: BorderRadius.circular(Appstyle.radiusMD),
+      border: Border.all(color: Appstyle.neutral150),
     ),
     child: Center(
       child: Column(
@@ -507,13 +507,13 @@ Widget _buildEmptyPhotosWidget(AppLocalizations l10n) {
           Icon(
             Icons.image_not_supported,
             size: 64,
-            color: Colors.grey[400],
+            color: Appstyle.neutral300,
           ),
           const SizedBox(height: 16),
           Text(
             l10n.noPhotos,
             style: TextStyle(
-              color: Colors.grey[600],
+              color: Appstyle.neutral500,
               fontSize: 14,
             ),
           ),

@@ -4,6 +4,7 @@ import '../../../../data/models/fournisseur.dart';
 import '../../../l10n/app_localizations.dart';
 import '../../widget/status_badge.dart';
 import '../base_table_data_source.dart';
+import 'package:caisse_dz/core/theme/app_style.dart';
 
 class FournisseurDataSource extends BaseTableDataSource<Fournisseur> {
   final AppLocalizations l10n;
@@ -78,7 +79,7 @@ class FournisseurDataSource extends BaseTableDataSource<Fournisseur> {
       return Center(child: EtatBadge(isActive: item.etat));
     }
     if (columnName == 'nom') {
-      return boldCellWithIcon(item.nom, color: Colors.orange);
+      return boldCellWithIcon(item.nom, color: Appstyle.warning);
     }
 
     return null;

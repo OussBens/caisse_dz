@@ -72,7 +72,7 @@ Future<void> AnnulerClient(
                               padding: const EdgeInsets.all(8),
                               decoration: BoxDecoration(
                                 color: Appstyle.grisC.withOpacity(0.2),
-                                borderRadius: BorderRadius.circular(8),
+                                borderRadius: BorderRadius.circular(Appstyle.radiusSM),
                               ),
                               child: Text(
                                 "${l10n.clientNumber(c.id)} - ${l10n.name}: ${c.nom ?? '-'} - ${l10n.phone}: ${c.telephone ?? '-'}",

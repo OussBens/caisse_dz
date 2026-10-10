@@ -75,10 +75,10 @@ if (empty($_SESSION['admin'])) {
         error_log('[smartscan-admin] échec de connexion depuis ' . ($_SERVER['REMOTE_ADDR'] ?? '?'));
     }
     ?><!doctype html><html lang="fr"><head><meta charset="utf-8"><title>Smart Scan — Administration</title>
-    <style>body{font-family:Segoe UI,Arial;background:#F6F4FD;display:flex;justify-content:center;align-items:center;height:100vh;margin:0}
+    <style>body{font-family:Inter,"Segoe UI",system-ui,Arial;background:#F6F6FA;display:flex;justify-content:center;align-items:center;height:100vh;margin:0}
     form{background:#fff;padding:32px;border-radius:16px;box-shadow:0 4px 20px rgba(117,93,179,.15);width:320px}
-    h1{color:#755DB3;font-size:20px;margin:0 0 20px}input{width:100%;padding:10px;border:1px solid #CFCFCF;border-radius:10px;box-sizing:border-box}
-    button{margin-top:14px;width:100%;padding:10px;background:#755DB3;color:#fff;border:0;border-radius:10px;cursor:pointer}.err{color:#D24728;margin-top:10px}</style></head>
+    h1{color:#6A4CF0;font-size:20px;margin:0 0 20px}input{width:100%;padding:10px;border:1px solid #E7E5F0;border-radius:10px;box-sizing:border-box}
+    button{margin-top:14px;width:100%;padding:10px;background:#6A4CF0;color:#fff;border:0;border-radius:10px;cursor:pointer}.err{color:#E5395F;margin-top:10px}</style></head>
     <body><form method="post"><h1>Smart Scan — Administration</h1>
     <input type="password" name="mot_de_passe" placeholder="Mot de passe" autofocus required>
     <button>Se connecter</button><?php if ($erreur) echo '<div class="err">' . h($erreur) . '</div>'; ?></form></body></html><?php
@@ -122,7 +122,7 @@ try {
 // Erreur imprévue pendant l'affichage : message lisible au lieu d'une page blanche.
 set_exception_handler(function ($e) {
     error_log('[smartscan-admin] ' . get_class($e) . ': ' . $e->getMessage());
-    echo '<div style="margin:20px;padding:14px;background:#D24728;color:#fff;border-radius:10px;font-family:Segoe UI,Arial">'
+    echo '<div style="margin:20px;padding:14px;background:#E5395F;color:#fff;border-radius:10px;font-family:Inter,"Segoe UI",system-ui,Arial">'
         . 'Erreur : ' . h($e->getMessage()) . '</div>';
 });
 
@@ -191,16 +191,16 @@ $page = $_GET['page'] ?? 'clients';
 ?><!doctype html>
 <html lang="fr"><head><meta charset="utf-8"><title>Smart Scan — Administration</title>
 <style>
-body{font-family:Segoe UI,Arial;background:#F6F4FD;margin:0;color:#222}
+body{font-family:Inter,"Segoe UI",system-ui,Arial;background:#F6F6FA;margin:0;color:#1B1A2E}
 header{background:#fff;border-bottom:1px solid #e3def3;padding:12px 24px;display:flex;gap:18px;align-items:center}
-header b{color:#755DB3;font-size:18px;margin-right:12px}header a{color:#57315A;text-decoration:none}header a.on{font-weight:700;color:#755DB3}
+header b{color:#6A4CF0;font-size:18px;margin-right:12px}header a{color:#5638CC;text-decoration:none}header a.on{font-weight:700;color:#6A4CF0}
 main{padding:20px 24px}.carte{background:#fff;border-radius:14px;padding:16px;margin-bottom:16px;box-shadow:0 2px 8px rgba(117,93,179,.08)}
-table{border-collapse:collapse;width:100%;font-size:13px}th{background:#755DB3;color:#fff;text-align:left;padding:7px}td{padding:6px 7px;border-bottom:1px solid #eee}
-.pill{padding:2px 8px;border-radius:10px;font-size:12px;color:#fff}.vert{background:#52B8A5}.rouge{background:#D24728}.gris{background:#858585}.violet{background:#755DB3}.orange{background:#ECBB5F}
-.msg{background:#52B8A5;color:#fff;padding:10px 14px;border-radius:10px;margin-bottom:14px}
-input,select{padding:5px 7px;border:1px solid #CFCFCF;border-radius:8px}button{padding:5px 12px;background:#755DB3;color:#fff;border:0;border-radius:8px;cursor:pointer}
-button.sec{background:#858585}button.danger{background:#D24728}form.inline{display:inline}.grille{display:grid;grid-template-columns:repeat(4,1fr);gap:12px}
-.chiffre{font-size:26px;font-weight:700;color:#755DB3}.barre{height:8px;background:#eee;border-radius:4px;overflow:hidden}.barre div{height:100%;background:#755DB3}
+table{border-collapse:collapse;width:100%;font-size:13px}th{background:#6A4CF0;color:#fff;text-align:left;padding:7px}td{padding:6px 7px;border-bottom:1px solid #eee}
+.pill{padding:2px 8px;border-radius:10px;font-size:12px;color:#fff}.vert{background:#16A34A}.rouge{background:#E5395F}.gris{background:#8A889E}.violet{background:#6A4CF0}.orange{background:#E0A100}
+.msg{background:#16A34A;color:#fff;padding:10px 14px;border-radius:10px;margin-bottom:14px}
+input,select{padding:5px 7px;border:1px solid #E7E5F0;border-radius:8px}button{padding:5px 12px;background:#6A4CF0;color:#fff;border:0;border-radius:8px;cursor:pointer}
+button.sec{background:#8A889E}button.danger{background:#E5395F}form.inline{display:inline}.grille{display:grid;grid-template-columns:repeat(4,1fr);gap:12px}
+.chiffre{font-size:26px;font-weight:700;color:#6A4CF0}.barre{height:8px;background:#eee;border-radius:4px;overflow:hidden}.barre div{height:100%;background:#6A4CF0}
 </style></head><body>
 <header><b>Smart Scan</b>
 <a class="<?= $page === 'clients' ? 'on' : '' ?>" href="<?= lien(['page' => 'clients']) ?>">Clients</a>
@@ -236,7 +236,7 @@ button.sec{background:#858585}button.danger{background:#D24728}form.inline{displ
     foreach ($f['abonnements'] as $ab) if ($ab['statut'] === 'active') { $aboActif = $ab; break; }
     $payants = array_filter($service->forfaits(), function ($x) { return (int)$x['prix_da'] > 0 && (int)$x['actif'] === 1; });
 ?>
-<div class="carte"><h3 style="margin-top:0"><?= h($c['nom']) ?> <small style="color:#858585">#<?= (int)$c['id'] ?></small></h3>
+<div class="carte"><h3 style="margin-top:0"><?= h($c['nom']) ?> <small style="color:#8A889E">#<?= (int)$c['id'] ?></small></h3>
   <div class="grille">
     <div><div>Forfait</div><div class="chiffre" style="font-size:20px"><?= h($q['plan_nom']) ?></div></div>
     <div><div>Utilisés ce mois</div><div class="chiffre"><?= (int)$q['used'] ?> / <?= (int)$q['monthly_limit'] ?></div>
@@ -306,7 +306,7 @@ button.sec{background:#858585}button.danger{background:#D24728}form.inline{displ
 
 <?php elseif ($page === 'forfaits'): ?>
 <div class="carte"><h3 style="margin-top:0">Forfaits</h3>
-  <p style="color:#858585">Le forfait <b>STANDARD</b> est celui de tout client sans offre payante. Les prix et quotas sont lus par l'application depuis l'API : rien à modifier dans Caisse DZ.</p>
+  <p style="color:#8A889E">Le forfait <b>STANDARD</b> est celui de tout client sans offre payante. Les prix et quotas sont lus par l'application depuis l'API : rien à modifier dans Caisse DZ.</p>
   <table><tr><th>Code</th><th>Nom</th><th>Prix (DA)</th><th>Quota / mois</th><th>Durée (mois)</th><th>Actif</th><th></th></tr>
   <?php foreach (array_merge($service->forfaits(), [['code' => '', 'nom' => '', 'prix_da' => '', 'quota_mensuel' => '', 'duree_mois' => 12, 'actif' => 1]]) as $fo): ?>
     <tr><form method="post"><?= csrf() ?><input type="hidden" name="action" value="forfait">

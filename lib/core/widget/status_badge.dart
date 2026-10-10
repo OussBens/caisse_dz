@@ -12,21 +12,31 @@ class StatusBadge extends StatelessWidget {
     required this.color,
   });
 
+  // Badge du design system : pastille (pill) teinte « soft », point de la
+  // couleur du statut et libellé en teinte « ink » (lisible sur le fond).
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+      height: 24,
+      padding: const EdgeInsets.symmetric(horizontal: 10),
       decoration: BoxDecoration(
-        color: color,
-        borderRadius: BorderRadius.circular(20),
+        color: Appstyle.softPour(color),
+        borderRadius: BorderRadius.circular(Appstyle.radiusPill),
       ),
-      child: Text(
-        text,
-        style: const TextStyle(
-          color: Colors.white,
-          fontSize: 12,
-          fontWeight: FontWeight.w600,
-        ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Container(
+            width: 6,
+            height: 6,
+            decoration: BoxDecoration(color: color, shape: BoxShape.circle),
+          ),
+          const SizedBox(width: 6),
+          Text(
+            text,
+            style: Appstyle.textXSB.copyWith(fontSize: 11, color: Appstyle.inkPour(color)),
+          ),
+        ],
       ),
     );
   }

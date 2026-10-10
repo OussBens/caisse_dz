@@ -75,9 +75,9 @@ class TextChampL extends StatelessWidget {
 
         decoration: BoxDecoration(
           color: enabled ? color : colorEnabled,
-          borderRadius: BorderRadius.circular(10),
+          borderRadius: BorderRadius.circular(Appstyle.radiusMD),
           border: Border.all(
-            color: isFilled ? Appstyle.violet : Colors.grey.shade300,
+            color: isFilled ? Appstyle.violet : Appstyle.neutral200,
             width: isFilled ? 1.5 : 1,
           ),
         ),

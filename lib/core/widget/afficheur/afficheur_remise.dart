@@ -25,10 +25,10 @@ class AfficheurRemise extends StatelessWidget {
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(Appstyle.radiusLG),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.05),
+            color: Appstyle.shadowTint.withOpacity(0.05),
             blurRadius: 12,
             offset: const Offset(0, 6),
           ),
@@ -41,10 +41,10 @@ class AfficheurRemise extends StatelessWidget {
             children: [
               CircleAvatar(
                 radius: 24,
-                backgroundColor: Colors.green.withOpacity(0.15),
+                backgroundColor: Appstyle.success.withOpacity(0.15),
                 child: const Icon(
                   Icons.percent,
-                  color: Colors.green,
+                  color: Appstyle.success,
                   size: 24,
                 ),
               ),
@@ -70,7 +70,7 @@ class AfficheurRemise extends StatelessWidget {
                 ),
                 if (remise.code != null)
                   Text("${l10n.code} : ${remise.code}",
-                      style: TextStyle(color: Colors.grey.shade700)),
+                      style: TextStyle(color: Appstyle.ink500)),
                 const SizedBox(height: 4),
                 Text(
                   "${l10n.type} : ${remise.type}",
@@ -90,7 +90,7 @@ class AfficheurRemise extends StatelessWidget {
                   _statCard(
                     l10n.amount,
                     remise.montant?.toDouble() ?? 0,
-                    Colors.orange,
+                    Appstyle.warning,
                     suffix: " ${l10n.currency}",
                     l10n: l10n,
                   ),
@@ -110,7 +110,7 @@ class AfficheurRemise extends StatelessWidget {
                 _statCard(
                   l10n.reduction,
                   remise.taux,
-                  Colors.blue,
+                  Appstyle.info,
                   suffix: remise.tauxType == "Pourcentage" ? " %" : " ${l10n.currency}",
                   l10n: l10n,
                 ),
@@ -147,7 +147,7 @@ class AfficheurRemise extends StatelessWidget {
                   backgroundColor: Appstyle.violet,
                   padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 10),
                   shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
+                    borderRadius: BorderRadius.circular(Appstyle.radiusMD),
                   ),
                   minimumSize: const Size(120, 40),
                 ),
@@ -167,7 +167,7 @@ class AfficheurRemise extends StatelessWidget {
                     backgroundColor: Appstyle.crevete,
                     padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 10),
                     shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
+                      borderRadius: BorderRadius.circular(Appstyle.radiusMD),
                     ),
                     minimumSize: const Size(120, 40),
                   ),
@@ -192,13 +192,13 @@ class AfficheurRemise extends StatelessWidget {
 
   Widget _etatBadge(AppLocalizations l10n) {
     final bool actif = remise.etat;
-    final Color color = actif ? Colors.green : Colors.red;
+    final Color color = actif ? Appstyle.success : Appstyle.danger;
 
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
       decoration: BoxDecoration(
         color: color.withOpacity(0.15),
-        borderRadius: BorderRadius.circular(20),
+        borderRadius: BorderRadius.circular(Appstyle.radiusCard),
       ),
       child: Text(
         actif ? l10n.active : l10n.inactive,
@@ -223,7 +223,7 @@ class AfficheurRemise extends StatelessWidget {
       padding: const EdgeInsets.all(10),
       decoration: BoxDecoration(
         color: color.withOpacity(0.08),
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(Appstyle.radiusMD),
       ),
       child: Column(
         children: [
@@ -245,7 +245,7 @@ class AfficheurRemise extends StatelessWidget {
   Widget _infoLine(IconData icon, String text) {
     return Row(
       children: [
-        Icon(icon, size: 16, color: Colors.grey),
+        Icon(icon, size: 16, color: Appstyle.gris),
         const SizedBox(width: 6),
         Expanded(
           child: Text(

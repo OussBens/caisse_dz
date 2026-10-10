@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:caisse_dz/l10n/app_localizations.dart';
+import 'package:caisse_dz/core/theme/app_style.dart';
 
 class BaseDialog extends StatefulWidget {
   final Widget header;
@@ -17,7 +18,7 @@ class BaseDialog extends StatefulWidget {
     required this.footer,
     this.width = 500,
     this.height,
-    this.padding = const EdgeInsets.symmetric(horizontal: 20, vertical: 15),
+    this.padding = const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
     this.couleur = Colors.white,
   });
 
@@ -31,8 +32,11 @@ class _BaseDialogState extends State<BaseDialog> {
     return Dialog(
       insetPadding: const EdgeInsets.all(30),
       backgroundColor: widget.couleur,
+      surfaceTintColor: Colors.transparent,
+      // Dialog du design system : rayon 28, bordure surface-border.
       shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(14),
+        borderRadius: BorderRadius.circular(Appstyle.radiusDialog),
+        side: const BorderSide(color: Appstyle.surfaceBorder),
       ),
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 250),

@@ -123,7 +123,7 @@ Future<void> AnnulerRemise(BuildContext context, List<Remise> remisesSelectionne
                               padding: const EdgeInsets.all(8),
                               decoration: BoxDecoration(
                                 color: Appstyle.grisC.withOpacity(0.2),
-                                borderRadius: BorderRadius.circular(8),
+                                borderRadius: BorderRadius.circular(Appstyle.radiusSM),
                               ),
                               child: Text("${p.nom}", style: Appstyle.textSB.copyWith(color: Appstyle.Tnoir)),
                             ),

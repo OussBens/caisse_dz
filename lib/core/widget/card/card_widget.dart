@@ -92,13 +92,13 @@ class _CardWidgetState extends State<CardWidget> {
                     : Colors.white,
               ],
             ),
-            borderRadius: BorderRadius.circular(24),
+            borderRadius: BorderRadius.circular(Appstyle.radiusXL),
             border: Border.all(
               color: selected
                   ? Colors.white.withOpacity(0.6)
                   : isHovered
                   ? widget.couleur.withOpacity(0.5)
-                  : Colors.grey.shade300,
+                  : Appstyle.neutral200,
               width: selected ? 2.5 : 1.5,
             ),
             boxShadow: [
@@ -118,7 +118,7 @@ class _CardWidgetState extends State<CardWidget> {
                 ),
               if (!selected && !isHovered)
                 BoxShadow(
-                  color: Colors.black.withOpacity(0.08),
+                  color: Appstyle.shadowTint.withOpacity(0.08),
                   blurRadius: 10,
                   offset: const Offset(0, 3),
                 ),
@@ -131,7 +131,7 @@ class _CardWidgetState extends State<CardWidget> {
                 Positioned.fill(
                   child: Container(
                     decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(24),
+                      borderRadius: BorderRadius.circular(Appstyle.radiusXL),
                       gradient: LinearGradient(
                         begin: Alignment.topLeft,
                         end: Alignment.bottomRight,
@@ -153,7 +153,7 @@ class _CardWidgetState extends State<CardWidget> {
                     padding: const EdgeInsets.all(4),
                     decoration: BoxDecoration(
                       color: widget.couleur.withOpacity(0.15),
-                      borderRadius: BorderRadius.circular(8),
+                      borderRadius: BorderRadius.circular(Appstyle.radiusSM),
                     ),
                     child: Icon(
                       Icons.arrow_forward_ios,
@@ -173,7 +173,7 @@ class _CardWidgetState extends State<CardWidget> {
                     width: 12,
                     height: 12,
                     decoration: BoxDecoration(
-                      color: Colors.green,
+                      color: Appstyle.success,
                       shape: BoxShape.circle,
                       border: Border.all(
                         color: Colors.white.withOpacity(0.5),
@@ -203,7 +203,7 @@ class _CardWidgetState extends State<CardWidget> {
                               : isHovered
                               ? widget.couleur.withOpacity(0.15)
                               : Colors.transparent,
-                          borderRadius: BorderRadius.circular(14),
+                          borderRadius: BorderRadius.circular(Appstyle.radiusButton),
                           border: isHovered && !selected
                               ? Border.all(
                             color: widget.couleur.withOpacity(0.2),

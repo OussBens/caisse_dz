@@ -467,7 +467,7 @@ Widget _headerTableProduitsPack(AppLocalizations l10n) {
     padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 8),
     decoration: BoxDecoration(
       color: Appstyle.gris.withOpacity(0.08),
-      borderRadius: BorderRadius.circular(8),
+      borderRadius: BorderRadius.circular(Appstyle.radiusSM),
     ),
     child: Row(
       children: [
@@ -571,7 +571,7 @@ Widget _tableProduitsPackNouveau(void Function(VoidCallback fn) setState, AppLoc
               ),
             ),
             IconButton(
-              icon: const Icon(Icons.delete, color: Colors.red),
+              icon: const Icon(Icons.delete, color: Appstyle.danger),
               onPressed: () {
                 setState(() {
                   produitsPackDetails.removeAt(index);

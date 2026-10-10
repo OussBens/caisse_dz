@@ -116,7 +116,7 @@ Future<void> ClotureCaisseSessionDialog({
                           style: Appstyle.textSB.copyWith(
                             color: ecart == 0
                                 ? Appstyle.Tnoir
-                                : (ecart > 0 ? Colors.green : Colors.red),
+                                : (ecart > 0 ? Appstyle.success : Appstyle.danger),
                           ),
                         ),
                       ),

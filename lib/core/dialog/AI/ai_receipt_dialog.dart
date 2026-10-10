@@ -606,7 +606,7 @@ class _AISmartScanDialogState extends State<AISmartScanDialog> {
         if (matches.isEmpty)
           Text(
             'Aucun produit similaire trouvé',
-            style: TextStyle(color: Colors.grey.shade600, fontStyle: FontStyle.italic),
+            style: TextStyle(color: Appstyle.neutral500, fontStyle: FontStyle.italic),
           )
         else
           Wrap(
@@ -624,7 +624,7 @@ class _AISmartScanDialogState extends State<AISmartScanDialog> {
                       ? '${m.produit.nom} ($pct%)'
                       : '${m.produit.nom} ($sousTitre) $pct%',
                 ),
-                backgroundColor: Colors.blue.shade50,
+                backgroundColor: Appstyle.infoSoft,
                 onPressed: () => _updateProductMatch(index, m.produit.nom),
               );
             }).toList(),
@@ -780,7 +780,7 @@ class _AISmartScanDialogState extends State<AISmartScanDialog> {
             width: 400,
             margin: const EdgeInsets.all(16),
             decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(12),
+              borderRadius: BorderRadius.circular(Appstyle.radiusMD),
               image: DecorationImage(
                 image: FileImage(receiptImage!),
                 fit: BoxFit.cover,
@@ -820,11 +820,11 @@ class _AISmartScanDialogState extends State<AISmartScanDialog> {
             child: Container(
               margin: const EdgeInsets.all(16),
               decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(12),
+                borderRadius: BorderRadius.circular(Appstyle.radiusMD),
                 border: Border.all(color: Appstyle.violetC, width: 2),
               ),
               child: ClipRRect(
-                borderRadius: BorderRadius.circular(10),
+                borderRadius: BorderRadius.circular(Appstyle.radiusMD),
                 child: Image.file(
                   receiptImage!,
                   fit: BoxFit.contain,
@@ -845,7 +845,7 @@ class _AISmartScanDialogState extends State<AISmartScanDialog> {
                   padding: const EdgeInsets.all(12),
                   decoration: BoxDecoration(
                     color: Appstyle.violetC.withOpacity(0.1),
-                    borderRadius: BorderRadius.circular(12),
+                    borderRadius: BorderRadius.circular(Appstyle.radiusMD),
                   ),
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -880,7 +880,7 @@ class _AISmartScanDialogState extends State<AISmartScanDialog> {
                         text: 'Add Product Manually',
                         icon: Icons.add_circle,
                         onPressed: _showAddProductDialog,
-                        color: Colors.green,
+                        color: Appstyle.success,
                         width: 280,
                       ),
                     ],
@@ -917,12 +917,12 @@ class _AISmartScanDialogState extends State<AISmartScanDialog> {
                                 // le sélecteur produit standard (sélection
                                 // simple) en conservant la qté/prix scannés.
                                 IconButton(
-                                  icon: const Icon(Icons.search, color: Colors.blue, size: 20),
+                                  icon: const Icon(Icons.search, color: Appstyle.info, size: 20),
                                   tooltip: 'Rechercher un produit',
                                   onPressed: () => _ouvrirRechercheProduitPourItem(index),
                                 ),
                                 IconButton(
-                                  icon: const Icon(Icons.close, color: Colors.red, size: 20),
+                                  icon: const Icon(Icons.close, color: Appstyle.danger, size: 20),
                                   tooltip: 'Remove Item',
                                   onPressed: () => _removeItem(index),
                                 ),
@@ -935,19 +935,19 @@ class _AISmartScanDialogState extends State<AISmartScanDialog> {
                               Container(
                                 padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                                 decoration: BoxDecoration(
-                                  color: Colors.green.shade50,
-                                  borderRadius: BorderRadius.circular(8),
-                                  border: Border.all(color: Colors.green.shade200),
+                                  color: Appstyle.successSoft,
+                                  borderRadius: BorderRadius.circular(Appstyle.radiusSM),
+                                  border: Border.all(color: Appstyle.success),
                                 ),
                                 child: Row(
                                   children: [
-                                    Icon(Icons.check_circle, color: Colors.green.shade700, size: 16),
+                                    Icon(Icons.check_circle, color: Appstyle.successInk, size: 16),
                                     const SizedBox(width: 8),
                                     Expanded(
                                       child: Text(
                                         '${item.matchedProductCode} - ${item.matchedProductName}',
                                         style: TextStyle(
-                                          color: Colors.green.shade800,
+                                          color: Appstyle.successInk,
                                           fontWeight: FontWeight.w500,
                                         ),
                                       ),
@@ -1019,8 +1019,8 @@ class _AISmartScanDialogState extends State<AISmartScanDialog> {
               Container(
                 padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
-                  color: Colors.grey.shade100,
-                  border: Border(top: BorderSide(color: Colors.grey.shade300)),
+                  color: Appstyle.neutral100,
+                  border: Border(top: BorderSide(color: Appstyle.neutral200)),
                 ),
                 child: Column(
                   children: [
@@ -1186,7 +1186,7 @@ class _AISmartScanDialogState extends State<AISmartScanDialog> {
                             alignment: Alignment.centerRight,
                             child: Text(
                               'Remaining: ${NumberFormatUtil.formatMontant(remainingAmount, decimales: 2)} DZD',
-                              style: TextStyle(color: Colors.orange.shade700),
+                              style: TextStyle(color: Appstyle.warningInk),
                             ),
                           ),
                         ),
@@ -1203,7 +1203,7 @@ class _AISmartScanDialogState extends State<AISmartScanDialog> {
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
                 border: Border.all(color: Appstyle.violetC),
-                borderRadius: BorderRadius.circular(12),
+                borderRadius: BorderRadius.circular(Appstyle.radiusMD),
               ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -1257,7 +1257,7 @@ class _AISmartScanDialogState extends State<AISmartScanDialog> {
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
                 color: Appstyle.violetC.withOpacity(0.1),
-                borderRadius: BorderRadius.circular(12),
+                borderRadius: BorderRadius.circular(Appstyle.radiusMD),
               ),
               child: Column(
                 children: [
@@ -1638,14 +1638,14 @@ class _AISmartScanDialogState extends State<AISmartScanDialog> {
   void _showError(String message) {
     if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(message), backgroundColor: Colors.red),
+      SnackBar(content: Text(message), backgroundColor: Appstyle.danger),
     );
   }
 
   void _showSuccess(String message) {
     if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(message), backgroundColor: Colors.green),
+      SnackBar(content: Text(message), backgroundColor: Appstyle.success),
     );
   }
 }

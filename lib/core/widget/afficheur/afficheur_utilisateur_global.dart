@@ -99,7 +99,7 @@ class _AfficheurUtilisateurGlobalWidgetState extends State<AfficheurUtilisateurG
             ),
             _space(),
             _AnimatedStatCard(
-              color: Colors.green,
+              color: Appstyle.success,
               icon: Icons.emoji_events_outlined,
               title: "Top Vendeur",
               value: widget.montantTopVendeur ?? 0,
@@ -110,7 +110,7 @@ class _AfficheurUtilisateurGlobalWidgetState extends State<AfficheurUtilisateurG
             ),
             _space(),
             _AnimatedStatCard(
-              color: Colors.redAccent,
+              color: Appstyle.danger,
               icon: Icons.trending_down,
               title: "Vente Faible",
               value: widget.montantFaibleVendeur ?? 0,
@@ -160,7 +160,7 @@ class _AnimatedStatCard extends StatelessWidget {
           padding: const EdgeInsets.all(14),
           decoration: BoxDecoration(
             color: Colors.white,
-            borderRadius: BorderRadius.circular(18), // ✅ Réduit de 24 à 18
+            borderRadius: BorderRadius.circular(Appstyle.radiusCard), // ✅ Réduit de 24 à 18
             boxShadow: [
               BoxShadow(
                 color: color.withOpacity(0.1),
@@ -181,7 +181,7 @@ class _AnimatedStatCard extends StatelessWidget {
                 padding: const EdgeInsets.all(7),
                 decoration: BoxDecoration(
                   color: color.withOpacity(0.12),
-                  borderRadius: BorderRadius.circular(12), // ✅ Réduit de 16 à 12
+                  borderRadius: BorderRadius.circular(Appstyle.radiusMD), // ✅ Réduit de 16 à 12
                 ),
                 child: Icon(
                   icon,

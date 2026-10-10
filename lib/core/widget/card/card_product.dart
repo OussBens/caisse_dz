@@ -49,7 +49,7 @@ class CardProduct extends StatelessWidget {
     final bool isRupture = quantite <= 0;
 
     final Color backgroundColor = (quantite <= seuil && quantite > 0)
-        ? Colors.red.shade400
+        ? Appstyle.danger
         : selected
         ? Appstyle.Tblanc
         : Appstyle.Tnoir;
@@ -67,7 +67,7 @@ class CardProduct extends StatelessWidget {
                 color: selected
                     ? Appstyle.violet.withOpacity(0.3)
                     : couleur,
-                borderRadius: BorderRadius.circular(18),
+                borderRadius: BorderRadius.circular(Appstyle.radiusCard),
                 border: selected
                     ? Border.all(
                   color: Appstyle.violet,
@@ -79,7 +79,7 @@ class CardProduct extends StatelessWidget {
                 ),
                 boxShadow: [
                   BoxShadow(
-                    color: Colors.black.withOpacity(0.08),
+                    color: Appstyle.shadowTint.withOpacity(0.08),
                     blurRadius: 2,
                     offset: const Offset(0, 1),
                   ),
@@ -158,11 +158,11 @@ class CardProduct extends StatelessWidget {
                 child: Container(
                   padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
                   decoration: BoxDecoration(
-                    color: Colors.red,
-                    borderRadius: BorderRadius.circular(12),
+                    color: Appstyle.danger,
+                    borderRadius: BorderRadius.circular(Appstyle.radiusMD),
                     boxShadow: [
                       BoxShadow(
-                        color: Colors.black.withOpacity(0.2),
+                        color: Appstyle.shadowTint.withOpacity(0.2),
                         blurRadius: 4,
                         offset: const Offset(0, 2),
                       ),
@@ -186,8 +186,8 @@ class CardProduct extends StatelessWidget {
                 child: Container(
                   padding: const EdgeInsets.all(4),
                   decoration: BoxDecoration(
-                    color: Colors.amber,
-                    borderRadius: BorderRadius.circular(12),
+                    color: Appstyle.warning,
+                    borderRadius: BorderRadius.circular(Appstyle.radiusMD),
                   ),
                   child: Image.asset(
                     'assets/icons/cardwidget/remise_icon.png',
@@ -213,7 +213,7 @@ class CardProduct extends StatelessWidget {
         height: 70, // ✅ Augmenté de 50 à 70
         decoration: BoxDecoration(
           color: couleurPlaceholder.withOpacity(0.1),
-          borderRadius: BorderRadius.circular(12),
+          borderRadius: BorderRadius.circular(Appstyle.radiusMD),
         ),
         child: Icon(
           Icons.inventory_2,
@@ -228,7 +228,7 @@ class CardProduct extends StatelessWidget {
       builder: (context, snapshot) {
         if (snapshot.hasData && snapshot.data != null) {
           return ClipRRect(
-            borderRadius: BorderRadius.circular(12),
+            borderRadius: BorderRadius.circular(Appstyle.radiusMD),
             child: Image.file(
               snapshot.data!,
               width: 70,  // ✅ Augmenté de 50 à 70
@@ -242,13 +242,13 @@ class CardProduct extends StatelessWidget {
           width: 70,  // ✅ Augmenté de 50 à 70
           height: 70, // ✅ Augmenté de 50 à 70
           decoration: BoxDecoration(
-            color: Colors.grey[200],
-            borderRadius: BorderRadius.circular(12),
+            color: Appstyle.neutral150,
+            borderRadius: BorderRadius.circular(Appstyle.radiusMD),
           ),
           child: const Icon(
             Icons.broken_image,
             size: 40, // ✅ Augmenté de 30 à 40
-            color: Colors.grey,
+            color: Appstyle.gris,
           ),
         );
       },

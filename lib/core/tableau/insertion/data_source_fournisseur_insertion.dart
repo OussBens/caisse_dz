@@ -3,6 +3,7 @@ import 'package:syncfusion_flutter_datagrid/datagrid.dart';
 import '../../../../data/models/fournisseur.dart';
 import '../../../data/constant.dart';
 import '../../../l10n/app_localizations.dart';
+import 'package:caisse_dz/core/theme/app_style.dart';
 
 class FournisseurInsertionDataSource extends DataGridSource {
   List<Fournisseur> fournisseurs;
@@ -63,7 +64,7 @@ class FournisseurInsertionDataSource extends DataGridSource {
           return Center(
             child: Checkbox(
               value: selectedIndex == rowIndex,
-              activeColor: Colors.deepPurple,
+              activeColor: Appstyle.primary,
               onChanged: (_) {
                 onSelectRow?.call(rowIndex);
               },

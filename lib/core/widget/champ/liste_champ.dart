@@ -260,7 +260,7 @@ class _TextListeState extends State<TextListe> {
                             widget.onChanged("");
                             state.didChange("");
                           },
-                          borderRadius: BorderRadius.circular(20),
+                          borderRadius: BorderRadius.circular(Appstyle.radiusCard),
                           child: Padding(
                             padding: const EdgeInsets.all(4),
                             child: Icon(

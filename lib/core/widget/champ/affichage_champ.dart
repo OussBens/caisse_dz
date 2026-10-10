@@ -14,7 +14,7 @@ class AffichageChamp extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: 20,vertical: 8),
       decoration:  BoxDecoration(
         color: Appstyle.grischamp,
-        borderRadius:  BorderRadius.circular(14),
+        borderRadius:  BorderRadius.circular(Appstyle.radiusButton),
       ),
       child: Text(
         text,style: Appstyle.textXSB.copyWith(color: Appstyle.Tnoir),

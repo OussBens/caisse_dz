@@ -133,13 +133,13 @@ class RetourDataSource extends BaseTableDataSource<Retour> {
     if (columnName == 'client') {
       final nom = _nomClient(item.client_code);
       if (nom == null) return null;
-      return Center(child: pilluleCellule(nom, Colors.blue));
+      return Center(child: pilluleCellule(nom, Appstyle.info));
     }
 
     if (columnName == 'fournisseur') {
       final nom = _nomFournisseur(item.fournisseur_code);
       if (nom == null) return null;
-      return Center(child: pilluleCellule(nom, Colors.orange));
+      return Center(child: pilluleCellule(nom, Appstyle.warning));
     }
 
     if (columnName == 'type') {
@@ -150,13 +150,13 @@ class RetourDataSource extends BaseTableDataSource<Retour> {
       IconData icon;
 
       if (type == "Client") {
-        color = Colors.blue;
+        color = Appstyle.info;
         icon = Icons.person;
       } else if (type == "Fournisseur") {
-        color = Colors.orange;
+        color = Appstyle.warning;
         icon = Icons.store;
       } else {
-        color = Colors.grey;
+        color = Appstyle.gris;
         icon = Icons.help_outline;
       }
 
@@ -165,7 +165,7 @@ class RetourDataSource extends BaseTableDataSource<Retour> {
           padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
           decoration: BoxDecoration(
             color: color.withOpacity(0.15),
-            borderRadius: BorderRadius.circular(20),
+            borderRadius: BorderRadius.circular(Appstyle.radiusCard),
             border: Border.all(color: color),
           ),
           child: Row(

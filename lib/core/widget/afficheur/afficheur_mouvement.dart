@@ -30,10 +30,10 @@ class AfficheurMouvement extends StatelessWidget {
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(Appstyle.radiusLG),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.05),
+            color: Appstyle.shadowTint.withOpacity(0.05),
             blurRadius: 12,
             offset: const Offset(0, 6),
           ),
@@ -77,7 +77,7 @@ class AfficheurMouvement extends StatelessWidget {
                 const SizedBox(height: 4),
                 Text(
                   "${l10n.code} : ${mouvement.code}",
-                  style: TextStyle(color: Colors.grey.shade600),
+                  style: TextStyle(color: Appstyle.neutral500),
                 ),
                 const SizedBox(height: 4),
                 Text(
@@ -94,9 +94,9 @@ class AfficheurMouvement extends StatelessWidget {
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceEvenly,
               children: [
-                _stat(l10n.quantity, mouvement.quantite, Colors.blue, isMoney: false, l10n: l10n),
-                _stat(l10n.purchasePrice, mouvement.prixAchat, Colors.orange, l10n: l10n),
-                _stat(l10n.salePrice, mouvement.prixVente, Colors.green, l10n: l10n),
+                _stat(l10n.quantity, mouvement.quantite, Appstyle.info, isMoney: false, l10n: l10n),
+                _stat(l10n.purchasePrice, mouvement.prixAchat, Appstyle.warning, l10n: l10n),
+                _stat(l10n.salePrice, mouvement.prixVente, Appstyle.success, l10n: l10n),
               ],
             ),
           ),
@@ -135,7 +135,7 @@ class AfficheurMouvement extends StatelessWidget {
                 backgroundColor: Appstyle.violet,
                 padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
                 shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12),
+                  borderRadius: BorderRadius.circular(Appstyle.radiusMD),
                 ),
               ),
               child: Text(
@@ -166,11 +166,11 @@ class AfficheurMouvement extends StatelessWidget {
   Color _typeColor() {
     switch (mouvement.type) {
       case "SmartScan":
-        return Colors.deepPurple;
+        return Appstyle.primary;
       case "Vente":
-        return Colors.green;
+        return Appstyle.success;
       case "Retour":
-        return Colors.orange;
+        return Appstyle.warning;
       default:
         return Colors.blueGrey;
     }
@@ -190,13 +190,13 @@ class AfficheurMouvement extends StatelessWidget {
   }
 
   Widget _etatBadge(AppLocalizations l10n) {
-    Color color = mouvement.etat ? Colors.green : Colors.red;
+    Color color = mouvement.etat ? Appstyle.success : Appstyle.danger;
 
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
       decoration: BoxDecoration(
         color: color.withOpacity(0.15),
-        borderRadius: BorderRadius.circular(20),
+        borderRadius: BorderRadius.circular(Appstyle.radiusCard),
       ),
       child: Text(
         mouvement.etat ? l10n.valide : l10n.annule,
@@ -216,7 +216,7 @@ class AfficheurMouvement extends StatelessWidget {
       padding: const EdgeInsets.all(10),
       decoration: BoxDecoration(
         color: color.withOpacity(0.08),
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(Appstyle.radiusMD),
       ),
       child: Column(
         children: [
@@ -239,7 +239,7 @@ class AfficheurMouvement extends StatelessWidget {
       padding: const EdgeInsets.only(bottom: 6),
       child: Row(
         children: [
-          Icon(icon, size: 14, color: Colors.grey),
+          Icon(icon, size: 14, color: Appstyle.gris),
           const SizedBox(width: 6),
           Expanded(
             child: Text(

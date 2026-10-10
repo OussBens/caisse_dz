@@ -62,7 +62,7 @@ Future<void> PeriodeDashboardDialog({
                 decoration: BoxDecoration(
                   color: Colors.white,
                   border: Border.all(color: Appstyle.gris.withOpacity(0.4)),
-                  borderRadius: BorderRadius.circular(12),
+                  borderRadius: BorderRadius.circular(Appstyle.radiusMD),
                 ),
                 child: TextField(
                   readOnly: true,

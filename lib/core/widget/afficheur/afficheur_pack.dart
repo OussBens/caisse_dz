@@ -24,10 +24,10 @@ class AfficheurPack extends StatelessWidget {
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(Appstyle.radiusLG),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.05),
+            color: Appstyle.shadowTint.withOpacity(0.05),
             blurRadius: 12,
             offset: const Offset(0, 6),
           ),
@@ -40,10 +40,10 @@ class AfficheurPack extends StatelessWidget {
             children: [
               CircleAvatar(
                 radius: 24,
-                backgroundColor: Colors.deepPurple.withOpacity(0.15),
+                backgroundColor: Appstyle.primary.withOpacity(0.15),
                 child: const Icon(
                   Icons.all_inbox,
-                  color: Colors.deepPurple,
+                  color: Appstyle.primary,
                   size: 24,
                 ),
               ),
@@ -71,7 +71,7 @@ class AfficheurPack extends StatelessWidget {
                   const SizedBox(height: 4),
                   Text(
                     "${l10n.code} : ${pack.code}",
-                    style: TextStyle(color: Colors.grey.shade700),
+                    style: TextStyle(color: Appstyle.ink500),
                   ),
                 ],
                 if (pack.observation != null) ...[
@@ -80,7 +80,7 @@ class AfficheurPack extends StatelessWidget {
                     pack.observation!,
                     maxLines: 2,
                     overflow: TextOverflow.ellipsis,
-                    style: TextStyle(color: Colors.grey.shade600),
+                    style: TextStyle(color: Appstyle.neutral500),
                   ),
                 ],
               ],
@@ -96,7 +96,7 @@ class AfficheurPack extends StatelessWidget {
                 _statCard(
                   l10n.totalQuantity,
                   (pack.quantiteTotale ?? 0).toDouble(),
-                  Colors.orange,
+                  Appstyle.warning,
                   isMoney: false,
                   l10n: l10n,
                 ),
@@ -104,7 +104,7 @@ class AfficheurPack extends StatelessWidget {
                 _statCard(
                   l10n.price,
                   pack.prixVente ?? 0,
-                  Colors.green,
+                  Appstyle.success,
                   l10n: l10n,
                 ),
                 const SizedBox(width: 16),
@@ -153,7 +153,7 @@ class AfficheurPack extends StatelessWidget {
                   backgroundColor: Appstyle.violet,
                   padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 10),
                   shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
+                    borderRadius: BorderRadius.circular(Appstyle.radiusMD),
                   ),
                   minimumSize: const Size(120, 40),
                 ),
@@ -174,7 +174,7 @@ class AfficheurPack extends StatelessWidget {
                   backgroundColor: Appstyle.crevete,
                   padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 10),
                   shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
+                    borderRadius: BorderRadius.circular(Appstyle.radiusMD),
                   ),
                   minimumSize: const Size(120, 40),
                 ),
@@ -198,14 +198,14 @@ class AfficheurPack extends StatelessWidget {
   }
 
   Widget _etatBadge(AppLocalizations l10n) {
-    final Color color = pack.etat ? Colors.green : Colors.red;
+    final Color color = pack.etat ? Appstyle.success : Appstyle.danger;
     final String label = pack.etat ? l10n.active : l10n.inactive;
 
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
       decoration: BoxDecoration(
         color: color.withOpacity(0.15),
-        borderRadius: BorderRadius.circular(20),
+        borderRadius: BorderRadius.circular(Appstyle.radiusCard),
       ),
       child: Text(
         label.toUpperCase(),
@@ -230,7 +230,7 @@ class AfficheurPack extends StatelessWidget {
       padding: const EdgeInsets.all(10),
       decoration: BoxDecoration(
         color: color.withOpacity(0.08),
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(Appstyle.radiusMD),
       ),
       child: Column(
         children: [
@@ -256,7 +256,7 @@ class AfficheurPack extends StatelessWidget {
       padding: const EdgeInsets.only(bottom: 6),
       child: Row(
         children: [
-          Icon(icon, size: 16, color: Colors.grey),
+          Icon(icon, size: 16, color: Appstyle.gris),
           const SizedBox(width: 6),
           Expanded(
             child: Text(

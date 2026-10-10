@@ -115,11 +115,11 @@ class VerssementDataSource extends BaseTableDataSource<Verssement> {
 
       Color color;
       if (sense.toLowerCase() == 'entrant') {
-        color = Colors.green.shade300;
+        color = Appstyle.success;
       } else if (sense.toLowerCase() == 'sortant') {
-        color = Colors.red.shade300;
+        color = Appstyle.danger;
       } else {
-        color = Colors.grey.shade300;
+        color = Appstyle.neutral200;
       }
 
       return Center(
@@ -127,7 +127,7 @@ class VerssementDataSource extends BaseTableDataSource<Verssement> {
           padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
           decoration: BoxDecoration(
             color: color,
-            borderRadius: BorderRadius.circular(20),
+            borderRadius: BorderRadius.circular(Appstyle.radiusCard),
           ),
           child: Text(
             translatedSense,

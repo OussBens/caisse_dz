@@ -34,7 +34,7 @@ class StatsGrid extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
       decoration: BoxDecoration(
         color: item.backgroundColor ?? Colors.white.withOpacity(0.15),
-        borderRadius: BorderRadius.circular(8),
+        borderRadius: BorderRadius.circular(Appstyle.radiusSM),
         border: Border.all(
           color: Colors.white.withOpacity(0.1),
           width: 1,

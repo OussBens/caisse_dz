@@ -109,7 +109,7 @@ Future<void> ClotureCaisseNouveau(BuildContext context) async {
                         padding: const EdgeInsets.all(12),
                         decoration: BoxDecoration(
                           color: Appstyle.grisC.withOpacity(0.2),
-                          borderRadius: BorderRadius.circular(8),
+                          borderRadius: BorderRadius.circular(Appstyle.radiusSM),
                         ),
                         child: loadingPeriode
                             ? const Center(child: CircularProgressIndicator())

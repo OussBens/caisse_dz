@@ -103,7 +103,7 @@ class _AfficheurPaniersGlobalWidgetState extends State<AfficheurPaniersGlobalWid
             ),
             _space(),
             _AnimatedStatCard(
-              color: Colors.teal,
+              color: Appstyle.successInk,
               icon: Icons.bar_chart,
               title: l10n.averagePerCart,
               value: widget.moyenneParPanier,
@@ -156,7 +156,7 @@ class _AnimatedStatCard extends StatelessWidget {
           padding: const EdgeInsets.all(14),
           decoration: BoxDecoration(
             color: Colors.white,
-            borderRadius: BorderRadius.circular(18), // ✅ Réduit de 24 à 18
+            borderRadius: BorderRadius.circular(Appstyle.radiusCard), // ✅ Réduit de 24 à 18
             boxShadow: [
               BoxShadow(
                 color: color.withOpacity(0.1),
@@ -177,7 +177,7 @@ class _AnimatedStatCard extends StatelessWidget {
                 padding: const EdgeInsets.all(7),
                 decoration: BoxDecoration(
                   color: color.withOpacity(0.12),
-                  borderRadius: BorderRadius.circular(12), // ✅ Réduit de 16 à 12
+                  borderRadius: BorderRadius.circular(Appstyle.radiusMD), // ✅ Réduit de 16 à 12
                 ),
                 child: Icon(
                   icon,

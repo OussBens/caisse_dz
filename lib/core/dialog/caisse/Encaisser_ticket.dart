@@ -507,7 +507,7 @@ Future<void> EncaissementTicketDialog({
                           l10n.discount,
                           "${NumberFormatUtil.formatMontant(caisse.remise, decimales: 2)} ${l10n.currency}",
                           l10n,
-                          valueColor: Colors.green,
+                          valueColor: Appstyle.success,
                         ),
 
                       // ✅ TOTAL FINAL
@@ -516,7 +516,7 @@ Future<void> EncaissementTicketDialog({
                         "${NumberFormatUtil.formatMontant(caisse.total, decimales: 2)} ${l10n.currency}",
                         l10n,
                         valueColor: caisse.remiseActive && caisse.remise > 0
-                            ? Colors.green
+                            ? Appstyle.success
                             : Appstyle.violet,
                       ),
 
@@ -581,7 +581,7 @@ Future<void> EncaissementTicketDialog({
                           labelText: l10n.paid,
                           labelStyle: TextStyle(color: Appstyle.Tnoir),
                           border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(8),
+                            borderRadius: BorderRadius.circular(Appstyle.radiusSM),
                             borderSide: BorderSide(color: Appstyle.indigo),
                           ),
                           contentPadding:

@@ -84,7 +84,7 @@ Future<void> PannierDetail(BuildContext context, Pannier pannier) async {
                 const Spacer(),
 
                 if (hasRetour) ...[
-                  StatusBadge(text: l10n.hasReturn, color: Colors.orange),
+                  StatusBadge(text: l10n.hasReturn, color: Appstyle.warning),
                   const SizedBox(width: 8),
                 ],
                 Chip(
@@ -190,7 +190,7 @@ Future<void> PannierDetail(BuildContext context, Pannier pannier) async {
                 backgroundColor: Appstyle.crevete,
                 foregroundColor: Colors.white,
                 shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(10),
+                  borderRadius: BorderRadius.circular(Appstyle.radiusMD),
                 ),
               ),
               onPressed: () {
@@ -206,7 +206,7 @@ Future<void> PannierDetail(BuildContext context, Pannier pannier) async {
                 backgroundColor: Appstyle.violet,
                 foregroundColor: Colors.white,
                 shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(10),
+                  borderRadius: BorderRadius.circular(Appstyle.radiusMD),
                 ),
               ),
               onPressed: () => Navigator.pop(context),

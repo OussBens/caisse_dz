@@ -5,6 +5,7 @@ import '../../../data/constant.dart';
 import '../../../data/models/histore.dart';
 import '../../../l10n/app_localizations.dart';
 import '../base_table_data_source.dart';
+import 'package:caisse_dz/core/theme/app_style.dart';
 
 class HistoriqueDataSource extends BaseTableDataSource<Historique> {
   final AppLocalizations l10n;
@@ -110,19 +111,19 @@ class HistoriqueDataSource extends BaseTableDataSource<Historique> {
     Color badgeColor;
     switch (item.oper) {
       case 'insertion':
-        badgeColor = Colors.green;
+        badgeColor = Appstyle.success;
         break;
       case 'modification':
-        badgeColor = Colors.orange;
+        badgeColor = Appstyle.warning;
         break;
       case 'suppression':
-        badgeColor = Colors.red;
+        badgeColor = Appstyle.danger;
         break;
       case 'login':
-        badgeColor = Colors.blue;
+        badgeColor = Appstyle.info;
         break;
       case 'logout':
-        badgeColor = Colors.grey;
+        badgeColor = Appstyle.gris;
         break;
       default:
         badgeColor = Colors.black26;
@@ -133,7 +134,7 @@ class HistoriqueDataSource extends BaseTableDataSource<Historique> {
         padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
         decoration: BoxDecoration(
           color: badgeColor,
-          borderRadius: BorderRadius.circular(8),
+          borderRadius: BorderRadius.circular(Appstyle.radiusSM),
         ),
         child: Text(
           cell.value?.toString() ?? '',

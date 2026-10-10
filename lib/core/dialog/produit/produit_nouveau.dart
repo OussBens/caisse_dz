@@ -444,7 +444,7 @@ Widget _tabAvecIndicateur(String text, bool showErreur) {
             child: Container(
               width: 8,
               height: 8,
-              decoration: const BoxDecoration(color: Colors.red, shape: BoxShape.circle),
+              decoration: const BoxDecoration(color: Appstyle.danger, shape: BoxShape.circle),
             ),
           ),
       ],
@@ -759,7 +759,7 @@ Future<void> ProduitNouveau(
                         Container(
                           decoration: BoxDecoration(
                             color: Appstyle.grisC.withOpacity(0.2),
-                            borderRadius: BorderRadius.circular(10),
+                            borderRadius: BorderRadius.circular(Appstyle.radiusMD),
                           ),
                           padding: const EdgeInsets.all(5),
                           child: Row(
@@ -1037,7 +1037,7 @@ Widget _modePill({
       padding: const EdgeInsets.symmetric(horizontal: 25, vertical: 0),
       decoration: BoxDecoration(
         color: actif ? Appstyle.crevete : Colors.transparent,
-        borderRadius: BorderRadius.circular(8),
+        borderRadius: BorderRadius.circular(Appstyle.radiusSM),
       ),
       child: Padding(
         padding: const EdgeInsets.all(18.0),
@@ -1151,7 +1151,7 @@ Widget _aiExistingLocalCard(AppLocalizations l10n, Produit produit, double quant
     padding: const EdgeInsets.all(16),
     decoration: BoxDecoration(
       color: Appstyle.grisSC,
-      borderRadius: BorderRadius.circular(12),
+      borderRadius: BorderRadius.circular(Appstyle.radiusMD),
       border: Border.all(color: Appstyle.crevete.withOpacity(0.3)),
     ),
     child: Column(
@@ -1186,7 +1186,7 @@ Widget _aiResultCard(
     padding: const EdgeInsets.all(16),
     decoration: BoxDecoration(
       color: Appstyle.grisSC,
-      borderRadius: BorderRadius.circular(12),
+      borderRadius: BorderRadius.circular(Appstyle.radiusMD),
       border: Border.all(color: Appstyle.violet.withOpacity(0.3)),
     ),
     child: Row(
@@ -1194,7 +1194,7 @@ Widget _aiResultCard(
       children: [
         if (suggestion.photoUrl != null)
           ClipRRect(
-            borderRadius: BorderRadius.circular(10),
+            borderRadius: BorderRadius.circular(Appstyle.radiusMD),
             child: Image.network(
               suggestion.photoUrl!,
               width: 100,
@@ -1270,7 +1270,7 @@ Widget _buildFormRapide(
           padding: const EdgeInsets.symmetric(vertical: 15, horizontal: 10),
           decoration: BoxDecoration(
             color: Appstyle.Tblanc,
-            borderRadius: BorderRadius.circular(14),
+            borderRadius: BorderRadius.circular(Appstyle.radiusButton),
             border: Border.all(color: Appstyle.grisC, width: 1.5),
           ),
           child: Column(
@@ -1453,7 +1453,7 @@ Widget _buildFormRapide(
           padding: const EdgeInsets.symmetric(vertical: 15, horizontal: 10),
           decoration: BoxDecoration(
             color: Appstyle.Tblanc,
-            borderRadius: BorderRadius.circular(14),
+            borderRadius: BorderRadius.circular(Appstyle.radiusButton),
             border: Border.all(color: Appstyle.grisC, width: 1.5),
           ),
           child: Column(
@@ -1592,14 +1592,14 @@ Widget _buildFormDetaille(
         Container(
           decoration: BoxDecoration(
             color: Appstyle.grisC.withOpacity(0.15),
-            borderRadius: BorderRadius.circular(12),
+            borderRadius: BorderRadius.circular(Appstyle.radiusMD),
           ),
           padding: const EdgeInsets.all(4),
           child: TabBar(
             isScrollable: true,
             indicator: BoxDecoration(
               color: Appstyle.violet,
-              borderRadius: BorderRadius.circular(10),
+              borderRadius: BorderRadius.circular(Appstyle.radiusMD),
             ),
             labelColor: Colors.white,
             unselectedLabelColor: Appstyle.gris,
@@ -2395,7 +2395,7 @@ Widget chipsSelector<T>({
             label: Text(
               label(e),
               style: TextStyle(
-                color: isNonRemovable ? Colors.grey[700] : Colors.white,
+                color: isNonRemovable ? Appstyle.ink500 : Colors.white,
                 fontWeight: FontWeight.w600,
               ),
             ),

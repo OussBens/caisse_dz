@@ -155,7 +155,7 @@ Future<void> ModifierPrixProduitDialog({
                       const SizedBox(height: 10),
                       Text(
                         erreur!,
-                        style: Appstyle.textS.copyWith(color: Colors.red),
+                        style: Appstyle.textS.copyWith(color: Appstyle.danger),
                       ),
                     ],
                   ],
@@ -246,7 +246,7 @@ Widget _readOnlyField(String value) {
     padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
     decoration: BoxDecoration(
       color: Appstyle.grisC.withOpacity(0.2),
-      borderRadius: BorderRadius.circular(8),
+      borderRadius: BorderRadius.circular(Appstyle.radiusSM),
     ),
     child: Text(
       value,
@@ -260,7 +260,7 @@ InputDecoration _inputDecoration() {
   return InputDecoration(
     isDense: true,
     border: OutlineInputBorder(
-      borderRadius: BorderRadius.circular(8),
+      borderRadius: BorderRadius.circular(Appstyle.radiusSM),
     ),
   );
 }

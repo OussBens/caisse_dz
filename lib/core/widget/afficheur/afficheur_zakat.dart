@@ -23,10 +23,10 @@ class AfficheurZakat extends StatelessWidget {
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(Appstyle.radiusLG),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.05),
+            color: Appstyle.shadowTint.withOpacity(0.05),
             blurRadius: 12,
             offset: const Offset(0, 6),
           ),
@@ -67,9 +67,9 @@ class AfficheurZakat extends StatelessWidget {
                   ),
                 ),
                 const SizedBox(height: 4),
-                Text("${l10n.year} : ${zakat.annee}", style: TextStyle(color: Colors.grey.shade700)),
+                Text("${l10n.year} : ${zakat.annee}", style: TextStyle(color: Appstyle.ink500)),
                 const SizedBox(height: 4),
-                Text("${l10n.zakatAmount} : ${NumberFormatUtil.formatMontant(zakat.montantZakat, decimales: 2)} ${l10n.currency}", style: TextStyle(color: Colors.grey.shade700)),
+                Text("${l10n.zakatAmount} : ${NumberFormatUtil.formatMontant(zakat.montantZakat, decimales: 2)} ${l10n.currency}", style: TextStyle(color: Appstyle.ink500)),
               ],
             ),
           ),
@@ -81,10 +81,10 @@ class AfficheurZakat extends StatelessWidget {
               spacing: 16,
               runSpacing: 8,
               children: [
-                _statCard(l10n.stock, zakat.stock, Colors.blue, l10n),
-                _statCard(l10n.cash, zakat.liquidites, Colors.green, l10n),
-                _statCard(l10n.receivables, zakat.creances, Colors.orange, l10n),
-                _statCard(l10n.debts, zakat.dettes, Colors.red, l10n),
+                _statCard(l10n.stock, zakat.stock, Appstyle.info, l10n),
+                _statCard(l10n.cash, zakat.liquidites, Appstyle.success, l10n),
+                _statCard(l10n.receivables, zakat.creances, Appstyle.warning, l10n),
+                _statCard(l10n.debts, zakat.dettes, Appstyle.danger, l10n),
               ],
             ),
           ),
@@ -111,7 +111,7 @@ class AfficheurZakat extends StatelessWidget {
               backgroundColor: Appstyle.violet,
               padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
               shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12),
+                borderRadius: BorderRadius.circular(Appstyle.radiusMD),
               ),
             ),
             child: Text(
@@ -126,14 +126,14 @@ class AfficheurZakat extends StatelessWidget {
 
   /// 🟢 Badge état
   Widget _etatBadge(AppLocalizations l10n) {
-    Color color = zakat.etat ? Colors.green : Colors.red;
+    Color color = zakat.etat ? Appstyle.success : Appstyle.danger;
     String label = zakat.etat ? l10n.active : l10n.inactive;
 
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
       decoration: BoxDecoration(
         color: color.withOpacity(0.15),
-        borderRadius: BorderRadius.circular(20),
+        borderRadius: BorderRadius.circular(Appstyle.radiusCard),
       ),
       child: Text(
         label,
@@ -153,7 +153,7 @@ class AfficheurZakat extends StatelessWidget {
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
         color: color.withOpacity(0.08),
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(Appstyle.radiusMD),
       ),
       child: Column(
         children: [
@@ -177,7 +177,7 @@ class AfficheurZakat extends StatelessWidget {
       padding: const EdgeInsets.only(bottom: 6),
       child: Row(
         children: [
-          Icon(icon, size: 16, color: Colors.grey),
+          Icon(icon, size: 16, color: Appstyle.gris),
           const SizedBox(width: 6),
           Expanded(
             child: Text(

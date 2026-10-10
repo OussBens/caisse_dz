@@ -111,7 +111,7 @@ class MouvementProduitDataSource extends BaseTableDataSource<LigneMouvementProdu
 
     if (columnName == 'qttMouvement') {
       final signe = item.qttMouvement > 0 ? '+' : '';
-      final color = item.qttMouvement > 0 ? Colors.green : (item.qttMouvement < 0 ? Colors.red : Appstyle.gris);
+      final color = item.qttMouvement > 0 ? Appstyle.success : (item.qttMouvement < 0 ? Appstyle.danger : Appstyle.gris);
       return Center(
         child: Text(
           "$signe${QuantiteFormat.format(item.qttMouvement)}",

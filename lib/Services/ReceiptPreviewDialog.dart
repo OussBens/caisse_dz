@@ -59,7 +59,7 @@ class _ReceiptPreviewDialogState extends State<ReceiptPreviewDialog> {
   Widget build(BuildContext context) {
     return Dialog(
       shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(Appstyle.radiusLG),
       ),
       child: Container(
         width: 400,
@@ -95,7 +95,7 @@ class _ReceiptPreviewDialogState extends State<ReceiptPreviewDialog> {
               padding: const EdgeInsets.all(8),
               decoration: BoxDecoration(
                 color: Appstyle.violet.withOpacity(0.1),
-                borderRadius: BorderRadius.circular(8),
+                borderRadius: BorderRadius.circular(Appstyle.radiusSM),
               ),
               child: Row(
                 children: [
@@ -142,10 +142,10 @@ class _ReceiptPreviewDialogState extends State<ReceiptPreviewDialog> {
               child: Container(
                 decoration: BoxDecoration(
                   border: Border.all(color: Appstyle.grisC),
-                  borderRadius: BorderRadius.circular(8),
+                  borderRadius: BorderRadius.circular(Appstyle.radiusSM),
                 ),
                 child: ClipRRect(
-                  borderRadius: BorderRadius.circular(8),
+                  borderRadius: BorderRadius.circular(Appstyle.radiusSM),
                   child: Image.memory(
                     widget.receiptImage,
                     fit: BoxFit.contain,

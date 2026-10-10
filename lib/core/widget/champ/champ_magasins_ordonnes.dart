@@ -40,7 +40,7 @@ class ChampMagasinsOrdonnes extends StatelessWidget {
       padding: const EdgeInsets.all(8),
       decoration: BoxDecoration(
         color: Appstyle.grischamp,
-        borderRadius: BorderRadius.circular(10),
+        borderRadius: BorderRadius.circular(Appstyle.radiusMD),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -51,7 +51,7 @@ class ChampMagasinsOrdonnes extends StatelessWidget {
               padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
               decoration: BoxDecoration(
                 color: Colors.white,
-                borderRadius: BorderRadius.circular(8),
+                borderRadius: BorderRadius.circular(Appstyle.radiusSM),
                 border: Border.all(color: i == 0 ? Appstyle.violet.withOpacity(0.5) : Appstyle.grisC),
               ),
               child: Row(
@@ -66,7 +66,7 @@ class ChampMagasinsOrdonnes extends StatelessWidget {
                   if (i == 0)
                     Container(
                       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                      decoration: BoxDecoration(color: Appstyle.violetC, borderRadius: BorderRadius.circular(8)),
+                      decoration: BoxDecoration(color: Appstyle.violetC, borderRadius: BorderRadius.circular(Appstyle.radiusSM)),
                       child: Text(l10n.mainStore, style: Appstyle.textXS.copyWith(color: Appstyle.violet, fontWeight: FontWeight.w600)),
                     ),
                   IconButton(

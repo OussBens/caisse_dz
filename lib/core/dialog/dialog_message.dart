@@ -14,7 +14,7 @@ extension NatureMessageStyle on NatureMessage {
 
   Color get couleur => switch (this) {
         NatureMessage.succes => Appstyle.success,
-        NatureMessage.information => Colors.orange,
+        NatureMessage.information => Appstyle.warning,
         NatureMessage.erreur => Appstyle.danger,
       };
 }

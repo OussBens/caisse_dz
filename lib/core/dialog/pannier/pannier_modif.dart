@@ -337,7 +337,7 @@ Future<void> PannierModif(
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(AppLocalizations.of(context)!.loginRequired),
-        backgroundColor: Colors.red,
+        backgroundColor: Appstyle.danger,
         duration: const Duration(seconds: 3),
       ),
     );
@@ -595,7 +595,7 @@ Future<void> PannierModif(
                             SnackBar(
                               content: Text(response.message ?? "Erreur"),
                               duration: const Duration(seconds: 5),
-                              backgroundColor: Colors.red,
+                              backgroundColor: Appstyle.danger,
                             ),
                           );
                           return;
@@ -608,7 +608,7 @@ Future<void> PannierModif(
                           SnackBar(
                             content: Text(response.message ?? "Modification réussie"),
                             duration: const Duration(seconds: 5),
-                            backgroundColor: Colors.green,
+                            backgroundColor: Appstyle.success,
                           ),
                         );
 

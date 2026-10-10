@@ -22,7 +22,7 @@ Widget detailsection(String title) {
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
       decoration: BoxDecoration(
         color: Appstyle.gris.withOpacity(0.2), // violet clair
-        borderRadius: BorderRadius.circular(12), // arrondi
+        borderRadius: BorderRadius.circular(Appstyle.radiusMD), // arrondi
       ),
       child: Text(
         title,

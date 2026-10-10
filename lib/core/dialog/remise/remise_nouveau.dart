@@ -413,7 +413,7 @@ class _RemiseDialogState extends State<RemiseDialog> {
                       Container(
                         decoration: BoxDecoration(
                           color: Appstyle.grisC.withOpacity(0.2),
-                          borderRadius: BorderRadius.circular(10),
+                          borderRadius: BorderRadius.circular(Appstyle.radiusMD),
                         ),
                         padding: const EdgeInsets.all(5),
                         child: Row(
@@ -500,12 +500,12 @@ class _RemiseDialogState extends State<RemiseDialog> {
   }) {
     return InkWell(
       onTap: onTap,
-      borderRadius: BorderRadius.circular(8),
+      borderRadius: BorderRadius.circular(Appstyle.radiusSM),
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 25, vertical: 10),
         decoration: BoxDecoration(
           color: isActive ? Appstyle.crevete : Colors.transparent,
-          borderRadius: BorderRadius.circular(8),
+          borderRadius: BorderRadius.circular(Appstyle.radiusSM),
         ),
         child: Text(
           text,
@@ -925,7 +925,7 @@ class _RemiseDialogState extends State<RemiseDialog> {
               SizedBox(
                 width: 40,
                 child: IconButton(
-                  icon: const Icon(Icons.delete, color: Colors.red),
+                  icon: const Icon(Icons.delete, color: Appstyle.danger),
                   onPressed: () {
                     setState(() {
                       produitsRemise.removeAt(index);
@@ -945,7 +945,7 @@ class _RemiseDialogState extends State<RemiseDialog> {
       padding: const EdgeInsets.symmetric(vertical: 6, horizontal: 8),
       decoration: BoxDecoration(
         color: Appstyle.gris.withOpacity(0.08),
-        borderRadius: BorderRadius.circular(8),
+        borderRadius: BorderRadius.circular(Appstyle.radiusSM),
       ),
       child: Row(
         children: [

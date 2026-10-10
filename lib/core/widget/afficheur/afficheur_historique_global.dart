@@ -101,7 +101,7 @@ class _DashboardHistoriqueState extends State<DashboardHistorique>
             ),
             _space(),
             _AnimatedStatCard(
-              color: Colors.green,
+              color: Appstyle.success,
               icon: Icons.add_circle_outline,
               title: l10n.creations,
               value: creation.toDouble(),
@@ -111,7 +111,7 @@ class _DashboardHistoriqueState extends State<DashboardHistorique>
             ),
             _space(),
             _AnimatedStatCard(
-              color: Colors.orange,
+              color: Appstyle.warning,
               icon: Icons.edit_outlined,
               title: l10n.modifications,
               value: modification.toDouble(),
@@ -121,7 +121,7 @@ class _DashboardHistoriqueState extends State<DashboardHistorique>
             ),
             _space(),
             _AnimatedStatCard(
-              color: Colors.red,
+              color: Appstyle.danger,
               icon: Icons.delete_outline,
               title: l10n.deletions,
               value: suppression.toDouble(),
@@ -194,7 +194,7 @@ class _AnimatedStatCard extends StatelessWidget {
           padding: const EdgeInsets.all(14),
           decoration: BoxDecoration(
             color: Colors.white,
-            borderRadius: BorderRadius.circular(18), // ✅ Réduit de 24 à 18
+            borderRadius: BorderRadius.circular(Appstyle.radiusCard), // ✅ Réduit de 24 à 18
             boxShadow: [
               BoxShadow(
                 color: color.withOpacity(0.1),
@@ -215,7 +215,7 @@ class _AnimatedStatCard extends StatelessWidget {
                 padding: const EdgeInsets.all(7),
                 decoration: BoxDecoration(
                   color: color.withOpacity(0.12),
-                  borderRadius: BorderRadius.circular(12), // ✅ Réduit de 16 à 12
+                  borderRadius: BorderRadius.circular(Appstyle.radiusMD), // ✅ Réduit de 16 à 12
                 ),
                 child: Icon(
                   icon,

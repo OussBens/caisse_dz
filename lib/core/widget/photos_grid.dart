@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 
 import '../../Services/Photos.dart';
+import 'package:caisse_dz/core/theme/app_style.dart';
 
 class PhotoGrid extends StatelessWidget {
   final List<String> photoNames;
@@ -22,8 +23,8 @@ class PhotoGrid extends StatelessWidget {
       return Container(
         height: 100,
         decoration: BoxDecoration(
-          color: Colors.grey[100],
-          borderRadius: BorderRadius.circular(12),
+          color: Appstyle.neutral100,
+          borderRadius: BorderRadius.circular(Appstyle.radiusMD),
         ),
         child: const Center(
           child: Text('Aucune photo'),
@@ -61,7 +62,7 @@ class PhotoGrid extends StatelessWidget {
       child: Stack(
         children: [
           ClipRRect(
-            borderRadius: BorderRadius.circular(12),
+            borderRadius: BorderRadius.circular(Appstyle.radiusMD),
             child: Image.file(
               File(path),
               fit: BoxFit.cover,
@@ -79,7 +80,7 @@ class PhotoGrid extends StatelessWidget {
                 child: Container(
                   padding: const EdgeInsets.all(4),
                   decoration: const BoxDecoration(
-                    color: Colors.red,
+                    color: Appstyle.danger,
                     shape: BoxShape.circle,
                   ),
                   child: const Icon(
@@ -101,10 +102,10 @@ class PhotoGrid extends StatelessWidget {
       height: 100,
       margin: const EdgeInsets.only(right: 12),
       decoration: BoxDecoration(
-        color: Colors.grey[200],
-        borderRadius: BorderRadius.circular(12),
+        color: Appstyle.neutral150,
+        borderRadius: BorderRadius.circular(Appstyle.radiusMD),
       ),
-      child: const Icon(Icons.broken_image, color: Colors.grey),
+      child: const Icon(Icons.broken_image, color: Appstyle.gris),
     );
   }
 
@@ -114,8 +115,8 @@ class PhotoGrid extends StatelessWidget {
       height: 100,
       margin: const EdgeInsets.only(right: 12),
       decoration: BoxDecoration(
-        color: Colors.grey[200],
-        borderRadius: BorderRadius.circular(12),
+        color: Appstyle.neutral150,
+        borderRadius: BorderRadius.circular(Appstyle.radiusMD),
       ),
       child: const Center(
         child: SizedBox(
@@ -131,8 +132,8 @@ class PhotoGrid extends StatelessWidget {
     return Container(
       width: 100,
       height: 100,
-      color: Colors.grey[200],
-      child: const Icon(Icons.image_not_supported, color: Colors.grey),
+      color: Appstyle.neutral150,
+      child: const Icon(Icons.image_not_supported, color: Appstyle.gris),
     );
   }
 }

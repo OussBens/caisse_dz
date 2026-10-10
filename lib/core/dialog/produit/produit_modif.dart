@@ -550,7 +550,7 @@ Widget _tabAvecIndicateurModif(String text, bool showErreur) {
             child: Container(
               width: 8,
               height: 8,
-              decoration: const BoxDecoration(color: Colors.red, shape: BoxShape.circle),
+              decoration: const BoxDecoration(color: Appstyle.danger, shape: BoxShape.circle),
             ),
           ),
       ],
@@ -705,7 +705,7 @@ Future<void> ProduitModif(BuildContext context, Produit produit) async {
                         Container(
                           decoration: BoxDecoration(
                             color: Appstyle.grisC.withOpacity(0.2),
-                            borderRadius: BorderRadius.circular(10),
+                            borderRadius: BorderRadius.circular(Appstyle.radiusMD),
                           ),
                           padding: const EdgeInsets.all(5),
                           child: Row(
@@ -722,7 +722,7 @@ Future<void> ProduitModif(BuildContext context, Produit produit) async {
                                     color: isRapide
                                         ? Appstyle.crevete
                                         : Colors.transparent,
-                                    borderRadius: BorderRadius.circular(8),
+                                    borderRadius: BorderRadius.circular(Appstyle.radiusSM),
                                   ),
                                   child: Text(
                                     l10n.quickMode,
@@ -748,7 +748,7 @@ Future<void> ProduitModif(BuildContext context, Produit produit) async {
                                     color: !isRapide
                                         ? Appstyle.crevete
                                         : Colors.transparent,
-                                    borderRadius: BorderRadius.circular(8),
+                                    borderRadius: BorderRadius.circular(Appstyle.radiusSM),
                                   ),
                                   child: Text(
                                     l10n.detailedMode,
@@ -989,7 +989,7 @@ Widget _buildFormRapideDetail(
           padding: const EdgeInsets.symmetric(vertical: 15, horizontal: 10),
           decoration: BoxDecoration(
             color: Appstyle.Tblanc,
-            borderRadius: BorderRadius.circular(14),
+            borderRadius: BorderRadius.circular(Appstyle.radiusButton),
             border: Border.all(color: Appstyle.grisC, width: 1.5),
           ),
           child: Column(
@@ -1175,7 +1175,7 @@ Widget _buildFormRapideDetail(
           padding: const EdgeInsets.symmetric(vertical: 15, horizontal: 10),
           decoration: BoxDecoration(
             color: Appstyle.Tblanc,
-            borderRadius: BorderRadius.circular(14),
+            borderRadius: BorderRadius.circular(Appstyle.radiusButton),
             border: Border.all(color: Appstyle.grisC, width: 1.5),
           ),
           child: Column(
@@ -1309,14 +1309,14 @@ Widget _buildFormDetailleDetail(
         Container(
           decoration: BoxDecoration(
             color: Appstyle.grisC.withOpacity(0.15),
-            borderRadius: BorderRadius.circular(12),
+            borderRadius: BorderRadius.circular(Appstyle.radiusMD),
           ),
           padding: const EdgeInsets.all(4),
           child: TabBar(
             isScrollable: true,
             indicator: BoxDecoration(
               color: Appstyle.violet,
-              borderRadius: BorderRadius.circular(10),
+              borderRadius: BorderRadius.circular(Appstyle.radiusMD),
             ),
             labelColor: Colors.white,
             unselectedLabelColor: Appstyle.gris,
@@ -2164,7 +2164,7 @@ Widget chipsSelector<T>({
             label: Text(
               label(e),
               style: TextStyle(
-                color: isNonRemovable ? Colors.grey[700] : Colors.white,
+                color: isNonRemovable ? Appstyle.ink500 : Colors.white,
                 fontWeight: FontWeight.w600,
               ),
             ),

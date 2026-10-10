@@ -483,7 +483,7 @@ class _ParametreScreenState extends State<ParametreScreen>
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(message),
-        backgroundColor: error ? Colors.red : Colors.green,
+        backgroundColor: error ? Appstyle.danger : Appstyle.success,
       ),
     );
   }
@@ -949,10 +949,10 @@ class _ParametreScreenState extends State<ParametreScreen>
                                   margin: const EdgeInsets.symmetric(horizontal: 0, vertical: 6),
                                   decoration: BoxDecoration(
                                     color: Colors.white,
-                                    borderRadius: BorderRadius.circular(16),
+                                    borderRadius: BorderRadius.circular(Appstyle.radiusLG),
                                     boxShadow: [
                                       BoxShadow(
-                                        color: Colors.black.withOpacity(0.05),
+                                        color: Appstyle.shadowTint.withOpacity(0.05),
                                         blurRadius: 10,
                                         offset: const Offset(0, 2),
                                       ),
@@ -964,7 +964,7 @@ class _ParametreScreenState extends State<ParametreScreen>
                                     onTap: (_) => setState(() {}),
                                     indicator: BoxDecoration(
                                       color: Appstyle.violet,
-                                      borderRadius: BorderRadius.circular(12),
+                                      borderRadius: BorderRadius.circular(Appstyle.radiusMD),
                                     ),
                                     labelColor: Colors.white,
                                     unselectedLabelColor: Appstyle.gris,
@@ -1417,7 +1417,7 @@ class _ParametreScreenState extends State<ParametreScreen>
       padding: const EdgeInsets.symmetric(vertical: 15, horizontal: 15),
       decoration: BoxDecoration(
         color: Appstyle.Tblanc,
-        borderRadius: BorderRadius.circular(14),
+        borderRadius: BorderRadius.circular(Appstyle.radiusButton),
         border: Border.all(color: Appstyle.grisC, width: 1.5),
       ),
       child: Row(
@@ -1591,7 +1591,7 @@ class _ParametreScreenState extends State<ParametreScreen>
             children: [
               if (_pickedLogoFile != null)
                 ClipRRect(
-                  borderRadius: BorderRadius.circular(8),
+                  borderRadius: BorderRadius.circular(Appstyle.radiusSM),
                   child: Image.file(
                     _pickedLogoFile!,
                     width: 72,
@@ -1605,7 +1605,7 @@ class _ParametreScreenState extends State<ParametreScreen>
                   builder: (context, snapshot) {
                     if (snapshot.hasData && snapshot.data != null) {
                       return ClipRRect(
-                        borderRadius: BorderRadius.circular(8),
+                        borderRadius: BorderRadius.circular(Appstyle.radiusSM),
                         child: Image.file(
                           snapshot.data!,
                           width: 72,
@@ -1619,7 +1619,7 @@ class _ParametreScreenState extends State<ParametreScreen>
                       height: 72,
                       decoration: BoxDecoration(
                         color: Appstyle.grisC,
-                        borderRadius: BorderRadius.circular(8),
+                        borderRadius: BorderRadius.circular(Appstyle.radiusSM),
                       ),
                     );
                   },
@@ -1630,7 +1630,7 @@ class _ParametreScreenState extends State<ParametreScreen>
                   height: 72,
                   decoration: BoxDecoration(
                     color: Appstyle.grisC,
-                    borderRadius: BorderRadius.circular(8),
+                    borderRadius: BorderRadius.circular(Appstyle.radiusSM),
                   ),
                   child: const Icon(Icons.image_outlined, color: Colors.white),
                 ),
@@ -2046,7 +2046,7 @@ Widget _section({
     padding: const EdgeInsets.symmetric(vertical: 15, horizontal: 15),
     decoration: BoxDecoration(
       color: Appstyle.Tblanc,
-      borderRadius: BorderRadius.circular(14),
+      borderRadius: BorderRadius.circular(Appstyle.radiusButton),
       border: Border.all(color: Appstyle.grisC, width: 1.5),
     ),
     child: Column(

@@ -205,7 +205,7 @@ class ProduitDataSource extends BaseTableDataSource<Produit> {
                 children: [
                   Text(quantite.toString()),
                   const SizedBox(width: 6),
-                  const StatusBadge(text: "!", color: Colors.red),
+                  const StatusBadge(text: "!", color: Appstyle.danger),
                 ],
               )
             : Text(quantite.toString()),

@@ -120,7 +120,7 @@ Future<void> ExportFiscalDialog(BuildContext context) async {
                         ScaffoldMessenger.of(context).showSnackBar(
                           SnackBar(
                             content: Text(l10n.exportSuccess),
-                            backgroundColor: Colors.green,
+                            backgroundColor: Appstyle.success,
                             action: SnackBarAction(
                               label: l10n.open,
                               onPressed: () => OpenFile.open(file.path),

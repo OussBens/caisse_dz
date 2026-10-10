@@ -178,7 +178,7 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
                                   return const Icon(
                                     Icons.shopping_cart,
                                     size: 80,
-                                    color: Colors.blue,
+                                    color: Appstyle.info,
                                   );
                                 },
                               ),
@@ -207,7 +207,7 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
                             l10n.loginInstructions,
                             style: TextStyle(
                               fontSize: 14,
-                              color: Colors.grey[600],
+                              color: Appstyle.neutral500,
                             ),
                           ),
                           const SizedBox(height: 30),
@@ -252,7 +252,7 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
                                     Text(
                                       l10n.rememberMe,
                                       style: TextStyle(
-                                        color: Colors.grey[700],
+                                        color: Appstyle.ink500,
                                         fontSize: 13,
                                       ),
                                     ),
@@ -349,7 +349,7 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
                                   Text(
                                     l10n.appNotActivatedQuestion,
                                     style: TextStyle(
-                                      color: Colors.grey[600],
+                                      color: Appstyle.neutral500,
                                       fontSize: 14,
                                     ),
                                   ),
@@ -358,7 +358,7 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
                                       context.push('/activate');
                                     },
                                     style: TextButton.styleFrom(
-                                      foregroundColor: Colors.red[700],
+                                      foregroundColor: Appstyle.dangerInk,
                                     ),
                                     child: Text(
                                       l10n.activateNow,
@@ -378,7 +378,7 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
                           Text(
                             "${l10n.version} 1.0.0",
                             style: TextStyle(
-                              color: Colors.grey[400],
+                              color: Appstyle.neutral300,
                               fontSize: 12,
                             ),
                           ),
@@ -397,7 +397,7 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
                                 await auth.resetActivationForTesting();
                               },
                               style: TextButton.styleFrom(
-                                foregroundColor: Colors.grey[400],
+                                foregroundColor: Appstyle.neutral300,
                               ),
                               child: const Text(
                                 "[DEBUG] Réinitialiser l'activation",

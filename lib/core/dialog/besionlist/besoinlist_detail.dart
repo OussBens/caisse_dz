@@ -155,7 +155,7 @@ Future<void> BesoinListDetailDialog(
                 backgroundColor: Appstyle.crevete,
                 foregroundColor: Colors.white,
                 shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(10)),
+                    borderRadius: BorderRadius.circular(Appstyle.radiusMD)),
               ),
               onPressed: () {
                 showBesoinListProduitsDialog(context, besoin, nomFournisseur, l10n);
@@ -169,7 +169,7 @@ Future<void> BesoinListDetailDialog(
                 backgroundColor: Appstyle.violet,
                 foregroundColor: Colors.white,
                 shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(10)),
+                    borderRadius: BorderRadius.circular(Appstyle.radiusMD)),
               ),
               onPressed: () => Navigator.pop(context),
             ),

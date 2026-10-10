@@ -104,7 +104,7 @@ Future<void> _exportSituationFournisseurPdf(
         );
         Navigator.pop(context);
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(l10n.exportSuccess), backgroundColor: Colors.green),
+          SnackBar(content: Text(l10n.exportSuccess), backgroundColor: Appstyle.success),
         );
         await PDFGeneratorLatin.openPDF(file);
       },
@@ -158,7 +158,7 @@ Future<void> _exportSituationFournisseurExcel(
         onSave: () {
           Navigator.pop(context);
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text(l10n.exportSuccess), backgroundColor: Colors.green),
+            SnackBar(content: Text(l10n.exportSuccess), backgroundColor: Appstyle.success),
           );
         },
         onShare: () => Navigator.pop(context),
@@ -168,7 +168,7 @@ Future<void> _exportSituationFournisseurExcel(
   } catch (e) {
     fermerSpinner();
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('${l10n.exportError}: $e'), backgroundColor: Colors.red),
+      SnackBar(content: Text('${l10n.exportError}: $e'), backgroundColor: Appstyle.danger),
     );
   }
 }
@@ -392,8 +392,8 @@ Future<void> SituationFournisseurDialog(
                   children: [
                     MainButton(
                       text: l10n.extract,
-                      textColor: Colors.green,
-                      iconColor: Colors.green,
+                      textColor: Appstyle.success,
+                      iconColor: Appstyle.success,
                       color: Appstyle.Tblanc,
                       icon: Icons.download,
                       onPressed: () => _exportSituationFournisseurExcel(context, l10n, fournisseur, operations),
@@ -401,8 +401,8 @@ Future<void> SituationFournisseurDialog(
                     const SizedBox(width: 10),
                     MainButton(
                       text: l10n.extractPdf,
-                      textColor: Colors.red,
-                      iconColor: Colors.red,
+                      textColor: Appstyle.danger,
+                      iconColor: Appstyle.danger,
                       color: Appstyle.Tblanc,
                       icon: Icons.picture_as_pdf,
                       onPressed: () => _exportSituationFournisseurPdf(

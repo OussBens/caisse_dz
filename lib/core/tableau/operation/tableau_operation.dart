@@ -80,18 +80,18 @@ class _TableauSituationClientAdvancedState
     return Container(
       decoration: BoxDecoration(
         color: Appstyle.Tblanc,
-        borderRadius: BorderRadius.circular(18),
+        borderRadius: BorderRadius.circular(Appstyle.radiusCard),
         boxShadow: const [
-          BoxShadow(color: Colors.black12, blurRadius: 12),
+          BoxShadow(color: Appstyle.shadowSoft, blurRadius: 12),
         ],
       ),
       padding: const EdgeInsets.all(8),
       child: ClipRRect(
-          borderRadius: BorderRadius.circular(16),
+          borderRadius: BorderRadius.circular(Appstyle.radiusLG),
           child: SfDataGridTheme(
             data: SfDataGridThemeData(
               headerColor: Appstyle.violet.withOpacity(0.75),
-              gridLineColor: Colors.grey.shade300,
+              gridLineColor: Appstyle.neutral200,
               rowHoverColor: Appstyle.violet.withOpacity(0.08),
               selectionColor: Appstyle.violet.withOpacity(0.15),
               sortIconColor: Colors.white,

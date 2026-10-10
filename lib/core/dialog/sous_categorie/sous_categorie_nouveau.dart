@@ -357,7 +357,7 @@ Widget _headerTableProduits(AppLocalizations l10n) {
     padding: const EdgeInsets.symmetric(vertical: 6),
     decoration: BoxDecoration(
       color: Appstyle.gris.withOpacity(0.08),
-      borderRadius: BorderRadius.circular(8),
+      borderRadius: BorderRadius.circular(Appstyle.radiusSM),
     ),
     child: Row(
       children: [
@@ -406,7 +406,7 @@ Widget _tableProduits(
             Expanded(flex: 4, child: Text(p.nom, style: Appstyle.textSB)),
             Expanded(flex: 4, child: Text(_nomSousCategorie(p.sousCategorieId) ?? "-", style: Appstyle.textSB)),
             IconButton(
-              icon: const Icon(Icons.delete, color: Colors.red),
+              icon: const Icon(Icons.delete, color: Appstyle.danger),
               onPressed: () {
                 setState(() {
                   produitSouscategorie.remove(p);

@@ -23,7 +23,7 @@ class AfficheurRetour extends StatelessWidget {
         children: [
 
           /// 🔹 Icon
-          _icon(Icons.undo, Colors.orange),
+          _icon(Icons.undo, Appstyle.warning),
 
           /// 🔹 Infos retour
           Expanded(
@@ -52,7 +52,7 @@ class AfficheurRetour extends StatelessWidget {
                 vertical: 14,
               ),
               shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12),
+                borderRadius: BorderRadius.circular(Appstyle.radiusMD),
               ),
             ),
             child: Text(
@@ -75,10 +75,10 @@ Widget _container(Widget child) {
     padding: const EdgeInsets.all(14),
     decoration: BoxDecoration(
       color: Colors.white,
-      borderRadius: BorderRadius.circular(14),
+      borderRadius: BorderRadius.circular(Appstyle.radiusButton),
       boxShadow: [
         BoxShadow(
-          color: Colors.black.withOpacity(0.05),
+          color: Appstyle.shadowTint.withOpacity(0.05),
           blurRadius: 10,
           offset: Offset(0, 5),
         ),
@@ -103,7 +103,7 @@ Widget _info(String label, String value, AppLocalizations l10n) {
     child: Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(label, style: TextStyle(fontSize: 11, color: Colors.grey)),
+        Text(label, style: TextStyle(fontSize: 11, color: Appstyle.gris)),
         Text(
           value,
           style: TextStyle(fontWeight: FontWeight.bold),

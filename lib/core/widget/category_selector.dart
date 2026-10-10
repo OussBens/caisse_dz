@@ -33,7 +33,7 @@ class _CategorySelectorState extends State<CategorySelector> {
             padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 10),
             decoration: BoxDecoration(
               color: isSelected ? Appstyle.violet : Appstyle.grisC,
-              borderRadius: BorderRadius.circular(12),
+              borderRadius: BorderRadius.circular(Appstyle.radiusMD),
             ),
             child: Text(
               cat!,

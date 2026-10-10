@@ -207,7 +207,7 @@ Future<void> AnnulerRetour(BuildContext context, List<Retour> retoursSelectionne
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(AppLocalizations.of(context)!.noPermissionAction),
-        backgroundColor: Colors.red,
+        backgroundColor: Appstyle.danger,
         duration: const Duration(seconds: 3),
       ),
     );
@@ -268,7 +268,7 @@ Future<void> AnnulerRetour(BuildContext context, List<Retour> retoursSelectionne
                               padding: const EdgeInsets.all(10),
                               decoration: BoxDecoration(
                                 color: Appstyle.grisC.withOpacity(0.15),
-                                borderRadius: BorderRadius.circular(10),
+                                borderRadius: BorderRadius.circular(Appstyle.radiusMD),
                               ),
                               child: Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -297,8 +297,8 @@ Future<void> AnnulerRetour(BuildContext context, List<Retour> retoursSelectionne
                                     "${l10n.status}: ${r.etat ? l10n.active : l10n.inactive}",
                                     style: Appstyle.textS.copyWith(
                                         color: r.etat
-                                            ? Colors.green
-                                            : Colors.red),
+                                            ? Appstyle.success
+                                            : Appstyle.danger),
                                   ),
                                 ],
                               ),
@@ -346,7 +346,7 @@ Future<void> AnnulerRetour(BuildContext context, List<Retour> retoursSelectionne
                           ScaffoldMessenger.of(context).showSnackBar(
                             SnackBar(
                               content: Text(l10n.cancellationReason),
-                              backgroundColor: Colors.red,
+                              backgroundColor: Appstyle.danger,
                               duration: const Duration(seconds: 3),
                             ),
                           );

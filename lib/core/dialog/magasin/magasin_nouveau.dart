@@ -288,7 +288,7 @@ Widget _section({
     padding: const EdgeInsets.symmetric(vertical: 15, horizontal: 10),
     decoration: BoxDecoration(
       color: Appstyle.Tblanc,
-      borderRadius: BorderRadius.circular(14),
+      borderRadius: BorderRadius.circular(Appstyle.radiusButton),
       border: Border.all(color: Appstyle.grisC, width: 1.5),
     ),
     child: Column(

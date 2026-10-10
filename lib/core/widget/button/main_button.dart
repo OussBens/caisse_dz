@@ -62,19 +62,23 @@ class _MainButtonState extends State<MainButton> {
   bool _isHovered = false;
   bool _isPressed = false;
 
+  // Variante « neutre » du design system (Annuler, Fermer…) : un bouton
+  // gris devient surface-2 avec texte foncé au lieu de blanc sur gris.
+  bool get _neutre => widget.color == Appstyle.gris && widget.textColor == null;
+
   Widget? _buildShortcutBadge() {
     final label = widget.shortcutLabel;
     if (label == null || label.isEmpty) return null;
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
       decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.25),
-        borderRadius: BorderRadius.circular(6),
+        color: (_neutre ? Appstyle.textPrimary : Colors.white).withOpacity(_neutre ? 0.08 : 0.25),
+        borderRadius: BorderRadius.circular(Appstyle.radiusXS),
       ),
       child: Text(
         label,
         style: Appstyle.textXS.copyWith(
-          color: widget.textColor ?? Appstyle.Tblanc,
+          color: widget.textColor ?? (_neutre ? Appstyle.textPrimary : Appstyle.Tblanc),
           fontWeight: FontWeight.w600,
         ),
       ),
@@ -87,13 +91,13 @@ class _MainButtonState extends State<MainButton> {
         widget.iconPath!,
         width: widget.iconSize,
         height: widget.iconSize,
-        color: widget.iconColor,
+        color: widget.iconColor ?? (_neutre ? Appstyle.textPrimary : null),
       );
     }
 
     return Icon(
       widget.icon ?? Icons.add,
-      color: widget.iconColor ?? Colors.white,
+      color: widget.iconColor ?? (_neutre ? Appstyle.textPrimary : Colors.white),
       size: widget.iconSize,
     );
   }
@@ -101,7 +105,10 @@ class _MainButtonState extends State<MainButton> {
   @override
   Widget build(BuildContext context) {
     final bool enabled = widget.onPressed != null && !widget.loading;
-    final Color hoverColor = Color.lerp(widget.color, Colors.black, 0.08)!;
+    final bool neutre = _neutre;
+    final Color fond = neutre ? Appstyle.surface2 : widget.color;
+    final Color texte = widget.textColor ?? (neutre ? Appstyle.textPrimary : Appstyle.Tblanc);
+    final Color hoverColor = neutre ? Appstyle.neutral200 : Color.lerp(widget.color, Colors.black, 0.08)!;
     final translateY = (_isHovered && enabled && !_isPressed) ? -2.0 : 0.0;
     final scale = (_isPressed && enabled) ? 0.97 : 1.0;
 
@@ -121,8 +128,8 @@ class _MainButtonState extends State<MainButton> {
             ..scale(scale),
           transformAlignment: Alignment.center,
           decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(12),
-            boxShadow: (_isHovered && enabled)
+            borderRadius: BorderRadius.circular(Appstyle.radiusButton),
+            boxShadow: (_isHovered && enabled && !neutre)
                 ? Appstyle.shadowHover(color: widget.color)
                 : const [],
           ),
@@ -131,13 +138,13 @@ class _MainButtonState extends State<MainButton> {
             height: widget.height,
             child: ElevatedButton(
               style: ElevatedButton.styleFrom(
-                backgroundColor: (_isHovered && enabled) ? hoverColor : widget.color,
-                foregroundColor: Colors.white,
+                backgroundColor: (_isHovered && enabled) ? hoverColor : fond,
+                foregroundColor: texte,
                 elevation: 0,
                 padding: widget.padding ??
                     const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
                 shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12),
+                  borderRadius: BorderRadius.circular(Appstyle.radiusButton),
                 ),
               ),
               onPressed: widget.loading ? null : widget.onPressed,
@@ -147,7 +154,7 @@ class _MainButtonState extends State<MainButton> {
                 height: widget.iconSize,
                 child: CircularProgressIndicator(
                   strokeWidth: 2,
-                  color: widget.textColor ?? Appstyle.Tblanc,
+                  color: texte,
                 ),
               )
                   : widget.noIcon
@@ -158,7 +165,7 @@ class _MainButtonState extends State<MainButton> {
                     child: Text(
                       widget.text,
                       style: Appstyle.textSB
-                          .copyWith(color: widget.textColor ?? Appstyle.Tblanc),
+                          .copyWith(color: texte),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                     ),
@@ -177,7 +184,7 @@ class _MainButtonState extends State<MainButton> {
                     child: Text(
                       widget.text,
                       style: Appstyle.textSB
-                          .copyWith(color: widget.textColor ?? Appstyle.Tblanc),
+                          .copyWith(color: texte),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                     ),
@@ -200,7 +207,7 @@ class _MainButtonState extends State<MainButton> {
                     child: Text(
                       widget.text,
                       style: Appstyle.textSB
-                          .copyWith(color: widget.textColor ?? Appstyle.Tblanc),
+                          .copyWith(color: texte),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                     ),
@@ -226,7 +233,7 @@ class _MainButtonState extends State<MainButton> {
             width: 10,
             height: 10,
             decoration: BoxDecoration(
-              color: Colors.red,
+              color: Appstyle.danger,
               shape: BoxShape.circle,
               border: Border.all(color: Colors.white, width: 1.5),
             ),

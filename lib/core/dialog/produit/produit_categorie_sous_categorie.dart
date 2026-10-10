@@ -178,7 +178,7 @@ Future<bool?> CategorieSousCategorieProduit(
                               padding: const EdgeInsets.all(8),
                               decoration: BoxDecoration(
                                 color: Appstyle.grisC.withOpacity(0.2),
-                                borderRadius: BorderRadius.circular(8),
+                                borderRadius: BorderRadius.circular(Appstyle.radiusSM),
                               ),
                               child: Row(
                                 children: [

@@ -3,6 +3,7 @@ import 'package:syncfusion_flutter_datagrid/datagrid.dart';
 import '../../../l10n/app_localizations.dart';
 import '../base_table_data_source.dart';
 import 'package:caisse_dz/core/utilis/number_format.dart';
+import 'package:caisse_dz/core/theme/app_style.dart';
 
 /// Une ligne du tableau "Bénéfice par période" : total du jour (montant +
 /// marge) pour la caisse sélectionnée, agrégé sur tous les panniers de ce
@@ -71,7 +72,7 @@ class MargePeriodeDataSource extends BaseTableDataSource<LigneMargePeriode> {
         child: Text(
           _montant(item.margeJour),
           style: TextStyle(
-            color: item.margeJour >= 0 ? Colors.green.shade700 : Colors.red,
+            color: item.margeJour >= 0 ? Appstyle.successInk : Appstyle.danger,
             fontWeight: FontWeight.bold,
           ),
         ),

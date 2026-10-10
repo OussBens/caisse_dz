@@ -42,7 +42,7 @@ class AfficheurProduit extends StatelessWidget {
       padding: const EdgeInsets.all(8),
       decoration: BoxDecoration(
         color: afficheurBorder ? Colors.transparent : Colors.white,
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(Appstyle.radiusLG),
         border: afficheurBorder
             ? Border.all(
           color: Colors.black.withOpacity(0.2),
@@ -53,7 +53,7 @@ class AfficheurProduit extends StatelessWidget {
             ? null
             : [
           BoxShadow(
-            color: Colors.black.withOpacity(0.05),
+            color: Appstyle.shadowTint.withOpacity(0.05),
             blurRadius: 12,
             offset: const Offset(0, 6),
           ),
@@ -96,12 +96,12 @@ class AfficheurProduit extends StatelessWidget {
                     const SizedBox(height: 4),
                     Text(
                       "${l10n.marque} : ${produit.marque}",
-                      style: TextStyle(color: Colors.grey.shade700),
+                      style: TextStyle(color: Appstyle.ink500),
                     ),
                     const SizedBox(height: 4),
                     Text(
                       "${l10n.code} : ${produit.code}",
-                      style: TextStyle(color: Colors.grey.shade700),
+                      style: TextStyle(color: Appstyle.ink500),
                     ),
                   ],
                 ),
@@ -114,13 +114,13 @@ class AfficheurProduit extends StatelessWidget {
                   spacing: 16,
                   runSpacing: 8,
                   children: [
-                    _statCard(l10n.salePrice, produit.prixVente, Colors.green, l10n: l10n),
+                    _statCard(l10n.salePrice, produit.prixVente, Appstyle.success, l10n: l10n),
                     if (afficherprixachat)
-                      _statCard(l10n.purchasePrice, produit.prixAchat, Colors.orange, l10n: l10n),
+                      _statCard(l10n.purchasePrice, produit.prixAchat, Appstyle.warning, l10n: l10n),
                     FutureBuilder<double>(
                       future: MouvementsServices.quantiteProduit(produit.code),
                       builder: (context, snapshot) {
-                        return _statCard(l10n.quantity, snapshot.data ?? 0, Colors.blue, isMoney: false, l10n: l10n);
+                        return _statCard(l10n.quantity, snapshot.data ?? 0, Appstyle.info, isMoney: false, l10n: l10n);
                       },
                     ),
                     if (afficherStatsAvancees)
@@ -133,9 +133,9 @@ class AfficheurProduit extends StatelessWidget {
                             spacing: 16,
                             runSpacing: 8,
                             children: [
-                              _statCard(l10n.totalSold, stats.totalVendu, Colors.teal, isMoney: false, l10n: l10n),
-                              _statCard(l10n.clientReturns, stats.totalRetourClient, Colors.redAccent, isMoney: false, l10n: l10n),
-                              _textBadge(l10n.need, stats.besoin ? l10n.yes : l10n.no, stats.besoin ? Colors.red : Colors.green),
+                              _statCard(l10n.totalSold, stats.totalVendu, Appstyle.successInk, isMoney: false, l10n: l10n),
+                              _statCard(l10n.clientReturns, stats.totalRetourClient, Appstyle.danger, isMoney: false, l10n: l10n),
+                              _textBadge(l10n.need, stats.besoin ? l10n.yes : l10n.no, stats.besoin ? Appstyle.danger : Appstyle.success),
                             ],
                           );
                         },
@@ -203,7 +203,7 @@ class AfficheurProduit extends StatelessWidget {
     return Container(
       decoration: BoxDecoration(
         color: Appstyle.indigo,
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(Appstyle.radiusMD),
         boxShadow: [
           BoxShadow(
             color: Appstyle.indigo.withOpacity(0.3),
@@ -263,7 +263,7 @@ class AfficheurProduit extends StatelessWidget {
           vertical: 14,
         ),
         shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(12),
+          borderRadius: BorderRadius.circular(Appstyle.radiusMD),
         ),
       ),
       child: Text(
@@ -278,7 +278,7 @@ class AfficheurProduit extends StatelessWidget {
     return Container(
       decoration: BoxDecoration(
         color: Appstyle.violet,
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(Appstyle.radiusMD),
         boxShadow: [
           BoxShadow(
             color: Appstyle.violet.withOpacity(0.3),
@@ -326,7 +326,7 @@ class AfficheurProduit extends StatelessWidget {
         height: 50,
         decoration: BoxDecoration(
           color: couleur.withOpacity(0.1),
-          borderRadius: BorderRadius.circular(12),
+          borderRadius: BorderRadius.circular(Appstyle.radiusMD),
         ),
         child: Icon(
           Icons.inventory_2,
@@ -341,7 +341,7 @@ class AfficheurProduit extends StatelessWidget {
       builder: (context, snapshot) {
         if (snapshot.hasData && snapshot.data != null) {
           return ClipRRect(
-            borderRadius: BorderRadius.circular(12),
+            borderRadius: BorderRadius.circular(Appstyle.radiusMD),
             child: Image.file(
               snapshot.data!,
               width: 50,
@@ -355,13 +355,13 @@ class AfficheurProduit extends StatelessWidget {
           width: 50,
           height: 50,
           decoration: BoxDecoration(
-            color: Colors.grey[200],
-            borderRadius: BorderRadius.circular(12),
+            color: Appstyle.neutral150,
+            borderRadius: BorderRadius.circular(Appstyle.radiusMD),
           ),
           child: const Icon(
             Icons.broken_image,
             size: 30,
-            color: Colors.grey,
+            color: Appstyle.gris,
           ),
         );
       },
@@ -372,18 +372,18 @@ class AfficheurProduit extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
       decoration: BoxDecoration(
-        color: Colors.orange.withOpacity(0.15),
-        borderRadius: BorderRadius.circular(20),
+        color: Appstyle.warning.withOpacity(0.15),
+        borderRadius: BorderRadius.circular(Appstyle.radiusCard),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          const Icon(Icons.local_offer, size: 12, color: Colors.orange),
+          const Icon(Icons.local_offer, size: 12, color: Appstyle.warning),
           const SizedBox(width: 4),
           Text(
             l10n.discount,
             style: const TextStyle(
-              color: Colors.orange,
+              color: Appstyle.warning,
               fontSize: 10,
               fontWeight: FontWeight.bold,
             ),
@@ -394,11 +394,11 @@ class AfficheurProduit extends StatelessWidget {
   }
 
   Widget _etatBadge(AppLocalizations l10n, {double quantite = 0}) {
-    Color color = produit.etat ? Colors.green : Colors.red;
+    Color color = produit.etat ? Appstyle.success : Appstyle.danger;
     String label = produit.etat ? l10n.active : l10n.inactive;
 
     if (quantite <= 0) {
-      color = Colors.orange;
+      color = Appstyle.warning;
       label = l10n.outOfStock;
     }
 
@@ -406,7 +406,7 @@ class AfficheurProduit extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
       decoration: BoxDecoration(
         color: color.withOpacity(0.15),
-        borderRadius: BorderRadius.circular(20),
+        borderRadius: BorderRadius.circular(Appstyle.radiusCard),
       ),
       child: Text(
         label,
@@ -432,7 +432,7 @@ class AfficheurProduit extends StatelessWidget {
       padding: const EdgeInsets.all(6),
       decoration: BoxDecoration(
         color: color.withOpacity(0.08),
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(Appstyle.radiusMD),
       ),
       child: Column(
         children: [
@@ -459,7 +459,7 @@ class AfficheurProduit extends StatelessWidget {
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
         color: color.withOpacity(0.08),
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(Appstyle.radiusMD),
       ),
       child: Column(
         children: [
@@ -484,7 +484,7 @@ class AfficheurProduit extends StatelessWidget {
       padding: const EdgeInsets.only(bottom: 6),
       child: Row(
         children: [
-          Icon(icon, size: 16, color: Colors.grey),
+          Icon(icon, size: 16, color: Appstyle.gris),
           const SizedBox(width: 6),
           Expanded(
             child: Text(

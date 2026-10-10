@@ -23,7 +23,7 @@ Widget pilluleCellule(String texte, Color couleur) {
     padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
     decoration: BoxDecoration(
       color: couleur.withOpacity(0.1),
-      borderRadius: BorderRadius.circular(12),
+      borderRadius: BorderRadius.circular(Appstyle.radiusMD),
     ),
     child: Text(
       texte,
@@ -133,7 +133,7 @@ class ProduitsListeDialog extends StatelessWidget {
           label: Text(l10n.close, style: Appstyle.textSB.copyWith(color: Appstyle.Tblanc)),
           style: ElevatedButton.styleFrom(
             backgroundColor: Appstyle.violet,
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(Appstyle.radiusMD)),
           ),
           onPressed: () => Navigator.pop(context),
         ),
@@ -159,7 +159,7 @@ class ProduitsListeDialog extends StatelessWidget {
       padding: const EdgeInsets.all(8),
       decoration: BoxDecoration(
         color: Appstyle.violet.withOpacity(0.1),
-        borderRadius: BorderRadius.circular(8),
+        borderRadius: BorderRadius.circular(Appstyle.radiusSM),
       ),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceAround,

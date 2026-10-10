@@ -85,7 +85,7 @@ class ProduitInsertionDataSource extends DataGridSource {
           return Center(
             child: Checkbox(
               value: isSelected,
-              activeColor: Colors.deepPurple,
+              activeColor: Appstyle.primary,
               onChanged: (_) {
                 onSelectRow?.call(rowIndex); // 🔥 clé
               },

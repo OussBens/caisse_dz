@@ -839,7 +839,7 @@ class _RoleCreationDialogState extends State<RoleCreationDialog> {
             padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
               color: Appstyle.violet.withOpacity(0.1),
-              borderRadius: BorderRadius.circular(8),
+              borderRadius: BorderRadius.circular(Appstyle.radiusSM),
             ),
             child: Row(
               children: [
@@ -887,11 +887,11 @@ class _RoleCreationDialogState extends State<RoleCreationDialog> {
               return Card(
                 elevation: 2,
                 shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(8),
+                  borderRadius: BorderRadius.circular(Appstyle.radiusSM),
                   side: BorderSide(
                     color: isSelected
                         ? Appstyle.violet
-                        : Colors.grey.withOpacity(0.3),
+                        : Appstyle.gris.withOpacity(0.3),
                   ),
                 ),
                 child: InkWell(
@@ -900,7 +900,7 @@ class _RoleCreationDialogState extends State<RoleCreationDialog> {
                       : () {
                           _updatePermission(permission.key, !isSelected);
                         },
-                  borderRadius: BorderRadius.circular(8),
+                  borderRadius: BorderRadius.circular(Appstyle.radiusSM),
                   child: Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                     child: Row(
@@ -908,8 +908,8 @@ class _RoleCreationDialogState extends State<RoleCreationDialog> {
                         Icon(
                           permission.icon,
                           color: isLocked
-                              ? Colors.grey.shade400
-                              : (isSelected ? Appstyle.violet : Colors.grey),
+                              ? Appstyle.neutral300
+                              : (isSelected ? Appstyle.violet : Appstyle.gris),
                           size: 20,
                         ),
                         const SizedBox(width: 12),
@@ -922,15 +922,15 @@ class _RoleCreationDialogState extends State<RoleCreationDialog> {
                                   ? FontWeight.w500
                                   : FontWeight.normal,
                               color: isLocked
-                                  ? Colors.grey.shade400
-                                  : (isSelected ? Appstyle.violet : Colors.grey[700]),
+                                  ? Appstyle.neutral300
+                                  : (isSelected ? Appstyle.violet : Appstyle.ink500),
                             ),
                           ),
                         ),
                         if (isLocked)
                           Padding(
                             padding: const EdgeInsets.only(right: 8),
-                            child: Icon(Icons.lock_outline, size: 16, color: Colors.grey.shade400),
+                            child: Icon(Icons.lock_outline, size: 16, color: Appstyle.neutral300),
                           ),
                         Checkbox(
                           value: isSelected,
@@ -979,7 +979,7 @@ class _RoleCreationDialogState extends State<RoleCreationDialog> {
             padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
               color: Appstyle.violet.withOpacity(0.1),
-              borderRadius: BorderRadius.circular(8),
+              borderRadius: BorderRadius.circular(Appstyle.radiusSM),
             ),
             child: Row(
               children: [
@@ -1023,23 +1023,23 @@ class _RoleCreationDialogState extends State<RoleCreationDialog> {
               return Card(
                 elevation: 2,
                 shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(8),
+                  borderRadius: BorderRadius.circular(Appstyle.radiusSM),
                   side: BorderSide(
                     color: isSelected
                         ? Appstyle.violet
-                        : Colors.grey.withOpacity(0.3),
+                        : Appstyle.gris.withOpacity(0.3),
                   ),
                 ),
                 child: InkWell(
                   onTap: () => _updatePermission(permission.key, !isSelected),
-                  borderRadius: BorderRadius.circular(8),
+                  borderRadius: BorderRadius.circular(Appstyle.radiusSM),
                   child: Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                     child: Row(
                       children: [
                         Icon(
                           permission.icon,
-                          color: isSelected ? Appstyle.violet : Colors.grey,
+                          color: isSelected ? Appstyle.violet : Appstyle.gris,
                           size: 20,
                         ),
                         const SizedBox(width: 12),
@@ -1049,7 +1049,7 @@ class _RoleCreationDialogState extends State<RoleCreationDialog> {
                             style: TextStyle(
                               fontSize: 13,
                               fontWeight: isSelected ? FontWeight.w500 : FontWeight.normal,
-                              color: isSelected ? Appstyle.violet : Colors.grey[700],
+                              color: isSelected ? Appstyle.violet : Appstyle.ink500,
                             ),
                           ),
                         ),

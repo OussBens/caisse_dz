@@ -3,6 +3,7 @@ import 'package:caisse_dz/core/Auth/auth_state.dart';
 import 'package:caisse_dz/core/dialog/parametre/initial_setup_dialog.dart';
 import 'package:caisse_dz/core/Auth/license_tier.dart';
 import 'package:caisse_dz/core/theme/app_style.dart';
+import 'package:caisse_dz/core/widget/wordmark.dart';
 import 'package:caisse_dz/core/widget/custom_title_bar.dart';
 import 'package:caisse_dz/data/models/RoleDetail.dart';
 import 'package:caisse_dz/l10n/app_localizations.dart';
@@ -183,7 +184,7 @@ class SideBarWidgetState extends State<SideBarWidget> {
     Appstyle.indigo,
     Appstyle.blueC,
     Appstyle.crevete,
-    Colors.teal,
+    Appstyle.successInk,
     Appstyle.blueF,
   ];
 
@@ -221,10 +222,10 @@ class SideBarWidgetState extends State<SideBarWidget> {
                     padding: const EdgeInsets.all(24),
                     decoration: BoxDecoration(
                       color: Appstyle.Tblanc,
-                      borderRadius: BorderRadius.circular(24),
+                      borderRadius: BorderRadius.circular(Appstyle.radiusXL),
                       boxShadow: [
                         BoxShadow(
-                          color: Colors.black.withOpacity(0.2),
+                          color: Appstyle.shadowTint.withOpacity(0.2),
                           blurRadius: 30,
                           offset: const Offset(0, 12),
                         ),
@@ -358,7 +359,7 @@ class SideBarWidgetState extends State<SideBarWidget> {
                     if (isExpanded) isPinned = true;
                     context.go(route);
                   },
-                  borderRadius: BorderRadius.circular(16),
+                  borderRadius: BorderRadius.circular(Appstyle.radiusLG),
                   child: Container(
                     margin: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                     padding: const EdgeInsets.symmetric(
@@ -371,7 +372,7 @@ class SideBarWidgetState extends State<SideBarWidget> {
                           : isHovered
                           ? Appstyle.violetC
                           : Colors.transparent,
-                      borderRadius: BorderRadius.circular(12),
+                      borderRadius: BorderRadius.circular(Appstyle.radiusMD),
                     ),
                     child: isExpanded
                         ? Row(
@@ -461,13 +462,13 @@ class SideBarWidgetState extends State<SideBarWidget> {
                 onExit: (_) => setLocalState(() => isHovered = false),
                 child: InkWell(
                   onTap: () => authWatch.toggleSidebarCategory(categoryKey),
-                  borderRadius: BorderRadius.circular(10),
+                  borderRadius: BorderRadius.circular(Appstyle.radiusMD),
                   child: Container(
                     margin: const EdgeInsets.fromLTRB(6, 10, 6, 2),
                     padding: EdgeInsets.symmetric(horizontal: isExpanded ? 14 : 8, vertical: 8),
                     decoration: BoxDecoration(
                       color: isHovered ? Appstyle.violet.withOpacity(0.14) : Appstyle.violetC,
-                      borderRadius: BorderRadius.circular(10),
+                      borderRadius: BorderRadius.circular(Appstyle.radiusMD),
                     ),
                     child: isExpanded
                         ? Row(
@@ -532,7 +533,7 @@ class SideBarWidgetState extends State<SideBarWidget> {
           color: Appstyle.Tblanc,
           boxShadow: const [
             BoxShadow(
-              color: Colors.black12,
+              color: Appstyle.shadowSoft,
               blurRadius: 12,
               offset: Offset(2, 0),
             ),
@@ -554,7 +555,7 @@ class SideBarWidgetState extends State<SideBarWidget> {
                     Tooltip(
                       message: l10n.situation,
                       child: InkWell(
-                        borderRadius: BorderRadius.circular(12),
+                        borderRadius: BorderRadius.circular(Appstyle.radiusMD),
                         onTap: () => showModuleMenu(context, l10n),
                         child: Padding(
                           padding: const EdgeInsets.all(6),
@@ -566,10 +567,7 @@ class SideBarWidgetState extends State<SideBarWidget> {
                       ),
                     ),
                     if (isExpanded)
-                      Text(
-                        'Caisse DZ',
-                        style: Appstyle.textSB.copyWith(color: Appstyle.violet, fontWeight: FontWeight.w700),
-                      ),
+                      const Wordmark(size: 18),
                   ],
                 ),
               ),
@@ -697,7 +695,7 @@ class _ModuleTileState extends State<_ModuleTile> {
             padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 8),
             decoration: BoxDecoration(
               color: _hovered ? widget.color.withOpacity(0.12) : Appstyle.Tblanc,
-              borderRadius: BorderRadius.circular(18),
+              borderRadius: BorderRadius.circular(Appstyle.radiusCard),
               border: Border.all(
                 color: widget.color.withOpacity(_hovered ? 0.4 : 0.15),
                 width: 1.2,

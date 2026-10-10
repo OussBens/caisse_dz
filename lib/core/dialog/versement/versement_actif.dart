@@ -174,7 +174,7 @@ Future<void> ActiverVersements(
                               padding: const EdgeInsets.all(10),
                               decoration: BoxDecoration(
                                 color: Appstyle.grisC.withOpacity(0.15),
-                                borderRadius: BorderRadius.circular(10),
+                                borderRadius: BorderRadius.circular(Appstyle.radiusMD),
                               ),
                               child: Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -203,8 +203,8 @@ Future<void> ActiverVersements(
                                     "${l10n.status}: ${v.etat ? l10n.validated : l10n.cancelled}",
                                     style: Appstyle.textS.copyWith(
                                       color: v.etat == true
-                                          ? Colors.green
-                                          : Colors.red,
+                                          ? Appstyle.success
+                                          : Appstyle.danger,
                                     ),
                                   ),
                                 ],

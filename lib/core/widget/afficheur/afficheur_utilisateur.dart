@@ -26,10 +26,10 @@ class AfficheurUtilisateur extends StatelessWidget {
       padding: const EdgeInsets.all(8),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(Appstyle.radiusLG),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.05),
+            color: Appstyle.shadowTint.withOpacity(0.05),
             blurRadius: 12,
             offset: const Offset(0, 6),
           ),
@@ -73,17 +73,17 @@ class AfficheurUtilisateur extends StatelessWidget {
                 const SizedBox(height: 4),
                 Text(
                   "${l10n.code} : ${utilisateur.code}",
-                  style: TextStyle(color: Colors.grey.shade700),
+                  style: TextStyle(color: Appstyle.ink500),
                 ),
                 const SizedBox(height: 4),
                 Text(
                   "${l10n.role} : ${utilisateur.role}",
-                  style: TextStyle(color: Colors.grey.shade700),
+                  style: TextStyle(color: Appstyle.ink500),
                 ),
                 const SizedBox(height: 4),
                 Text(
                   "${l10n.phone} : ${utilisateur.telephone}",
-                  style: TextStyle(color: Colors.grey.shade700),
+                  style: TextStyle(color: Appstyle.ink500),
                 ),
               ],
             ),
@@ -99,7 +99,7 @@ class AfficheurUtilisateur extends StatelessWidget {
                 _statCard(
                   l10n.credit,
                   utilisateur.credit,
-                  utilisateur.credit >= 0 ? Colors.green : Colors.red,
+                  utilisateur.credit >= 0 ? Appstyle.success : Appstyle.danger,
                   l10n: l10n,
                 ),
                 FutureBuilder<List<Pannier>>(
@@ -111,8 +111,8 @@ class AfficheurUtilisateur extends StatelessWidget {
                       spacing: 16,
                       runSpacing: 8,
                       children: [
-                        _statCard(l10n.sales, panniers.length.toDouble(), Colors.blue, isMoney: false, l10n: l10n),
-                        _statCard(l10n.totalSold, totalVendu, Colors.teal, l10n: l10n),
+                        _statCard(l10n.sales, panniers.length.toDouble(), Appstyle.info, isMoney: false, l10n: l10n),
+                        _statCard(l10n.totalSold, totalVendu, Appstyle.successInk, l10n: l10n),
                       ],
                     );
                   },
@@ -151,7 +151,7 @@ class AfficheurUtilisateur extends StatelessWidget {
                 vertical: 14,
               ),
               shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12),
+                borderRadius: BorderRadius.circular(Appstyle.radiusMD),
               ),
             ),
             child: Text(
@@ -168,7 +168,7 @@ class AfficheurUtilisateur extends StatelessWidget {
 
   /// 🟢 Badge état utilisateur
   Widget _etatBadge(AppLocalizations l10n) {
-    Color color = utilisateur.etat ? Colors.green : Colors.red;
+    Color color = utilisateur.etat ? Appstyle.success : Appstyle.danger;
     String label = utilisateur.etat ? l10n.active : l10n.inactive;
 
     return Container(
@@ -178,7 +178,7 @@ class AfficheurUtilisateur extends StatelessWidget {
       ),
       decoration: BoxDecoration(
         color: color.withOpacity(0.15),
-        borderRadius: BorderRadius.circular(20),
+        borderRadius: BorderRadius.circular(Appstyle.radiusCard),
       ),
       child: Text(
         label,
@@ -204,7 +204,7 @@ class AfficheurUtilisateur extends StatelessWidget {
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
         color: color.withOpacity(0.08),
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(Appstyle.radiusMD),
       ),
       child: Column(
         children: [
@@ -230,7 +230,7 @@ class AfficheurUtilisateur extends StatelessWidget {
       padding: const EdgeInsets.only(bottom: 6),
       child: Row(
         children: [
-          Icon(icon, size: 16, color: Colors.grey),
+          Icon(icon, size: 16, color: Appstyle.gris),
           const SizedBox(width: 6),
           Expanded(
             child: Text(

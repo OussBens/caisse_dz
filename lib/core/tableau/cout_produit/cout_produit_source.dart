@@ -4,6 +4,7 @@ import '../../../l10n/app_localizations.dart';
 import '../base_table_data_source.dart';
 import 'package:caisse_dz/core/utilis/number_format.dart';
 import 'package:caisse_dz/core/utilis/quantite_format.dart';
+import 'package:caisse_dz/core/theme/app_style.dart';
 
 /// Une ligne de la situation "Coût produit" : prix d'achat et de vente
 /// constatés sur la période (min / max / moyen pondéré par la quantité) et
@@ -91,7 +92,7 @@ class CoutProduitDataSource extends BaseTableDataSource<LigneCoutProduit> {
           QuantiteFormat.format(v),
           style: TextStyle(
             fontWeight: FontWeight.bold,
-            color: columnName == 'quantiteAchetee' ? Colors.indigo : Colors.green.shade700,
+            color: columnName == 'quantiteAchetee' ? Appstyle.primary : Appstyle.successInk,
           ),
         ),
       );

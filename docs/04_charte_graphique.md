@@ -1,70 +1,94 @@
-# Charte graphique — CaisseDZ
+# Charte graphique — CaisseDZ (design system 2026)
 
-Ce document décrit le système visuel réellement implémenté dans l'application (extrait de `lib/core/theme/app_style.dart` et des composants partagés), pas une proposition théorique. Toute nouvelle UI doit réutiliser ces tokens plutôt qu'introduire de nouvelles valeurs.
+Ce document décrit le système visuel implémenté dans l'application depuis le
+**rebranding** (branche `rebrand`). Source : le design system « CaisseDZ Design
+System » réalisé dans Claude Design. Les valeurs vivent dans
+`lib/core/theme/app_style.dart` (`Appstyle`) et `lib/main.dart` (`ThemeData`).
+Toute nouvelle UI réutilise ces tokens plutôt que d'introduire de nouvelles
+valeurs.
+
+> **Compatibilité.** Les noms historiques (`violet`, `crevete`, `gris`, `Tnoir`…)
+> sont conservés : seules leurs valeurs ont changé, pour que les ~3 000 usages
+> existants suivent la nouvelle marque sans modification. Pour du nouveau
+> code, utiliser les **rôles sémantiques** (`primary`, `surface`, `textPrimary`,
+> `success`…).
 
 ---
 
 ## 1. Logo & identité
 
-- Logo : `assets/icons/caisse_dz_logo.png` — panier de course stylisé + cerveau (symbolise un POS "intelligent"), texte "Caisse DZ" en deux lignes.
-- Le logo apparaît sur fond violet plein (carré arrondi) dans la sidebar et l'écran de login, et en blanc/silhouette sur l'image de fond du login.
-- Accroche produit : *"Logiciel de caisse POS — Simple, Rapide et Sécurisé"*.
-- Ton général : moderne, épuré, dominante violette, coins arrondis partout (aucun angle droit dans les composants interactifs).
+- **Wordmark** : « Caisse**DZ** » — « Caisse » en texte principal, « DZ » en
+  violet de marque, Inter 700, interlettrage −3 %, toujours de gauche à droite
+  (même en arabe). Widget : `lib/core/widget/wordmark.dart` (`Wordmark`,
+  option `inverse` pour fond violet).
+- **Logo image** (`assets/icons/caisse_dz_logo.png`), icône Windows
+  (`windows/runner/resources/app_icon.ico`) et icône d'installateur : même
+  dessin qu'avant (panier + cerveau), fond recoloré au violet `#6A4CF0`.
+- Ton : moderne, épuré, une seule couleur de marque (violet), surfaces
+  blanches sur fond gris-lavande très clair, coins arrondis généreux.
 
 ---
 
 ## 2. Couleurs
 
-### 2.1 Couleur de marque (primaire)
+### 2.1 Échelle violette (marque)
 
-| Rôle | Nom token | Hex | Usage |
+| Token | Hex | Usage |
+|---|---|---|
+| `purple50` | `#F3F0FF` | Fond violet très clair (`violetC`) |
+| `purple100` | `#E8E2FF` | |
+| `purple200` | `#D2C7FF` | « DZ » du wordmark inversé |
+| `purple300` | `#B3A1FF` | |
+| `purple400` | `#9077FA` | |
+| `purple500` | `#7B5CF5` | Début du dégradé CTA (`crevete`) |
+| `purple600` | `#6A4CF0` | **Primary** (`violet`, `primary`) |
+| `purple700` | `#5638CC` | Primary pressé / texte violet (`indigo`, `primaryDark`) |
+| `purple800` | `#422BA0` | (`blueF`) |
+| `purple900` | `#2E1F70` | (`maron2`) |
+| `purple950` | `#1B1245` | |
+
+`primarySoft #ECE8FF` : fond des boutons secondaires, badges et icônes teintées
+de marque.
+
+### 2.2 Neutres & texte
+
+| Rôle | Token (ancien nom) | Hex |
+|---|---|---|
+| Fond d'écran | `background` (`grisnew`) | `#F6F6FA` |
+| Surface (cartes, dialogs) | `surface` (`Tblanc`) | `#FFFFFF` |
+| Surface 2 (champs, chips, boutons icône) | `surface2` (`grischamp`, `grisSC`) | `#F1F0F6` |
+| Bordure de carte | `surfaceBorder` | `#EEEDF4` |
+| Survol neutre | `neutral200` | `#E7E5F0` |
+| Texte principal | `textPrimary` (`Tnoir`) | `#1B1A2E` |
+| Texte secondaire / icônes inactives | `textSecondary` (`TgrisC`, `gris`) | `#8A889E` |
+| Texte tertiaire / désactivé / bordures | `border` (`grisC`) | `#B4B2C4` |
+| Texte gris foncé | `TgrisF`, `lavande` | `#6A6780` |
+
+### 2.3 Sémantiques
+
+Chaque rôle a trois tons : **fort** (icônes, points, boutons), **soft** (fond
+teinté) et **ink** (texte sur le fond soft, contraste 4.5:1).
+`Appstyle.softPour(c)` / `Appstyle.inkPour(c)` donnent les variantes d'une
+couleur.
+
+| Rôle | Fort | Soft | Ink |
 |---|---|---|---|
-| Primaire | `violet` | `#755DB3` | Actions principales, item de sidebar actif, titres de section, focus des champs |
-| Primaire (dégradé) | `violetGradient` | `#6C5DD3 → #9B80ED` | Fonds de header ponctuels |
-| Primaire clair (fond) | `violetC` | `#F6F4FD` | Fond des champs de saisie, fond des catégories de sidebar, hover léger |
-| Primaire foncé | `indigo` | `#57315A` | Contraste fort (indicateur d'onglet secondaire, texte sur fond clair) |
+| `success` (`green`) | `#16A34A` | `#E6F7EE` | `#0F7A37` |
+| `warning` (`jaune`) | `#E0A100` | `#FFF6DD` | `#8F6400` |
+| `danger` (`red`) | `#E5395F` | `#FDE8EE` | `#C2254A` |
+| `info` (`blueC`) | `#3B6FF5` | `#E6EEFF` | `#2A55CC` |
 
-### 2.2 Couleur secondaire / accent
+Les couleurs Material codées en dur (`Colors.red`, `green`, `orange`, `blue`,
+`grey`…) ont été remplacées par ces rôles dans tout `lib/`.
 
-| Rôle | Nom token | Hex | Usage |
-|---|---|---|---|
-| Accent (call-to-action "nouveau") | `crevete` | `#FF8989` | Boutons "Nouveau", badges, accents chaleureux — toujours en complément du violet, jamais seul comme couleur de marque |
+### 2.4 Dégradés
 
-### 2.3 Neutres (gris)
+- `violetGradient` (hero) : `#6A4CF0 → #A996FB`, 135°.
+- `ctaGradient` : `#7B5CF5 → #6A4CF0 → #5638CC`.
 
-| Nom token | Hex | Usage |
-|---|---|---|
-| `gris` | `#858585` | Icônes/texte inactifs |
-| `grisC` | `#CFCFCF` | Bordures par défaut |
-| `grisSC` | `#F8F8F8` | Fond de champ désactivé |
-| `grisnew` | `#F6F6F6` | Fond d'écran général (`background`) |
-| `grischamp` | `#F3F3F3` | Fond de champ alternatif |
-
-### 2.4 Texte
-
-| Nom token | Hex | Usage |
-|---|---|---|
-| `Tnoir` | `#0A1629` | Texte principal (`textPrimary`) |
-| `TnoirC` | `#4E4E4E` | Texte principal secondaire |
-| `TgrisF` | `#404040` | Texte hint/désactivé |
-| `TgrisC` | `#91929E` | Texte secondaire (`textSecondary`) |
-| `Tblanc` | `#FFFFFF` | Texte sur fond coloré |
-| `Tblue` / `Tred` | `#408CFE` / `#FF3B00` | Liens / erreurs inline ponctuelles |
-
-### 2.5 Couleurs sémantiques (alias)
-
-| Rôle sémantique | Alias vers | Hex |
-|---|---|---|
-| `success` | `green` | `#52B8A5` |
-| `warning` | `jaune` | `#ECBB5F` |
-| `danger` | `red` | `#D24728` |
-| `info` | `blueC` | `#558CD2` |
-
-### 2.6 Couleurs de catégorie / module (charts, cartes de module)
-
-`blueF #442C80` · `maron #C08252` · `maron2 #7E5973` · `green2 #4E7984` · `lavande #866F88` — utilisées pour distinguer visuellement les tuiles du menu rapide (logo → grille de modules) et certains graphiques ; assignées par rotation, pas par sens fixe.
-
-**Règle d'usage :** le violet reste la seule couleur "de marque". Le crevete est le seul accent secondaire à statut égal. Toutes les autres couleurs (gris, sémantiques, catégorie) sont fonctionnelles, jamais décoratives seules.
+**Règle d'usage :** le violet est la **seule** couleur de marque (l'ancien accent
+corail `crevete` devient un violet). Les autres couleurs sont sémantiques.
+Couleurs à distinguer : différence de luminosité, pas seulement de teinte.
 
 ---
 
@@ -72,89 +96,114 @@ Ce document décrit le système visuel réellement implémenté dans l'applicati
 
 | Contexte | Police |
 |---|---|
-| Interface par défaut (français / anglais) | **Poppins** |
-| Interface en arabe (RTL) | **Cairo** (bascule automatique selon la langue) |
-| Échelle de texte `Appstyle.textXS…textXXLB` (utilisée par la majorité des widgets historiques) | **NunitoSans** |
-| Disponible mais peu utilisé actuellement | **Tajawal** |
+| Latin (français, anglais) et chiffres | **Inter** (400, 500, 600, 700) |
+| Arabe | **Alexandria** (400, 500, 600, 700) |
 
-### Échelle de taille (`Appstyle.textXS` → `textXXLB`)
+- Fichiers : `assets/fonts/Inter-*.ttf`, `assets/fonts/Alexandria-*.ttf` (SIL
+  Open Font License, `assets/fonts/OFL-*.txt`).
+- Inter n'a pas de glyphes arabes : `fontFamilyFallback: ['Alexandria']`, donc
+  l'arabe s'affiche automatiquement en Alexandria. En RTL, le thème met
+  Alexandria en tête.
+- Les PDF arabes gardent **Cairo** (formes de présentation arabes nécessaires
+  au moteur PDF).
 
-| Token | Taille | Graisse régulière | Graisse "B" (bold) |
+### Échelle (`Appstyle.textXS` → `textXXLB`)
+
+| Token | Taille | Régulier | « B » |
 |---|---|---|---|
-| `textXS` / `textXSB` | 13px | 400 | 700 |
-| `textS` / `textSB` | 14px | 400 | 700 |
-| `textM` / `textMB` | 18px | 400 | 700 |
-| `textL` / `textLB` | 22px | 400 | 700 |
-| `textXL` / `textXLB` | 26px | 400 | 700 |
+| `textXS` / `textXSB` | 13px | 400 | 600 |
+| `textS` / `textSB` | 14px | 400 | 600 |
+| `textM` / `textMB` | 18px | 400 | 600 |
+| `textL` / `textLB` | 22px | 400 | 600 |
+| `textXL` / `textXLB` | 26px | 400 | 600 |
 | `textXXL` / `textXXLB` | 34px | 400 | 700 |
 
-Une échelle parallèle `textpop_XS…textpop_XLB` existe en Poppins pour les écrans qui n'utilisent pas NunitoSans.
+Le gras du design system est le **semibold (600)** ; le bold (700) est réservé
+aux très grands titres et au wordmark. L'échelle `textpop_*` utilise aussi Inter.
 
-**Règle d'usage :** titre d'écran → `textXLB`, titre de section/carte → `textLB` ou `textMB`, corps de texte → `textS`/`textSB`, libellés secondaires/metadata → `textXS`.
+Référence du design system (mobile) : display 32/40 700, h1 24/32 600,
+h2 20/28 600, h3 17/24 600, corps 15/22 400, petit 13/18, légende 12/16 500,
+label 11/14 600.
 
 ---
 
-## 4. Espacement & rayons
+## 4. Espacement, rayons, ombres
 
-### Espacement (multiples de 4 — `Appstyle.spaceXS…spaceXXL`)
+### Espacement (grille de 4)
 
 `spaceXS 4` · `spaceS 8` · `spaceM 12` · `spaceL 16` · `spaceXL 24` · `spaceXXL 32`
 
-### Rayons de bordure (`Appstyle.radiusSM…radiusXL`)
+### Rayons
 
-`radiusSM 8` · `radiusMD 12` · `radiusLG 16` · `radiusXL 24`
+| Token | Valeur | Usage |
+|---|---|---|
+| `radiusXS` | 6 | Case à cocher, petit badge clavier |
+| `radiusSM` | 8 | Petits éléments |
+| `radiusMD` | 12 | Champs, boutons icône |
+| `radiusButton` | 14 | Boutons |
+| `radiusLG` | 16 | Panneaux |
+| `radiusCard` | 20 | Cartes |
+| `radiusXL` | 24 | Grandes sections |
+| `radiusDialog` | 28 | Dialogs |
+| `radiusPill` | 999 | Badges, chips |
 
-Exceptions observées et acceptées : les dialogs (`BaseDialog`) utilisent `14px` (entre SM et MD), les cartes de statistiques et sections utilisent souvent `16-18px`. Pour tout nouveau composant, partir de `radiusMD` (boutons, champs) ou `radiusLG` (cartes, dialogs) plutôt que d'inventer une valeur.
+Tous les `BorderRadius.circular(n)` de l'app passent par ces tokens.
 
 ### Ombres
 
-- **Carte au repos** (`Appstyle.shadowCard`) : noir 8% opacité, blur 10, offset (0, 3).
-- **Survol / actif** (`Appstyle.shadowHover(color:)`) : couleur du composant à 30% opacité, blur 16, offset (0, 6) — utilisée par les boutons et cartes au survol.
+Teinte `shadowTint #281E5A` (violet très foncé), jamais du noir pur.
+
+- `shadowCard` : 6 %, blur 16, offset (0, 4).
+- `shadowRaised` : 10 %, blur 28, offset (0, 8).
+- `shadowSoft` / `shadowMedium` : versions constantes (7 % / 16 %).
+- `shadowHover(color:)` : couleur du composant à 30 % (survol).
 
 ---
 
-## 5. Composants clés
+## 5. Composants
 
 ### Boutons (`MainButton`)
-- Rayon 12px, padding horizontal 24 / vertical 14, texte `textSB` blanc.
-- Survol : léger soulèvement (-2px), fond assombri de 8%, ombre colorée (`shadowHover`).
-- Appui : tassement (scale 0.97).
-- Transition : 160ms, courbe `easeOut`.
-- Icône à gauche par défaut (option `iconOnRight`), badge point rouge optionnel (filtres actifs), état `loading` avec spinner.
-- Couleur du bouton = sens de l'action : violet (action principale/neutre), crevete (créer/nouveau), gris (annuler/secondaire), rouge (danger/supprimer).
+- Rayon 14, texte `textSB` (600).
+- Variante **neutre** automatique : un bouton `Appstyle.gris` (Annuler,
+  Fermer…) devient fond `surface2` + texte `textPrimary`.
+- Survol : soulèvement −2px, fond assombri, ombre colorée ; appui : scale 0.97.
 
-### Dialogs (`BaseDialog` + `TitreAvecLigne`)
-- Fond blanc, coins arrondis 14px, largeur/hauteur fixées par écran.
-- En-tête standard : icône (26px, teinte grise) + titre (`textLB` gris) sur une ligne, puis une **ligne de séparation fine** (2px) pleine largeur sous le titre — y compris sous un éventuel bouton de fermeture "X" (passé en `trailing`, jamais dans un `Row` externe qui casserait la ligne).
-- Footer : actions alignées à droite ou en `spaceBetween` (Annuler à gauche, action principale à droite).
+### Champs (`FieldDecoration`)
+- Vide : fond `surface2`, sans bordure visible.
+- Focus : fond blanc, bordure `primary` 1.5px, halo `focusRing` 4px (primary 32 %).
+- Rempli : teinte succès (repère « champ renseigné » conservé).
+- Erreur : fond `dangerSoft`, bordure `danger`.
 
-### Sidebar (`SideBarWidget` / `AppShell`)
-- Montée une seule fois par session (persistante d'un module à l'autre), largeur 80px repliée / 220px dépliée.
-- Modules groupés par catégorie (Ventes, Stock, People, Autre) avec en-tête violet clair cliquable.
-- Item actif : fond violet plein, icône + texte blancs à pleine opacité. Item inactif : icône/texte gris à 80% d'opacité (0.8), passant en violet au survol.
-- Transition de contenu entre modules : fondu + léger glissement (260ms).
+### Badges (`StatusBadge`, `EtatBadge`)
+- Pastille (pill) 24px, fond « soft », point de la couleur forte, libellé
+  11px/600 en teinte « ink ».
 
-### Cartes / tuiles (menu rapide, stats)
-- Fond blanc, bordure fine colorée à 15-40% d'opacité selon l'état, coins arrondis 16-18px.
-- Survol : légère mise à l'échelle (1.04), ombre colorée ; icône dans un cercle à fond teinté 12-14%.
+### Dialogs (`BaseDialog`)
+- Fond blanc, rayon 28, bordure `surfaceBorder`, padding 24/20.
+
+### Thème Material (`lib/main.dart`)
+- Champs, boutons (elevated, filled, outlined, text), cartes, dialogs, chips,
+  infobulles, snackbars, scrollbar et indicateurs de progression suivent les
+  mêmes tokens.
 
 ### Iconographie
-- Icônes custom PNG sous `assets/icons/` (pas de police d'icônes unique) + `Icons.*` Material ponctuels pour les actions génériques (fermer, filtrer, trier).
-- Toujours teintées via `color:` selon l'état (gris inactif / violet hover / blanc sur fond actif), jamais utilisées avec leurs couleurs sources.
+- Icônes PNG sous `assets/icons/`, toujours teintées via `color:`. Le design
+  system utilise Lucide (trait 1.75) ; la migration des PNG vers Lucide n'est
+  pas faite (voir « Reste à faire »).
 
 ---
 
 ## 6. Localisation & RTL
 
-- 3 langues : français (défaut), anglais, arabe.
-- En arabe, l'interface bascule en RTL complet (mise en page ET police Cairo) — tout nouveau composant doit être testé dans les deux sens plutôt que supposer LTR.
+- Français (défaut), anglais, arabe ; RTL complet en arabe, police Alexandria.
+- Le wordmark et les montants restent LTR.
 
 ---
 
-## 7. Principes transverses
+## 7. Reste à faire / hors périmètre du rebranding
 
-1. **Une seule couleur de marque** (violet) + **un seul accent** (crevete) — toute autre couleur est sémantique ou fonctionnelle.
-2. **Coins arrondis systématiques**, jamais d'angle droit sur un élément interactif.
-3. **Micro-interactions cohérentes** : survol = léger soulèvement + ombre colorée ; clic = léger tassement ; transitions courtes (150-260ms, `easeOut`).
-4. **Hiérarchie typographique stricte** via l'échelle `Appstyle.text*`, jamais de taille de police codée en dur.
-5. **Espacements et rayons via tokens** (`spaceX`/`radiusX`), jamais de valeur ad hoc (`12.5`, `18`, etc.) sans raison documentée.
+- **Thème sombre** : défini dans le design system (fond `#0E0C16`, surface
+  `#181525`, primary `#8B70FA`…) mais non activé (l'app n'a pas de mode sombre).
+- **Icônes Lucide** à la place des PNG.
+- **Image de fond du login** (`assets/images/login_back.png`) : illustration
+  violette conservée telle quelle.

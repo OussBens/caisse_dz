@@ -3,6 +3,7 @@ import 'package:caisse_dz/l10n/app_localizations.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
+import 'package:caisse_dz/core/theme/app_style.dart';
 
 class HeaderModule extends StatelessWidget {
   final Widget child; // contenu à afficher à l'intérieur
@@ -33,8 +34,8 @@ class HeaderModule extends StatelessWidget {
         gradient: LinearGradient(
           colors: gradientColors ??
               [
-                Colors.purple.withOpacity(0.8),
-                Colors.purple.withOpacity(0.4)
+                Appstyle.primary.withOpacity(0.8),
+                Appstyle.primary.withOpacity(0.4)
               ],
           begin: begin,
           end: end,
@@ -43,7 +44,7 @@ class HeaderModule extends StatelessWidget {
         boxShadow: boxShadow ??
             [
               BoxShadow(
-                color: Colors.black.withOpacity(0.1),
+                color: Appstyle.shadowTint.withOpacity(0.1),
                 blurRadius: 3,
                 offset: const Offset(0, 1),
               ),
@@ -100,12 +101,12 @@ class _HeaderExitButtonState extends State<_HeaderExitButton> {
             width: size,
             height: size,
             decoration: BoxDecoration(
-              color: _isHovered ? Colors.red : Colors.white,
+              color: _isHovered ? Appstyle.danger : Colors.white,
               shape: BoxShape.circle,
-              border: Border.all(color: Colors.red, width: 1.6),
+              border: Border.all(color: Appstyle.danger, width: 1.6),
               boxShadow: [
                 BoxShadow(
-                  color: Colors.red.withOpacity(_isHovered ? 0.35 : 0.15),
+                  color: Appstyle.danger.withOpacity(_isHovered ? 0.35 : 0.15),
                   blurRadius: _isHovered ? 8 : 4,
                   offset: const Offset(0, 2),
                 ),
@@ -113,7 +114,7 @@ class _HeaderExitButtonState extends State<_HeaderExitButton> {
             ),
             child: Icon(
               Icons.exit_to_app,
-              color: _isHovered ? Colors.white : Colors.red,
+              color: _isHovered ? Colors.white : Appstyle.danger,
               size: 18,
             ),
           ),

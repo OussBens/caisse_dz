@@ -286,7 +286,7 @@ class _MouvementProduitTabState extends State<MouvementProduitTab> {
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('${l10n.exportError}: $e'), backgroundColor: Colors.red),
+        SnackBar(content: Text('${l10n.exportError}: $e'), backgroundColor: Appstyle.danger),
       );
     }
   }
@@ -321,7 +321,7 @@ class _MouvementProduitTabState extends State<MouvementProduitTab> {
                   if (filtresActifs) ...[
                     const SizedBox(width: 8),
                     MainIconButton(
-                      color: Colors.grey.shade400,
+                      color: Appstyle.neutral300,
                       imagePath: 'assets/icons/action/supprimer_icon.png',
                       onPressed: () => setState(() => _supprimerFiltre()),
                     ),
@@ -332,8 +332,8 @@ class _MouvementProduitTabState extends State<MouvementProduitTab> {
                 children: [
                   MainButton(
                     text: l10n.extract,
-                    textColor: Colors.green,
-                    iconColor: Colors.green,
+                    textColor: Appstyle.success,
+                    iconColor: Appstyle.success,
                     color: Appstyle.Tblanc,
                     icon: Icons.download,
                     onPressed: () async => await _exporter(l10n),
@@ -342,14 +342,14 @@ class _MouvementProduitTabState extends State<MouvementProduitTab> {
                   // Extract filtre : Excel des seules lignes cochées.
                   MainIconButton(
                     imagePath: "assets/icons/action/extacter_filtre_icon.png",
-                    color: Colors.orange,
+                    color: Appstyle.warning,
                     onPressed: () async => await _exporter(l10n, selectionSeulement: true),
                   ),
                   const SizedBox(width: 10),
                   MainButton(
                     text: l10n.extractPdf,
-                    textColor: Colors.red,
-                    iconColor: Colors.red,
+                    textColor: Appstyle.danger,
+                    iconColor: Appstyle.danger,
                     color: Appstyle.Tblanc,
                     icon: Icons.picture_as_pdf,
                     onPressed: () async => await _exporter(l10n, enPdf: true),

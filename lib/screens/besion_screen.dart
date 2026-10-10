@@ -389,7 +389,7 @@ class _BesionScreenState extends State<BesionScreen> with TickerProviderStateMix
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
               content: Text('No data found in Excel file'),
-              backgroundColor: Colors.orange,
+              backgroundColor: Appstyle.warning,
             ),
           );
           return;
@@ -409,7 +409,7 @@ class _BesionScreenState extends State<BesionScreen> with TickerProviderStateMix
               ScaffoldMessenger.of(context).showSnackBar(
                 SnackBar(
                   content: Text(l10n.exportSuccess),
-                  backgroundColor: Colors.green,
+                  backgroundColor: Appstyle.success,
                 ),
               );
             },
@@ -425,7 +425,7 @@ class _BesionScreenState extends State<BesionScreen> with TickerProviderStateMix
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('Could not find data sheet in Excel file'),
-            backgroundColor: Colors.red,
+            backgroundColor: Appstyle.danger,
           ),
         );
       }
@@ -436,7 +436,7 @@ class _BesionScreenState extends State<BesionScreen> with TickerProviderStateMix
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text('${AppLocalizations.of(context)!.exportError}: $e'),
-          backgroundColor: Colors.red,
+          backgroundColor: Appstyle.danger,
         ),
       );
     } finally {
@@ -592,7 +592,7 @@ class _BesionScreenState extends State<BesionScreen> with TickerProviderStateMix
               ScaffoldMessenger.of(context).showSnackBar(
                 SnackBar(
                   content: Text(l10n.exportSuccess),
-                  backgroundColor: Colors.green,
+                  backgroundColor: Appstyle.success,
                 ),
               );
             },
@@ -608,7 +608,7 @@ class _BesionScreenState extends State<BesionScreen> with TickerProviderStateMix
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('Could not find data sheet in Excel file'),
-            backgroundColor: Colors.red,
+            backgroundColor: Appstyle.danger,
           ),
         );
       }
@@ -619,7 +619,7 @@ class _BesionScreenState extends State<BesionScreen> with TickerProviderStateMix
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text('${AppLocalizations.of(context)!.exportError}: $e'),
-          backgroundColor: Colors.red,
+          backgroundColor: Appstyle.danger,
         ),
       );
     } finally {
@@ -998,9 +998,9 @@ class _BesionScreenState extends State<BesionScreen> with TickerProviderStateMix
 
     // ✅ Couleurs des tabs
     final tabColors = [
-      Colors.orange.shade500,
+      Appstyle.warning,
       Appstyle.TnoirC,
-      Colors.redAccent,
+      Appstyle.danger,
     ];
 
     return Scaffold(
@@ -1100,10 +1100,10 @@ class _BesionScreenState extends State<BesionScreen> with TickerProviderStateMix
                                   margin: const EdgeInsets.symmetric(horizontal: 0, vertical: 6),
                                   decoration: BoxDecoration(
                                     color: Colors.white,
-                                    borderRadius: BorderRadius.circular(16),
+                                    borderRadius: BorderRadius.circular(Appstyle.radiusLG),
                                     boxShadow: [
                                       BoxShadow(
-                                        color: Colors.black.withOpacity(0.05),
+                                        color: Appstyle.shadowTint.withOpacity(0.05),
                                         blurRadius: 10,
                                         offset: const Offset(0, 2),
                                       ),
@@ -1114,7 +1114,7 @@ class _BesionScreenState extends State<BesionScreen> with TickerProviderStateMix
                                     isScrollable: false,
                                     indicator: BoxDecoration(
                                       color: headerColor,
-                                      borderRadius: BorderRadius.circular(12),
+                                      borderRadius: BorderRadius.circular(Appstyle.radiusMD),
                                     ),
                                     labelColor: Colors.white,
                                     unselectedLabelColor: Appstyle.gris,
@@ -1211,7 +1211,7 @@ class _BesionScreenState extends State<BesionScreen> with TickerProviderStateMix
                                                 SizedBox(width: paddingH/4),
                                                 if (filtresActifs)
                                                   MainIconButton(
-                                                    color: Colors.grey.shade400,
+                                                    color: Appstyle.neutral300,
                                                     imagePath: 'assets/icons/action/supprimer_icon.png',
                                                     onPressed: () {
                                                       setState(() {
@@ -1224,8 +1224,8 @@ class _BesionScreenState extends State<BesionScreen> with TickerProviderStateMix
                                                   SizedBox(width: paddingH/4),
                                                 MainButton(
                                                   text: l10n.extract,
-                                                  textColor: Colors.green,
-                                                  iconColor: Colors.green,
+                                                  textColor: Appstyle.success,
+                                                  iconColor: Appstyle.success,
                                                   color: Appstyle.Tblanc,
                                                   icon: Icons.download,
                                                   loading: _exportEnCours,
@@ -1236,8 +1236,8 @@ class _BesionScreenState extends State<BesionScreen> with TickerProviderStateMix
                                                 SizedBox(width: paddingH / 4),
                                                 MainButton(
                                                   text: l10n.extractPdf,
-                                                  textColor: Colors.red,
-                                                  iconColor: Colors.red,
+                                                  textColor: Appstyle.danger,
+                                                  iconColor: Appstyle.danger,
                                                   color: Appstyle.Tblanc,
                                                   icon: Icons.picture_as_pdf,
                                                   onPressed: () async {
@@ -1247,7 +1247,7 @@ class _BesionScreenState extends State<BesionScreen> with TickerProviderStateMix
                                                 SizedBox(width: paddingH / 4),
                                                 MainIconButton(
                                                   imagePath: "assets/icons/action/extacter_filtre_icon.png",
-                                                  color: Colors.orange,
+                                                  color: Appstyle.warning,
                                                   onPressed: () async {
                                                     await _exportSelectedToExcel();
                                                   },
@@ -1435,7 +1435,7 @@ class _BesionScreenState extends State<BesionScreen> with TickerProviderStateMix
                                                 SizedBox(width: paddingH/4),
                                                 if (filtresActifs)
                                                   MainIconButton(
-                                                    color: Colors.grey.shade400,
+                                                    color: Appstyle.neutral300,
                                                     imagePath: 'assets/icons/action/supprimer_icon.png',
                                                     onPressed: () {
                                                       setState(() {
@@ -1448,8 +1448,8 @@ class _BesionScreenState extends State<BesionScreen> with TickerProviderStateMix
                                                   SizedBox(width: paddingH/4),
                                                 MainButton(
                                                   text: l10n.extract,
-                                                  textColor: Colors.green,
-                                                  iconColor: Colors.green,
+                                                  textColor: Appstyle.success,
+                                                  iconColor: Appstyle.success,
                                                   color: Appstyle.Tblanc,
                                                   icon: Icons.download,
                                                   loading: _exportEnCours,
@@ -1460,8 +1460,8 @@ class _BesionScreenState extends State<BesionScreen> with TickerProviderStateMix
                                                 SizedBox(width: paddingH / 4),
                                                 MainButton(
                                                   text: l10n.extractPdf,
-                                                  textColor: Colors.red,
-                                                  iconColor: Colors.red,
+                                                  textColor: Appstyle.danger,
+                                                  iconColor: Appstyle.danger,
                                                   color: Appstyle.Tblanc,
                                                   icon: Icons.picture_as_pdf,
                                                   onPressed: () async {
@@ -1471,7 +1471,7 @@ class _BesionScreenState extends State<BesionScreen> with TickerProviderStateMix
                                                 SizedBox(width: paddingH / 4),
                                                 MainIconButton(
                                                   imagePath: "assets/icons/action/extacter_filtre_icon.png",
-                                                  color: Colors.orange,
+                                                  color: Appstyle.warning,
                                                   onPressed: () async {
                                                     await _exportSelectedToExcel();
                                                   },
@@ -1606,7 +1606,7 @@ class _BesionScreenState extends State<BesionScreen> with TickerProviderStateMix
                                                 SizedBox(width: paddingH/4),
                                                 if (filtresActifs)
                                                   MainIconButton(
-                                                    color: Colors.grey.shade400,
+                                                    color: Appstyle.neutral300,
                                                     imagePath: 'assets/icons/action/supprimer_icon.png',
                                                     onPressed: () {
                                                       setState(() {
@@ -1619,8 +1619,8 @@ class _BesionScreenState extends State<BesionScreen> with TickerProviderStateMix
                                                   SizedBox(width: paddingH/4),
                                                 MainButton(
                                                   text: l10n.extract,
-                                                  textColor: Colors.green,
-                                                  iconColor: Colors.green,
+                                                  textColor: Appstyle.success,
+                                                  iconColor: Appstyle.success,
                                                   color: Appstyle.Tblanc,
                                                   icon: Icons.download,
                                                   loading: _exportEnCours,
@@ -1631,8 +1631,8 @@ class _BesionScreenState extends State<BesionScreen> with TickerProviderStateMix
                                                 SizedBox(width: paddingH / 4),
                                                 MainButton(
                                                   text: l10n.extractPdf,
-                                                  textColor: Colors.red,
-                                                  iconColor: Colors.red,
+                                                  textColor: Appstyle.danger,
+                                                  iconColor: Appstyle.danger,
                                                   color: Appstyle.Tblanc,
                                                   icon: Icons.picture_as_pdf,
                                                   onPressed: () async {
@@ -1642,7 +1642,7 @@ class _BesionScreenState extends State<BesionScreen> with TickerProviderStateMix
                                                 SizedBox(width: paddingH / 4),
                                                 MainIconButton(
                                                   imagePath: "assets/icons/action/extacter_filtre_icon.png",
-                                                  color: Colors.orange,
+                                                  color: Appstyle.warning,
                                                   onPressed: () async {
                                                     await _exportSelectedToExcel();
                                                   },

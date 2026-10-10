@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:caisse_dz/core/theme/app_style.dart';
 
 class BaseDialog extends StatefulWidget {
   final Widget header;     // ex: TitreAvecLigne
@@ -31,7 +32,7 @@ class _BaseDialogState extends State<BaseDialog> {
       insetPadding: EdgeInsets.all(30),
       backgroundColor : widget.couleur ,
       shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(14),
+        borderRadius: BorderRadius.circular(Appstyle.radiusButton),
       ),
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 250),

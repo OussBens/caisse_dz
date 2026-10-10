@@ -44,7 +44,7 @@ class StepIndicator extends StatelessWidget {
     return Expanded(
       child: Container(
         height: 4,
-        color: step < activeStep ? const Color(0xFF6A0DAD) : Colors.grey,
+        color: step < activeStep ? Appstyle.primary : Appstyle.gris,
       ),
     );
   }

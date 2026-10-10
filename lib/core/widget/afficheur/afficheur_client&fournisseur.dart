@@ -59,10 +59,10 @@ class ClientAfficheurWidget extends StatelessWidget {
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(Appstyle.radiusLG),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.05),
+            color: Appstyle.shadowTint.withOpacity(0.05),
             blurRadius: 12,
             offset: const Offset(0, 6),
           ),
@@ -91,7 +91,7 @@ class ClientAfficheurWidget extends StatelessWidget {
                   const SizedBox(height: 4),
                   Text(
                     "$code • $type - $activite",
-                    style: Appstyle.textSB.copyWith(color: Colors.grey),
+                    style: Appstyle.textSB.copyWith(color: Appstyle.gris),
                   ),
                   const SizedBox(height: 6),
                   _etatBadge(l10n),  // 🔥 Pass l10n
@@ -125,21 +125,21 @@ class ClientAfficheurWidget extends StatelessWidget {
                   label: l10n.totalReturn,
                   value: totalRetour!,
                   icon: Icons.assignment_return,
-                  color: Colors.redAccent,
+                  color: Appstyle.danger,
                 ),
               if (avance != null)
                 _statItem(
                   label: l10n.advance,
                   value: avance!,
                   icon: Icons.arrow_upward,
-                  color: Colors.green,
+                  color: Appstyle.success,
                 ),
               if (credit != null)
                 _statItem(
                   label: l10n.credit,
                   value: credit!,
                   icon: Icons.arrow_downward,
-                  color: Colors.orange,
+                  color: Appstyle.warning,
                 ),
               if (solde != null)
                 _statItem(
@@ -147,8 +147,8 @@ class ClientAfficheurWidget extends StatelessWidget {
                   value: solde!,
                   icon: Icons.account_balance_wallet,
                   color: (solde! >= 0) == soldePositifFavorable
-                      ? Colors.green
-                      : Colors.red,
+                      ? Appstyle.success
+                      : Appstyle.danger,
                   highlight: true,
                 ),
             ],
@@ -176,7 +176,7 @@ class ClientAfficheurWidget extends StatelessWidget {
                 style: ElevatedButton.styleFrom(
                   backgroundColor: Appstyle.violet,
                   shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(8),
+                    borderRadius: BorderRadius.circular(Appstyle.radiusSM),
                   ),
                 ),
                 child: Text(
@@ -197,16 +197,16 @@ class ClientAfficheurWidget extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
       decoration: BoxDecoration(
         color: etat
-            ? Colors.green.withOpacity(0.15)
-            : Colors.red.withOpacity(0.15),
-        borderRadius: BorderRadius.circular(20),
+            ? Appstyle.success.withOpacity(0.15)
+            : Appstyle.danger.withOpacity(0.15),
+        borderRadius: BorderRadius.circular(Appstyle.radiusCard),
       ),
       child: Text(
         etat ? l10n.active : l10n.inactive,  // 🔥 Translated
         style: TextStyle(
           fontSize: 12,
           fontWeight: FontWeight.bold,
-          color: etat ? Colors.green : Colors.red,
+          color: etat ? Appstyle.success : Appstyle.danger,
         ),
       ),
     );
@@ -242,7 +242,7 @@ class ClientAfficheurWidget extends StatelessWidget {
   Widget _infoLine(IconData icon, String text) {
     return Row(
       children: [
-        Icon(icon, size: 16, color: Colors.grey),
+        Icon(icon, size: 16, color: Appstyle.gris),
         const SizedBox(width: 6),
         Text(text, style: Appstyle.textSB),
       ],

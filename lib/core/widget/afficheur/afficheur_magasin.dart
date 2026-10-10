@@ -31,10 +31,10 @@ class AfficheurMagasin extends StatelessWidget {
       padding: const EdgeInsets.all(8),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(Appstyle.radiusLG),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.05),
+            color: Appstyle.shadowTint.withOpacity(0.05),
             blurRadius: 12,
             offset: const Offset(0, 6),
           ),
@@ -70,12 +70,12 @@ class AfficheurMagasin extends StatelessWidget {
                 const SizedBox(height: 4),
                 Text(
                   "${l10n.code} : ${magasin.code}",
-                  style: TextStyle(color: Colors.grey.shade700),
+                  style: TextStyle(color: Appstyle.ink500),
                 ),
                 const SizedBox(height: 4),
                 Text(
                   "${l10n.address} : ${magasin.adresse ?? '-'}",
-                  style: TextStyle(color: Colors.grey.shade700),
+                  style: TextStyle(color: Appstyle.ink500),
                 ),
               ],
             ),
@@ -87,7 +87,7 @@ class AfficheurMagasin extends StatelessWidget {
               runSpacing: 8,
               children: [
                 _statCard(l10n.state, magasin.etat ? l10n.active : l10n.inactive,
-                    magasin.etat ? Colors.green : Colors.red),
+                    magasin.etat ? Appstyle.success : Appstyle.danger),
                 _statCard(l10n.transfers, nombreTransferts.toString(), Appstyle.violet),
               ],
             ),
@@ -98,7 +98,7 @@ class AfficheurMagasin extends StatelessWidget {
             style: ElevatedButton.styleFrom(
               backgroundColor: Appstyle.violet,
               padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(Appstyle.radiusMD)),
             ),
             child: Text(
               l10n.details,
@@ -111,13 +111,13 @@ class AfficheurMagasin extends StatelessWidget {
   }
 
   Widget _etatBadge(AppLocalizations l10n) {
-    final color = magasin.etat ? Colors.green : Colors.red;
+    final color = magasin.etat ? Appstyle.success : Appstyle.danger;
     final label = magasin.etat ? l10n.active : l10n.inactive;
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
       decoration: BoxDecoration(
         color: color.withOpacity(0.15),
-        borderRadius: BorderRadius.circular(20),
+        borderRadius: BorderRadius.circular(Appstyle.radiusCard),
       ),
       child: Text(label, style: TextStyle(color: color, fontSize: 10, fontWeight: FontWeight.bold)),
     );
@@ -129,7 +129,7 @@ class AfficheurMagasin extends StatelessWidget {
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
         color: color.withOpacity(0.08),
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(Appstyle.radiusMD),
       ),
       child: Column(
         children: [

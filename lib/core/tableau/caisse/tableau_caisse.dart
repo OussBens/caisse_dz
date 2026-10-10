@@ -650,7 +650,7 @@ class _TableauCaisseState extends State<TableauCaisse> {
                                 overflow: TextOverflow.ellipsis,
                                 style: Appstyle.textpop_S.copyWith(
                                   color: (p.piecesParEmballage != null && p.piecesParEmballage! > 1)
-                                      ? Colors.orange.shade700
+                                      ? Appstyle.warningInk
                                       : Appstyle.TgrisF,
                                   fontWeight: (p.piecesParEmballage != null && p.piecesParEmballage! > 1)
                                       ? FontWeight.bold
@@ -738,7 +738,7 @@ class _TableauCaisseState extends State<TableauCaisse> {
                                   onTap: () => _removeProduit(p),
                                   child: Icon(
                                     Icons.remove_circle,
-                                    color: Colors.red,
+                                    color: Appstyle.danger,
                                     size: isSmallScreen ? 16 : (isMediumScreen ? 18 : 20),
                                   ),
                                 ),
@@ -780,7 +780,7 @@ class _TableauCaisseState extends State<TableauCaisse> {
                   Text(
                     "${l10n.discount} : -${NumberFormatUtil.formatMontant(widget.remiseValue, decimales: 2)} ${l10n.currency}",
                     style: Appstyle.textpop_S.copyWith(
-                      color: Colors.green,
+                      color: Appstyle.success,
                       fontSize: isSmallScreen ? 10 : (isMediumScreen ? 11 : 12),
                     ),
                   )
@@ -794,7 +794,7 @@ class _TableauCaisseState extends State<TableauCaisse> {
                       l10n.currency,
                     ),
                     style: Appstyle.textpop_S.copyWith(
-                      color: Colors.orange,
+                      color: Appstyle.warning,
                       fontSize: isSmallScreen ? 10 : (isMediumScreen ? 11 : 12),
                     ),
                   ),
@@ -803,7 +803,7 @@ class _TableauCaisseState extends State<TableauCaisse> {
                   "${l10n.total} : ${NumberFormatUtil.formatMontant(totalApresRemise, decimales: 2)} ${l10n.currency}",
                   style: Appstyle.textpop_SB.copyWith(
                     fontSize: isSmallScreen ? 16 : (isMediumScreen ? 18 : 20),
-                    color: widget.remiseValue > 0 ? Colors.green : Appstyle.TgrisF,
+                    color: widget.remiseValue > 0 ? Appstyle.success : Appstyle.TgrisF,
                   ),
                 ),
               ],

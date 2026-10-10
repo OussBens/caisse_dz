@@ -432,7 +432,7 @@ Future<void> EncaissementBLSCDialog({
                           l10n.discount,
                           "${NumberFormatUtil.formatMontant(caisse.remise, decimales: 2)} ${l10n.currency}",
                           l10n,
-                          valueColor: Colors.green,
+                          valueColor: Appstyle.success,
                         ),
 
                       // ✅ Afficher le total APRÈS remise
@@ -441,7 +441,7 @@ Future<void> EncaissementBLSCDialog({
                         "${NumberFormatUtil.formatMontant(caisse.total, decimales: 2)} ${l10n.currency}",
                         l10n,
                         valueColor: caisse.remiseActive && caisse.remise > 0
-                            ? Colors.green
+                            ? Appstyle.success
                             : Appstyle.violet,
                       ),
 
@@ -521,7 +521,7 @@ Future<void> EncaissementBLSCDialog({
                           labelText: l10n.paid,
                           labelStyle: TextStyle(color: Appstyle.Tnoir),
                           border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(8),
+                            borderRadius: BorderRadius.circular(Appstyle.radiusSM),
                           ),
                           contentPadding: const EdgeInsets.symmetric(
                               horizontal: 8, vertical: 4),

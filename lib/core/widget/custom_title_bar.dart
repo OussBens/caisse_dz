@@ -166,7 +166,7 @@ class _WindowButtonState extends State<_WindowButton> {
           alignment: Alignment.center,
           decoration: BoxDecoration(
             color: _hovered ? widget.hoverColor : Colors.transparent,
-            borderRadius: BorderRadius.circular(8),
+            borderRadius: BorderRadius.circular(Appstyle.radiusSM),
           ),
           child: Icon(
             widget.icon,

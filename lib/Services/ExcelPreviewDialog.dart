@@ -88,7 +88,7 @@ class _ExcelPreviewDialogState extends State<ExcelPreviewDialog> {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
               content: Text('${widget.l10n.exportSuccess}: ${newFile.path}'),
-              backgroundColor: Colors.green,
+              backgroundColor: Appstyle.success,
               action: SnackBarAction(
                 label: widget.l10n.open,
                 onPressed: () => OpenFile.open(newFile.path),
@@ -101,7 +101,7 @@ class _ExcelPreviewDialogState extends State<ExcelPreviewDialog> {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
               content: Text('${widget.l10n.saveError}: $e'),
-              backgroundColor: Colors.red,
+              backgroundColor: Appstyle.danger,
             ),
           );
         }
@@ -126,7 +126,7 @@ class _ExcelPreviewDialogState extends State<ExcelPreviewDialog> {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
               content: Text('${widget.l10n.shareError}: $e'),
-              backgroundColor: Colors.red,
+              backgroundColor: Appstyle.danger,
             ),
           );
         }
@@ -142,7 +142,7 @@ class _ExcelPreviewDialogState extends State<ExcelPreviewDialog> {
 
     return Dialog(
       shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(Appstyle.radiusLG),
       ),
       child: Container(
         width: 1200,
@@ -154,13 +154,13 @@ class _ExcelPreviewDialogState extends State<ExcelPreviewDialog> {
             // Header
             Row(
               children: [
-                Icon(Icons.table_chart, color: Colors.green, size: 28),
+                Icon(Icons.table_chart, color: Appstyle.success, size: 28),
                 const SizedBox(width: 8),
                 Text(
                   widget.title,
                   style: Appstyle.textLB.copyWith(
                     fontWeight: FontWeight.bold,
-                    color: Colors.green,
+                    color: Appstyle.success,
                   ),
                 ),
                 const Spacer(),
@@ -177,17 +177,17 @@ class _ExcelPreviewDialogState extends State<ExcelPreviewDialog> {
             Container(
               padding: const EdgeInsets.all(8),
               decoration: BoxDecoration(
-                color: Colors.green.withOpacity(0.1),
-                borderRadius: BorderRadius.circular(8),
+                color: Appstyle.success.withOpacity(0.1),
+                borderRadius: BorderRadius.circular(Appstyle.radiusSM),
               ),
               child: Row(
                 children: [
-                  Icon(Icons.info, color: Colors.green, size: 20),
+                  Icon(Icons.info, color: Appstyle.success, size: 20),
                   const SizedBox(width: 8),
                   Text(
                     '${widget.l10n.totalRecords}: ${widget.data.length} | ${widget.l10n.page} ${_currentPage + 1}/${_totalPages}',
                     style: Appstyle.textSB.copyWith(
-                      color: Colors.green,
+                      color: Appstyle.success,
                     ),
                   ),
                   const Spacer(),
@@ -246,10 +246,10 @@ class _ExcelPreviewDialogState extends State<ExcelPreviewDialog> {
               child: Container(
                 decoration: BoxDecoration(
                   border: Border.all(color: Appstyle.grisC),
-                  borderRadius: BorderRadius.circular(8),
+                  borderRadius: BorderRadius.circular(Appstyle.radiusSM),
                 ),
                 child: ClipRRect(
-                  borderRadius: BorderRadius.circular(8),
+                  borderRadius: BorderRadius.circular(Appstyle.radiusSM),
                   child: SingleChildScrollView(
                     scrollDirection: Axis.horizontal,
                     child: SingleChildScrollView(
@@ -310,7 +310,7 @@ class _ExcelPreviewDialogState extends State<ExcelPreviewDialog> {
                 if (widget.excelFile != null)
                   MainButton(
                     text: widget.l10n.save,
-                    color: Colors.green,
+                    color: Appstyle.success,
                     icon: Icons.save,
                     onPressed: _saveExcel,
                   ),
@@ -318,7 +318,7 @@ class _ExcelPreviewDialogState extends State<ExcelPreviewDialog> {
                 if (widget.excelFile != null)
                   MainButton(
                     text: widget.l10n.share,
-                    color: Colors.orange,
+                    color: Appstyle.warning,
                     icon: Icons.share,
                     onPressed: _shareExcel,
                   ),
@@ -334,16 +334,16 @@ class _ExcelPreviewDialogState extends State<ExcelPreviewDialog> {
     return DataTable(
       columnSpacing: 20,
       headingRowColor: MaterialStateProperty.resolveWith<Color?>(
-            (Set<MaterialState> states) => Colors.green.withOpacity(0.1),
+            (Set<MaterialState> states) => Appstyle.success.withOpacity(0.1),
       ),
       headingTextStyle: Appstyle.textSB.copyWith(
         fontWeight: FontWeight.bold,
-        color: Colors.green,
+        color: Appstyle.success,
       ),
       dataRowColor: MaterialStateProperty.resolveWith<Color?>(
             (Set<MaterialState> states) {
           if (states.contains(MaterialState.selected)) {
-            return Colors.green.withOpacity(0.2);
+            return Appstyle.success.withOpacity(0.2);
           }
           return null;
         },

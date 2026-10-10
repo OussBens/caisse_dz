@@ -26,10 +26,10 @@ class AfficheurRole extends StatelessWidget {
       padding: const EdgeInsets.all(8),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(Appstyle.radiusLG),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.05),
+            color: Appstyle.shadowTint.withOpacity(0.05),
             blurRadius: 12,
             offset: const Offset(0, 6),
           ),
@@ -73,14 +73,14 @@ class AfficheurRole extends StatelessWidget {
                 const SizedBox(height: 4),
                 Text(
                   "${l10n.code} : ${role.code}",
-                  style: TextStyle(color: Colors.grey.shade700),
+                  style: TextStyle(color: Appstyle.ink500),
                 ),
                 const SizedBox(height: 4),
                 Text(
                   role.observation?.isNotEmpty == true
                       ? role.observation!
                       : l10n.noObservation,
-                  style: TextStyle(color: Colors.grey.shade600),
+                  style: TextStyle(color: Appstyle.neutral500),
                   maxLines: 2,
                   overflow: TextOverflow.ellipsis,
                 ),
@@ -98,7 +98,7 @@ class AfficheurRole extends StatelessWidget {
                 _statCard(
                   l10n.status,
                   role.etat ? 1 : 0,
-                  role.etat ? Colors.green : Colors.red,
+                  role.etat ? Appstyle.success : Appstyle.danger,
                   isMoney: false,
                   customText: role.etat ? l10n.active : l10n.inactive,
                   l10n: l10n,
@@ -145,7 +145,7 @@ class AfficheurRole extends StatelessWidget {
                 vertical: 14,
               ),
               shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12),
+                borderRadius: BorderRadius.circular(Appstyle.radiusMD),
               ),
             ),
             child: Text(
@@ -162,7 +162,7 @@ class AfficheurRole extends StatelessWidget {
 
   /// 🟢 Badge état
   Widget _etatBadge(AppLocalizations l10n) {
-    Color color = role.etat ? Colors.green : Colors.red;
+    Color color = role.etat ? Appstyle.success : Appstyle.danger;
     String label = role.etat ? l10n.active : l10n.inactive;
 
     return Container(
@@ -172,7 +172,7 @@ class AfficheurRole extends StatelessWidget {
       ),
       decoration: BoxDecoration(
         color: color.withOpacity(0.15),
-        borderRadius: BorderRadius.circular(20),
+        borderRadius: BorderRadius.circular(Appstyle.radiusCard),
       ),
       child: Text(
         label,
@@ -199,7 +199,7 @@ class AfficheurRole extends StatelessWidget {
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
         color: color.withOpacity(0.08),
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(Appstyle.radiusMD),
       ),
       child: Column(
         children: [
@@ -226,7 +226,7 @@ class AfficheurRole extends StatelessWidget {
       padding: const EdgeInsets.only(bottom: 6),
       child: Row(
         children: [
-          Icon(icon, size: 16, color: Colors.grey),
+          Icon(icon, size: 16, color: Appstyle.gris),
           const SizedBox(width: 6),
           Expanded(
             child: Text(

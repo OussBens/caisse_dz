@@ -163,7 +163,7 @@ class _ActivationScreenState extends State<ActivationScreen> {
                       const SizedBox(height: 8),
                       Text(
                         "Envoyez-nous votre code machine pour recevoir votre clé d'activation.",
-                        style: TextStyle(fontSize: 14, color: Colors.grey[600]),
+                        style: TextStyle(fontSize: 14, color: Appstyle.neutral500),
                         textAlign: TextAlign.center,
                       ),
                       const SizedBox(height: 24),
@@ -187,7 +187,7 @@ class _ActivationScreenState extends State<ActivationScreen> {
                         alignment: Alignment.centerLeft,
                         child: Text(
                           "Code machine :",
-                          style: TextStyle(fontWeight: FontWeight.bold, color: Colors.grey[700], fontSize: 13),
+                          style: TextStyle(fontWeight: FontWeight.bold, color: Appstyle.ink500, fontSize: 13),
                         ),
                       ),
                       const SizedBox(height: 6),
@@ -195,9 +195,9 @@ class _ActivationScreenState extends State<ActivationScreen> {
                         width: double.infinity,
                         padding: const EdgeInsets.all(12),
                         decoration: BoxDecoration(
-                          color: Colors.grey[50],
-                          borderRadius: BorderRadius.circular(10),
-                          border: Border.all(color: Colors.grey[300]!),
+                          color: Appstyle.neutral100,
+                          borderRadius: BorderRadius.circular(Appstyle.radiusMD),
+                          border: Border.all(color: Appstyle.neutral200),
                         ),
                         child: SelectableText(
                           machineId,
@@ -216,7 +216,7 @@ class _ActivationScreenState extends State<ActivationScreen> {
                           ),
                           style: OutlinedButton.styleFrom(
                             side: BorderSide(color: Appstyle.violet),
-                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(Appstyle.radiusMD)),
                             padding: const EdgeInsets.symmetric(vertical: 12),
                           ),
                         ),
@@ -227,7 +227,7 @@ class _ActivationScreenState extends State<ActivationScreen> {
                         alignment: Alignment.centerLeft,
                         child: Text(
                           "Entrer la clé d'activation :",
-                          style: TextStyle(fontWeight: FontWeight.bold, color: Colors.grey[700], fontSize: 13),
+                          style: TextStyle(fontWeight: FontWeight.bold, color: Appstyle.ink500, fontSize: 13),
                         ),
                       ),
                       const SizedBox(height: 6),
@@ -238,17 +238,17 @@ class _ActivationScreenState extends State<ActivationScreen> {
                         decoration: InputDecoration(
                           hintText: "Coller la clé ici...",
                           filled: true,
-                          fillColor: Colors.grey[50],
+                          fillColor: Appstyle.neutral100,
                           border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(10),
-                            borderSide: BorderSide(color: Colors.grey[300]!),
+                            borderRadius: BorderRadius.circular(Appstyle.radiusMD),
+                            borderSide: BorderSide(color: Appstyle.neutral200),
                           ),
                           enabledBorder: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(10),
-                            borderSide: BorderSide(color: Colors.grey[300]!),
+                            borderRadius: BorderRadius.circular(Appstyle.radiusMD),
+                            borderSide: BorderSide(color: Appstyle.neutral200),
                           ),
                           focusedBorder: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(10),
+                            borderRadius: BorderRadius.circular(Appstyle.radiusMD),
                             borderSide: BorderSide(color: Appstyle.violet, width: 2),
                           ),
                         ),
@@ -264,7 +264,7 @@ class _ActivationScreenState extends State<ActivationScreen> {
                         padding: const EdgeInsets.all(12),
                         decoration: BoxDecoration(
                           color: Appstyle.violetC,
-                          borderRadius: BorderRadius.circular(10),
+                          borderRadius: BorderRadius.circular(Appstyle.radiusMD),
                         ),
                         child: Row(
                           crossAxisAlignment: CrossAxisAlignment.start,
@@ -289,18 +289,18 @@ class _ActivationScreenState extends State<ActivationScreen> {
                           width: double.infinity,
                           padding: const EdgeInsets.all(12),
                           decoration: BoxDecoration(
-                            color: Colors.red.shade50,
-                            borderRadius: BorderRadius.circular(8),
-                            border: Border.all(color: Colors.red.shade200),
+                            color: Appstyle.dangerSoft,
+                            borderRadius: BorderRadius.circular(Appstyle.radiusSM),
+                            border: Border.all(color: Appstyle.danger),
                           ),
                           child: Row(
                             children: [
-                              Icon(Icons.error_outline, color: Colors.red.shade700, size: 18),
+                              Icon(Icons.error_outline, color: Appstyle.dangerInk, size: 18),
                               const SizedBox(width: 10),
                               Expanded(
                                 child: Text(
                                   error!,
-                                  style: TextStyle(color: Colors.red.shade700, fontSize: 13),
+                                  style: TextStyle(color: Appstyle.dangerInk, fontSize: 13),
                                 ),
                               ),
                             ],
@@ -341,25 +341,25 @@ class _ActivationScreenState extends State<ActivationScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(label, style: TextStyle(fontWeight: FontWeight.bold, color: Colors.grey[700], fontSize: 13)),
+        Text(label, style: TextStyle(fontWeight: FontWeight.bold, color: Appstyle.ink500, fontSize: 13)),
         const SizedBox(height: 6),
         TextField(
           controller: controller,
           decoration: InputDecoration(
             hintText: hint,
-            prefixIcon: Icon(icon, color: Colors.grey),
+            prefixIcon: Icon(icon, color: Appstyle.gris),
             filled: true,
-            fillColor: Colors.grey[50],
+            fillColor: Appstyle.neutral100,
             border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(10),
-              borderSide: BorderSide(color: Colors.grey[300]!),
+              borderRadius: BorderRadius.circular(Appstyle.radiusMD),
+              borderSide: BorderSide(color: Appstyle.neutral200),
             ),
             enabledBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(10),
-              borderSide: BorderSide(color: Colors.grey[300]!),
+              borderRadius: BorderRadius.circular(Appstyle.radiusMD),
+              borderSide: BorderSide(color: Appstyle.neutral200),
             ),
             focusedBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(10),
+              borderRadius: BorderRadius.circular(Appstyle.radiusMD),
               borderSide: BorderSide(color: Appstyle.violet, width: 2),
             ),
           ),

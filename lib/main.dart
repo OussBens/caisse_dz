@@ -142,44 +142,134 @@ class MyApp extends StatelessWidget {
 
   ThemeData _buildTheme(LocaleProvider localeProvider) {
     final isRTL = localeProvider.isRTL;
-    // Le ColorScheme Material3 est aligné sur Appstyle (seul système de
-    // couleurs utilisé concrètement dans l'app, cf. lib/core/theme/app_style.dart)
-    // plutôt que sur un violet Material générique : les widgets standards
-    // (Checkbox, Switch, Scrollbar...) qui n'overrident pas leur couleur
-    // héritent ainsi de la même identité que le reste de l'UI.
+    // Thème aligné sur le design system CaisseDZ (Appstyle) : les widgets
+    // Material qui n'overrident pas leur style (Checkbox, Switch, champs,
+    // boutons, dialogs, infobulles, scrollbar…) héritent de la marque.
+    // Police : Inter (latin) et Alexandria (arabe, en tête en RTL).
+    final fontFamily = isRTL ? Appstyle.fontArabic : Appstyle.fontLatin;
+    final fallback = [isRTL ? Appstyle.fontLatin : Appstyle.fontArabic];
     final colorScheme = ColorScheme.fromSeed(
-      seedColor: Appstyle.violet,
+      seedColor: Appstyle.primary,
       brightness: Brightness.light,
     ).copyWith(
-      primary: Appstyle.violet,
-      secondary: Appstyle.indigo,
-      error: Appstyle.red,
-      surface: Appstyle.Tblanc,
+      primary: Appstyle.primary,
+      onPrimary: Appstyle.onPrimary,
+      primaryContainer: Appstyle.primarySoft,
+      onPrimaryContainer: Appstyle.primaryDark,
+      secondary: Appstyle.primaryDark,
+      error: Appstyle.danger,
+      surface: Appstyle.surface,
+      onSurface: Appstyle.textPrimary,
+      outline: Appstyle.border,
+      outlineVariant: Appstyle.surfaceBorder,
     );
+    final rayonChamp = BorderRadius.circular(Appstyle.radiusMD);
+    final rayonBouton = BorderRadius.circular(Appstyle.radiusButton);
 
     return ThemeData(
       useMaterial3: true,
       colorScheme: colorScheme,
       scaffoldBackgroundColor: Appstyle.background,
-      // Font family based on locale
-      fontFamily: isRTL ? 'Cairo' : 'Poppins',
-      // RTL-specific adjustments
-      textTheme: isRTL
-          ? const TextTheme(
-        bodyLarge: TextStyle(fontFamily: 'Cairo'),
-        bodyMedium: TextStyle(fontFamily: 'Cairo'),
-        titleLarge: TextStyle(fontFamily: 'Cairo', fontWeight: FontWeight.bold),
-      )
-          : null,
-      // AppBar theme
+      fontFamily: fontFamily,
+      fontFamilyFallback: fallback,
+      dividerColor: Appstyle.surfaceBorder,
       appBarTheme: AppBarTheme(
         centerTitle: isRTL, // Center title in Arabic
+        backgroundColor: Appstyle.surface,
+        foregroundColor: Appstyle.textPrimary,
         titleTextStyle: TextStyle(
-          fontFamily: isRTL ? 'Cairo' : 'Poppins',
-          fontWeight: FontWeight.bold,
+          fontFamily: fontFamily,
+          fontFamilyFallback: fallback,
+          fontWeight: FontWeight.w600,
           fontSize: 20,
+          color: Appstyle.textPrimary,
         ),
       ),
+      inputDecorationTheme: InputDecorationTheme(
+        filled: true,
+        fillColor: Appstyle.surface2,
+        hintStyle: const TextStyle(color: Appstyle.disabledFg),
+        border: OutlineInputBorder(borderRadius: rayonChamp, borderSide: BorderSide.none),
+        enabledBorder: OutlineInputBorder(borderRadius: rayonChamp, borderSide: BorderSide.none),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: rayonChamp,
+          borderSide: const BorderSide(color: Appstyle.primary, width: 1.5),
+        ),
+        errorBorder: OutlineInputBorder(
+          borderRadius: rayonChamp,
+          borderSide: const BorderSide(color: Appstyle.danger, width: 1.5),
+        ),
+        focusedErrorBorder: OutlineInputBorder(
+          borderRadius: rayonChamp,
+          borderSide: const BorderSide(color: Appstyle.danger, width: 1.5),
+        ),
+      ),
+      elevatedButtonTheme: ElevatedButtonThemeData(
+        style: ElevatedButton.styleFrom(
+          backgroundColor: Appstyle.primary,
+          foregroundColor: Appstyle.onPrimary,
+          shape: RoundedRectangleBorder(borderRadius: rayonBouton),
+          textStyle: const TextStyle(fontWeight: FontWeight.w600),
+        ),
+      ),
+      filledButtonTheme: FilledButtonThemeData(
+        style: FilledButton.styleFrom(
+          backgroundColor: Appstyle.primary,
+          shape: RoundedRectangleBorder(borderRadius: rayonBouton),
+        ),
+      ),
+      outlinedButtonTheme: OutlinedButtonThemeData(
+        style: OutlinedButton.styleFrom(
+          foregroundColor: Appstyle.primary,
+          side: const BorderSide(color: Appstyle.primary),
+          shape: RoundedRectangleBorder(borderRadius: rayonBouton),
+        ),
+      ),
+      textButtonTheme: TextButtonThemeData(
+        style: TextButton.styleFrom(
+          foregroundColor: Appstyle.primary,
+          shape: RoundedRectangleBorder(borderRadius: rayonBouton),
+        ),
+      ),
+      cardTheme: CardThemeData(
+        color: Appstyle.surface,
+        elevation: 0,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(Appstyle.radiusCard),
+          side: const BorderSide(color: Appstyle.surfaceBorder),
+        ),
+      ),
+      dialogTheme: DialogThemeData(
+        backgroundColor: Appstyle.surface,
+        surfaceTintColor: Colors.transparent,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(Appstyle.radiusDialog)),
+      ),
+      checkboxTheme: CheckboxThemeData(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(Appstyle.radiusXS)),
+      ),
+      chipTheme: ChipThemeData(
+        backgroundColor: Appstyle.surface2,
+        selectedColor: Appstyle.primarySoft,
+        shape: const StadiumBorder(),
+        side: BorderSide.none,
+      ),
+      tooltipTheme: TooltipThemeData(
+        decoration: BoxDecoration(
+          color: Appstyle.textPrimary,
+          borderRadius: BorderRadius.circular(Appstyle.radiusSM),
+        ),
+        textStyle: TextStyle(fontFamily: fontFamily, fontFamilyFallback: fallback, color: Appstyle.Tblanc, fontSize: 12),
+      ),
+      snackBarTheme: SnackBarThemeData(
+        backgroundColor: Appstyle.textPrimary,
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(Appstyle.radiusMD)),
+      ),
+      scrollbarTheme: ScrollbarThemeData(
+        thumbColor: WidgetStatePropertyAll(Appstyle.border.withOpacity(0.8)),
+        radius: const Radius.circular(Appstyle.radiusPill),
+      ),
+      progressIndicatorTheme: const ProgressIndicatorThemeData(color: Appstyle.primary),
     );
   }
 }

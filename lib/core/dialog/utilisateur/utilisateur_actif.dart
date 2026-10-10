@@ -118,7 +118,7 @@ Future<void> AnnulerUtilisateur(BuildContext context, List<Utilisateur> utilisat
                               padding: const EdgeInsets.all(8),
                               decoration: BoxDecoration(
                                 color: Appstyle.grisC.withOpacity(0.2),
-                                borderRadius: BorderRadius.circular(8),
+                                borderRadius: BorderRadius.circular(Appstyle.radiusSM),
                               ),
                               child: Text(
                                 "${l10n.userHash} #${u.id} - ${l10n.name}: ${u.username ?? '-'} - ${l10n.role}: ${u.role ?? '-'}",

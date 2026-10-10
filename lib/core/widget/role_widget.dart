@@ -2,6 +2,7 @@ import 'package:caisse_dz/core/locale/locale_provider.dart';
 import 'package:caisse_dz/l10n/app_localizations.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:caisse_dz/core/theme/app_style.dart';
 
 class RolePermissionTable extends StatefulWidget {
   const RolePermissionTable({super.key});
@@ -48,7 +49,7 @@ class _RolePermissionTableState extends State<RolePermissionTable> {
             borderRadius: BorderRadius.circular(30),
             boxShadow: [
               BoxShadow(
-                color: Colors.black.withOpacity(0.08),
+                color: Appstyle.shadowTint.withOpacity(0.08),
                 blurRadius: 18,
                 offset: const Offset(0, 4),
               )
@@ -154,9 +155,9 @@ class CircleCheckBox extends StatelessWidget {
         height: 28,
         decoration: BoxDecoration(
           shape: BoxShape.circle,
-          color: value ? const Color(0xFF6A4CE3) : Colors.transparent,
+          color: value ? Appstyle.primary : Colors.transparent,
           border: Border.all(
-            color: value ? Colors.transparent : Colors.grey.shade400,
+            color: value ? Colors.transparent : Appstyle.neutral300,
             width: 2,
           ),
         ),

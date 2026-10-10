@@ -23,12 +23,12 @@ class SectionDecoration extends StatelessWidget {
       decoration: BoxDecoration(
         // Gris très clair pour différencier du blanc
         color: Appstyle.grisC.withOpacity(0.005),
-        borderRadius: BorderRadius.circular(10),
+        borderRadius: BorderRadius.circular(Appstyle.radiusMD),
 
         // Petite ombre discrète
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.02),
+            color: Appstyle.shadowTint.withOpacity(0.02),
             blurRadius: 5,
             offset: const Offset(0, 2),
           ),

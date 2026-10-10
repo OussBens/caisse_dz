@@ -306,7 +306,7 @@ Future<void> afficherProduitSelectionneDialog({
                           padding: EdgeInsets.all(isSmallScreen ? 8 : 12),
                           decoration: BoxDecoration(
                             color: Appstyle.grisC.withOpacity(0.3),
-                            borderRadius: BorderRadius.circular(12),
+                            borderRadius: BorderRadius.circular(Appstyle.radiusMD),
                           ),
                           child: Column(
                             children: [
@@ -340,7 +340,7 @@ Future<void> afficherProduitSelectionneDialog({
                                           style: TextStyle(
                                             fontSize: isSmallScreen ? 8 : 10,
                                             // ✅ Texte blanc quand sélectionné, noir sinon
-                                            color: selectedEmballage == TypeEmballage.unit ? Colors.white : Colors.grey[700],
+                                            color: selectedEmballage == TypeEmballage.unit ? Colors.white : Appstyle.ink500,
                                           ),
                                         ),
                                       ],
@@ -353,7 +353,7 @@ Future<void> afficherProduitSelectionneDialog({
                                       });
                                     },
                                     selectedColor: Appstyle.violet,
-                                    backgroundColor: Colors.grey[200],
+                                    backgroundColor: Appstyle.neutral150,
                                     padding: EdgeInsets.symmetric(
                                       horizontal: isSmallScreen ? 4 : 8,
                                       vertical: isSmallScreen ? 4 : 8,
@@ -376,7 +376,7 @@ Future<void> afficherProduitSelectionneDialog({
                                             style: TextStyle(
                                               fontSize: isSmallScreen ? 8 : 10,
                                               // ✅ Texte blanc quand sélectionné, noir sinon
-                                              color: selectedEmballage == TypeEmballage.boite ? Colors.white : Colors.grey[700],
+                                              color: selectedEmballage == TypeEmballage.boite ? Colors.white : Appstyle.ink500,
                                             ),
                                           ),
                                         ],
@@ -389,7 +389,7 @@ Future<void> afficherProduitSelectionneDialog({
                                         });
                                       },
                                       selectedColor: Appstyle.violet,
-                                      backgroundColor: Colors.grey[200],
+                                      backgroundColor: Appstyle.neutral150,
                                       padding: EdgeInsets.symmetric(
                                         horizontal: isSmallScreen ? 4 : 8,
                                         vertical: isSmallScreen ? 4 : 8,
@@ -412,7 +412,7 @@ Future<void> afficherProduitSelectionneDialog({
                                             style: TextStyle(
                                               fontSize: isSmallScreen ? 8 : 10,
                                               // ✅ Texte blanc quand sélectionné, noir sinon
-                                              color: selectedEmballage == TypeEmballage.carton ? Colors.white : Colors.grey[700],
+                                              color: selectedEmballage == TypeEmballage.carton ? Colors.white : Appstyle.ink500,
                                             ),
                                           ),
                                         ],
@@ -425,7 +425,7 @@ Future<void> afficherProduitSelectionneDialog({
                                         });
                                       },
                                       selectedColor: Appstyle.violet,
-                                      backgroundColor: Colors.grey[200],
+                                      backgroundColor: Appstyle.neutral150,
                                       padding: EdgeInsets.symmetric(
                                         horizontal: isSmallScreen ? 4 : 8,
                                         vertical: isSmallScreen ? 4 : 8,
@@ -460,7 +460,7 @@ Future<void> afficherProduitSelectionneDialog({
                                 labelText: uniteLabel,
                                 labelStyle: TextStyle(fontSize: isSmallScreen ? 10 : 12),
                                 border: OutlineInputBorder(
-                                  borderRadius: BorderRadius.circular(8),
+                                  borderRadius: BorderRadius.circular(Appstyle.radiusSM),
                                 ),
                                 contentPadding: EdgeInsets.symmetric(
                                   horizontal: isSmallScreen ? 4 : 8,
@@ -487,7 +487,7 @@ Future<void> afficherProduitSelectionneDialog({
                               ),
                               decoration: BoxDecoration(
                                 color: Appstyle.indigo.withOpacity(0.1),
-                                borderRadius: BorderRadius.circular(8),
+                                borderRadius: BorderRadius.circular(Appstyle.radiusSM),
                               ),
                               child: Text(
                                 l10n.equalToPieces(totalPieces),
@@ -511,13 +511,13 @@ Future<void> afficherProduitSelectionneDialog({
                           vertical: isSmallScreen ? 4 : 6,
                         ),
                         decoration: BoxDecoration(
-                          color: quantiteDisponible <= 0 ? Colors.red.withOpacity(0.1) : Colors.green.withOpacity(0.1),
-                          borderRadius: BorderRadius.circular(8),
+                          color: quantiteDisponible <= 0 ? Appstyle.danger.withOpacity(0.1) : Appstyle.success.withOpacity(0.1),
+                          borderRadius: BorderRadius.circular(Appstyle.radiusSM),
                         ),
                         child: Text(
                           l10n.availableStockPieces(quantiteDisponible.toInt()),
                           style: Appstyle.textM.copyWith(
-                            color: quantiteDisponible <= 0 ? Colors.red : Colors.green,
+                            color: quantiteDisponible <= 0 ? Appstyle.danger : Appstyle.success,
                             fontWeight: FontWeight.bold,
                             fontSize: isSmallScreen ? 10 : 12,
                           ),
@@ -567,15 +567,15 @@ Widget _buildProductImage(String? photoName, {required BuildContext context, dou
     height: height,
     width: height*3/2,
     decoration: BoxDecoration(
-      borderRadius: BorderRadius.circular(12),
-      color: Colors.grey[50],
+      borderRadius: BorderRadius.circular(Appstyle.radiusMD),
+      color: Appstyle.neutral100,
       border: Border.all(
-        color: Colors.grey[200]!,
+        color: Appstyle.neutral150,
         width: 1,
       ),
     ),
     child: ClipRRect(
-      borderRadius: BorderRadius.circular(12),
+      borderRadius: BorderRadius.circular(Appstyle.radiusMD),
       child: _buildImageContent(photoName, context, sousCategorieId: sousCategorieId),
     ),
   );
@@ -595,7 +595,7 @@ Widget _buildImageContent(String? photoName, BuildContext context, {int? sousCat
     builder: (context, snapshot) {
       if (snapshot.connectionState == ConnectionState.waiting) {
         return Container(
-          color: Colors.grey[100],
+          color: Appstyle.neutral100,
           child: const Center(
             child: CircularProgressIndicator(),
           ),
@@ -639,7 +639,7 @@ Widget _buildNoPhotoPlaceholder(int? sousCategorieId) {
 
 Widget _buildNotFoundPlaceholder(BuildContext context) {
   return Container(
-    color: Colors.grey[100],
+    color: Appstyle.neutral100,
     child: Center(
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
@@ -647,13 +647,13 @@ Widget _buildNotFoundPlaceholder(BuildContext context) {
           Icon(
             Icons.broken_image,
             size: 48,
-            color: Colors.grey[400],
+            color: Appstyle.neutral300,
           ),
           const SizedBox(height: 8),
           Text(
             AppLocalizations.of(context).imageNotFound,
             style: TextStyle(
-              color: Colors.grey[500],
+              color: Appstyle.neutral500,
               fontSize: 12,
               fontWeight: FontWeight.w500,
             ),
@@ -666,7 +666,7 @@ Widget _buildNotFoundPlaceholder(BuildContext context) {
 
 Widget _buildErrorPlaceholder(BuildContext context) {
   return Container(
-    color: Colors.grey[100],
+    color: Appstyle.neutral100,
     child: Center(
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
@@ -674,13 +674,13 @@ Widget _buildErrorPlaceholder(BuildContext context) {
           Icon(
             Icons.error_outline,
             size: 48,
-            color: Colors.orange[400],
+            color: Appstyle.warning,
           ),
           const SizedBox(height: 8),
           Text(
             AppLocalizations.of(context).loadingError,
             style: TextStyle(
-              color: Colors.grey[500],
+              color: Appstyle.neutral500,
               fontSize: 12,
               fontWeight: FontWeight.w500,
             ),

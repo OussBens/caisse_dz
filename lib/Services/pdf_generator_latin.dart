@@ -11,6 +11,7 @@ import 'package:caisse_dz/data/models/caisse.dart';
 import 'package:caisse_dz/data/models/client.dart';
 import 'package:caisse_dz/l10n/app_localizations.dart';
 import 'package:caisse_dz/core/utilis/number_format.dart';
+import 'package:caisse_dz/core/theme/app_style.dart';
 
 class PDFGeneratorLatin {
   static const PdfColor primaryColor = PdfColor(0.2, 0.4, 0.6);
@@ -170,7 +171,7 @@ class PDFGeneratorLatin {
       padding: pw.EdgeInsets.all(16),
       decoration: pw.BoxDecoration(
         border: pw.Border.all(color: borderColor),
-        borderRadius: pw.BorderRadius.circular(8),
+        borderRadius: pw.BorderRadius.circular(Appstyle.radiusSM),
         color: lightGray,
       ),
       child: pw.Column(
@@ -245,7 +246,7 @@ class PDFGeneratorLatin {
       padding: pw.EdgeInsets.all(12),
       decoration: pw.BoxDecoration(
         border: pw.Border.all(color: borderColor),
-        borderRadius: pw.BorderRadius.circular(8),
+        borderRadius: pw.BorderRadius.circular(Appstyle.radiusSM),
       ),
       child: pw.Row(
         children: [
@@ -436,7 +437,7 @@ class PDFGeneratorLatin {
       padding: pw.EdgeInsets.all(16),
       decoration: pw.BoxDecoration(
         border: pw.Border.all(color: borderColor),
-        borderRadius: pw.BorderRadius.circular(8),
+        borderRadius: pw.BorderRadius.circular(Appstyle.radiusSM),
       ),
       child: pw.Column(
         children: [
@@ -517,7 +518,7 @@ class PDFGeneratorLatin {
       padding: pw.EdgeInsets.all(12),
       decoration: pw.BoxDecoration(
         color: lightGray,
-        borderRadius: pw.BorderRadius.circular(8),
+        borderRadius: pw.BorderRadius.circular(Appstyle.radiusSM),
       ),
       child: pw.Column(
         crossAxisAlignment: pw.CrossAxisAlignment.start,

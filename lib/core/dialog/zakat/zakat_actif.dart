@@ -120,9 +120,9 @@ Future<void> AnnulerZakat(
                               padding: const EdgeInsets.all(8),
                               decoration: BoxDecoration(
                                 color: estPayee
-                                    ? Colors.red.withOpacity(0.1)
+                                    ? Appstyle.danger.withOpacity(0.1)
                                     : Appstyle.grisC.withOpacity(0.2),
-                                borderRadius: BorderRadius.circular(8),
+                                borderRadius: BorderRadius.circular(Appstyle.radiusSM),
                               ),
                               child: Text(
                                 "${l10n.zakat} ${z.code} | ${l10n.year}: ${z.annee} | "
@@ -130,7 +130,7 @@ Future<void> AnnulerZakat(
                                     "${estPayee ? " (${l10n.alreadyPaid})" : ""}",
                                 style: Appstyle.textSB.copyWith(
                                   color: estPayee
-                                      ? Colors.red
+                                      ? Appstyle.danger
                                       : Appstyle.Tnoir,
                                 ),
                               ),
@@ -148,7 +148,7 @@ Future<void> AnnulerZakat(
                           : l10n.confirmDeleteZakats,
                       style: Appstyle.textS.copyWith(
                         color: hasZakatsPayees
-                            ? Colors.red
+                            ? Appstyle.danger
                             : Appstyle.TgrisC,
                       ),
                     ),

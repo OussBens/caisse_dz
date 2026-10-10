@@ -30,7 +30,7 @@ class AccountWidget extends StatelessWidget {
       child: PopupMenuButton<String>(
         color: Colors.white,
         shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(16),
+          borderRadius: BorderRadius.circular(Appstyle.radiusLG),
         ),
         elevation: 4,
         onSelected: (value) {
@@ -76,9 +76,9 @@ class AccountWidget extends StatelessWidget {
             value: 'logout',
             child: Row(
               children: [
-                const Icon(Icons.logout, size: 18, color: Colors.red),
+                const Icon(Icons.logout, size: 18, color: Appstyle.danger),
                 const SizedBox(width: 10),
-                Text(l10n.logout, style: const TextStyle(color: Colors.red)),
+                Text(l10n.logout, style: const TextStyle(color: Appstyle.danger)),
               ],
             ),
           ),
@@ -87,10 +87,10 @@ class AccountWidget extends StatelessWidget {
           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
           decoration: BoxDecoration(
             color: Colors.white,
-            borderRadius: BorderRadius.circular(12),
+            borderRadius: BorderRadius.circular(Appstyle.radiusMD),
             boxShadow: [
               BoxShadow(
-                color: Colors.black12,
+                color: Appstyle.shadowSoft,
                 blurRadius: 4,
                 offset: const Offset(0, 2),
               )

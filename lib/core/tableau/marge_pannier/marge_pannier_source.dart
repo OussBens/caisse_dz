@@ -4,6 +4,7 @@ import '../../../l10n/app_localizations.dart';
 import '../../widget/status_badge.dart';
 import '../base_table_data_source.dart';
 import 'package:caisse_dz/core/utilis/number_format.dart';
+import 'package:caisse_dz/core/theme/app_style.dart';
 
 /// Une ligne du tableau "Bénéfice par pannier" : un panier de la caisse
 /// sélectionnée, enrichi du nom du client et du caissier.
@@ -85,7 +86,7 @@ class MargePannierDataSource extends BaseTableDataSource<LigneMargePannier> {
         child: Text(
           _montant(item.marge),
           style: TextStyle(
-            color: item.marge >= 0 ? Colors.green.shade700 : Colors.red,
+            color: item.marge >= 0 ? Appstyle.successInk : Appstyle.danger,
             fontWeight: FontWeight.bold,
           ),
         ),

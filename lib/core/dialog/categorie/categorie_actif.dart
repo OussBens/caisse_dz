@@ -133,7 +133,7 @@ Future<void> AnnulerCategorie(BuildContext context, List<Categorie> categoriesSe
                               padding: const EdgeInsets.all(8),
                               decoration: BoxDecoration(
                                 color: Appstyle.grisC.withOpacity(0.2),
-                                borderRadius: BorderRadius.circular(8),
+                                borderRadius: BorderRadius.circular(Appstyle.radiusSM),
                               ),
                               child: Text("${c.nom}", style: Appstyle.textSB.copyWith(color: Appstyle.Tnoir)),
                             ),

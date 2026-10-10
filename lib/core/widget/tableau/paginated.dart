@@ -1,5 +1,6 @@
 import 'package:caisse_dz/l10n/app_localizations.dart';
 import 'package:flutter/material.dart';
+import 'package:caisse_dz/core/theme/app_style.dart';
 
 class PaginationBar extends StatelessWidget {
   final int currentPage;
@@ -26,9 +27,9 @@ class PaginationBar extends StatelessWidget {
       padding: const EdgeInsets.symmetric(vertical: 6, horizontal: 12),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(14),
+        borderRadius: BorderRadius.circular(Appstyle.radiusButton),
         boxShadow: const [
-          BoxShadow(color: Colors.black12, blurRadius: 10)
+          BoxShadow(color: Appstyle.shadowSoft, blurRadius: 10)
         ],
       ),
       child: Row(

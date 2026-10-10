@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:caisse_dz/core/widget/champ/champ_avec_label.dart';
 import 'package:caisse_dz/l10n/app_localizations.dart';
+import 'package:caisse_dz/core/theme/app_style.dart';
 
 /// Plage de dates résultant d'un préréglage "période rapide".
 class PeriodeRapideResult {
@@ -129,7 +130,7 @@ class PeriodeRapideDropdown extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: 12),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(Appstyle.radiusMD),
       ),
       child: DropdownButton<String>(
         value: value,

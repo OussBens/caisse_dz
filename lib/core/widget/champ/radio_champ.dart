@@ -35,7 +35,7 @@ class TextRadio extends StatelessWidget {
               height: 28,
               decoration: BoxDecoration(
                 color: Appstyle.grischamp,
-                borderRadius: BorderRadius.circular(14),
+                borderRadius: BorderRadius.circular(Appstyle.radiusButton),
               ),
               child: Transform.scale(
                 scale: 0.8,
@@ -51,7 +51,7 @@ class TextRadio extends StatelessWidget {
           const SizedBox(width: 26),
           Text(
             "(${l10n.auto})",  // 🔥 Translated
-            style: Appstyle.textS.copyWith(color: Colors.grey[700]),
+            style: Appstyle.textS.copyWith(color: Appstyle.ink500),
           ),
         ],
       ],

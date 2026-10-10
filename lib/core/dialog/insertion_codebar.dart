@@ -112,7 +112,7 @@ class _InsertionCodebarDialogState
             const SizedBox(height: 8),
             Text(
               erreur!,
-              style: const TextStyle(color: Colors.red, fontWeight: FontWeight.w600),
+              style: const TextStyle(color: Appstyle.danger, fontWeight: FontWeight.w600),
             ),
           ],
 

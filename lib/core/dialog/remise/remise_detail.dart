@@ -153,7 +153,7 @@ Future<void> RemiseDetail(BuildContext context, Remise remise) async {
                   backgroundColor: Appstyle.crevete,
                   foregroundColor: Colors.white,
                   shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(10),
+                    borderRadius: BorderRadius.circular(Appstyle.radiusMD),
                   ),
                 ),
                 onPressed: () {
@@ -170,7 +170,7 @@ Future<void> RemiseDetail(BuildContext context, Remise remise) async {
                 backgroundColor: Appstyle.violet,
                 foregroundColor: Colors.white,
                 shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(10),
+                  borderRadius: BorderRadius.circular(Appstyle.radiusMD),
                 ),
               ),
               onPressed: () => Navigator.pop(context),

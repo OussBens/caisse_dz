@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'Photos.dart';
+import 'package:caisse_dz/core/theme/app_style.dart';
 
 class PhotoHelper {
   static Future<ImageProvider> getProductPhotoProvider(String photoName) async {
@@ -35,8 +36,8 @@ class PhotoHelper {
 
         return CircleAvatar(
           radius: size / 2,
-          backgroundColor: Colors.grey[200],
-          child: Icon(Icons.image, size: size * 0.5, color: Colors.grey[400]),
+          backgroundColor: Appstyle.neutral150,
+          child: Icon(Icons.image, size: size * 0.5, color: Appstyle.neutral300),
         );
       },
     );

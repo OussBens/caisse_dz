@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:caisse_dz/core/theme/app_style.dart';
 
 /// Enrobage animé pour le badge "Smart" (assets/icons/smart_icon.png),
 /// réutilisé partout où une fonctionnalité IA doit se démarquer visuellement
@@ -62,12 +63,12 @@ class _AiSmartIconState extends State<AiSmartIcon> with SingleTickerProviderStat
               borderRadius: BorderRadius.circular((widget.height + 6) / 2),
               boxShadow: [
                 BoxShadow(
-                  color: const Color(0xFF9B6BFF).withOpacity(glow),
+                  color: Appstyle.purple400.withOpacity(glow),
                   blurRadius: 14 + 10 * t,
                   spreadRadius: 1 + t,
                 ),
                 BoxShadow(
-                  color: const Color(0xFFFF7BD5).withOpacity(glow * 0.6),
+                  color: Appstyle.purple200.withOpacity(glow * 0.6),
                   blurRadius: 20 + 8 * t,
                   spreadRadius: 0.5,
                 ),

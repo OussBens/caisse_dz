@@ -782,7 +782,7 @@ class _RoleModificationDialogState extends State<RoleModificationDialog> {
             padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
               color: Appstyle.violet.withOpacity(0.1),
-              borderRadius: BorderRadius.circular(8),
+              borderRadius: BorderRadius.circular(Appstyle.radiusSM),
             ),
             child: Row(
               children: [
@@ -826,18 +826,18 @@ class _RoleModificationDialogState extends State<RoleModificationDialog> {
               return Card(
                 elevation: 2,
                 shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(8),
+                  borderRadius: BorderRadius.circular(Appstyle.radiusSM),
                   side: BorderSide(
                     color: isSelected
                         ? Appstyle.violet
-                        : Colors.grey.withOpacity(0.3),
+                        : Appstyle.gris.withOpacity(0.3),
                   ),
                 ),
                 child: InkWell(
                   onTap: () {
                     _updatePermission(permission.key, !isSelected);
                   },
-                  borderRadius: BorderRadius.circular(8),
+                  borderRadius: BorderRadius.circular(Appstyle.radiusSM),
                   child: Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                     child: Row(
@@ -846,7 +846,7 @@ class _RoleModificationDialogState extends State<RoleModificationDialog> {
                           permission.icon,
                           color: isSelected
                               ? Appstyle.violet
-                              : Colors.grey,
+                              : Appstyle.gris,
                           size: 20,
                         ),
                         const SizedBox(width: 12),
@@ -860,7 +860,7 @@ class _RoleModificationDialogState extends State<RoleModificationDialog> {
                                   : FontWeight.normal,
                               color: isSelected
                                   ? Appstyle.violet
-                                  : Colors.grey[700],
+                                  : Appstyle.ink500,
                             ),
                           ),
                         ),
@@ -908,7 +908,7 @@ class _RoleModificationDialogState extends State<RoleModificationDialog> {
             padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
               color: Appstyle.violet.withOpacity(0.1),
-              borderRadius: BorderRadius.circular(8),
+              borderRadius: BorderRadius.circular(Appstyle.radiusSM),
             ),
             child: Row(
               children: [
@@ -952,23 +952,23 @@ class _RoleModificationDialogState extends State<RoleModificationDialog> {
               return Card(
                 elevation: 2,
                 shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(8),
+                  borderRadius: BorderRadius.circular(Appstyle.radiusSM),
                   side: BorderSide(
                     color: isSelected
                         ? Appstyle.violet
-                        : Colors.grey.withOpacity(0.3),
+                        : Appstyle.gris.withOpacity(0.3),
                   ),
                 ),
                 child: InkWell(
                   onTap: () => _updatePermission(permission.key, !isSelected),
-                  borderRadius: BorderRadius.circular(8),
+                  borderRadius: BorderRadius.circular(Appstyle.radiusSM),
                   child: Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                     child: Row(
                       children: [
                         Icon(
                           permission.icon,
-                          color: isSelected ? Appstyle.violet : Colors.grey,
+                          color: isSelected ? Appstyle.violet : Appstyle.gris,
                           size: 20,
                         ),
                         const SizedBox(width: 12),
@@ -978,7 +978,7 @@ class _RoleModificationDialogState extends State<RoleModificationDialog> {
                             style: TextStyle(
                               fontSize: 13,
                               fontWeight: isSelected ? FontWeight.w500 : FontWeight.normal,
-                              color: isSelected ? Appstyle.violet : Colors.grey[700],
+                              color: isSelected ? Appstyle.violet : Appstyle.ink500,
                             ),
                           ),
                         ),

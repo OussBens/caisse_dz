@@ -25,11 +25,11 @@ class AfficheurCaisseGestion extends StatelessWidget {
 
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(Appstyle.radiusLG),
 
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.05),
+            color: Appstyle.shadowTint.withOpacity(0.05),
             blurRadius: 12,
             offset: const Offset(0, 6),
           ),
@@ -45,12 +45,12 @@ class AfficheurCaisseGestion extends StatelessWidget {
 
               CircleAvatar(
                 radius: 24,
-                backgroundColor: Colors.green.withOpacity(0.15),
+                backgroundColor: Appstyle.success.withOpacity(0.15),
 
                 child: const Icon(
                   Icons.point_of_sale,
                   size: 24,
-                  color: Colors.green,
+                  color: Appstyle.success,
                 ),
               ),
 
@@ -82,14 +82,14 @@ class AfficheurCaisseGestion extends StatelessWidget {
 
                 Text(
                   "${l10n.code} : ${caisse.code}",  // 🔥 Translated
-                  style: TextStyle(color: Colors.grey.shade700),
+                  style: TextStyle(color: Appstyle.ink500),
                 ),
 
                 const SizedBox(height: 4),
 
                 Text(
                   "${l10n.store} : ${caisse.magasinCode}",  // 🔥 Translated
-                  style: TextStyle(color: Colors.grey.shade700),
+                  style: TextStyle(color: Appstyle.ink500),
                 ),
 
               ],
@@ -107,7 +107,7 @@ class AfficheurCaisseGestion extends StatelessWidget {
                 _statCard(
                   l10n.initialBalance,  // 🔥 Translated
                   caisse.soldeInitial,
-                  Colors.green,
+                  Appstyle.success,
                   suffix: " DA",
                 ),
 
@@ -121,7 +121,7 @@ class AfficheurCaisseGestion extends StatelessWidget {
                 _statCard(
                   l10n.state,  // 🔥 Translated
                   caisse.etat ? 1 : 0,
-                  caisse.etat ? Colors.green : Colors.red,
+                  caisse.etat ? Appstyle.success : Appstyle.danger,
                   customText: caisse.etat ? l10n.active : l10n.inactive,  // 🔥 Translated
                 ),
 
@@ -158,7 +158,7 @@ class AfficheurCaisseGestion extends StatelessWidget {
                 vertical: 14,
               ),
               shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12),
+                borderRadius: BorderRadius.circular(Appstyle.radiusMD),
               ),
             ),
 
@@ -181,7 +181,7 @@ class AfficheurCaisseGestion extends StatelessWidget {
   /// Badge état
   Widget _etatBadge(AppLocalizations l10n) {  // 🔥 Accept l10n parameter
 
-    Color color = caisse.etat ? Colors.green : Colors.red;
+    Color color = caisse.etat ? Appstyle.success : Appstyle.danger;
 
     String label = caisse.etat ? l10n.active : l10n.inactive;  // 🔥 Translated
 
@@ -194,7 +194,7 @@ class AfficheurCaisseGestion extends StatelessWidget {
 
       decoration: BoxDecoration(
         color: color.withOpacity(0.15),
-        borderRadius: BorderRadius.circular(20),
+        borderRadius: BorderRadius.circular(Appstyle.radiusCard),
       ),
 
       child: Text(
@@ -227,7 +227,7 @@ class AfficheurCaisseGestion extends StatelessWidget {
 
       decoration: BoxDecoration(
         color: color.withOpacity(0.08),
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(Appstyle.radiusMD),
       ),
 
       child: Column(
@@ -263,7 +263,7 @@ class AfficheurCaisseGestion extends StatelessWidget {
       child: Row(
         children: [
 
-          Icon(icon, size: 16, color: Colors.grey),
+          Icon(icon, size: 16, color: Appstyle.gris),
 
           const SizedBox(width: 6),
 
@@ -287,13 +287,13 @@ class AfficheurCaisseGestion extends StatelessWidget {
     switch (type.toLowerCase()) {
 
       case "principale":
-        return Colors.green;
+        return Appstyle.success;
 
       case "secondaire":
-        return Colors.orange;
+        return Appstyle.warning;
 
       default:
-        return Colors.blue;
+        return Appstyle.info;
 
     }
 

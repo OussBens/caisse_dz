@@ -32,7 +32,7 @@ class AfficheurCaisse extends StatelessWidget {
       opacity: 1.0 , // inactive -> opacity 50%
       child: Container(
         decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(18),
+          borderRadius: BorderRadius.circular(Appstyle.radiusCard),
           gradient: LinearGradient(
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
@@ -43,7 +43,7 @@ class AfficheurCaisse extends StatelessWidget {
           ),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(0.25),
+              color: Appstyle.shadowTint.withOpacity(0.25),
               blurRadius: 12,
               offset: Offset(0, 6),
             ),

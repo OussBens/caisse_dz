@@ -181,7 +181,7 @@ Future<void> DialogPannierVendu({
                   onSave: () {
                     Navigator.pop(context);
                     ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(content: Text(l10n.exportSuccess), backgroundColor: Colors.green),
+                      SnackBar(content: Text(l10n.exportSuccess), backgroundColor: Appstyle.success),
                     );
                   },
                   onShare: () => Navigator.pop(context),
@@ -191,7 +191,7 @@ Future<void> DialogPannierVendu({
             } catch (e) {
               fermerSpinner();
               ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(content: Text('${l10n.exportError}: $e'), backgroundColor: Colors.red),
+                SnackBar(content: Text('${l10n.exportError}: $e'), backgroundColor: Appstyle.danger),
               );
             }
           }
@@ -255,7 +255,7 @@ Future<void> DialogPannierVendu({
                   );
                   Navigator.pop(context);
                   ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(content: Text(l10n.exportSuccess), backgroundColor: Colors.green),
+                    SnackBar(content: Text(l10n.exportSuccess), backgroundColor: Appstyle.success),
                   );
                   await PDFGeneratorLatin.openPDF(file);
                 },
@@ -454,8 +454,8 @@ Future<void> DialogPannierVendu({
                       children: [
                         MainButton(
                           text: l10n.extract,
-                          textColor: Colors.green,
-                          iconColor: Colors.green,
+                          textColor: Appstyle.success,
+                          iconColor: Appstyle.success,
                           color: Appstyle.Tblanc,
                           icon: Icons.download,
                           onPressed: () async => await exportExcel(),
@@ -463,8 +463,8 @@ Future<void> DialogPannierVendu({
                         const SizedBox(width: 10),
                         MainButton(
                           text: l10n.extractPdf,
-                          textColor: Colors.red,
-                          iconColor: Colors.red,
+                          textColor: Appstyle.danger,
+                          iconColor: Appstyle.danger,
                           color: Appstyle.Tblanc,
                           icon: Icons.picture_as_pdf,
                           onPressed: () async => await exportPdf(),
@@ -479,7 +479,7 @@ Future<void> DialogPannierVendu({
                       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                       decoration: BoxDecoration(
                         color: Appstyle.violet.withOpacity(0.05),
-                        borderRadius: BorderRadius.circular(8),
+                        borderRadius: BorderRadius.circular(Appstyle.radiusSM),
                       ),
                       child: Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -503,7 +503,7 @@ Future<void> DialogPannierVendu({
                       child: Container(
                         decoration: BoxDecoration(
                           border: Border.all(color: Appstyle.violet.withOpacity(0.3)),
-                          borderRadius: BorderRadius.circular(10),
+                          borderRadius: BorderRadius.circular(Appstyle.radiusMD),
                         ),
                         child: panniersFiltres.isEmpty
                             ? Center(
@@ -570,11 +570,11 @@ Widget _pannierTile({
     padding: const EdgeInsets.all(10),
     decoration: BoxDecoration(
       color: Colors.white,
-      borderRadius: BorderRadius.circular(8),
-      border: Border.all(color: Colors.grey.shade200),
+      borderRadius: BorderRadius.circular(Appstyle.radiusSM),
+      border: Border.all(color: Appstyle.neutral150),
       boxShadow: [
         BoxShadow(
-          color: Colors.grey.withOpacity(0.05),
+          color: Appstyle.gris.withOpacity(0.05),
           blurRadius: 2,
         ),
       ],
@@ -652,7 +652,7 @@ Widget _pannierTile({
               if (reste > 0)
                 Text(
                   "${l10n.remaining}: ${NumberFormatUtil.formatMontant(reste, decimales: 2)}",
-                  style: Appstyle.textXS.copyWith(color: Colors.orange),
+                  style: Appstyle.textXS.copyWith(color: Appstyle.warning),
                 ),
             ],
           ),
@@ -748,7 +748,7 @@ Future<void> _showProductsListDialog(BuildContext context, Pannier pannier, AppL
                             padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
                             decoration: BoxDecoration(
                               color: Appstyle.violet.withOpacity(0.1),
-                              borderRadius: BorderRadius.circular(12),
+                              borderRadius: BorderRadius.circular(Appstyle.radiusMD),
                             ),
                             child: Text(
                               "${p.quantite ?? 0}",
@@ -779,7 +779,7 @@ Future<void> _showProductsListDialog(BuildContext context, Pannier pannier, AppL
             style: ElevatedButton.styleFrom(
               backgroundColor: Appstyle.violet,
               shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(10),
+                borderRadius: BorderRadius.circular(Appstyle.radiusMD),
               ),
             ),
             onPressed: () => Navigator.pop(context),

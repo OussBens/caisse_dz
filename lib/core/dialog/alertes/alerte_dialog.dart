@@ -194,7 +194,7 @@ Future<void> AlerteDialog(BuildContext context, {bool seulementSiAlertes = false
             style: ElevatedButton.styleFrom(
               backgroundColor: Appstyle.violet,
               foregroundColor: Colors.white,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(Appstyle.radiusMD)),
             ),
             onPressed: () => Navigator.of(dialogContext).pop(),
           ),
@@ -269,7 +269,7 @@ Widget _carteLigne(_Ligne l, Color couleur) {
     padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
     decoration: BoxDecoration(
       color: Colors.white,
-      borderRadius: BorderRadius.circular(12),
+      borderRadius: BorderRadius.circular(Appstyle.radiusMD),
       border: Border.all(color: couleur.withOpacity(0.3)),
     ),
     child: Column(
@@ -280,7 +280,7 @@ Widget _carteLigne(_Ligne l, Color couleur) {
         const SizedBox(height: 6),
         Container(
           padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-          decoration: BoxDecoration(color: couleur.withOpacity(0.12), borderRadius: BorderRadius.circular(8)),
+          decoration: BoxDecoration(color: couleur.withOpacity(0.12), borderRadius: BorderRadius.circular(Appstyle.radiusSM)),
           child: Text(l.valeur, style: Appstyle.textXS.copyWith(color: couleur, fontWeight: FontWeight.w600)),
         ),
       ],

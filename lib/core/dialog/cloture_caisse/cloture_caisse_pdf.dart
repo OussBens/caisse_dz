@@ -7,6 +7,7 @@ import 'package:caisse_dz/core/utilis/number_format.dart';
 import 'package:caisse_dz/data/models/cloture_caisse.dart';
 import 'package:caisse_dz/l10n/app_localizations.dart';
 import 'package:flutter/material.dart';
+import 'package:caisse_dz/core/theme/app_style.dart';
 
 /// Génère et affiche (impression/enregistrement, via [PDFPreviewDialog]) le
 /// rapport de clôture (Z) correspondant à [cloture] — un résumé, pas un
@@ -63,7 +64,7 @@ Future<void> genererEtAfficherRapportZ(
         if (!context.mounted) return;
         Navigator.pop(context);
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(l10n.exportSuccess), backgroundColor: Colors.green),
+          SnackBar(content: Text(l10n.exportSuccess), backgroundColor: Appstyle.success),
         );
         await PDFGeneratorLatin.openPDF(file);
       },

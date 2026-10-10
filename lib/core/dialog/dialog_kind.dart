@@ -9,9 +9,9 @@ enum DialogKind { confirmer, danger, refuser, attention }
 extension DialogKindStyle on DialogKind {
   Color get couleur => switch (this) {
         DialogKind.confirmer => Appstyle.violet,
-        DialogKind.danger => Colors.red,
+        DialogKind.danger => Appstyle.danger,
         DialogKind.refuser => Appstyle.gris,
-        DialogKind.attention => Colors.orange,
+        DialogKind.attention => Appstyle.warning,
       };
 
   IconData get icone => switch (this) {

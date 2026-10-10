@@ -86,7 +86,7 @@ Future<void> CaisseGestionModif(BuildContext context, CaisseGestion caisse) asyn
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(AppLocalizations.of(context)!.loginRequired),
-        backgroundColor: Colors.red,
+        backgroundColor: Appstyle.danger,
         duration: const Duration(seconds: 3),
       ),
     );

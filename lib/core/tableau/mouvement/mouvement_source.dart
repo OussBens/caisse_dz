@@ -146,23 +146,23 @@ class MouvementDataSource extends BaseTableDataSource<Mouvement> {
 
       switch (type) {
         case "Vente":
-          color = Colors.green;
+          color = Appstyle.success;
           icon = Icons.shopping_cart;
           break;
         case "Achat":
-          color = Colors.blue;
+          color = Appstyle.info;
           icon = Icons.shopping_bag;
           break;
         case "Retour":
-          color = Colors.orange;
+          color = Appstyle.warning;
           icon = Icons.undo;
           break;
         case "Sortie":
-          color = Colors.red;
+          color = Appstyle.danger;
           icon = Icons.remove_circle;
           break;
         default:
-          color = Colors.grey;
+          color = Appstyle.gris;
           icon = Icons.help_outline;
       }
 
@@ -171,7 +171,7 @@ class MouvementDataSource extends BaseTableDataSource<Mouvement> {
           padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
           decoration: BoxDecoration(
             color: color.withOpacity(0.15),
-            borderRadius: BorderRadius.circular(20),
+            borderRadius: BorderRadius.circular(Appstyle.radiusCard),
             border: Border.all(color: color),
           ),
           child: Row(

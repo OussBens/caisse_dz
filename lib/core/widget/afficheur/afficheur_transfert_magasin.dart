@@ -36,9 +36,9 @@ class AfficheurTransfertMagasin extends StatelessWidget {
       padding: const EdgeInsets.all(8),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(Appstyle.radiusLG),
         boxShadow: [
-          BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 12, offset: const Offset(0, 6)),
+          BoxShadow(color: Appstyle.shadowTint.withOpacity(0.05), blurRadius: 12, offset: const Offset(0, 6)),
         ],
       ),
       child: Row(
@@ -62,9 +62,9 @@ class AfficheurTransfertMagasin extends StatelessWidget {
               children: [
                 Text(nomProduit, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
                 const SizedBox(height: 4),
-                Text("${l10n.code} : ${transfert.code}", style: TextStyle(color: Colors.grey.shade700)),
+                Text("${l10n.code} : ${transfert.code}", style: TextStyle(color: Appstyle.ink500)),
                 const SizedBox(height: 4),
-                Text("$nomSource  →  $nomDest", style: TextStyle(color: Colors.grey.shade700)),
+                Text("$nomSource  →  $nomDest", style: TextStyle(color: Appstyle.ink500)),
               ],
             ),
           ),
@@ -85,7 +85,7 @@ class AfficheurTransfertMagasin extends StatelessWidget {
             style: ElevatedButton.styleFrom(
               backgroundColor: Appstyle.violet,
               padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(Appstyle.radiusMD)),
             ),
             child: Text(l10n.details, style: Appstyle.textSB.copyWith(color: Appstyle.Tblanc)),
           ),
@@ -95,11 +95,11 @@ class AfficheurTransfertMagasin extends StatelessWidget {
   }
 
   Widget _etatBadge(AppLocalizations l10n) {
-    final color = transfert.etat ? Colors.green : Colors.red;
+    final color = transfert.etat ? Appstyle.success : Appstyle.danger;
     final label = transfert.etat ? l10n.active : l10n.inactive;
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-      decoration: BoxDecoration(color: color.withOpacity(0.15), borderRadius: BorderRadius.circular(20)),
+      decoration: BoxDecoration(color: color.withOpacity(0.15), borderRadius: BorderRadius.circular(Appstyle.radiusCard)),
       child: Text(label, style: TextStyle(color: color, fontSize: 10, fontWeight: FontWeight.bold)),
     );
   }
@@ -108,7 +108,7 @@ class AfficheurTransfertMagasin extends StatelessWidget {
     return Container(
       width: 140,
       padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(color: color.withOpacity(0.08), borderRadius: BorderRadius.circular(12)),
+      decoration: BoxDecoration(color: color.withOpacity(0.08), borderRadius: BorderRadius.circular(Appstyle.radiusMD)),
       child: Column(
         children: [
           Text(label, style: TextStyle(color: color)),

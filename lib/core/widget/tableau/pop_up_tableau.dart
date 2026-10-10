@@ -1,5 +1,6 @@
 import 'package:caisse_dz/l10n/app_localizations.dart';
 import 'package:flutter/material.dart';
+import 'package:caisse_dz/core/theme/app_style.dart';
 
 class ColumnSettingsDialog extends StatefulWidget {
   final Map<String, Map<String, dynamic>> columnVisibility;
@@ -38,7 +39,7 @@ class _ColumnSettingsDialogState extends State<ColumnSettingsDialog> {
     final l10n = AppLocalizations.of(context)!;
 
     return AlertDialog(
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(Appstyle.radiusLG)),
       title: Text(l10n.showHideColumns), // 🔥 Translated
       content: SizedBox(
         width: 350,

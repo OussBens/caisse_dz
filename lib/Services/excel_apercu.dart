@@ -9,6 +9,7 @@ import 'package:caisse_dz/Services/export_spinner.dart';
 import 'package:caisse_dz/Services/pdf_generator_latin.dart';
 import 'package:caisse_dz/Services/pdf_table_generator.dart';
 import 'package:caisse_dz/l10n/app_localizations.dart';
+import 'package:caisse_dz/core/theme/app_style.dart';
 
 /// En-têtes + lignes (texte) de la feuille de données d'un fichier généré
 /// par ExcelGenerator : la feuille [nomFeuille] si elle existe, sinon la
@@ -72,12 +73,12 @@ Future<void> ouvrirApercuExcel(
 
   final feuille = _lireFeuille(excel, nomFeuille);
   if (feuille == null) {
-    _snack(context, 'Could not find data sheet in Excel file', Colors.red);
+    _snack(context, 'Could not find data sheet in Excel file', Appstyle.danger);
     return;
   }
   if (!context.mounted) return;
   if (feuille.rows.isEmpty) {
-    _snack(context, 'No data found in Excel file', Colors.orange);
+    _snack(context, 'No data found in Excel file', Appstyle.warning);
     return;
   }
 
@@ -92,7 +93,7 @@ Future<void> ouvrirApercuExcel(
       excelFile: fichier,
       onSave: () {
         Navigator.pop(dialogContext);
-        _snack(context, l10n.exportSuccess, Colors.green);
+        _snack(context, l10n.exportSuccess, Appstyle.success);
       },
       onShare: () => Navigator.pop(dialogContext),
       onCancel: () => Navigator.pop(dialogContext),
@@ -130,7 +131,7 @@ Future<void> ouvrirApercuPdfDepuisExcel(
 
     if (!context.mounted) return;
     if (pdfBytes == null) {
-      _snack(context, l10n.noDataToExport, Colors.orange);
+      _snack(context, l10n.noDataToExport, Appstyle.warning);
       return;
     }
 
@@ -148,7 +149,7 @@ Future<void> ouvrirApercuPdfDepuisExcel(
           final nom = titre.replaceAll(RegExp(r'[^\w\-]+'), '_');
           final file = await PDFGeneratorLatin.savePDF(pdfBytes, '${nom}_${DateTime.now().millisecondsSinceEpoch}.pdf');
           if (dialogContext.mounted) Navigator.pop(dialogContext);
-          _snack(context, l10n.exportSuccess, Colors.green);
+          _snack(context, l10n.exportSuccess, Appstyle.success);
           await PDFGeneratorLatin.openPDF(file);
         },
         onShare: () => Navigator.pop(dialogContext),
@@ -157,6 +158,6 @@ Future<void> ouvrirApercuPdfDepuisExcel(
     );
   } catch (e) {
     debugPrint('PDF export error: $e');
-    _snack(context, '${l10n.exportError}: $e', Colors.red);
+    _snack(context, '${l10n.exportError}: $e', Appstyle.danger);
   }
 }

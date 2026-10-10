@@ -102,16 +102,16 @@ class _TableauCatalogAdvancedState extends State<TableauCatalogAdvanced> {
     return Container(
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(18),
-        boxShadow: const [BoxShadow(color: Colors.black12, blurRadius: 12)],
+        borderRadius: BorderRadius.circular(Appstyle.radiusCard),
+        boxShadow: const [BoxShadow(color: Appstyle.shadowSoft, blurRadius: 12)],
       ),
       padding: const EdgeInsets.all(8),
       child: ClipRRect(
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(Appstyle.radiusLG),
         child: SfDataGridTheme(
           data: SfDataGridThemeData(
-            headerColor: Colors.teal.withOpacity(0.7),
-            gridLineColor: Colors.grey.shade300,
+            headerColor: Appstyle.successInk.withOpacity(0.7),
+            gridLineColor: Appstyle.neutral200,
             gridLineStrokeWidth: 0.4,
           ),
           child: SfDataGrid(

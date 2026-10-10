@@ -22,10 +22,10 @@ class SearchField extends StatelessWidget {
     return Container(
       height: 44,
       decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(14),
+        borderRadius: BorderRadius.circular(Appstyle.radiusButton),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.05),
+            color: Appstyle.shadowTint.withOpacity(0.05),
             blurRadius: 10,
             offset: const Offset(0, 4),
           ),
@@ -41,7 +41,7 @@ class SearchField extends StatelessWidget {
         decoration: InputDecoration(
           hintText: l10n.search, // 🔥 Translated hint
           hintStyle: TextStyle(
-            color: Colors.grey.shade500,
+            color: Appstyle.neutral500,
           ),
 
           /// 🔍 Icone gauche
@@ -71,19 +71,19 @@ class SearchField extends StatelessWidget {
 
           /// Bordures modernes
           border: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(14),
+            borderRadius: BorderRadius.circular(Appstyle.radiusButton),
             borderSide: BorderSide.none,
           ),
 
           enabledBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(14),
+            borderRadius: BorderRadius.circular(Appstyle.radiusButton),
             borderSide: BorderSide(
-              color: Colors.grey.shade300,
+              color: Appstyle.neutral200,
             ),
           ),
 
           focusedBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(14),
+            borderRadius: BorderRadius.circular(Appstyle.radiusButton),
             borderSide: BorderSide(
               color: Appstyle.violet,
               width: 1.5,

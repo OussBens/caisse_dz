@@ -4,6 +4,7 @@ import '../../../l10n/app_localizations.dart';
 import '../../widget/status_badge.dart';
 import '../base_table_data_source.dart';
 import 'package:caisse_dz/core/utilis/number_format.dart';
+import 'package:caisse_dz/core/theme/app_style.dart';
 
 /// Une ligne du tableau "Recette Caisse par pannier" : un panier de la
 /// caisse sélectionnée, enrichi du nom du caissier.
@@ -96,7 +97,7 @@ class RecetteCaisseDataSource extends BaseTableDataSource<LigneRecetteCaisse> {
         child: Text(
           _montant(item.reste),
           style: item.reste > 0
-              ? const TextStyle(color: Colors.red, fontWeight: FontWeight.bold)
+              ? const TextStyle(color: Appstyle.danger, fontWeight: FontWeight.bold)
               : null,
         ),
       );

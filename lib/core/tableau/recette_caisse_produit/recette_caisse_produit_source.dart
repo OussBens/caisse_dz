@@ -4,6 +4,7 @@ import '../../../l10n/app_localizations.dart';
 import '../../widget/status_badge.dart';
 import '../base_table_data_source.dart';
 import 'package:caisse_dz/core/utilis/number_format.dart';
+import 'package:caisse_dz/core/theme/app_style.dart';
 
 /// Une ligne du tableau "Recette Caisse par produit" : un produit vendu dans
 /// un panier de la caisse sélectionnée (un panier de N produits devient N
@@ -98,7 +99,7 @@ class RecetteCaisseProduitDataSource extends BaseTableDataSource<LigneRecetteCai
       return Center(
         child: Text(
           "${NumberFormatUtil.formatMontant(item.montant, decimales: 2)} ${l10n.currency}",
-          style: const TextStyle(color: Colors.green, fontWeight: FontWeight.bold),
+          style: const TextStyle(color: Appstyle.success, fontWeight: FontWeight.bold),
         ),
       );
     }

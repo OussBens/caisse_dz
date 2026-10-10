@@ -25,7 +25,7 @@ Widget buildFilterIcon(BuildContext context, DataGridSource dataSource) {
   final isActive = dataSource.filterConditions.keys.contains(columnName);
 
   if (isActive) {
-    return const Icon(Icons.filter_alt, size: 22, color: Colors.amber);
+    return const Icon(Icons.filter_alt, size: 22, color: Appstyle.warning);
   }
 
   return Icon(Icons.filter_alt_outlined, size: 16, color: Appstyle.Tblanc.withOpacity(0.85));

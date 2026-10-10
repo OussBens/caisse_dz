@@ -130,7 +130,7 @@ Future<void> RoleDetail(BuildContext context, Role role) async {
               backgroundColor: Appstyle.violet,
               foregroundColor: Colors.white,
               shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(10),
+                borderRadius: BorderRadius.circular(Appstyle.radiusMD),
               ),
             ),
             onPressed: () => Navigator.pop(context),

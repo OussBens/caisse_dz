@@ -4,6 +4,7 @@ import '../../../l10n/app_localizations.dart';
 import '../../widget/status_badge.dart';
 import '../base_table_data_source.dart';
 import 'package:caisse_dz/core/utilis/number_format.dart';
+import 'package:caisse_dz/core/theme/app_style.dart';
 
 /// Une ligne du tableau "Situation inventaire" : valorisation du stock d'un
 /// produit (quantité en stock, valeur d'achat, valeur de vente potentielle).
@@ -83,7 +84,7 @@ class InventaireDataSource extends BaseTableDataSource<LigneInventaire> {
       return Center(
         child: StatusBadge(
           text: enStock ? l10n.available : l10n.outOfStock,
-          color: enStock ? Colors.green : Colors.red,
+          color: enStock ? Appstyle.success : Appstyle.danger,
         ),
       );
     }
@@ -113,7 +114,7 @@ class InventaireDataSource extends BaseTableDataSource<LigneInventaire> {
         child: Text(
           _montant(item.margePotentielle),
           style: TextStyle(
-            color: item.margePotentielle >= 0 ? Colors.green.shade700 : Colors.red,
+            color: item.margePotentielle >= 0 ? Appstyle.successInk : Appstyle.danger,
             fontWeight: FontWeight.bold,
           ),
         ),

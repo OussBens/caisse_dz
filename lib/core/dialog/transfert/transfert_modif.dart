@@ -274,7 +274,7 @@ Future<void> TransfertCaisseModif(
                           ScaffoldMessenger.of(context).showSnackBar(
                             SnackBar(
                               content: Text(l10n.fillRequiredFields),
-                              backgroundColor: Colors.red,
+                              backgroundColor: Appstyle.danger,
                             ),
                           );
                           return;

@@ -105,7 +105,7 @@ class SmartScanDataSource extends BaseTableDataSource<SmartScan> {
           "$resteValue ${l10n.currency}",
           style: TextStyle(
             fontSize: AppConst.FontSizeTable,
-            color: resteValue > 0 ? Colors.red : Colors.black,
+            color: resteValue > 0 ? Appstyle.danger : Colors.black,
             fontWeight: resteValue > 0 ? FontWeight.bold : FontWeight.normal,
           ),
         ),
@@ -117,8 +117,8 @@ class SmartScanDataSource extends BaseTableDataSource<SmartScan> {
         child: Container(
           padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
           decoration: BoxDecoration(
-            color: Colors.blue[300],
-            borderRadius: BorderRadius.circular(8),
+            color: Appstyle.info,
+            borderRadius: BorderRadius.circular(Appstyle.radiusSM),
           ),
           child: Text(
             "${item.montant} ${l10n.currency}",

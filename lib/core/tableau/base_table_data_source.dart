@@ -5,6 +5,7 @@ import 'package:syncfusion_flutter_datagrid/datagrid.dart';
 
 import '../../data/constant.dart';
 import '../../data/models/utilisateur.dart';
+import 'package:caisse_dz/core/theme/app_style.dart';
 
 /// Shared base for the per-module Syncfusion [DataGridSource] implementations
 /// under lib/core/tableau/**/*_source.dart.
@@ -115,7 +116,7 @@ abstract class BaseTableDataSource<T> extends DataGridSource {
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(icon, size: 16, color: color ?? Colors.grey),
+          Icon(icon, size: 16, color: color ?? Appstyle.gris),
           const SizedBox(width: 6),
           Flexible(
             child: Text(

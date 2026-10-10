@@ -25,8 +25,8 @@ class TextChampS extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: 8), // pas de padding vertical
       decoration: BoxDecoration(
         color: enabled ? Appstyle.grischamp : Appstyle.grisC,
-        borderRadius: BorderRadius.circular(10), // optionnel: réduire aussi
-        border: Border.all(color: Colors.grey.shade300, width: 1),
+        borderRadius: BorderRadius.circular(Appstyle.radiusMD), // optionnel: réduire aussi
+        border: Border.all(color: Appstyle.neutral200, width: 1),
       ),
       alignment: Alignment.center, // ✅ centre verticalement
       child: TextField(

@@ -6,6 +6,7 @@ import 'package:caisse_dz/l10n/app_localizations.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
+import 'package:caisse_dz/core/theme/app_style.dart';
 
 /// Bloc affiché dans l'en-tête de chaque écran : cloche des alertes, étoile
 /// "module favori" puis témoin de connexion. Présent sur tous les modules, c'est le point
@@ -45,10 +46,10 @@ class _BoutonAlertes extends StatelessWidget {
           icon: Badge(
             isLabelVisible: nombre > 0,
             label: Text(nombre > 99 ? '99+' : '$nombre'),
-            backgroundColor: Colors.red,
+            backgroundColor: Appstyle.danger,
             child: Icon(
               nombre > 0 ? Icons.notifications_active_rounded : Icons.notifications_none_rounded,
-              color: nombre > 0 ? Colors.orange : Colors.grey,
+              color: nombre > 0 ? Appstyle.warning : Appstyle.gris,
               size: 28,
             ),
           ),
@@ -74,14 +75,14 @@ class _EtoileFavori extends StatelessWidget {
       child: IconButton(
         icon: Icon(
           favori ? Icons.star_rounded : Icons.star_border_rounded,
-          color: favori ? Colors.amber : Colors.grey,
+          color: favori ? Appstyle.warning : Appstyle.gris,
           size: 28,
         ),
         onPressed: () async {
           final ok = await auth.basculerFavori(route);
           if (!ok && context.mounted) {
             ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(content: Text(l10n.maxFavoritesReached), backgroundColor: Colors.orange),
+              SnackBar(content: Text(l10n.maxFavoritesReached), backgroundColor: Appstyle.warning),
             );
           }
         },

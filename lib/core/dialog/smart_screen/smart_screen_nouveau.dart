@@ -1049,7 +1049,7 @@ class _SmartScanDialogState extends State<SmartScanDialog> {
           ],
         ),
 
-        const Divider(height: 30, color: Colors.grey),
+        const Divider(height: 30, color: Appstyle.gris),
 
         Container(
           padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 4),
@@ -1078,12 +1078,12 @@ class _SmartScanDialogState extends State<SmartScanDialog> {
           ),
         ),
 
-        const Divider(height: 0, color: Colors.grey),
+        const Divider(height: 0, color: Appstyle.gris),
 
         Expanded(
           child: ListView.separated(
             itemCount: produits.length,
-            separatorBuilder: (_, __) => const Divider(color: Colors.grey),
+            separatorBuilder: (_, __) => const Divider(color: Appstyle.gris),
             itemBuilder: (_, i) {
               final p = produits[i];
               return Container(
@@ -1116,7 +1116,7 @@ class _SmartScanDialogState extends State<SmartScanDialog> {
           ),
         ),
 
-        const Divider(color: Colors.grey),
+        const Divider(color: Appstyle.gris),
 
         Container(
           padding: const EdgeInsets.symmetric(vertical: 6, horizontal: 4),
@@ -1289,7 +1289,7 @@ class _SmartScanDialogState extends State<SmartScanDialog> {
               const SizedBox(width: 10),
 
               IconButton(
-                icon: const Icon(Icons.delete, color: Colors.red),
+                icon: const Icon(Icons.delete, color: Appstyle.danger),
                 onPressed: () => setState(() {
                   produits.removeAt(i);
                   _disposeProduitControllers(p);

@@ -52,7 +52,7 @@ class _CardWidgetSmallState extends State<CardWidgetSmall> {
 
           decoration: BoxDecoration(
             color: widget.couleur.withOpacity(selected ? 1 : 0.85),
-            borderRadius: BorderRadius.circular(16),
+            borderRadius: BorderRadius.circular(Appstyle.radiusLG),
             border: selected ? Border.all(color: Colors.white, width: 2) : null,
             boxShadow: [
               if (selected)
@@ -63,7 +63,7 @@ class _CardWidgetSmallState extends State<CardWidgetSmall> {
                 ),
               if (isHovered && !selected)
                 const BoxShadow(
-                  color: Colors.black26,
+                  color: Appstyle.shadowMedium,
                   blurRadius: 10,
                   spreadRadius: 1,
                 ),

@@ -25,7 +25,7 @@ class CardWidgetJeux extends StatelessWidget {
         height: 100,
         decoration: BoxDecoration(
           color: couleur,
-          borderRadius: BorderRadius.circular(18),
+          borderRadius: BorderRadius.circular(Appstyle.radiusCard),
         ),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,

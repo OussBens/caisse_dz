@@ -200,7 +200,7 @@ Future<void> AnnulerSmartScan(
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(l10n.noPermissionAction),
-        backgroundColor: Colors.red,
+        backgroundColor: Appstyle.danger,
         duration: const Duration(seconds: 3),
       ),
     );
@@ -255,7 +255,7 @@ Future<void> AnnulerSmartScan(
                               padding: const EdgeInsets.all(8),
                               decoration: BoxDecoration(
                                 color: Appstyle.grisC.withOpacity(0.2),
-                                borderRadius: BorderRadius.circular(8),
+                                borderRadius: BorderRadius.circular(Appstyle.radiusSM),
                               ),
                               child: Text(
                                 "${l10n.smartScanHash} #${s.id} - ${l10n.amount}: ${s.montant} - ${l10n.supplier}: ${nomFournisseur(s.fournisseurCode)} - ${l10n.quantity}: ${s.nbrProduit}",
@@ -307,7 +307,7 @@ Future<void> AnnulerSmartScan(
                           ScaffoldMessenger.of(context).showSnackBar(
                             SnackBar(
                               content: Text(l10n.cancellationReason),
-                              backgroundColor: Colors.red,
+                              backgroundColor: Appstyle.danger,
                               duration: const Duration(seconds: 3),
                             ),
                           );

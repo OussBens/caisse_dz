@@ -146,7 +146,7 @@ Future<void> ClotureCaisseDetail(
               style: ElevatedButton.styleFrom(
                 backgroundColor: Appstyle.gris,
                 foregroundColor: Colors.white,
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(Appstyle.radiusMD)),
               ),
               onPressed: () => genererEtAfficherRapportZ(context, l10n, cloture, nomCaisse),
             ),
@@ -157,7 +157,7 @@ Future<void> ClotureCaisseDetail(
               style: ElevatedButton.styleFrom(
                 backgroundColor: Appstyle.violet,
                 foregroundColor: Colors.white,
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(Appstyle.radiusMD)),
               ),
               onPressed: () => Navigator.pop(context),
             ),

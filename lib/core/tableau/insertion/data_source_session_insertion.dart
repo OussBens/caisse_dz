@@ -6,6 +6,7 @@ import '../../../../data/models/gestion_caisse.dart';
 import '../../../data/constant.dart';
 import '../../../l10n/app_localizations.dart';
 import '../../utilis/number_format.dart';
+import 'package:caisse_dz/core/theme/app_style.dart';
 
 /// Source de données Syncfusion pour le tableau de sélection d'une session
 /// de caisse (dialog [InsertionSessionDialog]). Même structure que
@@ -84,7 +85,7 @@ class SessionInsertionDataSource extends DataGridSource {
           return Center(
             child: Checkbox(
               value: selectedIndex == rowIndex,
-              activeColor: Colors.deepPurple,
+              activeColor: Appstyle.primary,
               onChanged: (_) {
                 onSelectRow?.call(rowIndex);
               },

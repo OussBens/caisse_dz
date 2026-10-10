@@ -161,7 +161,7 @@ class _ZakatScreenState extends State<ZakatScreen> {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
               content: Text('No data found in Excel file'),
-              backgroundColor: Colors.orange,
+              backgroundColor: Appstyle.warning,
             ),
           );
           return;
@@ -181,7 +181,7 @@ class _ZakatScreenState extends State<ZakatScreen> {
               ScaffoldMessenger.of(context).showSnackBar(
                 SnackBar(
                   content: Text(l10n.exportSuccess),
-                  backgroundColor: Colors.green,
+                  backgroundColor: Appstyle.success,
                 ),
               );
             },
@@ -197,7 +197,7 @@ class _ZakatScreenState extends State<ZakatScreen> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('Could not find data sheet in Excel file'),
-            backgroundColor: Colors.red,
+            backgroundColor: Appstyle.danger,
           ),
         );
       }
@@ -208,7 +208,7 @@ class _ZakatScreenState extends State<ZakatScreen> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text('${AppLocalizations.of(context)!.exportError}: $e'),
-          backgroundColor: Colors.red,
+          backgroundColor: Appstyle.danger,
         ),
       );
     } finally {
@@ -292,7 +292,7 @@ class _ZakatScreenState extends State<ZakatScreen> {
               ScaffoldMessenger.of(context).showSnackBar(
                 SnackBar(
                   content: Text(l10n.exportSuccess),
-                  backgroundColor: Colors.green,
+                  backgroundColor: Appstyle.success,
                 ),
               );
             },
@@ -308,7 +308,7 @@ class _ZakatScreenState extends State<ZakatScreen> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('Could not find data sheet in Excel file'),
-            backgroundColor: Colors.red,
+            backgroundColor: Appstyle.danger,
           ),
         );
       }
@@ -318,7 +318,7 @@ class _ZakatScreenState extends State<ZakatScreen> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text('${AppLocalizations.of(context)!.exportError}: $e'),
-          backgroundColor: Colors.red,
+          backgroundColor: Appstyle.danger,
         ),
       );
     } finally {
@@ -663,7 +663,7 @@ class _ZakatScreenState extends State<ZakatScreen> {
                                               SizedBox(width: paddingH / 4),
                                               if (filtresActifs)
                                                 MainIconButton(
-                                                  color: Colors.grey.shade400,
+                                                  color: Appstyle.neutral300,
                                                   imagePath: 'assets/icons/action/supprimer_icon.png',
                                                   onPressed: () {
                                                     setState(() {
@@ -676,8 +676,8 @@ class _ZakatScreenState extends State<ZakatScreen> {
                                                 SizedBox(width: paddingH / 4),
                                               MainButton(
                                                 text: l10n.extract,
-                                                textColor: Colors.green,
-                                                iconColor: Colors.green,
+                                                textColor: Appstyle.success,
+                                                iconColor: Appstyle.success,
                                                 color: Appstyle.Tblanc,
                                                 icon: Icons.download,
                                                 loading: _exportEnCours,
@@ -688,8 +688,8 @@ class _ZakatScreenState extends State<ZakatScreen> {
                                               SizedBox(width: paddingH / 4),
                                               MainButton(
                                                 text: l10n.extractPdf,
-                                                textColor: Colors.red,
-                                                iconColor: Colors.red,
+                                                textColor: Appstyle.danger,
+                                                iconColor: Appstyle.danger,
                                                 color: Appstyle.Tblanc,
                                                 icon: Icons.picture_as_pdf,
                                                 onPressed: () async {
@@ -699,7 +699,7 @@ class _ZakatScreenState extends State<ZakatScreen> {
                                               SizedBox(width: paddingH / 4),
                                               MainIconButton(
                                                 imagePath: "assets/icons/action/extacter_filtre_icon.png",
-                                                color: Colors.orange,
+                                                color: Appstyle.warning,
                                                 onPressed: () async {
                                                   await _exportSelectedToExcel();
                                                 },

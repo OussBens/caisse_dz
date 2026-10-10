@@ -42,14 +42,14 @@ class TextDate extends StatelessWidget {
             decoration: BoxDecoration(
               color: enabled
                   ? Colors.white
-                  : Colors.grey.shade200,
-              borderRadius: BorderRadius.circular(14),
+                  : Appstyle.neutral150,
+              borderRadius: BorderRadius.circular(Appstyle.radiusButton),
               border: Border.all(
                 color: isFilled
                     ? Appstyle.violet
                     : enabled
-                        ? Colors.grey.shade300
-                        : Colors.grey.shade400,
+                        ? Appstyle.neutral200
+                        : Appstyle.neutral300,
                 width: isFilled ? 1.5 : 1,
               ),
               boxShadow: enabled
@@ -74,7 +74,7 @@ class TextDate extends StatelessWidget {
                   style: TextStyle(
                     color: enabled
                         ? Colors.black87
-                        : Colors.grey,
+                        : Appstyle.gris,
                     fontWeight: FontWeight.w500,
                   ),
                   decoration: InputDecoration(
@@ -93,12 +93,12 @@ class TextDate extends StatelessWidget {
                       size: 18,
                       color: enabled
                           ? Appstyle.violet
-                          : Colors.grey,
+                          : Appstyle.gris,
                     ),
 
                     hintText: "${l10n.select} $hint",  // 🔥 Changed: "Sélectionner" → l10n.select
                     hintStyle: TextStyle(
-                      color: Colors.grey.shade500,
+                      color: Appstyle.neutral500,
                     ),
                   ),
                   validator: (value) {

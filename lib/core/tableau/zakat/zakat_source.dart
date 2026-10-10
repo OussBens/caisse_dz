@@ -6,6 +6,7 @@ import '../../../data/constant.dart';
 import '../../../l10n/app_localizations.dart';
 import '../../widget/status_badge.dart';
 import '../base_table_data_source.dart';
+import 'package:caisse_dz/core/theme/app_style.dart';
 
 class ZakatDataSource extends BaseTableDataSource<Zakat> {
   final AppLocalizations l10n;
@@ -97,8 +98,8 @@ class ZakatDataSource extends BaseTableDataSource<Zakat> {
         child: Container(
           padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
           decoration: BoxDecoration(
-            color: Colors.blue[300],
-            borderRadius: BorderRadius.circular(8),
+            color: Appstyle.info,
+            borderRadius: BorderRadius.circular(Appstyle.radiusSM),
           ),
           child: Text(
             "${item.capitalTotal} ${l10n.currency}",
@@ -117,8 +118,8 @@ class ZakatDataSource extends BaseTableDataSource<Zakat> {
         child: Container(
           padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
           decoration: BoxDecoration(
-            color: Colors.green[400],
-            borderRadius: BorderRadius.circular(8),
+            color: Appstyle.success,
+            borderRadius: BorderRadius.circular(Appstyle.radiusSM),
           ),
           child: Text(
             "${item.montantZakat} ${l10n.currency}",

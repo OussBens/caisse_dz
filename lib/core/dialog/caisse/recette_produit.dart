@@ -224,7 +224,7 @@ Future<void> DialogRecetteProduit({
                   onSave: () {
                     Navigator.pop(context);
                     ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(content: Text(l10n.exportSuccess), backgroundColor: Colors.green),
+                      SnackBar(content: Text(l10n.exportSuccess), backgroundColor: Appstyle.success),
                     );
                   },
                   onShare: () => Navigator.pop(context),
@@ -234,7 +234,7 @@ Future<void> DialogRecetteProduit({
             } catch (e) {
               fermerSpinner();
               ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(content: Text('${l10n.exportError}: $e'), backgroundColor: Colors.red),
+                SnackBar(content: Text('${l10n.exportError}: $e'), backgroundColor: Appstyle.danger),
               );
             }
           }
@@ -298,7 +298,7 @@ Future<void> DialogRecetteProduit({
                   );
                   Navigator.pop(context);
                   ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(content: Text(l10n.exportSuccess), backgroundColor: Colors.green),
+                    SnackBar(content: Text(l10n.exportSuccess), backgroundColor: Appstyle.success),
                   );
                   await PDFGeneratorLatin.openPDF(file);
                 },
@@ -443,8 +443,8 @@ Future<void> DialogRecetteProduit({
                       children: [
                         MainButton(
                           text: l10n.extract,
-                          textColor: Colors.green,
-                          iconColor: Colors.green,
+                          textColor: Appstyle.success,
+                          iconColor: Appstyle.success,
                           color: Appstyle.Tblanc,
                           icon: Icons.download,
                           onPressed: () async => await exportExcel(),
@@ -452,8 +452,8 @@ Future<void> DialogRecetteProduit({
                         const SizedBox(width: 10),
                         MainButton(
                           text: l10n.extractPdf,
-                          textColor: Colors.red,
-                          iconColor: Colors.red,
+                          textColor: Appstyle.danger,
+                          iconColor: Appstyle.danger,
                           color: Appstyle.Tblanc,
                           icon: Icons.picture_as_pdf,
                           onPressed: () async => await exportPdf(),
@@ -467,7 +467,7 @@ Future<void> DialogRecetteProduit({
                       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                       decoration: BoxDecoration(
                         color: Appstyle.violet.withOpacity(0.05),
-                        borderRadius: BorderRadius.circular(8),
+                        borderRadius: BorderRadius.circular(Appstyle.radiusSM),
                       ),
                       child: Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -490,7 +490,7 @@ Future<void> DialogRecetteProduit({
                       child: Container(
                         decoration: BoxDecoration(
                           border: Border.all(color: Appstyle.violet.withOpacity(0.3)),
-                          borderRadius: BorderRadius.circular(10),
+                          borderRadius: BorderRadius.circular(Appstyle.radiusMD),
                         ),
                         child: lignesFiltrees.isEmpty
                             ? Center(

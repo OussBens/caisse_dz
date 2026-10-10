@@ -144,7 +144,7 @@ Future<void> AnnulerTransfertMagasin(
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(l10n.loginRequired),
-        backgroundColor: Colors.red,
+        backgroundColor: Appstyle.danger,
         duration: const Duration(seconds: 3),
       ),
     );
@@ -156,7 +156,7 @@ Future<void> AnnulerTransfertMagasin(
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(l10n.noPermissionAction),
-        backgroundColor: Colors.red,
+        backgroundColor: Appstyle.danger,
         duration: const Duration(seconds: 3),
       ),
     );
@@ -223,7 +223,7 @@ Future<void> AnnulerTransfertMagasin(
                               padding: const EdgeInsets.all(10),
                               decoration: BoxDecoration(
                                 color: Appstyle.grisC.withOpacity(0.2),
-                                borderRadius: BorderRadius.circular(8),
+                                borderRadius: BorderRadius.circular(Appstyle.radiusSM),
                               ),
                               child: Row(
                                 children: [
@@ -281,7 +281,7 @@ Future<void> AnnulerTransfertMagasin(
                           ScaffoldMessenger.of(context).showSnackBar(
                             SnackBar(
                               content: Text(l10n.cancellationReason),
-                              backgroundColor: Colors.red,
+                              backgroundColor: Appstyle.danger,
                               duration: const Duration(seconds: 3),
                             ),
                           );

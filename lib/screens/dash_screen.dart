@@ -571,13 +571,13 @@ class _DashScreenState extends State<DashScreen> with SingleTickerProviderStateM
     {"id": "pannier", "label": l10n.revenueByCart, "icon": Icons.receipt_long, "color": Appstyle.blueC},
     {"id": "produit", "label": l10n.revenueByProductCard, "icon": Icons.inventory_2, "color": Appstyle.violet},
     {"id": "mouvement", "label": l10n.cashRegisterMovement, "icon": Icons.swap_horiz, "color": Appstyle.indigo},
-    {"id": "mouvementProduit", "label": l10n.productMovementSituation, "icon": Icons.sync_alt, "color": Colors.brown},
+    {"id": "mouvementProduit", "label": l10n.productMovementSituation, "icon": Icons.sync_alt, "color": Appstyle.warningInk},
     {"id": "margePannier", "label": l10n.dailyProfitByCart, "icon": Icons.trending_up, "color": Appstyle.crevete},
     {"id": "margePeriode", "label": l10n.profitByPeriod, "icon": Icons.stacked_line_chart, "color": Appstyle.blueF},
-    {"id": "inventaire", "label": l10n.inventory, "icon": Icons.warehouse, "color": Colors.teal},
-    {"id": "coutProduit", "label": l10n.productCostSituation, "icon": Icons.price_change, "color": Colors.deepPurple},
-    {"id": "situationClient", "label": l10n.clientSituationLabel, "icon": Icons.person, "color": Colors.blue},
-    {"id": "situationFournisseur", "label": l10n.supplierSituationLabel, "icon": Icons.local_shipping, "color": Colors.orange},
+    {"id": "inventaire", "label": l10n.inventory, "icon": Icons.warehouse, "color": Appstyle.successInk},
+    {"id": "coutProduit", "label": l10n.productCostSituation, "icon": Icons.price_change, "color": Appstyle.primary},
+    {"id": "situationClient", "label": l10n.clientSituationLabel, "icon": Icons.person, "color": Appstyle.info},
+    {"id": "situationFournisseur", "label": l10n.supplierSituationLabel, "icon": Icons.local_shipping, "color": Appstyle.warning},
   ];
 
   Widget _buildMainTabBar(AppLocalizations l10n) {
@@ -590,10 +590,10 @@ class _DashScreenState extends State<DashScreen> with SingleTickerProviderStateM
       margin: const EdgeInsets.symmetric(vertical: 6),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(Appstyle.radiusLG),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.05),
+            color: Appstyle.shadowTint.withOpacity(0.05),
             blurRadius: 10,
             offset: const Offset(0, 2),
           ),
@@ -604,7 +604,7 @@ class _DashScreenState extends State<DashScreen> with SingleTickerProviderStateM
         isScrollable: false,
         indicator: BoxDecoration(
           color: Appstyle.violet,
-          borderRadius: BorderRadius.circular(12),
+          borderRadius: BorderRadius.circular(Appstyle.radiusMD),
         ),
         labelColor: Colors.white,
         unselectedLabelColor: Appstyle.gris,
@@ -691,10 +691,10 @@ class _DashScreenState extends State<DashScreen> with SingleTickerProviderStateM
               padding: const EdgeInsets.all(20),
               decoration: BoxDecoration(
                 color: item["color"] as Color,
-                borderRadius: BorderRadius.circular(18),
+                borderRadius: BorderRadius.circular(Appstyle.radiusCard),
                 boxShadow: [
                   BoxShadow(
-                    color: Colors.black.withOpacity(0.1),
+                    color: Appstyle.shadowTint.withOpacity(0.1),
                     blurRadius: 10,
                     offset: const Offset(0, 4),
                   ),
@@ -733,7 +733,7 @@ class _DashScreenState extends State<DashScreen> with SingleTickerProviderStateM
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
             decoration: BoxDecoration(
               color: isSelected ? color : Colors.white,
-              borderRadius: BorderRadius.circular(12),
+              borderRadius: BorderRadius.circular(Appstyle.radiusMD),
               border: Border.all(color: color, width: 1.5),
             ),
             child: Row(
@@ -762,7 +762,7 @@ class _DashScreenState extends State<DashScreen> with SingleTickerProviderStateM
       height: 400,
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(18),
+        borderRadius: BorderRadius.circular(Appstyle.radiusCard),
       ),
       child: Center(
         child: Text(
@@ -930,7 +930,7 @@ class _DashScreenState extends State<DashScreen> with SingleTickerProviderStateM
                                               padding: const EdgeInsets.all(16),
                                               decoration: BoxDecoration(
                                                 color: Colors.white,
-                                                borderRadius: BorderRadius.circular(16),
+                                                borderRadius: BorderRadius.circular(Appstyle.radiusLG),
                                               ),
                                               child: DashboardDynamicSalesChart(
                                                 l10n: l10n,
@@ -947,7 +947,7 @@ class _DashScreenState extends State<DashScreen> with SingleTickerProviderStateM
                                               padding: const EdgeInsets.all(16),
                                               decoration: BoxDecoration(
                                                 color: Colors.white,
-                                                borderRadius: BorderRadius.circular(16),
+                                                borderRadius: BorderRadius.circular(Appstyle.radiusLG),
                                               ),
                                               child: DashboardCAPieChart(
                                                 l10n: l10n,
@@ -972,7 +972,7 @@ class _DashScreenState extends State<DashScreen> with SingleTickerProviderStateM
                                               padding: const EdgeInsets.all(16),
                                               decoration: BoxDecoration(
                                                 color: Colors.white,
-                                                borderRadius: BorderRadius.circular(16),
+                                                borderRadius: BorderRadius.circular(Appstyle.radiusLG),
                                               ),
                                               child: DashboardBarCaissierChart(
                                                 l10n: l10n,
@@ -989,7 +989,7 @@ class _DashScreenState extends State<DashScreen> with SingleTickerProviderStateM
                                               padding: const EdgeInsets.all(16),
                                               decoration: BoxDecoration(
                                                 color: Colors.white,
-                                                borderRadius: BorderRadius.circular(16),
+                                                borderRadius: BorderRadius.circular(Appstyle.radiusLG),
                                               ),
                                               child: DashboardPaymentPieChart(
                                                 l10n: l10n,
@@ -1006,7 +1006,7 @@ class _DashScreenState extends State<DashScreen> with SingleTickerProviderStateM
                                               padding: const EdgeInsets.all(16),
                                               decoration: BoxDecoration(
                                                 color: Colors.white,
-                                                borderRadius: BorderRadius.circular(16),
+                                                borderRadius: BorderRadius.circular(Appstyle.radiusLG),
                                               ),
                                               child: DashboardProduitBarChart(
                                                 l10n: l10n,
@@ -1096,7 +1096,7 @@ class DashboardKpiAdvancedCard extends StatelessWidget {
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: color.withOpacity(0.12),
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(Appstyle.radiusLG),
         border: Border.all(color: color.withOpacity(0.25)),
       ),
       child: Column(
@@ -1422,7 +1422,7 @@ class DashboardBarCaissierChart extends StatelessWidget {
                       backDrawRodData: BackgroundBarChartRodData(
                         show: true,
                         toY: maxValue * 1.2,
-                        color: Colors.grey[200],
+                        color: Appstyle.neutral150,
                       ),
                     ),
                   ],
@@ -1544,7 +1544,7 @@ class DashboardProduitBarChart extends StatelessWidget {
                           backDrawRodData: BackgroundBarChartRodData(
                             show: true,
                             toY: maxValue * 1.2,
-                            color: Colors.grey[200],
+                            color: Appstyle.neutral150,
                           ),
                         ),
                       ],
@@ -1909,7 +1909,7 @@ class DashboardFiltersWidget extends StatelessWidget {
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
         color: Appstyle.violet.withOpacity(0.15),
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(Appstyle.radiusLG),
       ),
       child: Row(
         children: [
@@ -1938,7 +1938,7 @@ class DashboardFiltersWidget extends StatelessWidget {
         backgroundColor: Appstyle.violet,
         foregroundColor: Colors.white,
         padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(Appstyle.radiusMD)),
       ),
       onPressed: onExport ?? () {},
     );
@@ -1999,7 +1999,7 @@ class PeriodeDateFilter extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: 10),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(Appstyle.radiusMD),
       ),
       child: TextField(
         controller: controller,
@@ -2115,7 +2115,7 @@ class DashboardListCard extends StatelessWidget {
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(Appstyle.radiusLG),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,

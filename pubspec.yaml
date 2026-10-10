@@ -101,6 +101,29 @@ flutter:
     - assets/libs/sqlite3.dll
 
   fonts:
+    # Design system CaisseDZ (rebrand) : Inter pour le latin, Alexandria pour
+    # l'arabe — SIL Open Font License, voir assets/fonts/OFL-*.txt.
+    - family: Inter
+      fonts:
+        - asset: assets/fonts/Inter-Regular.ttf
+        - asset: assets/fonts/Inter-Medium.ttf
+          weight: 500
+        - asset: assets/fonts/Inter-SemiBold.ttf
+          weight: 600
+        - asset: assets/fonts/Inter-Bold.ttf
+          weight: 700
+
+    - family: Alexandria
+      fonts:
+        - asset: assets/fonts/Alexandria-Regular.ttf
+        - asset: assets/fonts/Alexandria-Medium.ttf
+          weight: 500
+        - asset: assets/fonts/Alexandria-SemiBold.ttf
+          weight: 600
+        - asset: assets/fonts/Alexandria-Bold.ttf
+          weight: 700
+
+    # Anciennes polices conservées (compatibilité ; Cairo sert encore aux PDF).
     - family: NunitoSans
       fonts:
         - asset: assets/fonts/NunitoSans.ttf

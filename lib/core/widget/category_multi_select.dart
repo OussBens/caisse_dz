@@ -49,8 +49,8 @@ class _CategoryMultiSelectorState extends State<CategoryMultiSelector> {
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 12),
             decoration: BoxDecoration(
-              color: Colors.grey.shade200,
-              borderRadius: BorderRadius.circular(12),
+              color: Appstyle.neutral150,
+              borderRadius: BorderRadius.circular(Appstyle.radiusMD),
             ),
             child: DropdownButton<String>(
               hint: Text(l10n.chooseCategory),
@@ -91,7 +91,7 @@ class _CategoryMultiSelectorState extends State<CategoryMultiSelector> {
                       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                       decoration: BoxDecoration(
                         color: Appstyle.violet,
-                        borderRadius: BorderRadius.circular(12),
+                        borderRadius: BorderRadius.circular(Appstyle.radiusMD),
                       ),
                       child: Row(
                         mainAxisSize: MainAxisSize.min,

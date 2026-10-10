@@ -116,7 +116,7 @@ class _QrCodeAvecImpressionState extends State<QrCodeAvecImpression> {
       onSelected: (_) => setState(() => _type = type),
       selectedColor: Appstyle.violet,
       labelStyle: TextStyle(color: selectionne ? Colors.white : Appstyle.Tnoir),
-      backgroundColor: Colors.grey[200],
+      backgroundColor: Appstyle.neutral150,
     );
   }
 
@@ -142,7 +142,7 @@ class _QrCodeAvecImpressionState extends State<QrCodeAvecImpression> {
           decoration: BoxDecoration(
             color: Colors.white,
             border: Border.all(color: Appstyle.grisC),
-            borderRadius: BorderRadius.circular(12),
+            borderRadius: BorderRadius.circular(Appstyle.radiusMD),
           ),
           child: Column(
             mainAxisSize: MainAxisSize.min,

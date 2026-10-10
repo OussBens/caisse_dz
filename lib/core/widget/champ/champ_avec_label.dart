@@ -56,7 +56,7 @@ class ChampAvecLabel extends StatelessWidget {
                     child: Text(
                       '*',
                       style: Appstyle.textLB.copyWith(
-                        color: Colors.amber,
+                        color: Appstyle.warning,
                         fontWeight: FontWeight.bold,
                       ),
                     ),
@@ -80,7 +80,7 @@ class ChampAvecLabel extends StatelessWidget {
                   foregroundColor: Colors.white,
                   padding: const EdgeInsets.all(0),
                   shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
+                    borderRadius: BorderRadius.circular(Appstyle.radiusMD),
                   ),
                 ),
               ),

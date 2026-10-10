@@ -32,7 +32,7 @@ class RowButton extends RowItem {
   RowButton(
       this.text,
       this.onPressed, {
-        this.backgroundColor = Colors.blue,
+        this.backgroundColor = Appstyle.info,
       });
 }
 
@@ -108,7 +108,7 @@ class SuperWidget extends StatelessWidget {
             backgroundColor: item.backgroundColor,
             padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
             shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(10),
+              borderRadius: BorderRadius.circular(Appstyle.radiusMD),
             ),
           ),
           onPressed: item.onPressed,

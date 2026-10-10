@@ -65,7 +65,7 @@ class _PDFPreviewDialogState extends State<PDFPreviewDialog> {
   Widget build(BuildContext context) {
     return Dialog(
       shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(Appstyle.radiusLG),
       ),
       child: Container(
         width: 800,
@@ -102,7 +102,7 @@ class _PDFPreviewDialogState extends State<PDFPreviewDialog> {
               padding: const EdgeInsets.all(8),
               decoration: BoxDecoration(
                 color: Appstyle.violet.withOpacity(0.1),
-                borderRadius: BorderRadius.circular(8),
+                borderRadius: BorderRadius.circular(Appstyle.radiusSM),
               ),
               child: Row(
                 children: [
@@ -149,10 +149,10 @@ class _PDFPreviewDialogState extends State<PDFPreviewDialog> {
               child: Container(
                 decoration: BoxDecoration(
                   border: Border.all(color: Appstyle.grisC),
-                  borderRadius: BorderRadius.circular(8),
+                  borderRadius: BorderRadius.circular(Appstyle.radiusSM),
                 ),
                 child: ClipRRect(
-                  borderRadius: BorderRadius.circular(8),
+                  borderRadius: BorderRadius.circular(Appstyle.radiusSM),
                   child: PdfPreview(
                     build: (format) => Future.value(widget.pdfBytes),
                     allowPrinting: false,
@@ -182,7 +182,7 @@ class _PDFPreviewDialogState extends State<PDFPreviewDialog> {
                 const SizedBox(width: 10),
                 MainButton(
                   text: widget.l10n.save,
-                  color: Colors.green,
+                  color: Appstyle.success,
                   icon: Icons.save,
                   onPressed: () {
                     _timer?.cancel();
@@ -192,7 +192,7 @@ class _PDFPreviewDialogState extends State<PDFPreviewDialog> {
                 const SizedBox(width: 10),
                 MainButton(
                   text: widget.l10n.share,
-                  color: Colors.orange,
+                  color: Appstyle.warning,
                   icon: Icons.share,
                   onPressed: () {
                     _timer?.cancel();

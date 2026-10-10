@@ -205,7 +205,7 @@ Future<void> BesoinListModifier(BuildContext context, BesoinList header,) async 
       SnackBar(
         content         : Text(AppLocalizations.of(context)!.loginRequired),
         duration        : const Duration(seconds: 3),
-        backgroundColor : Colors.red,
+        backgroundColor : Appstyle.danger,
       ),
     );
     return;
@@ -460,7 +460,7 @@ Widget headerTableProduits(AppLocalizations l10n) {
     padding     : const EdgeInsets.symmetric(vertical: 6),
     decoration  : BoxDecoration(
       color         : Appstyle.gris.withOpacity(0.08),
-      borderRadius  : BorderRadius.circular(8),
+      borderRadius  : BorderRadius.circular(Appstyle.radiusSM),
     ),
     child : Row(
       children  : [
@@ -566,7 +566,7 @@ Widget tableProduits(void Function(void Function()) setState, AppLocalizations l
               ),
 
               IconButton(
-                icon: const Icon(Icons.delete, color: Colors.red),
+                icon: const Icon(Icons.delete, color: Appstyle.danger),
                 onPressed: () {
                   setState(() {
                     produitsBesoin.removeAt(i);

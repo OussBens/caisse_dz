@@ -179,7 +179,7 @@ class _InsertionProduitDialogState extends State<InsertionProduitDialog> {
                         height: 36,
                         decoration: BoxDecoration(
                           color: Appstyle.indigo,
-                          borderRadius: BorderRadius.circular(10),
+                          borderRadius: BorderRadius.circular(Appstyle.radiusMD),
                         ),
                         child: Icon(
                           affichageCard ? Icons.view_list : Icons.grid_view,

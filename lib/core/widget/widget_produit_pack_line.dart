@@ -95,7 +95,7 @@ class ProduitPackLineWidget extends StatelessWidget {
           ),
           // Bouton supprimer
           IconButton(
-            icon: const Icon(Icons.delete, color: Colors.red),
+            icon: const Icon(Icons.delete, color: Appstyle.danger),
             onPressed: onDelete,
           ),
         ],

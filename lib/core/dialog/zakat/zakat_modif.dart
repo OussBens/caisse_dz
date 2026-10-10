@@ -346,13 +346,13 @@ Future<void> ZakatModif(BuildContext context, Zakat zakat) async {
                                 Appstyle.violet.withOpacity(0.05),
                               ],
                             ),
-                            borderRadius: BorderRadius.circular(16),
+                            borderRadius: BorderRadius.circular(Appstyle.radiusLG),
                             border: Border.all(
                               color: nissabInvalide()
-                                  ? Colors.red
+                                  ? Appstyle.danger
                                   : zakatObligatoire()
-                                  ? Colors.green.withOpacity(0.6)
-                                  : Colors.orange.withOpacity(0.6),
+                                  ? Appstyle.success.withOpacity(0.6)
+                                  : Appstyle.warning.withOpacity(0.6),
                               width: 1.4,
                             ),
                           ),
@@ -377,10 +377,10 @@ Future<void> ZakatModif(BuildContext context, Zakat zakat) async {
                                             ? Icons.check_circle
                                             : Icons.info,
                                         color: nissabInvalide()
-                                            ? Colors.red
+                                            ? Appstyle.danger
                                             : zakatObligatoire()
-                                            ? Colors.green
-                                            : Colors.orange,
+                                            ? Appstyle.success
+                                            : Appstyle.warning,
                                       ),
                                       const SizedBox(width: 8),
                                       Text(
@@ -391,10 +391,10 @@ Future<void> ZakatModif(BuildContext context, Zakat zakat) async {
                                             : l10n.zakatNotMandatory,
                                         style: Appstyle.textSB.copyWith(
                                           color: nissabInvalide()
-                                              ? Colors.red
+                                              ? Appstyle.danger
                                               : zakatObligatoire()
-                                              ? Colors.green
-                                              : Colors.orange,
+                                              ? Appstyle.success
+                                              : Appstyle.warning,
                                         ),
                                       ),
                                     ],
@@ -404,8 +404,8 @@ Future<void> ZakatModif(BuildContext context, Zakat zakat) async {
                                     value: "${NumberFormatUtil.formatMontant(calculMontantZakat(), decimales: 2)} ${l10n.currency}",
                                     icon: Icons.monetization_on,
                                     color: calculMontantZakat() > 0
-                                        ? Colors.green
-                                        : Colors.grey,
+                                        ? Appstyle.success
+                                        : Appstyle.gris,
                                   ),
                                 ],
                               ),
@@ -511,7 +511,7 @@ Widget _section({
     padding: const EdgeInsets.symmetric(vertical: 15, horizontal: 10),
     decoration: BoxDecoration(
       color: Appstyle.Tblanc,
-      borderRadius: BorderRadius.circular(14),
+      borderRadius: BorderRadius.circular(Appstyle.radiusButton),
       border: Border.all(color: Appstyle.grisC, width: 1.5),
     ),
     child: Column(

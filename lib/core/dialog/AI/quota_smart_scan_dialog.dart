@@ -73,8 +73,8 @@ class _QuotaSmartScanAtteintState extends State<_QuotaSmartScanAtteint> {
         children: [
           Container(
             padding: const EdgeInsets.all(8),
-            decoration: BoxDecoration(color: Colors.orange.withOpacity(0.12), borderRadius: BorderRadius.circular(12)),
-            child: const Icon(Icons.document_scanner_outlined, color: Colors.orange, size: 26),
+            decoration: BoxDecoration(color: Appstyle.warning.withOpacity(0.12), borderRadius: BorderRadius.circular(Appstyle.radiusMD)),
+            child: const Icon(Icons.document_scanner_outlined, color: Appstyle.warning, size: 26),
           ),
           const SizedBox(width: 12),
           Expanded(child: Text(l10n.smartScanQuotaReachedTitle, style: Appstyle.textLB.copyWith(fontSize: 19))),
@@ -94,7 +94,7 @@ class _QuotaSmartScanAtteintState extends State<_QuotaSmartScanAtteint> {
               padding: const EdgeInsets.all(14),
               decoration: BoxDecoration(
                 color: Appstyle.violetC,
-                borderRadius: BorderRadius.circular(14),
+                borderRadius: BorderRadius.circular(Appstyle.radiusButton),
                 border: Border.all(color: Appstyle.violet.withOpacity(0.3)),
               ),
               child: Row(

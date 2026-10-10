@@ -86,7 +86,7 @@ class _AfficheurBesoinGlobalWidgetState extends State<AfficheurBesoinGlobalWidge
             ),
             _space(),
             _AnimatedStatCard(
-              color: Colors.orange,
+              color: Appstyle.warning,
               icon: Icons.remove_shopping_cart_outlined,
               title: l10n.outOfStock,
               value: widget.nombreProduitsRupture.toDouble(),
@@ -96,7 +96,7 @@ class _AfficheurBesoinGlobalWidgetState extends State<AfficheurBesoinGlobalWidge
             ),
             _space(),
             _AnimatedStatCard(
-              color: Colors.red,
+              color: Appstyle.danger,
               icon: Icons.event_busy_outlined,
               title: l10n.expiredProducts,
               value: widget.nombreProduitsExpires.toDouble(),
@@ -141,7 +141,7 @@ class _AnimatedStatCard extends StatelessWidget {
           padding: const EdgeInsets.all(14),
           decoration: BoxDecoration(
             color: Colors.white,
-            borderRadius: BorderRadius.circular(18),
+            borderRadius: BorderRadius.circular(Appstyle.radiusCard),
             boxShadow: [
               BoxShadow(color: color.withOpacity(0.1), blurRadius: 4, offset: const Offset(0, 2)),
             ],
@@ -154,7 +154,7 @@ class _AnimatedStatCard extends StatelessWidget {
                 padding: const EdgeInsets.all(7),
                 decoration: BoxDecoration(
                   color: color.withOpacity(0.12),
-                  borderRadius: BorderRadius.circular(12),
+                  borderRadius: BorderRadius.circular(Appstyle.radiusMD),
                 ),
                 child: Icon(icon, color: color, size: 20),
               ),

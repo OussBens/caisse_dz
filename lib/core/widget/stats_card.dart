@@ -125,7 +125,7 @@ class _StatCard extends StatelessWidget {
                 padding: EdgeInsets.all(compact ? 5 : 7),
                 decoration: BoxDecoration(
                   color: color.withOpacity(0.12),
-                  borderRadius: BorderRadius.circular(12),
+                  borderRadius: BorderRadius.circular(Appstyle.radiusMD),
                 ),
                 child: Icon(icon, color: color, size: compact ? 16 : 20),
               ),

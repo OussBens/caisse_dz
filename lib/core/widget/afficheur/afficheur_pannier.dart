@@ -52,10 +52,10 @@ class AfficheurPanier extends StatelessWidget {
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(Appstyle.radiusLG),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.05),
+            color: Appstyle.shadowTint.withOpacity(0.05),
             blurRadius: 12,
             offset: const Offset(0, 6),
           ),
@@ -66,11 +66,11 @@ class AfficheurPanier extends StatelessWidget {
           /// 🔹 Icône
           CircleAvatar(
             radius: 36,
-            backgroundColor: Colors.deepPurple.shade100,
+            backgroundColor: Appstyle.primarySoft,
             child: const Icon(
               Icons.shopping_basket,
               size: 36,
-              color: Colors.deepPurple,
+              color: Appstyle.primary,
             ),
           ),
 
@@ -88,14 +88,14 @@ class AfficheurPanier extends StatelessWidget {
                 ),
                 const SizedBox(height: 4),
                 Text("${l10n.client} : ${pannier.client_code ?? ""}",
-                    style: TextStyle(color: Colors.grey.shade700)),
+                    style: TextStyle(color: Appstyle.ink500)),
                 const SizedBox(height: 6),
                 Row(
                   children: [
                     _etatBadge(l10n),
                     if (hasRetour) ...[
                       const SizedBox(width: 6),
-                      StatusBadge(text: l10n.hasReturn, color: Colors.orange),
+                      StatusBadge(text: l10n.hasReturn, color: Appstyle.warning),
                     ],
                   ],
                 ),
@@ -109,10 +109,10 @@ class AfficheurPanier extends StatelessWidget {
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceEvenly,
               children: [
-                _statCard(l10n.total, pannier.montant, Colors.deepPurple, l10n),
-                _statCard(l10n.paid, verse, Colors.green, l10n),
-                _statCard(l10n.remaining, reste, Colors.blue, l10n),
-                _statCardInt(l10n.numberOfPayments, nbrVersement, Colors.orange, l10n),
+                _statCard(l10n.total, pannier.montant, Appstyle.primary, l10n),
+                _statCard(l10n.paid, verse, Appstyle.success, l10n),
+                _statCard(l10n.remaining, reste, Appstyle.info, l10n),
+                _statCardInt(l10n.numberOfPayments, nbrVersement, Appstyle.warning, l10n),
               ],
             ),
           ),
@@ -141,7 +141,7 @@ class AfficheurPanier extends StatelessWidget {
                   backgroundColor: Appstyle.violet,
                   padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 10),
                   shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
+                    borderRadius: BorderRadius.circular(Appstyle.radiusMD),
                   ),
                   minimumSize: const Size(120, 40),
                 ),
@@ -160,7 +160,7 @@ class AfficheurPanier extends StatelessWidget {
                   backgroundColor: Appstyle.crevete,
                   padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 10),
                   shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
+                    borderRadius: BorderRadius.circular(Appstyle.radiusMD),
                   ),
                   minimumSize: const Size(120, 40),
                 ),
@@ -185,7 +185,7 @@ class AfficheurPanier extends StatelessWidget {
                   backgroundColor: Appstyle.indigo,
                   padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 10),
                   shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
+                    borderRadius: BorderRadius.circular(Appstyle.radiusMD),
                   ),
                   minimumSize: const Size(120, 40),
                 ),
@@ -214,7 +214,7 @@ class AfficheurPanier extends StatelessWidget {
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
         color: color.withOpacity(0.08),
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(Appstyle.radiusMD),
       ),
       child: Column(
         children: [
@@ -238,7 +238,7 @@ class AfficheurPanier extends StatelessWidget {
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
         color: color.withOpacity(0.08),
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(Appstyle.radiusMD),
       ),
       child: Column(
         children: [
@@ -257,13 +257,13 @@ class AfficheurPanier extends StatelessWidget {
   }
 
   Widget _etatBadge(AppLocalizations l10n) {
-    Color color = pannier.etat ? Colors.green : Colors.red;
+    Color color = pannier.etat ? Appstyle.success : Appstyle.danger;
 
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
       decoration: BoxDecoration(
         color: color.withOpacity(0.15),
-        borderRadius: BorderRadius.circular(20),
+        borderRadius: BorderRadius.circular(Appstyle.radiusCard),
       ),
       child: Text(
         pannier.etat ? l10n.actif : l10n.inactif,
@@ -280,7 +280,7 @@ class AfficheurPanier extends StatelessWidget {
       padding: const EdgeInsets.only(bottom: 6),
       child: Row(
         children: [
-          Icon(icon, size: 16, color: Colors.grey),
+          Icon(icon, size: 16, color: Appstyle.gris),
           const SizedBox(width: 6),
           Text(text, style: const TextStyle(fontSize: 13)),
         ],

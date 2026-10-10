@@ -550,7 +550,7 @@ class _GestionCaisseScreenState extends State<GestionCaisseScreen> with TickerPr
     } catch (e) {
       debugPrint('Excel export error: $e');
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('${l10n.exportError}: $e'), backgroundColor: Colors.red));
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('${l10n.exportError}: $e'), backgroundColor: Appstyle.danger));
     } finally {
       if (mounted) setState(() => _exportEnCours = false);
     }
@@ -744,13 +744,13 @@ class _GestionCaisseScreenState extends State<GestionCaisseScreen> with TickerPr
                           margin: const EdgeInsets.symmetric(horizontal: 0, vertical: 6),
                           decoration: BoxDecoration(
                             color: Colors.white,
-                            borderRadius: BorderRadius.circular(16),
-                            boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 10, offset: const Offset(0, 2))],
+                            borderRadius: BorderRadius.circular(Appstyle.radiusLG),
+                            boxShadow: [BoxShadow(color: Appstyle.shadowTint.withOpacity(0.05), blurRadius: 10, offset: const Offset(0, 2))],
                           ),
                           child: TabBar(
                             controller: _tabController,
                             isScrollable: false,
-                            indicator: BoxDecoration(color: headerColor, borderRadius: BorderRadius.circular(12)),
+                            indicator: BoxDecoration(color: headerColor, borderRadius: BorderRadius.circular(Appstyle.radiusMD)),
                             labelColor: Colors.white,
                             unselectedLabelColor: Appstyle.gris,
                             dividerColor: Colors.transparent,
@@ -983,7 +983,7 @@ class _GestionCaisseScreenState extends State<GestionCaisseScreen> with TickerPr
                                             SizedBox(width: paddingH / 4),
                                             if (filtresActifs)
                                               MainIconButton(
-                                                color: Colors.grey.shade400,
+                                                color: Appstyle.neutral300,
                                                 imagePath: 'assets/icons/action/supprimer_icon.png',
                                                 onPressed: () {
                                                   setState(() {
@@ -995,8 +995,8 @@ class _GestionCaisseScreenState extends State<GestionCaisseScreen> with TickerPr
                                             if (filtresActifs) SizedBox(width: paddingH / 4),
                                             MainButton(
                                               text: l10n.extract,
-                                              textColor: Colors.green,
-                                              iconColor: Colors.green,
+                                              textColor: Appstyle.success,
+                                              iconColor: Appstyle.success,
                                               color: Appstyle.Tblanc,
                                               icon: Icons.download,
                                               loading: _exportEnCours,
@@ -1007,8 +1007,8 @@ class _GestionCaisseScreenState extends State<GestionCaisseScreen> with TickerPr
                                             SizedBox(width: paddingH / 4),
                                             MainButton(
                                               text: l10n.extractPdf,
-                                              textColor: Colors.red,
-                                              iconColor: Colors.red,
+                                              textColor: Appstyle.danger,
+                                              iconColor: Appstyle.danger,
                                               color: Appstyle.Tblanc,
                                               icon: Icons.picture_as_pdf,
                                               onPressed: () async {
@@ -1018,7 +1018,7 @@ class _GestionCaisseScreenState extends State<GestionCaisseScreen> with TickerPr
                                             SizedBox(width: paddingH / 4),
                                             MainIconButton(
                                               imagePath: "assets/icons/action/extacter_filtre_icon.png",
-                                              color: Colors.orange,
+                                              color: Appstyle.warning,
                                               onPressed: () async {
                                                 await _exportTransfertsToExcel(selectionSeulement: true);
                                               },
@@ -1196,7 +1196,7 @@ class _GestionCaisseScreenState extends State<GestionCaisseScreen> with TickerPr
                                   ? Container(
                                       width: double.infinity,
                                       padding: const EdgeInsets.all(32),
-                                      decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(16)),
+                                      decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(Appstyle.radiusLG)),
                                       child: Center(child: Text(l10n.noClosuresYet, style: Appstyle.textSB)),
                                     )
                                   : SizedBox(
@@ -1251,7 +1251,7 @@ class _GestionCaisseScreenState extends State<GestionCaisseScreen> with TickerPr
                                       SizedBox(width: paddingH / 4),
                                       if (filtresActifsMouvement)
                                         MainIconButton(
-                                          color: Colors.grey.shade400,
+                                          color: Appstyle.neutral300,
                                           imagePath: 'assets/icons/action/supprimer_icon.png',
                                           onPressed: () {
                                             setState(() {
@@ -1263,8 +1263,8 @@ class _GestionCaisseScreenState extends State<GestionCaisseScreen> with TickerPr
                                       if (filtresActifsMouvement) SizedBox(width: paddingH / 4),
                                       MainButton(
                                         text: l10n.extract,
-                                        textColor: Colors.green,
-                                        iconColor: Colors.green,
+                                        textColor: Appstyle.success,
+                                        iconColor: Appstyle.success,
                                         color: Appstyle.Tblanc,
                                         icon: Icons.download,
                                         loading: _exportEnCours,
@@ -1275,8 +1275,8 @@ class _GestionCaisseScreenState extends State<GestionCaisseScreen> with TickerPr
                                       SizedBox(width: paddingH / 4),
                                       MainButton(
                                         text: l10n.extractPdf,
-                                        textColor: Colors.red,
-                                        iconColor: Colors.red,
+                                        textColor: Appstyle.danger,
+                                        iconColor: Appstyle.danger,
                                         color: Appstyle.Tblanc,
                                         icon: Icons.picture_as_pdf,
                                         onPressed: () async {
@@ -1286,7 +1286,7 @@ class _GestionCaisseScreenState extends State<GestionCaisseScreen> with TickerPr
                                       SizedBox(width: paddingH / 4),
                                       MainIconButton(
                                         imagePath: "assets/icons/action/extacter_filtre_icon.png",
-                                        color: Colors.orange,
+                                        color: Appstyle.warning,
                                         onPressed: () async {
                                           await _exportMouvementsToExcel(selectionSeulement: true);
                                         },
@@ -1361,7 +1361,7 @@ class _GestionCaisseScreenState extends State<GestionCaisseScreen> with TickerPr
                                   ? Container(
                                       width: double.infinity,
                                       padding: const EdgeInsets.all(32),
-                                      decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(16)),
+                                      decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(Appstyle.radiusLG)),
                                       child: Center(child: Text(l10n.noSessionsYet, style: Appstyle.textSB)),
                                     )
                                   : SizedBox(

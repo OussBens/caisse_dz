@@ -21,10 +21,10 @@ class AfficheurHistorique extends StatelessWidget {
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(Appstyle.radiusLG),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.05),
+            color: Appstyle.shadowTint.withOpacity(0.05),
             blurRadius: 12,
             offset: const Offset(0, 6),
           ),
@@ -68,7 +68,7 @@ class AfficheurHistorique extends StatelessWidget {
                 const SizedBox(height: 4),
                 Text(
                   historique.observation ?? "",
-                  style: TextStyle(color: Colors.grey.shade700),
+                  style: TextStyle(color: Appstyle.ink500),
                 ),
                 if (historique.observation != null) ...[
                   const SizedBox(height: 4),
@@ -77,7 +77,7 @@ class AfficheurHistorique extends StatelessWidget {
                     style: const TextStyle(
                       fontSize: 12,
                       fontStyle: FontStyle.italic,
-                      color: Colors.grey,
+                      color: Appstyle.gris,
                     ),
                   ),
                 ],
@@ -110,7 +110,7 @@ class AfficheurHistorique extends StatelessWidget {
               backgroundColor: Appstyle.violet,
               padding: const EdgeInsets.symmetric(horizontal: 22, vertical: 12),
               shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12),
+                borderRadius: BorderRadius.circular(Appstyle.radiusMD),
               ),
             ),
             child: Text(
@@ -127,13 +127,13 @@ class AfficheurHistorique extends StatelessWidget {
   Color _typeColor() {
     switch (historique.oper) {
       case "création":
-        return Colors.green;
+        return Appstyle.success;
       case "modification":
-        return Colors.orange;
+        return Appstyle.warning;
       case "suppression":
-        return Colors.red;
+        return Appstyle.danger;
       default:
-        return Colors.grey;
+        return Appstyle.gris;
     }
   }
 
@@ -145,7 +145,7 @@ class AfficheurHistorique extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
       decoration: BoxDecoration(
         color: color.withOpacity(0.15),
-        borderRadius: BorderRadius.circular(20),
+        borderRadius: BorderRadius.circular(Appstyle.radiusCard),
       ),
       child: Text(
         historique.oper.toUpperCase(),
@@ -162,19 +162,19 @@ class AfficheurHistorique extends StatelessWidget {
   Color _operationColor() {
     switch (historique.type) {
       case "Client":
-        return Colors.blue;
+        return Appstyle.info;
       case "Produit":
-        return Colors.purple;
+        return Appstyle.primary;
       case "Fournisseur":
-        return Colors.teal;
+        return Appstyle.successInk;
       case "Facture":
-        return Colors.indigo;
+        return Appstyle.primary;
       case "Caisse":
-        return Colors.brown;
+        return Appstyle.warningInk;
       case "Panier":
         return Colors.deepOrange;
       default:
-        return Colors.grey;
+        return Appstyle.gris;
     }
   }
 
@@ -204,7 +204,7 @@ class AfficheurHistorique extends StatelessWidget {
       padding: const EdgeInsets.only(bottom: 6),
       child: Row(
         children: [
-          Icon(icon, size: 16, color: Colors.grey),
+          Icon(icon, size: 16, color: Appstyle.gris),
           const SizedBox(width: 6),
           Expanded(
             child: Text(

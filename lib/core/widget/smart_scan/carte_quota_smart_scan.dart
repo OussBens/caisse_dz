@@ -29,7 +29,7 @@ class CarteQuotaSmartScan extends StatelessWidget {
         : q.epuise
             ? Appstyle.red
             : q.progression >= 0.8
-                ? Colors.orange
+                ? Appstyle.warning
                 : Appstyle.violet;
 
     return Container(
@@ -37,7 +37,7 @@ class CarteQuotaSmartScan extends StatelessWidget {
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(Appstyle.radiusLG),
         border: Border.all(color: couleur.withOpacity(0.25), width: 1.5),
         boxShadow: [BoxShadow(color: couleur.withOpacity(0.08), blurRadius: 6, offset: const Offset(0, 2))],
       ),
@@ -72,7 +72,7 @@ class CarteQuotaSmartScan extends StatelessWidget {
           children: [
             Container(
               padding: const EdgeInsets.all(6),
-              decoration: BoxDecoration(color: couleur.withOpacity(0.12), borderRadius: BorderRadius.circular(10)),
+              decoration: BoxDecoration(color: couleur.withOpacity(0.12), borderRadius: BorderRadius.circular(Appstyle.radiusMD)),
               child: Icon(Icons.document_scanner_outlined, color: couleur, size: 20),
             ),
             const SizedBox(width: 10),
@@ -81,7 +81,7 @@ class CarteQuotaSmartScan extends StatelessWidget {
             ),
             if (onRafraichir != null)
               InkWell(
-                borderRadius: BorderRadius.circular(8),
+                borderRadius: BorderRadius.circular(Appstyle.radiusSM),
                 onTap: onRafraichir,
                 child: Padding(padding: const EdgeInsets.all(4), child: Icon(Icons.refresh, size: 18, color: Appstyle.gris)),
               ),

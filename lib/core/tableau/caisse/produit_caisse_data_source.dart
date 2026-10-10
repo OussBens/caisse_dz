@@ -90,7 +90,7 @@ class ProduitCaisseDataSource extends DataGridSource {
       color: isSelected
           ? Appstyle.violet.withOpacity(0.25)
           : rowIndex.isEven
-          ? Colors.grey.withOpacity(0.04)
+          ? Appstyle.gris.withOpacity(0.04)
           : Colors.transparent,
       cells: row.getCells().map((cell) {
         if (cell.columnName == 'nom') {

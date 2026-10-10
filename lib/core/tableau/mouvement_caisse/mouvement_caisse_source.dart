@@ -3,6 +3,7 @@ import 'package:syncfusion_flutter_datagrid/datagrid.dart';
 import '../../../l10n/app_localizations.dart';
 import '../base_table_data_source.dart';
 import 'package:caisse_dz/core/utilis/number_format.dart';
+import 'package:caisse_dz/core/theme/app_style.dart';
 
 /// Une ligne du tableau "Mouvement Caisse" : un versement (entrée ou sortie
 /// de caisse) rattaché à une opération (pannier, retour client/fournisseur
@@ -101,7 +102,7 @@ class MouvementCaisseDataSource extends BaseTableDataSource<LigneMouvementCaisse
         child: Text(
           _montant(item.montantEntree),
           style: item.montantEntree > 0
-              ? const TextStyle(color: Colors.green, fontWeight: FontWeight.bold)
+              ? const TextStyle(color: Appstyle.success, fontWeight: FontWeight.bold)
               : null,
         ),
       );
@@ -112,7 +113,7 @@ class MouvementCaisseDataSource extends BaseTableDataSource<LigneMouvementCaisse
         child: Text(
           _montant(item.montantSortie),
           style: item.montantSortie > 0
-              ? const TextStyle(color: Colors.red, fontWeight: FontWeight.bold)
+              ? const TextStyle(color: Appstyle.danger, fontWeight: FontWeight.bold)
               : null,
         ),
       );

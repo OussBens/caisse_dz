@@ -7,6 +7,7 @@ import '../../../data/constant.dart';
 import '../../../l10n/app_localizations.dart';
 import '../../widget/status_badge.dart';
 import '../base_table_data_source.dart';
+import 'package:caisse_dz/core/theme/app_style.dart';
 
 class BesoinListDataSource extends BaseTableDataSource<BesoinList> {
   final AppLocalizations l10n;
@@ -80,8 +81,8 @@ class BesoinListDataSource extends BaseTableDataSource<BesoinList> {
         child: Container(
           padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
           decoration: BoxDecoration(
-            color: Colors.blue[300],
-            borderRadius: BorderRadius.circular(8),
+            color: Appstyle.info,
+            borderRadius: BorderRadius.circular(Appstyle.radiusSM),
           ),
           child: Text(
             item.montant.toString(),

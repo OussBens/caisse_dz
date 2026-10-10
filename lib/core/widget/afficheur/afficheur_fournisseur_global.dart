@@ -116,7 +116,7 @@ class _AfficheurFournisseurGlobalWidgetState extends State<AfficheurFournisseurG
               ),
               _space(),
               _AnimatedStatCard(
-                color: Colors.orange,
+                color: Appstyle.warning,
                 icon: Icons.arrow_downward,
                 title: l10n.totalCredit,
                 value: widget.totalCredit!,
@@ -129,7 +129,7 @@ class _AfficheurFournisseurGlobalWidgetState extends State<AfficheurFournisseurG
               ),
               _space(),
               _AnimatedStatCard(
-                color: Colors.redAccent,
+                color: Appstyle.danger,
                 icon: Icons.warning_amber_outlined,
                 title: l10n.topCredits,
                 value: widget.montantTopCredit ?? 0,
@@ -184,7 +184,7 @@ class _AnimatedStatCard extends StatelessWidget {
           padding: const EdgeInsets.all(14),
           decoration: BoxDecoration(
             color: Colors.white,
-            borderRadius: BorderRadius.circular(18), // ✅ Réduit de 24 à 18
+            borderRadius: BorderRadius.circular(Appstyle.radiusCard), // ✅ Réduit de 24 à 18
             boxShadow: [
               BoxShadow(
                 color: color.withOpacity(0.1),
@@ -205,7 +205,7 @@ class _AnimatedStatCard extends StatelessWidget {
                 padding: const EdgeInsets.all(7),
                 decoration: BoxDecoration(
                   color: color.withOpacity(0.12),
-                  borderRadius: BorderRadius.circular(12), // ✅ Réduit de 16 à 12
+                  borderRadius: BorderRadius.circular(Appstyle.radiusMD), // ✅ Réduit de 16 à 12
                 ),
                 child: Icon(
                   icon,

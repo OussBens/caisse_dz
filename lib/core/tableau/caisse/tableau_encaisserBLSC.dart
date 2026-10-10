@@ -38,7 +38,7 @@ class TableauEncaissementBLSC extends StatelessWidget {
     return Container(
       decoration: BoxDecoration(
         border: Border.all(color: Appstyle.green, width: 1),
-        borderRadius: BorderRadius.circular(8),
+        borderRadius: BorderRadius.circular(Appstyle.radiusSM),
       ),
       child: Column(
         children: [
@@ -105,7 +105,7 @@ class TableauEncaissementBLSC extends StatelessWidget {
                         child: Text(
                           quantiteReelle.toInt().toString(),
                           style: Appstyle.textpop_S.copyWith(
-                            color: isEmballage ? Colors.orange.shade700 : Appstyle.TgrisF,
+                            color: isEmballage ? Appstyle.warningInk : Appstyle.TgrisF,
                             fontWeight: isEmballage ? FontWeight.bold : FontWeight.normal,
                           ),
                         ),
@@ -132,7 +132,7 @@ class TableauEncaissementBLSC extends StatelessWidget {
                 if (remiseActive && remiseValue != null && remiseValue! > 0)
                   Text(
                     "${l10n.discount} : -${NumberFormatUtil.formatMontant(remiseValue!, decimales: 2)} ${l10n.currency}",
-                    style: Appstyle.textpop_S.copyWith(color: Colors.green),
+                    style: Appstyle.textpop_S.copyWith(color: Appstyle.success),
                   ),
 
                 // ✅ Afficher le TOTAL (avant remise) - devient "Total" ou "Sous-total"
@@ -154,7 +154,7 @@ class TableauEncaissementBLSC extends StatelessWidget {
                   style: Appstyle.textpop_LB.copyWith(
                     fontSize: 18,
                     color: remiseActive && remiseValue != null && remiseValue! > 0
-                        ? Colors.green
+                        ? Appstyle.success
                         : Appstyle.TgrisF,
                   ),
                 ),

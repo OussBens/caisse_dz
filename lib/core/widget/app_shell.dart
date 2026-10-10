@@ -133,7 +133,7 @@ class _AppShellState extends State<AppShell> {
                     color: Appstyle.Tblanc,
                     border: Border(bottom: BorderSide(color: Appstyle.grisC.withOpacity(0.5))),
                     boxShadow: [
-                      BoxShadow(color: Colors.black.withOpacity(0.03), blurRadius: 6, offset: const Offset(0, 2)),
+                      BoxShadow(color: Appstyle.shadowTint.withOpacity(0.03), blurRadius: 6, offset: const Offset(0, 2)),
                     ],
                   ),
                   child: Directionality(
@@ -241,10 +241,10 @@ class _BarreFavoris extends StatelessWidget {
             Container(
               padding: const EdgeInsets.all(4),
               decoration: BoxDecoration(
-                color: Colors.amber.withOpacity(0.15),
-                borderRadius: BorderRadius.circular(8),
+                color: Appstyle.warning.withOpacity(0.15),
+                borderRadius: BorderRadius.circular(Appstyle.radiusSM),
               ),
-              child: const Icon(Icons.star_rounded, color: Colors.amber, size: 18),
+              child: const Icon(Icons.star_rounded, color: Appstyle.warning, size: 18),
             ),
             const SizedBox(width: 10),
             for (final m in onglets)
@@ -299,11 +299,11 @@ class _OngletFavori extends StatelessWidget {
     final couleur = actif ? Colors.white : Appstyle.violet;
     return Material(
       color: actif ? Appstyle.violet : Appstyle.violetC,
-      borderRadius: BorderRadius.circular(10),
+      borderRadius: BorderRadius.circular(Appstyle.radiusMD),
       elevation: actif ? 1.5 : 0,
       shadowColor: Appstyle.violet.withOpacity(0.4),
       child: InkWell(
-        borderRadius: BorderRadius.circular(10),
+        borderRadius: BorderRadius.circular(Appstyle.radiusMD),
         onTap: onOuvrir,
         hoverColor: Appstyle.violet.withOpacity(0.08),
         child: Padding(
@@ -319,7 +319,7 @@ class _OngletFavori extends StatelessWidget {
               ),
               const SizedBox(width: 2),
               InkWell(
-                borderRadius: BorderRadius.circular(8),
+                borderRadius: BorderRadius.circular(Appstyle.radiusSM),
                 onTap: onRetirer,
                 child: Padding(
                   padding: const EdgeInsets.all(3),

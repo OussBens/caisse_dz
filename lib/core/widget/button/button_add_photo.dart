@@ -210,18 +210,18 @@ class _ButtonAddPhotoState extends State<ButtonAddPhoto> {
               height: 160,
               width: double.infinity,
               decoration: BoxDecoration(
-                color: Colors.grey[100],
-                borderRadius: BorderRadius.circular(12),
+                color: Appstyle.neutral100,
+                borderRadius: BorderRadius.circular(Appstyle.radiusMD),
                 boxShadow: [
                   BoxShadow(
-                    color: Colors.black.withOpacity(0.1),
+                    color: Appstyle.shadowTint.withOpacity(0.1),
                     blurRadius: 4,
                     offset: const Offset(0, 2),
                   ),
                 ],
               ),
               child: ClipRRect(
-                borderRadius: BorderRadius.circular(12),
+                borderRadius: BorderRadius.circular(Appstyle.radiusMD),
                 child: Image.file(
                   snapshot.data!,
                   fit: BoxFit.contain,
@@ -237,12 +237,12 @@ class _ButtonAddPhotoState extends State<ButtonAddPhoto> {
           height: 160,
           width: double.infinity,
           decoration: BoxDecoration(
-            color: Colors.grey[200],
-            borderRadius: BorderRadius.circular(12),
+            color: Appstyle.neutral150,
+            borderRadius: BorderRadius.circular(Appstyle.radiusMD),
           ),
           child: Center(
             child: snapshot.hasError
-                ? Icon(Icons.broken_image, color: Colors.grey[400], size: 48)
+                ? Icon(Icons.broken_image, color: Appstyle.neutral300, size: 48)
                 : const CircularProgressIndicator(strokeWidth: 2),
           ),
         );

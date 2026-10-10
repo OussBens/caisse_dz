@@ -53,7 +53,7 @@ class _BonReceptionCardState extends State<BonReceptionCard> {
         child: Container(
           width: 160,
           decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(12),
+            borderRadius: BorderRadius.circular(Appstyle.radiusMD),
             border: Border.all(color: _borderColor, width: 3),
           ),
           child: Column(
@@ -88,7 +88,7 @@ class _BonReceptionCardState extends State<BonReceptionCard> {
                             if (file == null) {
                               return Container(
                                 color: Appstyle.grisSC,
-                                child: const Icon(Icons.broken_image, color: Colors.grey),
+                                child: const Icon(Icons.broken_image, color: Appstyle.gris),
                               );
                             }
                             return Image.file(
@@ -98,7 +98,7 @@ class _BonReceptionCardState extends State<BonReceptionCard> {
                               height: 134,
                               errorBuilder: (_, __, ___) => Container(
                                 color: Appstyle.grisSC,
-                                child: const Icon(Icons.image_not_supported, color: Colors.grey),
+                                child: const Icon(Icons.image_not_supported, color: Appstyle.gris),
                               ),
                             );
                           },
@@ -148,7 +148,7 @@ class _BonReceptionCardState extends State<BonReceptionCard> {
                           child: Container(
                             padding: const EdgeInsets.all(4),
                             decoration: const BoxDecoration(
-                              color: Colors.red,
+                              color: Appstyle.danger,
                               shape: BoxShape.circle,
                             ),
                             child: const Icon(Icons.close, size: 14, color: Colors.white),

@@ -117,7 +117,7 @@ Future<void> AnnulerRole(
                               padding: const EdgeInsets.all(8),
                               decoration: BoxDecoration(
                                 color: Appstyle.grisC.withOpacity(0.2),
-                                borderRadius: BorderRadius.circular(8),
+                                borderRadius: BorderRadius.circular(Appstyle.radiusSM),
                               ),
                               child: Text(
                                 "${l10n.roleHash} #${r.code ?? '-'} - ${l10n.name}: ${r.rolenom ?? '-'}",
@@ -169,7 +169,7 @@ Future<void> AnnulerRole(
                             if (i > 0) {
                               ScaffoldMessenger.of(context).showSnackBar(
                                 SnackBar(
-                                  backgroundColor: Colors.green,
+                                  backgroundColor: Appstyle.success,
                                   content: Text(l10n.rolesDeletedCount(i)),
                                   duration: const Duration(seconds: 5),
                                 ),
@@ -177,7 +177,7 @@ Future<void> AnnulerRole(
                             } else {
                               ScaffoldMessenger.of(context).showSnackBar(
                                 SnackBar(
-                                  backgroundColor: Colors.red,
+                                  backgroundColor: Appstyle.danger,
                                   content: Text(l10n.noRolesDeleted),
                                   duration: const Duration(seconds: 5),
                                 ),
