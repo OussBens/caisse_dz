@@ -43,7 +43,7 @@ valeurs.
 | `purple500` | `#7B5CF5` | Début du dégradé CTA (`crevete`) |
 | `purple600` | `#6A4CF0` | **Primary** (`violet`, `primary`) |
 | `purple700` | `#5638CC` | Primary pressé / texte violet (`indigo`, `primaryDark`) |
-| `purple800` | `#422BA0` | (`blueF`) |
+| `purple800` | `#422BA0` | (`blueF`, `maron` — ancien brun) |
 | `purple900` | `#2E1F70` | (`maron2`) |
 | `purple950` | `#1B1245` | |
 
@@ -63,6 +63,7 @@ de marque.
 | Texte secondaire / icônes inactives | `textSecondary` (`TgrisC`, `gris`) | `#8A889E` |
 | Texte tertiaire / désactivé / bordures | `border` (`grisC`) | `#B4B2C4` |
 | Texte gris foncé | `TgrisF`, `lavande` | `#6A6780` |
+| Liens, titres de section | `Tblue` | `#6A4CF0` (primary) |
 
 ### 2.3 Sémantiques
 
@@ -165,7 +166,8 @@ Teinte `shadowTint #281E5A` (violet très foncé), jamais du noir pur.
 ### Boutons (`MainButton`)
 - Rayon 14, texte `textSB` (600).
 - Variante **neutre** automatique : un bouton `Appstyle.gris` (Annuler,
-  Fermer…) devient fond `surface2` + texte `textPrimary`.
+  Fermer, Vider…) dont le texte est blanc ou non précisé devient fond
+  `surface2` + texte et icône `textPrimary` (contraste lisible).
 - Survol : soulèvement −2px, fond assombri, ombre colorée ; appui : scale 0.97.
 
 ### Champs (`FieldDecoration`)

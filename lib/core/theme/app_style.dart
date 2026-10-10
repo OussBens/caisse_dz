@@ -46,7 +46,7 @@ class Appstyle
   static const Color grischamp = neutral100;    // fond de champ (surface-2)
   static const Color blueF = purple800;
   static const Color blueC = Color(0xFF3B6FF5); // info
-  static const Color maron = Color(0xFF8F6400); // warning-ink
+  static const Color maron = purple800;         // ancien brun → violet foncé
   static const Color maron2 = purple900;
   static const Color green = Color(0xFF16A34A); // success
   static const Color green2 = Color(0xFF0F7A37); // success-ink
@@ -57,7 +57,7 @@ class Appstyle
   static  const Color TnoirC = ink800;
   static const Color TgrisF = ink500;
   static const Color TgrisC = neutral500;       // text-2
-  static const Color Tblue = Color(0xFF3B6FF5);
+  static const Color Tblue = purple600;         // liens et titres de section (primary)
   static const Color Tred = Color(0xFFE5395F);
   static const Color Tblanc = Color(0xFFFFFFFF);
 
@@ -141,7 +141,7 @@ class Appstyle
   static const Color successInk = green2;
   static const Color warning = jaune;
   static const Color warningSoft = Color(0xFFFFF6DD);
-  static const Color warningInk = maron;
+  static const Color warningInk = Color(0xFF8F6400);
   static const Color danger = red;
   static const Color dangerSoft = Color(0xFFFDE8EE);
   static const Color dangerInk = Color(0xFFC2254A);

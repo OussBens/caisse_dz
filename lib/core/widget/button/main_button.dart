@@ -64,7 +64,15 @@ class _MainButtonState extends State<MainButton> {
 
   // Variante « neutre » du design system (Annuler, Fermer…) : un bouton
   // gris devient surface-2 avec texte foncé au lieu de blanc sur gris.
-  bool get _neutre => widget.color == Appstyle.gris && widget.textColor == null;
+  bool get _neutre =>
+      widget.color == Appstyle.gris && (widget.textColor == null || _estBlanc(widget.textColor!));
+
+  static bool _estBlanc(Color c) => c.toARGB32() == Colors.white.toARGB32();
+
+  /// Couleur d'icône : en variante neutre, une icône blanche (ou non
+  /// précisée) passe en texte principal pour rester lisible.
+  Color? get _couleurIcone =>
+      _neutre && (widget.iconColor == null || _estBlanc(widget.iconColor!)) ? Appstyle.textPrimary : widget.iconColor;
 
   Widget? _buildShortcutBadge() {
     final label = widget.shortcutLabel;
@@ -78,7 +86,7 @@ class _MainButtonState extends State<MainButton> {
       child: Text(
         label,
         style: Appstyle.textXS.copyWith(
-          color: widget.textColor ?? (_neutre ? Appstyle.textPrimary : Appstyle.Tblanc),
+          color: _neutre ? Appstyle.textPrimary : (widget.textColor ?? Appstyle.Tblanc),
           fontWeight: FontWeight.w600,
         ),
       ),
@@ -91,13 +99,13 @@ class _MainButtonState extends State<MainButton> {
         widget.iconPath!,
         width: widget.iconSize,
         height: widget.iconSize,
-        color: widget.iconColor ?? (_neutre ? Appstyle.textPrimary : null),
+        color: _couleurIcone,
       );
     }
 
     return Icon(
       widget.icon ?? Icons.add,
-      color: widget.iconColor ?? (_neutre ? Appstyle.textPrimary : Colors.white),
+      color: _couleurIcone ?? Colors.white,
       size: widget.iconSize,
     );
   }
@@ -107,7 +115,7 @@ class _MainButtonState extends State<MainButton> {
     final bool enabled = widget.onPressed != null && !widget.loading;
     final bool neutre = _neutre;
     final Color fond = neutre ? Appstyle.surface2 : widget.color;
-    final Color texte = widget.textColor ?? (neutre ? Appstyle.textPrimary : Appstyle.Tblanc);
+    final Color texte = neutre ? Appstyle.textPrimary : (widget.textColor ?? Appstyle.Tblanc);
     final Color hoverColor = neutre ? Appstyle.neutral200 : Color.lerp(widget.color, Colors.black, 0.08)!;
     final translateY = (_isHovered && enabled && !_isPressed) ? -2.0 : 0.0;
     final scale = (_isPressed && enabled) ? 0.97 : 1.0;
