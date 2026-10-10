@@ -28,7 +28,8 @@ import 'package:caisse_dz/data/models/smart_scan.dart';
 import 'package:caisse_dz/data/models/sortie.dart';
 import 'package:caisse_dz/data/models/sous_categorie.dart';
 import 'package:caisse_dz/data/models/utilisateur.dart';
-import 'package:caisse_dz/core/Auth/auth_state.dart';
+import 'package:caisse_dz/Services/Magasin.dart';
+import 'package:caisse_dz/Services/Role.dart';
 import 'package:caisse_dz/data/models/verssement.dart';
 import 'package:caisse_dz/data/models/zakat.dart';
 import 'package:excel/excel.dart';
@@ -547,11 +548,15 @@ class ExcelGenerator {
     required ListsConstTranslator translator,
     required double seuilMin,
     required double seuilMax,
+    // Quantités affichées par l'écran appelant (magasins consultables /
+    // filtre magasin) : l'export reprend exactement ce que voit
+    // l'utilisateur. À défaut, stock de tous les magasins.
+    Map<String, double>? quantites,
   }) async
   {
     // ✅ Quantités calculées depuis le journal des mouvements — remplace Produit.quantite.
-    final quantites = (await MouvementsServices.totauxParProduit()).quantites;
-    double qte(Produit p) => quantites[p.code] ?? 0;
+    final quantitesExport = quantites ?? (await MouvementsServices.totauxParProduit()).quantites;
+    double qte(Produit p) => quantitesExport[p.code] ?? 0;
 
     var excel = Excel.createExcel();
 
@@ -2471,7 +2476,7 @@ class ExcelGenerator {
     required List<Produit> produits,
     required List<Client> clients,
     required List<Fournisseur> fournisseurs,
-    List<Magasin> magasins = const [],
+    Map<String, String> nomsMagasins = const {},
     required AppLocalizations l10n,
     required ListsConstTranslator translator,
   }) async
@@ -2486,8 +2491,6 @@ class ExcelGenerator {
         code == null ? null : (clients.where((c) => c.code == code).firstOrNull?.nom ?? code);
     String? nomFournisseur(String? code) =>
         code == null ? null : (fournisseurs.where((f) => f.code == code).firstOrNull?.nom ?? code);
-    String? nomMagasin(String? code) =>
-        code == null ? null : (magasins.where((m) => m.code == code).firstOrNull?.nom ?? code);
 
     // ALL movement fields - Export everything from the Mouvement model
     List<TextCellValue> headers = [
@@ -2588,7 +2591,7 @@ class ExcelGenerator {
           .value = TextCellValue(_formatDateTime(DateTime.now()));
       // Magasin (multi-magasin)
       sheet.cell(CellIndex.indexByColumnRow(columnIndex: 19, rowIndex: rowIndex))
-          .value = TextCellValue(nomMagasin(mouvement.magasinCode) ?? '-');
+          .value = TextCellValue(MagasinServices.nomMagasin(nomsMagasins, mouvement.magasinCode));
     }
 
     // Set column widths
@@ -2824,7 +2827,7 @@ class ExcelGenerator {
 
     int activeUsers = utilisateurs.where((u) => u.etat).length;
     int inactiveUsers = utilisateurs.where((u) => !u.etat).length;
-    int adminUsers = utilisateurs.where((u) => AuthState.estRoleAdmin(u.role)).length;
+    int adminUsers = utilisateurs.where((u) => RoleServices.estRoleAdmin(u.role)).length;
     int cashierUsers = utilisateurs.where((u) => u.role == "Caissier").length;
     int storekeeperUsers = utilisateurs.where((u) => u.role == "Magasinier").length;
     double totalCredit = utilisateurs.fold(0.0, (sum, u) => sum + (u.credit ?? 0));

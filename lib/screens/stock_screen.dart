@@ -138,8 +138,8 @@ class _StockScreenState extends State<StockScreen> with TickerProviderStateMixin
   String? magasinFiltreCode;
   bool _magasinFiltreInitialise = false;
   List<Magasin> magasinsDisponiblesStock = [];
-  // Tous les magasins (actifs ou non) : nom du magasin de chaque mouvement.
-  List<Magasin> tousLesMagasinsStock = [];
+  // Code -> nom de tous les magasins (actifs ou non) : magasin de chaque mouvement.
+  Map<String, String> nomsMagasinsStock = {};
 
   Future<void> _chargerQuantitesParMagasin() async {
     final auth = Provider.of<AuthState>(context, listen: false);
@@ -172,7 +172,7 @@ class _StockScreenState extends State<StockScreen> with TickerProviderStateMixin
     final auth = Provider.of<AuthState>(context, listen: false);
     // Mouvements limités aux magasins consultables par l'utilisateur, comme
     // les quantités ci-dessous (multi-magasin).
-    final mouvements        = await MouvementsServices.getMouvementsPourMagasins(auth.magasinsConsultation);
+    final mouvements        = await MouvementsServices.getMouvements(magasins: auth.magasinsConsultation);
     // Quantités (multi-magasin) : par défaut la SOMME des magasins que
     // l'utilisateur peut consulter (même règle que produit_screen.dart).
     if (magasinFiltreCode != null && !auth.peutConsulterMagasin(magasinFiltreCode!)) {
@@ -185,7 +185,7 @@ class _StockScreenState extends State<StockScreen> with TickerProviderStateMixin
       magasinsConsultation: auth.magasinsConsultation,
     );
 
-    final compteurs = await StatistiquesGlobalesServices.getCompteurs();
+    final compteurs = await StatistiquesGlobalesServices.getCompteurs(magasinsConsultation: auth.magasinsConsultation);
     if (!mounted) return;
     setState(() {
       compteursGlobaux = compteurs;
@@ -202,7 +202,7 @@ class _StockScreenState extends State<StockScreen> with TickerProviderStateMixin
       produitsFiltres   = produitsTest;
       mouvementsFiltres = mouvementsTest;
       magasinsDisponiblesStock = magasins;
-      tousLesMagasinsStock = tousMagasins;
+      nomsMagasinsStock = MagasinServices.nomsParCode(tousMagasins);
       quantitesParMagasin = totaux.quantites;
 
       sousCategorieFilterOptions = sousCategoriesTest.map  ((sc) => sc.nom). toSet().toList();
@@ -261,6 +261,7 @@ class _StockScreenState extends State<StockScreen> with TickerProviderStateMixin
           translator: translator,
           seuilMin: seuilMinimum,
           seuilMax: seuilMaximum,
+          quantites: quantitesParMagasin,
         );
       } else {
         // Mouvements
@@ -283,7 +284,7 @@ class _StockScreenState extends State<StockScreen> with TickerProviderStateMixin
           produits: produitsTest,
           clients: clientsTest,
           fournisseurs: fournisseursTest,
-          magasins: tousLesMagasinsStock,
+          nomsMagasins: nomsMagasinsStock,
           l10n: l10n,
           translator: translator,
         );
@@ -441,6 +442,7 @@ class _StockScreenState extends State<StockScreen> with TickerProviderStateMixin
           translator: translator,
           seuilMin: seuilMinimum,
           seuilMax: seuilMaximum,
+          quantites: quantitesParMagasin,
         );
       } else {
         // Mouvements
@@ -461,7 +463,7 @@ class _StockScreenState extends State<StockScreen> with TickerProviderStateMixin
           produits: produitsTest,
           clients: clientsTest,
           fournisseurs: fournisseursTest,
-          magasins: tousLesMagasinsStock,
+          nomsMagasins: nomsMagasinsStock,
           l10n: l10n,
           translator: translator,
         );
@@ -1308,6 +1310,7 @@ class _StockScreenState extends State<StockScreen> with TickerProviderStateMixin
                                               produits: produitsTest,
                                               clients: clientsTest,
                                               fournisseurs: fournisseursTest,
+                                              nomsMagasins: nomsMagasinsStock,
                                             );
                                           },
                                         )
@@ -1415,6 +1418,7 @@ class _StockScreenState extends State<StockScreen> with TickerProviderStateMixin
                                                         produits: produitsTest,
                                                         clients: clientsTest,
                                                         fournisseurs: fournisseursTest,
+                                                        nomsMagasins: nomsMagasinsStock,
                                                       );
                                                     } else if (mouvementsSelectionnes.isEmpty) {
                                                       await InformationDialog(
@@ -1461,7 +1465,7 @@ class _StockScreenState extends State<StockScreen> with TickerProviderStateMixin
                                           produits: produitsTest,
                                           clients: clientsTest,
                                           fournisseurs: fournisseursTest,
-                                          magasins: tousLesMagasinsStock,
+                                          nomsMagasins: nomsMagasinsStock,
                                           utilisateurs: utilisateursTest,
                                           onSelectionChanged: (selection) {
                                             setState(() {

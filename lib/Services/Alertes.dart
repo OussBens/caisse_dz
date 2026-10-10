@@ -63,8 +63,11 @@ class AlertesServices {
   static final ValueNotifier<int> nombreAlertes = ValueNotifier<int>(0);
 
   /// Calcule les alertes. Chaque bloc n'est chargé que si l'utilisateur a
-  /// accès au module correspondant (voir AlerteDialog).
+  /// accès au module correspondant (voir AlerteDialog). Les ruptures portent
+  /// sur le stock des magasins consultables ([magasinsConsultation], `null`
+  /// = tous, voir AuthState), comme le Dashboard.
   static Future<AlertesResume> getAlertes({
+    List<String>? magasinsConsultation,
     bool produits = true,
     bool clients = true,
     bool fournisseurs = true,
@@ -76,7 +79,7 @@ class AlertesServices {
 
     if (produits) {
       final liste = (await ProduitServices.getAllProduits()).where((p) => p.etat).toList();
-      final quantites = (await MouvementsServices.totauxParProduit()).quantites;
+      final quantites = await MouvementsServices.quantitesConsultables(magasinsConsultation);
       final seuil = (await ParamServices.getParam()).Minimum;
 
       rupture = [

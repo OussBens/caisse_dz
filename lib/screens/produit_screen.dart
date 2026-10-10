@@ -404,6 +404,7 @@ class _ProduitScreenState extends State<ProduitScreen> with TickerProviderStateM
               translator: translator,
               seuilMin: ParamtersDB.Minimum,
               seuilMax: ParamtersDB.Maximum,
+              quantites: quantitesParMagasin,
             );
           }
           break;
@@ -610,6 +611,7 @@ class _ProduitScreenState extends State<ProduitScreen> with TickerProviderStateM
           translator: translator,
           seuilMin: ParamtersDB.Minimum,
           seuilMax: ParamtersDB.Maximum,
+          quantites: quantitesParMagasin,
         );
         break;
       case TAB_CATEGORIE: // 1 - Categories

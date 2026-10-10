@@ -3,6 +3,7 @@ import 'package:caisse_dz/core/dialog/dialog_kind.dart';
 import 'package:caisse_dz/DBCreate.dart';
 import 'package:caisse_dz/Services/Utilisateur.dart';
 import 'package:caisse_dz/core/Auth/auth_state.dart';
+import 'package:caisse_dz/Services/Role.dart';
 import 'package:caisse_dz/l10n/app_localizations.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
@@ -23,7 +24,7 @@ Future<int> _DeleteUser({required BuildContext context, required List<Utilisateu
 
   for (var user in users) {
     // ✅ L'utilisateur Admin ne peut pas être supprimé.
-    if (AuthState.estRoleAdmin(user.role)) {
+    if (RoleServices.estRoleAdmin(user.role)) {
       await InformationDialog(
         context: context,
         titre_type_message: l10n.deletionImpossible,

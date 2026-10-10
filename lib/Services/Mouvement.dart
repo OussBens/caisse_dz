@@ -78,9 +78,20 @@ class MouvementsServices {
     return count;
   }
 
-  static Future<List<Mouvement>> getAllMouvements() async {
+  /// Journal des mouvements, limité à [magasins] si fourni (magasins
+  /// consultables de l'utilisateur, voir AuthState.magasinsConsultation) ;
+  /// `null` = tous les magasins. Même périmètre que [totauxPourFiltre], pour
+  /// que les listes de mouvements et le stock affiché concordent.
+  static Future<List<Mouvement>> getMouvements({Iterable<String>? magasins}) async {
+    final liste = magasins?.toList();
+    if (liste != null && liste.isEmpty) return [];
     final db = await DbCreator.openDb();
-    final List<Map<String, dynamic>> result = await db.query('mouvements', orderBy: 'id ASC');
+    final result = await db.query(
+      'mouvements',
+      where: liste == null ? null : 'magasin_code IN (${List.filled(liste.length, '?').join(',')})',
+      whereArgs: liste,
+      orderBy: 'id ASC',
+    );
     return result.map((e) => Mouvement.fromMap(e)).toList();
   }
 
@@ -298,23 +309,6 @@ class MouvementsServices {
 
   // ── Multi-magasin ────────────────────────────────────────────────────────
 
-  /// Journal des mouvements limité à [magasins] (les magasins consultables
-  /// de l'utilisateur, voir AuthState.magasinsConsultation) — même périmètre
-  /// que [totauxParProduitPourMagasins], pour que les listes de mouvements
-  /// (Stock, Situation Mouvement produit) et le stock affiché concordent.
-  static Future<List<Mouvement>> getMouvementsPourMagasins(Iterable<String> magasins) async {
-    final liste = magasins.toList();
-    if (liste.isEmpty) return [];
-    final db = await DbCreator.openDb();
-    final result = await db.query(
-      'mouvements',
-      where: 'magasin_code IN (${List.filled(liste.length, '?').join(',')})',
-      whereArgs: liste,
-      orderBy: 'id ASC',
-    );
-    return result.map((e) => Mouvement.fromMap(e)).toList();
-  }
-
   /// Stock d'un produit dans chaque magasin (journal des mouvements), limité
   /// à [magasins] si fourni. Sert à répartir une vente / une sortie
   /// (RepartitionStock) et à la distribution.
@@ -382,15 +376,22 @@ class MouvementsServices {
 
   /// Stock affiché selon le filtre magasin d'un écran : un magasin précis
   /// ([magasinCode]) ou, à défaut, la somme des magasins consultables par
-  /// l'utilisateur ([magasinsConsultation], voir AuthState).
+  /// l'utilisateur ([magasinsConsultation], voir AuthState ; `null` = tous
+  /// les magasins).
   static Future<({Map<String, double> quantites, Map<String, double> nombres})> totauxPourFiltre({
     String? magasinCode,
-    required List<String> magasinsConsultation,
+    required List<String>? magasinsConsultation,
   }) {
-    return magasinCode != null
-        ? totauxParProduit(magasinCode: magasinCode)
+    if (magasinCode != null) return totauxParProduit(magasinCode: magasinCode);
+    return magasinsConsultation == null
+        ? totauxParProduit()
         : totauxParProduitPourMagasins(magasinsConsultation);
   }
+
+  /// Quantités par produit sur les magasins consultables (voir
+  /// [totauxPourFiltre]) — Dashboard, Situations, Alertes, compteurs, exports.
+  static Future<Map<String, double>> quantitesConsultables(List<String>? magasinsConsultation) async =>
+      (await totauxPourFiltre(magasinsConsultation: magasinsConsultation)).quantites;
 
   /// Répartition d'une SORTIE de stock entre les magasins de l'utilisateur
   /// ([magasins], principal en tête), selon le stock actuel de chacun :

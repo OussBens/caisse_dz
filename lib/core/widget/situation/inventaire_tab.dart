@@ -67,7 +67,7 @@ class _InventaireTabState extends State<InventaireTab> {
     categories = await CategorieServices.getAllCategorie();
     prixMoyenAchatParProduit = await ProduitServices.getPrixMoyenAchatParProduit();
     prixMoyenVenteParProduit = await ProduitServices.getPrixMoyenVenteParProduit();
-    quantitesParProduit = (await MouvementsServices.totauxParProduitPourMagasins(magasinsConsultation)).quantites;
+    quantitesParProduit = await MouvementsServices.quantitesConsultables(magasinsConsultation);
 
     if (!mounted) return;
     setState(() => loading = false);

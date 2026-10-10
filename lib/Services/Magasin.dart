@@ -1,5 +1,6 @@
 import 'package:caisse_dz/DBCreate.dart';
 import 'package:caisse_dz/Services/Mouvement.dart';
+import 'package:caisse_dz/Services/Role.dart';
 import 'package:caisse_dz/data/models/magasin.dart';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 
@@ -16,10 +17,19 @@ class MagasinServices {
     return result.map((e) => Magasin.fromMap(e)).toList();
   }
 
+  /// Code -> nom de TOUS les magasins (actifs ou non) : affichage du magasin
+  /// d'un mouvement (tableaux, détails, exports) via [nomMagasin].
+  static Map<String, String> nomsParCode(Iterable<Magasin> magasins) => {for (final m in magasins) m.code: m.nom};
+
+  static Future<Map<String, String>> getNomsMagasins() async => nomsParCode(await getAllMagasins());
+
+  /// Nom affiché pour [code] : son nom, à défaut le code, '-' si aucun magasin.
+  static String nomMagasin(Map<String, String> noms, String? code) => code == null ? '-' : noms[code] ?? code;
+
   /// Chiffres clés affichés en haut du détail magasin : produits ayant du
   /// stock dans ce magasin et leur valeur au prix d'achat (stock calculé
   /// depuis le journal des mouvements, comme Produit/Stock), utilisateurs
-  /// actifs qui travaillent sur ce magasin (utilisateur_magasin — une caisse
+  /// actifs qui travaillent sur ce magasin (utilisateur_magasin + Admin — une caisse
   /// n'a plus de magasin depuis le multi-magasin, DB v52) et transferts
   /// actifs (entrants ou sortants).
   static Future<({int produitsEnStock, double valeurStock, int utilisateurs, int transferts})> getStatistiquesMagasin(
@@ -46,11 +56,16 @@ class MagasinServices {
       return (rows.first['n'] as num?)?.toInt() ?? 0;
     }
 
-    final utilisateurs = await compter(
-      'SELECT COUNT(DISTINCT um.utilisateur_code) AS n FROM utilisateur_magasin um '
-      'JOIN utilisateur u ON u.code = um.utilisateur_code WHERE um.magasin_code = ? AND u.etat = 1',
-      [magasinCode],
-    );
+    // Utilisateurs actifs qui ont ce magasin dans leur liste, plus les Admin
+    // (qui travaillent implicitement sur tous les magasins actifs, voir
+    // UtilisateurMagasinServices.magasinsUtilisateur).
+    final utilisateurs = await compter('''
+      SELECT COUNT(*) AS n FROM utilisateur u
+      WHERE u.etat = 1 AND (
+        EXISTS (SELECT 1 FROM utilisateur_magasin um WHERE um.utilisateur_code = u.code AND um.magasin_code = ?)
+        OR (${RoleServices.sqlEstAdmin('u.role')} AND EXISTS (SELECT 1 FROM magasins m WHERE m.code = ? AND m.etat = 1))
+      )
+    ''', [magasinCode, magasinCode]);
     final transferts = await compter(
       'SELECT COUNT(*) AS n FROM transfert_magasin WHERE etat = 1 AND (magasin_source_code = ? OR magasin_dest_code = ?)',
       [magasinCode, magasinCode],

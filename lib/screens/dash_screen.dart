@@ -452,7 +452,7 @@ class _DashScreenState extends State<DashScreen> with SingleTickerProviderStateM
     // totaux du tableau de bord — voir ClotureCaisse.dart pour le même filtre.
     smartScansTest      = (await SmartScanServices.getAllSmartScans()).where((s) => s.etat).toList();
     produitsTest        = await ProduitServices.getAllProduits();
-    quantitesTest       = (await MouvementsServices.totauxParProduitPourMagasins(magasinsConsultation)).quantites;
+    quantitesTest       = await MouvementsServices.quantitesConsultables(magasinsConsultation);
     paniersTest         = (await PannierServices.getAllPanniers()).where((p) => p.etat).toList();
     versementsTest      = await VerssementServices.getAllverssement();
     clientsTest         = await ClientServices.getAllClients();

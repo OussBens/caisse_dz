@@ -6,7 +6,7 @@ import '../../../../data/models/mouvement.dart';
 import '../../../../data/models/produit.dart';
 import '../../../../data/models/client.dart';
 import '../../../../data/models/fournisseur.dart';
-import '../../../../data/models/magasin.dart';
+import 'package:caisse_dz/Services/Magasin.dart';
 import '../../../l10n/app_localizations.dart';
 import 'package:caisse_dz/core/theme/app_style.dart';
 import '../../dialog/produits_liste_dialog.dart';
@@ -18,9 +18,10 @@ class MouvementDataSource extends BaseTableDataSource<Mouvement> {
   final List<Produit> produits;
   final List<Client> clients;
   final List<Fournisseur> fournisseurs;
-  // Multi-magasin : nom du magasin de chaque mouvement (une vente répartie
-  // sur deux magasins = deux mouvements, chacun avec son magasin).
-  final List<Magasin> magasins;
+  // Multi-magasin : code -> nom des magasins (MagasinServices.getNomsMagasins)
+  // pour la colonne Magasin — une vente répartie sur deux magasins = deux
+  // mouvements, chacun avec son magasin.
+  final Map<String, String> nomsMagasins;
 
   MouvementDataSource({
     required List<Mouvement> mouvements,
@@ -29,7 +30,7 @@ class MouvementDataSource extends BaseTableDataSource<Mouvement> {
     required this.produits,
     required this.clients,
     required this.fournisseurs,
-    this.magasins = const [],
+    this.nomsMagasins = const {},
     super.utilisateurs = const [],
   }) : super(items: mouvements);
 
@@ -44,11 +45,6 @@ class MouvementDataSource extends BaseTableDataSource<Mouvement> {
   String? _nomFournisseur(String? code) {
     if (code == null) return null;
     return fournisseurs.where((f) => f.code == code).firstOrNull?.nom ?? code;
-  }
-
-  String _nomMagasin(String? code) {
-    if (code == null) return '-';
-    return magasins.where((m) => m.code == code).firstOrNull?.nom ?? code;
   }
 
   String formatDate(DateTime? date) {
@@ -100,7 +96,7 @@ class MouvementDataSource extends BaseTableDataSource<Mouvement> {
       case 'type':
         return _getTranslatedType(mouvement.type);
       case 'magasin':
-        return _nomMagasin(mouvement.magasinCode);
+        return MagasinServices.nomMagasin(nomsMagasins, mouvement.magasinCode);
       case 'etat':
         return mouvement.etat ? l10n.active : l10n.inactive;
 

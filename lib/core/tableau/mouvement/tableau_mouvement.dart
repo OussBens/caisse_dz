@@ -5,7 +5,6 @@ import 'package:caisse_dz/data/models/mouvement.dart';
 import 'package:caisse_dz/data/models/produit.dart';
 import 'package:caisse_dz/data/models/client.dart';
 import 'package:caisse_dz/data/models/fournisseur.dart';
-import 'package:caisse_dz/data/models/magasin.dart';
 import 'package:caisse_dz/data/models/utilisateur.dart';
 import 'package:caisse_dz/l10n/app_localizations.dart';
 import 'package:flutter/material.dart';
@@ -19,7 +18,7 @@ class TableauMouvementAdvanced extends StatefulWidget {
   final List<Produit> produits;
   final List<Client> clients;
   final List<Fournisseur> fournisseurs;
-  final List<Magasin> magasins;
+  final Map<String, String> nomsMagasins;
   final List<Utilisateur> utilisateurs;
   final void Function(List<Mouvement>)? onSelectionChanged;
 
@@ -29,7 +28,7 @@ class TableauMouvementAdvanced extends StatefulWidget {
     required this.produits,
     required this.clients,
     required this.fournisseurs,
-    this.magasins = const [],
+    this.nomsMagasins = const {},
     this.utilisateurs = const [],
     this.onSelectionChanged,
   });
@@ -96,7 +95,7 @@ class _TableauMouvementAdvancedState extends State<TableauMouvementAdvanced> {
       produits: widget.produits,
       clients: widget.clients,
       fournisseurs: widget.fournisseurs,
-      magasins: widget.magasins,
+      nomsMagasins: widget.nomsMagasins,
       utilisateurs: widget.utilisateurs,
     );
     dataSource.onRowDoubleTap = (mouvement) => MouvementDetail(
@@ -105,7 +104,7 @@ class _TableauMouvementAdvancedState extends State<TableauMouvementAdvanced> {
       produits: widget.produits,
       clients: widget.clients,
       fournisseurs: widget.fournisseurs,
-      magasins: widget.magasins,
+      nomsMagasins: widget.nomsMagasins,
     );
 
     dataSource.addListener(() {

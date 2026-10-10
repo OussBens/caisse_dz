@@ -229,6 +229,10 @@ avec Magasins = A (principal) puis B, un produit P avec 3 en stock dans A et
 | 9.13 | Stock › Mouvements : double-clic sur un mouvement, puis Extract | Le détail affiche le Magasin ; l'Excel a une colonne Magasin (dernière colonne) | ⬜ | |
 | 9.14 | Connexion avec le compte `admin` (rôle « admin » en minuscules en base) | Admin reconnu partout : prix d'achat / marges visibles, choix de magasin dans Transfert, éclatement Entrée, caisse non imposée, alertes complètes | ⬜ | |
 | 9.15 | Licence Basic | Aucun champ Magasins dans Utilisateur ; colonne Magasin = magasin unique ; tout passe par ce magasin | ⬜ | |
+| 9.16 | Admin : désactiver un magasin qui a du stock et des mouvements | Stock, Mouvements, Dashboard, Inventaire et Mouvement produit les montrent toujours (colonne Magasin = son nom) | ⬜ | |
+| 9.17 | Admin : créer un magasin, puis (sans se déconnecter) Entrée éclatée vers ce magasin | Stock / Dashboard / Mouvements comptent la quantité entrée dans le nouveau magasin ; le magasin apparaît dans Distribution | ⬜ | |
+| 9.18 | U (limité à A) : Stock › Extract, Alertes à la connexion, card « produits en stock » | Mêmes quantités que le tableau (A seulement) ; un produit à 0 dans A et 50 dans B est en rupture partout | ⬜ | |
+| 9.19 | Stock › Mouvements : sélectionner 1 mouvement → carte « Détails » et icône détail de la barre | Le champ Magasin affiche le nom (pas le code) | ⬜ | |
 
 ---
 

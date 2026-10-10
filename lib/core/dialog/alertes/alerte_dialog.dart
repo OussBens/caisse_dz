@@ -34,6 +34,7 @@ Future<void> AlerteDialog(BuildContext context, {bool seulementSiAlertes = false
   final voirSessions = admin || role?.gestionCaisse == true;
 
   final alertes = await AlertesServices.getAlertes(
+    magasinsConsultation: auth.magasinsConsultation,
     produits: voirProduits,
     clients: voirClients,
     fournisseurs: voirFournisseurs,

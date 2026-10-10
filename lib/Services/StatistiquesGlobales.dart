@@ -30,12 +30,14 @@ class StatistiquesGlobalesServices {
   }
 
   /// Produits en stock = produits actifs dont la quantité calculée depuis le
-  /// journal des mouvements (tous magasins) est strictement positive — même
-  /// source que la colonne Quantité des écrans Produit/Stock.
-  static Future<CompteursGlobaux> getCompteurs() async {
+  /// journal des mouvements est strictement positive, sur les magasins
+  /// consultables par l'utilisateur ([magasinsConsultation], `null` = tous,
+  /// voir AuthState) — même source que la colonne Quantité des écrans
+  /// Produit/Stock.
+  static Future<CompteursGlobaux> getCompteurs({List<String>? magasinsConsultation}) async {
     final db = await DbCreator.openDb();
 
-    final quantites = (await MouvementsServices.totauxParProduit()).quantites;
+    final quantites = await MouvementsServices.quantitesConsultables(magasinsConsultation);
     final produitsActifs = await db.query('produits', columns: ['code'], where: 'etat = 1');
     final produitsEnStock = produitsActifs
         .where((p) => (quantites[p['code'] as String] ?? 0) > 0)

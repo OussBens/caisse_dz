@@ -182,6 +182,7 @@ class _BesionScreenState extends State<BesionScreen> with TickerProviderStateMix
   int nombreExpiresActifs    = 0;
 
   Future<void> loadAllData() async {
+    final magasinsConsultation = Provider.of<AuthState>(context, listen: false).magasinsConsultation;
     final test = await ProduitServices.getAllProduits();
     final besoinListDetails = await BesoinListDetailServices.getAllBesoinListDetail();
     final sousCategories    = await SousCategoriesServices.getAllSousCategorie();
@@ -191,7 +192,7 @@ class _BesionScreenState extends State<BesionScreen> with TickerProviderStateMix
     final remises           = await RemiseServices.getAllRemise();
     final param              = await ParamServices.getParam();
     final utilisateurs      = await UtilisateurServices.getAllUtilisateurs();
-    quantitesTest = (await MouvementsServices.totauxParProduit()).quantites;
+    quantitesTest = await MouvementsServices.quantitesConsultables(magasinsConsultation);
     besoinsTest = test.where((e) => (quantitesTest[e.code] ?? 0) <= param.Minimum).toList();
 
     // Produits expirés : date d'expiration renseignée et strictement antérieure
@@ -298,6 +299,7 @@ class _BesionScreenState extends State<BesionScreen> with TickerProviderStateMix
           translator: translator,
           seuilMin: seuilMinimum,
           seuilMax: seuilMaximum,
+          quantites: quantitesTest,
         );
       } else {
         // Expired Products (Produits expirés)
@@ -324,6 +326,7 @@ class _BesionScreenState extends State<BesionScreen> with TickerProviderStateMix
           translator: translator,
           seuilMin: seuilMinimum,
           seuilMax: seuilMaximum,
+          quantites: quantitesTest,
         );
       }
 
@@ -498,6 +501,7 @@ class _BesionScreenState extends State<BesionScreen> with TickerProviderStateMix
           translator: translator,
           seuilMin: seuilMinimum,
           seuilMax: seuilMaximum,
+          quantites: quantitesTest,
         );
       } else {
         // Expired Products
@@ -522,6 +526,7 @@ class _BesionScreenState extends State<BesionScreen> with TickerProviderStateMix
           translator: translator,
           seuilMin: seuilMinimum,
           seuilMax: seuilMaximum,
+          quantites: quantitesTest,
         );
       }
 

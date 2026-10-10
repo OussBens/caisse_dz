@@ -12,17 +12,17 @@
 | Caisse | N'a **plus** de magasin (colonne `caisseGestion.magasin_code` conservée, ignorée) |
 | Admin | Tous les magasins (les siens d'abord, dans leur ordre) |
 | Licence Basic | 1 caisse, 1 magasin — même logique avec une liste d'un seul magasin, rien n'est affiché |
-| Consultation du stock | Somme des magasins **consultables** (les siens ; tous pour Admin ou rôle « Voir le stock de tous les magasins ») |
+| Consultation du stock | Somme des magasins **consultables** : les siens ; pour Admin ou rôle « Voir le stock de tous les magasins », **sans filtre** (`AuthState.magasinsConsultation == null`) — magasins désactivés et magasins créés pendant la session compris |
 | Vente (panier) | Prend dans le magasin 1, puis 2… **1 mouvement par magasin servi** |
 | Stock total insuffisant à la vente | Comportement conservé : proposer de vendre le disponible |
 | Entrée / Smart Scan | Alimente le **magasin principal** |
 | Retour client | Revient dans le(s) magasin(s) **d'où le panier est sorti** (dernier servi d'abord) |
 | Retour fournisseur / Sortie | Un magasin qui a **toute** la quantité, sinon réparti dans l'ordre |
 | Distribution (Stock) | Répartir un produit entre magasins ; **le total ne change pas** |
-| Dashboard / Situations | Stock (valeur, ruptures, inventaire, mouvement produit) limité aux magasins **consultables** |
+| Dashboard / Situations / Alertes / compteurs / exports | Stock (valeur, ruptures, inventaire, mouvement produit, alertes de rupture, card « produits en stock », export Excel Produits) limité aux magasins **consultables** (`MouvementsServices.quantitesConsultables`) |
 | Listes de mouvements | Limitées aux magasins consultables ; chaque ligne affiche **son magasin** (tableau, détail, exports) |
 | Ventes / marges | Non filtrées par magasin : une vente appartient à une caisse et peut être servie par plusieurs magasins |
-| Rôle Admin | Toujours testé via `AuthState.estAdmin` / `AuthState.estRoleAdmin(role)` (« admin » est en minuscules en base) |
+| Rôle Admin | Toujours testé via `RoleServices.estRoleAdmin(role)` / `sqlEstAdmin` (couche Services) ou `AuthState.estAdmin` (« admin » est en minuscules en base) |
 
 ## 2. Architecture mise en place
 
@@ -37,9 +37,9 @@ mouvements : 1 mouvement = 1 produit + 1 magasin + 1 sens
 | Table `utilisateur_magasin` + migration v52 | `lib/DBCreate.dart` | Reprise : magasin de la caisse de chaque utilisateur → principal (Admin : tous). Mouvements sans magasin rattachés au principal de leur créateur |
 | Magasins d'un utilisateur | `lib/Services/UtilisateurMagasin.dart` | `magasinsUtilisateur`, `magasinsConfigures`, `definirMagasins` |
 | Règles de répartition (pures) | `lib/Services/RepartitionStock.dart` | `sequentielle`, `unMagasinSinonSequentielle`, `retourVersOrigine`, `distributionValide`, `deltasDistribution` — **16 tests** (`test/repartition_stock_test.dart`) |
-| Stock par magasin | `lib/Services/Mouvement.dart` | `quantitesParMagasin`, `totauxParProduitPourMagasins`, `totauxPourFiltre`, `getMouvementsPourMagasins`, `repartirSortie`, `repartirRetourClient` |
-| Session | `lib/core/Auth/auth_state.dart` | `magasins`, `magasinPrincipal`, `magasinsConsultation`, `peutConsulterMagasin`, `chargerMagasins()` (à la connexion et à `signalerChangementCaisseMagasin`), `estAdmin` / `estRoleAdmin` |
-| Statistiques magasin | `lib/Services/Magasin.dart` | `getStatistiquesMagasin` : produits en stock, valeur, **utilisateurs** du magasin, transferts |
+| Stock par magasin | `lib/Services/Mouvement.dart` | `quantitesParMagasin`, `totauxParProduitPourMagasins`, `totauxPourFiltre`, `quantitesConsultables`, `getMouvements({magasins})` (`null` = tous), `repartirSortie`, `repartirRetourClient` |
+| Session | `lib/core/Auth/auth_state.dart` | `magasins`, `magasinPrincipal`, `magasinsConsultation`, `peutConsulterMagasin`, `chargerMagasins()` (à la connexion et à `signalerChangementCaisseMagasin`), `estAdmin` ; liste rechargée après création / modification / (dés)activation d'un magasin |
+| Magasins | `lib/Services/Magasin.dart` | `getStatistiquesMagasin` (produits en stock, valeur, **utilisateurs** du magasin dont Admin, transferts) ; `getNomsMagasins` / `nomMagasin` (nom du magasin d'un mouvement) |
 | Saisie des magasins | `lib/core/widget/champ/champ_magasins_ordonnes.dart` | Champ réutilisable : liste ordonnée, flèches, « Principal », ajout/retrait |
 
 ## 3. Avancement
@@ -90,4 +90,5 @@ poste Windows (l'environnement cloud ne lance pas l'application).
 - [x] Code mort supprimé : `CaisseParamServices.synchroniserMagasinDeCaisse` et `MagasinServices.getMagasinCodeUtilisateur` (magasin lu sur la caisse). Le détail Magasin compte désormais les **utilisateurs** du magasin au lieu des caisses.
 - [x] Rapports / exports : colonne **Magasin** dans Stock › Mouvements (tableau, détail, Excel — ajoutée en dernière colonne pour ne pas décaler les autres) et dans Situation › Mouvement produit (tableau + export).
 - [x] Modification d'un panier (`pannier_modif`) : sans objet — le contenu d'un panier encaissé est verrouillé (conformité fiscale, `PannierServices.updatePannier`) ; l'annulation, elle, passe par les mouvements de tous les magasins servis.
+- [x] Revue du 10/10 (9 points) : Admin sans filtre magasin (magasins désactivés / créés en session visibles), export Excel Produits / Stock / Besoin = quantités affichées, Alertes et compteurs sur les magasins consultables, Magasin dans tous les accès au détail d'un mouvement, Admin compté dans la card Utilisateurs, `getMouvements` unique, règle Admin dans `RoleServices`, nom de magasin centralisé. Tests : `test/role_admin_test.dart`, `test/magasin_noms_test.dart`.
 - [x] `produit_magasin_detail` : **conservé** pour le second compteur « nombre » (encore utilisé par une quinzaine de dialogs). Le stock en quantité vient exclusivement du journal `mouvements`. Basculer « nombre » sur les mouvements (`totauxParProduit` calcule déjà `nombres`) reste une évolution possible, hors chantier.

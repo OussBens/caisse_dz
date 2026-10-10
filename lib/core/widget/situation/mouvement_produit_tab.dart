@@ -76,8 +76,8 @@ class _MouvementProduitTabState extends State<MouvementProduitTab> {
     // quantité avant/après est donc celle de ces magasins réunis.
     final magasinsConsultation = Provider.of<AuthState>(context, listen: false).magasinsConsultation;
     produits = await ProduitServices.getAllProduits();
-    mouvements = await MouvementsServices.getMouvementsPourMagasins(magasinsConsultation);
-    nomsMagasins = {for (final m in await MagasinServices.getAllMagasins()) m.code: m.nom};
+    mouvements = await MouvementsServices.getMouvements(magasins: magasinsConsultation);
+    nomsMagasins = await MagasinServices.getNomsMagasins();
     if (!mounted) return;
     setState(() => loading = false);
   }
@@ -200,7 +200,7 @@ class _MouvementProduitTabState extends State<MouvementProduitTab> {
           qttMouvement: delta,
           qttApres: cumul,
           etat: m.etat,
-          magasin: nomsMagasins[m.magasinCode] ?? m.magasinCode ?? '-',
+          magasin: MagasinServices.nomMagasin(nomsMagasins, m.magasinCode),
         ));
       }
     });

@@ -80,14 +80,8 @@ class AuthState extends ChangeNotifier {
     _roleDetail = code == null ? null : await RoleDetailServices.getRoleByCode(code);
   }
 
-  /// Vrai si [role] est le rôle Admin. Le rôle par défaut est enregistré
-  /// « admin » (minuscules) en base alors que les rôles proposés à la saisie
-  /// s'écrivent « Admin » : toujours comparer via cette fonction, jamais
-  /// `role == 'Admin'`.
-  static bool estRoleAdmin(String? role) => role?.trim().toLowerCase() == 'admin';
-
-  /// Vrai si l'utilisateur connecté est Admin (voir [estRoleAdmin]).
-  bool get estAdmin => estRoleAdmin(_role);
+  /// Vrai si l'utilisateur connecté est Admin (voir RoleServices.estRoleAdmin).
+  bool get estAdmin => RoleServices.estRoleAdmin(_role);
 
   // Permissions spéciales (phase 3 du formulaire Rôle, voir RoleDetail) —
   // Admin les a toutes implicitement, quel que soit le contenu réel de son
@@ -152,7 +146,6 @@ class AuthState extends ChangeNotifier {
   // Scan, premier servi à la vente). Admin : tous les magasins. Voir
   // UtilisateurMagasinServices et RepartitionStock.
   List<String> _magasins = [];
-  List<String> _magasinsConsultation = [];
 
   /// Magasins de travail (ventes, entrées, sorties…), principal en tête.
   List<String> get magasins => _magasins.isEmpty ? const ['MAG0000'] : List.unmodifiable(_magasins);
@@ -160,22 +153,22 @@ class AuthState extends ChangeNotifier {
   /// Magasin principal : alimenté par Entrée / Smart Scan.
   String get magasinPrincipal => magasins.first;
 
-  /// Magasins dont l'utilisateur peut CONSULTER le stock : les siens, ou tous
-  /// pour un Admin / un rôle « Voir le stock de tous les magasins ».
-  List<String> get magasinsConsultation =>
-      _magasinsConsultation.isEmpty ? magasins : List.unmodifiable(_magasinsConsultation);
+  /// Magasins dont l'utilisateur peut CONSULTER le stock (stock affiché,
+  /// listes de mouvements, Dashboard, Situations, alertes, exports) : les
+  /// siens, ou `null` = TOUS les magasins pour un Admin / un rôle « Voir le
+  /// stock de tous les magasins » — y compris les magasins désactivés (leur
+  /// stock et leur historique restent visibles) et ceux créés depuis la
+  /// connexion. À passer tel quel aux services (MouvementsServices…), où
+  /// `null` signifie « sans filtre magasin ».
+  List<String>? get magasinsConsultation => estAdmin || canVoirStockTousMagasins ? null : magasins;
 
-  bool peutConsulterMagasin(String magasinCode) => magasinsConsultation.contains(magasinCode);
+  bool peutConsulterMagasin(String magasinCode) => magasinsConsultation?.contains(magasinCode) ?? true;
 
   Future<void> chargerMagasins() async {
     if (_userCode == null) {
       _magasins = [];
-      _magasinsConsultation = [];
     } else {
       _magasins = await UtilisateurMagasinServices.magasinsUtilisateur(_userCode!, estAdmin: estAdmin);
-      _magasinsConsultation = estAdmin || canVoirStockTousMagasins
-          ? await UtilisateurMagasinServices.magasinsUtilisateur(_userCode!, estAdmin: true)
-          : _magasins;
     }
     notifyListeners();
   }
@@ -816,7 +809,6 @@ class AuthState extends ChangeNotifier {
     _currentMagasinId = null;
     _favoris = [];
     _magasins = [];
-    _magasinsConsultation = [];
 
     int idm = await _GetNextHistoriqueId();
     String codem = 'HS$idm${DateTime.now().millisecondsSinceEpoch}';

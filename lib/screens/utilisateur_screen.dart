@@ -469,7 +469,7 @@ class _UtilisateurScreenState extends State<UtilisateurScreen> with TickerProvid
   int getUtilisateursInactifs() =>
       utilisateurs.where((u) => !u.etat).length;
   int getUtilisateursAdmin() =>
-      utilisateurs.where((u) => AuthState.estRoleAdmin(u.role)).length;
+      utilisateurs.where((u) => RoleServices.estRoleAdmin(u.role)).length;
   int getUtilisateursCaissier() =>
       utilisateurs.where((u) => u.role == "Caissier").length;
   int getUtilisateursMagasinier() =>

@@ -11,6 +11,15 @@ class RoleServices {
 
   RoleServices(this.db);
 
+  /// Vrai si [rolenom] désigne le rôle Admin. Le rôle par défaut est
+  /// enregistré « admin » (minuscules) en base alors que les rôles proposés
+  /// à la saisie s'écrivent « Admin » : toujours comparer via cette
+  /// fonction (ou [sqlEstAdmin] en SQL), jamais `role == 'Admin'`.
+  static bool estRoleAdmin(String? rolenom) => rolenom?.trim().toLowerCase() == 'admin';
+
+  /// Équivalent SQL de [estRoleAdmin] pour la colonne [colonne].
+  static String sqlEstAdmin(String colonne) => "LOWER(TRIM($colonne)) = 'admin'";
+
   // 🔹 ACTIVATE / DEACTIVATE
   Future<int> ActDis(List<Role> roles) async {
     final db = await DbCreator.openDb();
@@ -51,7 +60,7 @@ class RoleServices {
   /// puis un utilisateur avec ce rôle.
   static Future<List<Role>> getAssignableRoles() async {
     final all = await getAllRoles();
-    return all.where((r) => r.rolenom.trim().toLowerCase() != 'admin').toList();
+    return all.where((r) => !estRoleAdmin(r.rolenom)).toList();
   }
 
   /// Retourne le rôle (autre que [excludeRoleCode]) portant déjà ce nom

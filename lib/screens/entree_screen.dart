@@ -131,6 +131,7 @@ class _EntreeScreenState extends State<EntreeScreen> with TickerProviderStateMix
   CompteursGlobaux compteursGlobaux = const CompteursGlobaux();
 
   Future<void> loadAllData() async {
+    final magasinsConsultation = Provider.of<AuthState>(context, listen: false).magasinsConsultation;
     final test = await ProduitServices.getAllProduits();
 
     final besoinListDetails = await BesoinListDetailServices.getAllBesoinListDetail();
@@ -145,9 +146,9 @@ class _EntreeScreenState extends State<EntreeScreen> with TickerProviderStateMix
     final utilisateurs      = await UtilisateurServices.getAllUtilisateurs();
     final bonsReceptionList = await BonReceptionServices.getAllBonReceptions();
     // ✅ Quantités calculées depuis le journal des mouvements — remplace Produit.quantite.
-    final quantitesTest = (await MouvementsServices.totauxParProduit()).quantites;
+    final quantitesTest = await MouvementsServices.quantitesConsultables(magasinsConsultation);
 
-    final compteurs = await StatistiquesGlobalesServices.getCompteurs();
+    final compteurs = await StatistiquesGlobalesServices.getCompteurs(magasinsConsultation: magasinsConsultation);
     if (!mounted) return;
     setState(() {
       compteursGlobaux = compteurs;

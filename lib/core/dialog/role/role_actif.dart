@@ -26,7 +26,7 @@ Future<int> _DeleteRoles({required BuildContext context, required List<Role> rol
 
   for (var role in roles) {
     // ✅ Le rôle Admin ne peut pas être supprimé.
-    if (role.rolenom.trim().toLowerCase() == 'admin') {
+    if (RoleServices.estRoleAdmin(role.rolenom)) {
       await InformationDialog(
         context: context,
         titre_type_message: l10n.deletionImpossible,
